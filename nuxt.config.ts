@@ -13,9 +13,13 @@ export default defineNuxtConfig({
   },
 
   supabase: {
-    // 階段 2 才做登入頁。在那之前關掉模組的自動導向，
-    // 否則未登入時會被強制導去尚未存在的 /login。
-    redirect: false,
+    // 階段 2 起恢復模組預設的自動導向：未登入者一律導向 /login。
+    // exclude 需自行加上 /signup，否則還沒有帳號的人會被導走、無法註冊。
+    redirectOptions: {
+      login: '/login',
+      callback: '/confirm',
+      exclude: ['/signup'],
+    },
   },
 
   app: {
