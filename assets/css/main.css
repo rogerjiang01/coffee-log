@@ -1,0 +1,66 @@
+@import "tailwindcss";
+@import "./tokens.css";
+
+/* 把設計 token 接到 Tailwind 的 theme 上，讓 bg-accent / text-muted /
+   shadow-overlay 這類 utility 可用。使用 inline 讓 utility 直接輸出
+   var()，之後改 token 不需重編譯即可全站生效。
+
+   --radius-* 與 --text-* 不在這裡對應：tokens.css 已直接沿用
+   Tailwind 的 theme 命名並覆蓋其預設值，rounded-* / text-* 會自動吃到。 */
+@theme inline {
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-accent: var(--accent);
+  --color-accent-soft: var(--accent-soft);
+  --color-accent-wash: var(--accent-wash);
+  --color-text: var(--text);
+  --color-muted: var(--text-muted);
+  --color-border: var(--border);
+  --color-favorite: var(--favorite);
+  --color-danger: var(--danger);
+  --color-diff: var(--diff);
+  --color-wash-warm: var(--wash-warm);
+
+  --color-roast-light: var(--roast-light);
+  --color-roast-light-text: var(--roast-light-text);
+  --color-roast-medium-light: var(--roast-medium-light);
+  --color-roast-medium-light-text: var(--roast-medium-light-text);
+  --color-roast-medium: var(--roast-medium);
+  --color-roast-medium-text: var(--roast-medium-text);
+  --color-roast-medium-dark: var(--roast-medium-dark);
+  --color-roast-medium-dark-text: var(--roast-medium-dark-text);
+  --color-roast-dark: var(--roast-dark);
+  --color-roast-dark-text: var(--roast-dark-text);
+
+  --font-sans: var(--font-body);
+  --font-serif: var(--font-heading);
+
+  /* 唯一一級陰影，只給浮出層。卡片與表單區塊不得使用。 */
+  --shadow-overlay: var(--overlay-shadow);
+}
+
+@layer base {
+  html {
+    background-color: var(--bg);
+    color: var(--text);
+    font-family: var(--font-body);
+    /* 規範：中文字距不加 */
+    letter-spacing: 0;
+  }
+
+  body {
+    line-height: var(--leading-body);
+  }
+
+  /* 規範第 6 節：必須遵守 prefers-reduced-motion */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}
