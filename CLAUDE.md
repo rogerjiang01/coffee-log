@@ -54,7 +54,7 @@ Supabase（Auth / Postgres / Storage）
 | 階段 | 內容 | 狀態 | 驗收方式 |
 |---|---|---|---|
 | 0 | Nuxt + Supabase + Tailwind 初始化，建立設計 token | 完成 | 本機能跑起來，token 檔案存在 |
-| 1 | 全部 migration ＋ RLS policy ＋ 基礎 seed | 未開始 | 兩個測試帳號互相讀不到對方資料 |
+| 1 | 全部 migration ＋ RLS policy ＋ 基礎 seed | 待推送 | 兩個測試帳號互相讀不到對方資料 |
 | 2 | 註冊、登入、登出 | 未開始 | 能完整走一遍 |
 | 3 | 豆子 CRUD，含豆袋照片上傳 | 未開始 | 只填豆名能存檔 |
 | 4 | 器材 CRUD，含型錄選擇與預設值 | 未開始 | EK43（無段）能正常填刻度 |
