@@ -27,7 +27,7 @@ async function onSubmit({ values, photo }: { values: BeanFormValues; photo: Comp
     roast_date: values.roast_date || null,
     roast_level: values.roast_level,
     country_id: values.country_id,
-    region_id: values.region_id,
+    region: values.region.trim() || null,
     processing_method_id: values.processing_method_id,
     variety_id: values.variety_id,
     official_notes: values.official_notes.trim() || null,

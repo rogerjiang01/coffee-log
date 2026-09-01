@@ -11,8 +11,7 @@
 const props = defineProps<{
   modelValue: string | null
   label: string
-  table: 'processing_methods' | 'varieties' | 'regions'
-  countryId?: string | null
+  table: 'processing_methods' | 'varieties'
   hint?: string
 }>()
 
@@ -40,12 +39,14 @@ const canCreate = computed(() =>
 
 async function load() {
   loading.value = true
-  let request = supabase.from(props.table).select('id, name, aliases, user_id')
-  // regions 依所選產國過濾；未選產國時全部列出，讓使用者不必先選國家
-  if (props.table === 'regions' && props.countryId) {
-    request = request.eq('country_id', props.countryId)
-  }
-  const { data } = await request.order('user_id', { nullsFirst: true }).order('sort_order')
+  // sort_order 在使用者自建項目上一律是預設值 0，會產生並列，
+  // 因此補 name 當決勝鍵，避免每次載入順序不同
+  const { data } = await supabase
+    .from(props.table)
+    .select('id, name, aliases, user_id')
+    .order('user_id', { nullsFirst: true })
+    .order('sort_order')
+    .order('name')
   items.value = (data ?? []) as unknown as LookupItem[]
   loading.value = false
 }
@@ -55,10 +56,6 @@ onMounted(() => {
   document.addEventListener('click', onDocumentClick)
 })
 onBeforeUnmount(() => document.removeEventListener('click', onDocumentClick))
-
-watch(() => props.countryId, () => {
-  if (props.table === 'regions') load()
-})
 
 function onDocumentClick(event: MouseEvent) {
   if (open.value && root.value && !root.value.contains(event.target as Node)) close()
@@ -96,7 +93,6 @@ async function create() {
   saveError.value = ''
 
   const row: Record<string, unknown> = { name, user_id: userId.value }
-  if (props.table === 'regions' && props.countryId) row.country_id = props.countryId
 
   const { data, error } = await supabase
     .from(props.table)

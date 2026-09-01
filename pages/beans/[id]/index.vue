@@ -11,7 +11,7 @@ interface BeanDetail {
   official_notes: string | null
   is_finished: boolean
   countries: { name_zh: string } | null
-  regions: { name: string } | null
+  region: string | null
   processing_methods: { name: string } | null
   varieties: { name: string } | null
 }
@@ -35,8 +35,8 @@ async function load() {
   const { data } = await supabase
     .from('beans')
     .select(`
-      id, name, photo_path, roaster, roast_date, roast_level, official_notes, is_finished,
-      countries ( name_zh ), regions ( name ),
+      id, name, photo_path, roaster, roast_date, roast_level, region, official_notes, is_finished,
+      countries ( name_zh ),
       processing_methods ( name ), varieties ( name )
     `)
     .eq('id', id.value)
@@ -71,7 +71,7 @@ const rows = computed(() => {
     { label: '養豆天數', value: days.value === null ? null : `${days.value} 天` },
     { label: '烘焙度', value: b.roast_level ? roastLabels[b.roast_level] : null },
     { label: '產國', value: b.countries?.name_zh ?? null },
-    { label: '產區', value: b.regions?.name ?? null },
+    { label: '產區', value: b.region },
     { label: '處理法', value: b.processing_methods?.name ?? null },
     { label: '品種', value: b.varieties?.name ?? null },
   ].filter(row => row.value)

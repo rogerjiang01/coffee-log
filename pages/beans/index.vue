@@ -1,11 +1,10 @@
 <script setup lang="ts">
-// 豆子列表。未喝完的排前面，其餘依建立時間倒序。
+// 豆子列表。未喝完的排前面，同組內依建立時間倒序。
 
 interface BeanRow {
   id: string
   name: string
   photo_path: string | null
-  roaster: string | null
   roast_date: string | null
   roast_level: RoastLevel | null
   is_finished: boolean
@@ -16,6 +15,7 @@ const { signedUrls } = useBeanPhotos()
 
 const beans = ref<BeanRow[]>([])
 const photoUrls = ref<Map<string, string>>(new Map())
+const brewCounts = ref<Map<string, number>>(new Map())
 const loading = ref(true)
 const loadError = ref('')
 
@@ -23,27 +23,42 @@ async function load() {
   loading.value = true
   loadError.value = ''
   try {
+    // 排序全部寫死：未喝完在前，再依建立時間倒序，最後用 id 當決勝鍵。
+    // 少了決勝鍵時，created_at 相同的兩筆每次載入的順序可能不同。
     const { data, error } = await supabase
       .from('beans')
-      .select('id, name, photo_path, roaster, roast_date, roast_level, is_finished')
-      .order('is_finished')
+      .select('id, name, photo_path, roast_date, roast_level, is_finished')
+      .order('is_finished', { ascending: true })
       .order('created_at', { ascending: false })
+      .order('id', { ascending: false })
     if (error) throw new Error(error.message)
 
     beans.value = (data ?? []) as unknown as BeanRow[]
-    // 簽名網址失敗不該讓整頁停在讀取中，照片缺了還是要看得到清單
+
+    // 照片與沖煮次數都不該拖垮清單，各自獨立容錯
     try {
       photoUrls.value = await signedUrls(beans.value.map(bean => bean.photo_path))
     }
     catch {
       photoUrls.value = new Map()
     }
+
+    try {
+      const { data: brews } = await supabase.from('brews').select('bean_id')
+      const counts = new Map<string, number>()
+      for (const row of (brews ?? []) as unknown as { bean_id: string }[]) {
+        counts.set(row.bean_id, (counts.get(row.bean_id) ?? 0) + 1)
+      }
+      brewCounts.value = counts
+    }
+    catch {
+      brewCounts.value = new Map()
+    }
   }
   catch (e) {
     loadError.value = e instanceof Error ? `讀不到豆子：${e.message}` : '讀不到豆子'
   }
   finally {
-    // 放在 finally，任何失敗都不會讓頁面停在「讀取中」而看不到新增入口
     loading.value = false
   }
 }
@@ -52,20 +67,12 @@ onMounted(load)
 </script>
 
 <template>
-  <main class="mx-auto px-5 py-10" :style="{ maxWidth: 'var(--content-max)' }">
+  <!-- 底部留白避開浮動按鈕，否則最後一筆會被永久遮住 -->
+  <main class="mx-auto px-5 pt-10 pb-28" :style="{ maxWidth: 'var(--content-max)' }">
     <div class="flex items-baseline justify-between">
       <h1 class="font-serif text-xl font-bold">豆子</h1>
       <NuxtLink to="/" class="text-sm underline" :style="{ color: 'var(--accent)' }">回首頁</NuxtLink>
     </div>
-
-    <!-- 新增入口放在所有分支之外，讀取中或讀取失敗時一樣看得到 -->
-    <NuxtLink
-      to="/beans/new"
-      class="mt-6 block w-full rounded-sm px-4 py-3 text-center font-medium"
-      :style="{ background: 'var(--accent)', color: '#FFFFFF', minHeight: '44px' }"
-    >
-      新增
-    </NuxtLink>
 
     <p v-if="loadError" role="alert" class="mt-4 text-sm" :style="{ color: 'var(--danger)' }">
       {{ loadError }}
@@ -73,25 +80,36 @@ onMounted(load)
 
     <p v-if="loading" class="mt-6 text-muted">讀取中</p>
 
-    <!-- 空狀態是邀請行動的時機，不是說明現況的時機（《02》§9）。
-         新增入口就在上方，這裡只說第一步怎麼做。 -->
     <p v-else-if="!beans.length && !loadError" class="mt-6 text-muted">
       拍一張豆袋、打個豆名就能存。
     </p>
 
-    <ul v-else class="mt-6 space-y-4">
+    <ul v-else class="mt-6 space-y-3">
       <li v-for="bean in beans" :key="bean.id">
         <NuxtLink :to="`/beans/${bean.id}`" class="block">
           <BeanCard
             :name="bean.name"
             :photo-url="bean.photo_path ? (photoUrls.get(bean.photo_path) ?? null) : null"
             :roast-level="bean.roast_level"
-            :roaster="bean.roaster"
             :roast-date="bean.roast_date"
+            :brew-count="brewCounts.get(bean.id) ?? 0"
             :is-finished="bean.is_finished"
           />
         </NuxtLink>
       </li>
     </ul>
+
+    <!-- 列表頁的新增入口一律是右下角浮動按鈕（§3 導覽）：
+         單手持手機時拇指在下方，頂部按鈕構不到。 -->
+    <NuxtLink
+      to="/beans/new"
+      aria-label="新增豆子"
+      class="fixed right-5 bottom-6 flex size-14 items-center justify-center rounded-lg"
+      :style="{ background: 'var(--accent)', color: '#FFFFFF', boxShadow: 'var(--overlay-shadow)' }"
+    >
+      <svg width="24" height="24" viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+      </svg>
+    </NuxtLink>
   </main>
 </template>

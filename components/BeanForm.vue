@@ -30,7 +30,7 @@ const values = reactive<BeanFormValues>({
   roast_date: props.initial?.roast_date ?? '',
   roast_level: props.initial?.roast_level ?? null,
   country_id: props.initial?.country_id ?? null,
-  region_id: props.initial?.region_id ?? null,
+  region: props.initial?.region ?? '',
   processing_method_id: props.initial?.processing_method_id ?? null,
   variety_id: props.initial?.variety_id ?? null,
   official_notes: props.initial?.official_notes ?? '',
@@ -45,17 +45,17 @@ const nameError = ref('')
 const summaryError = ref('')
 
 const countries = ref<{ id: string; name_zh: string }[]>([])
-onMounted(async () => {
-  const { data } = await supabase
-    .from('countries')
-    .select('id, name_zh')
-    .order('sort_order')
-  countries.value = (data ?? []) as unknown as { id: string; name_zh: string }[]
-})
+// 產區是自由文字，建議來源是使用者自己填過的值，沒有歷史就沒有建議
+const regionSuggestions = ref<string[]>([])
 
-// 換國家時清掉已選產區，避免留下不屬於該國的產區
-watch(() => values.country_id, (next, prev) => {
-  if (prev !== undefined && next !== prev) values.region_id = null
+onMounted(async () => {
+  const [countryResult, regionResult] = await Promise.all([
+    supabase.from('countries').select('id, name_zh').order('sort_order').order('name_zh'),
+    supabase.from('beans').select('region').not('region', 'is', null).order('region'),
+  ])
+  countries.value = (countryResult.data ?? []) as unknown as { id: string; name_zh: string }[]
+  const seen = (regionResult.data ?? []) as unknown as { region: string | null }[]
+  regionSuggestions.value = [...new Set(seen.map(row => row.region).filter((v): v is string => !!v))]
 })
 
 function onPhotoPicked(picked: CompressedImage | null) {
@@ -118,6 +118,7 @@ function selectStyle(value: unknown) {
         v-model="values.roast_date"
         type="date"
         class="mt-1 block w-full rounded-sm border px-3 py-2.5"
+        :class="{ 'date-empty': !values.roast_date }"
         :style="inputStyle"
       >
       <p class="mt-1 text-xs text-muted">填了才會顯示養豆天數</p>
@@ -154,13 +155,19 @@ function selectStyle(value: unknown) {
     </div>
 
     <div class="mt-5">
-      <LookupSelect
-        v-model="values.region_id"
-        label="產區"
-        table="regions"
-        :country-id="values.country_id"
-        :hint="values.country_id ? undefined : '選了產國就只會列出該國的產區'"
-      />
+      <label class="block text-sm" for="bean-region">產區</label>
+      <input
+        id="bean-region"
+        v-model="values.region"
+        type="text"
+        list="bean-region-options"
+        class="mt-1 block w-full rounded-sm border px-3 py-2.5"
+        :style="inputStyle"
+      >
+      <!-- 建議來自使用者填過的值，沒有歷史就沒有建議，不擋任何輸入 -->
+      <datalist id="bean-region-options">
+        <option v-for="suggestion in regionSuggestions" :key="suggestion" :value="suggestion" />
+      </datalist>
     </div>
 
     <div class="mt-5">

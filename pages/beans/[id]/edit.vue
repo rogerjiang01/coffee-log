@@ -19,7 +19,7 @@ const error = ref('')
 onMounted(async () => {
   const { data } = await supabase
     .from('beans')
-    .select('name, photo_path, roaster, roast_date, roast_level, country_id, region_id, processing_method_id, variety_id, official_notes, is_finished')
+    .select('name, photo_path, roaster, roast_date, roast_level, country_id, region, processing_method_id, variety_id, official_notes, is_finished')
     .eq('id', id.value)
     .maybeSingle()
 
@@ -37,7 +37,7 @@ onMounted(async () => {
     roast_date: (bean.roast_date as string | null) ?? '',
     roast_level: (bean.roast_level as RoastLevel | null) ?? null,
     country_id: (bean.country_id as string | null) ?? null,
-    region_id: (bean.region_id as string | null) ?? null,
+    region: (bean.region as string | null) ?? '',
     processing_method_id: (bean.processing_method_id as string | null) ?? null,
     variety_id: (bean.variety_id as string | null) ?? null,
     official_notes: (bean.official_notes as string | null) ?? '',
@@ -81,7 +81,7 @@ async function onSubmit(
       roast_date: values.roast_date || null,
       roast_level: values.roast_level,
       country_id: values.country_id,
-      region_id: values.region_id,
+      region: values.region.trim() || null,
       processing_method_id: values.processing_method_id,
       variety_id: values.variety_id,
       official_notes: values.official_notes.trim() || null,

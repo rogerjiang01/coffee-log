@@ -59,6 +59,18 @@
     opacity: 1;
   }
 
+  /* input[type="date"] 不吃 ::placeholder，未填時顯示的 yyyy/mm/dd
+     是瀏覽器自繪的內容。.date-empty 由元件在無值時掛上。
+     兩條都需要：WebKit 走 ::-webkit-datetime-edit，
+     Firefox 沒有對應偽元素，只能改輸入框本身的 color。 */
+  input[type="date"].date-empty {
+    color: var(--text-muted);
+  }
+
+  input[type="date"].date-empty::-webkit-datetime-edit {
+    color: var(--text-muted);
+  }
+
   /* 規範第 6 節：必須遵守 prefers-reduced-motion */
   @media (prefers-reduced-motion: reduce) {
     *,
