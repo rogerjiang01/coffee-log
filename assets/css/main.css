@@ -52,6 +52,13 @@
     line-height: var(--leading-body);
   }
 
+  /* 規範：placeholder 一律用 --text-muted，不得用 --text，
+     否則看起來像已經填好的值。opacity 歸零 Firefox 的預設淡化。 */
+  ::placeholder {
+    color: var(--text-muted);
+    opacity: 1;
+  }
+
   /* 規範第 6 節：必須遵守 prefers-reduced-motion */
   @media (prefers-reduced-motion: reduce) {
     *,

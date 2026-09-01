@@ -1,11 +1,12 @@
 <script setup lang="ts">
-// 查表型欄位（《02-功能規格》§10 的共通行為）。
+// 查表型欄位（《02-功能規格》§10）。
 //
-// - 系統內建項目排前面、自建排後面，以 optgroup 視覺區分
-// - 選單底部提供「新增」
-// - 自建時對現有項目（含 aliases）做模糊比對，命中時提示
-//   「你是不是指『X』？」並提供直接選用
-// - 全部選填，任何情況都不阻擋
+// 下拉本身可搜尋：輸入時即時過濾現有項目（含 aliases），
+// 打完字沒有完全相符的才在底部出現「新增『…』」，點下去直接建立。
+//
+// 模糊比對的用途是即時過濾，不是事後攔截。使用者打「厭氧」就會看到
+// 厭氧日曬與厭氧水洗，自然會選既有的——減少重複建立的成本由系統承擔，
+// 不丟給使用者確認。
 
 const props = defineProps<{
   modelValue: string | null
@@ -22,58 +23,75 @@ const userId = useCurrentUserId()
 
 const items = ref<LookupItem[]>([])
 const loading = ref(true)
-const creating = ref(false)
-const draft = ref('')
-const saveError = ref('')
+const open = ref(false)
+const query = ref('')
 const saving = ref(false)
+const saveError = ref('')
 
-const grouped = computed(() => splitBySource(items.value))
-const suggestions = computed(() => findSimilar(draft.value, items.value))
+const root = ref<HTMLElement | null>(null)
+const searchInput = ref<HTMLInputElement | null>(null)
+
+const selected = computed(() => items.value.find(item => item.id === props.modelValue) ?? null)
+const matches = computed(() => filterLookup(query.value, items.value))
+const grouped = computed(() => splitBySource(matches.value))
+const canCreate = computed(() =>
+  query.value.trim().length > 0 && !hasExactMatch(query.value, items.value),
+)
 
 async function load() {
   loading.value = true
-  let query = supabase.from(props.table).select('id, name, aliases, user_id')
+  let request = supabase.from(props.table).select('id, name, aliases, user_id')
   // regions 依所選產國過濾；未選產國時全部列出，讓使用者不必先選國家
   if (props.table === 'regions' && props.countryId) {
-    query = query.eq('country_id', props.countryId)
+    request = request.eq('country_id', props.countryId)
   }
-  const { data } = await query.order('user_id', { nullsFirst: true }).order('sort_order')
+  const { data } = await request.order('user_id', { nullsFirst: true }).order('sort_order')
   items.value = (data ?? []) as unknown as LookupItem[]
   loading.value = false
 }
 
-onMounted(load)
+onMounted(() => {
+  load()
+  document.addEventListener('click', onDocumentClick)
+})
+onBeforeUnmount(() => document.removeEventListener('click', onDocumentClick))
+
 watch(() => props.countryId, () => {
   if (props.table === 'regions') load()
 })
 
-function onSelect(event: Event) {
-  const value = (event.target as HTMLSelectElement).value
-  if (value === '__create__') {
-    creating.value = true
-    draft.value = ''
-    saveError.value = ''
-    return
-  }
-  emit('update:modelValue', value || null)
+function onDocumentClick(event: MouseEvent) {
+  if (open.value && root.value && !root.value.contains(event.target as Node)) close()
 }
 
-function useExisting(item: LookupItem) {
-  emit('update:modelValue', item.id)
-  creating.value = false
-  draft.value = ''
+async function toggle() {
+  open.value = !open.value
+  saveError.value = ''
+  if (open.value) {
+    query.value = ''
+    await nextTick()
+    searchInput.value?.focus()
+  }
+}
+
+function close() {
+  open.value = false
+  query.value = ''
+}
+
+function pick(id: string | null) {
+  emit('update:modelValue', id)
+  close()
 }
 
 async function create() {
-  const name = draft.value.trim()
-  if (!name) {
-    saveError.value = '填一下名稱'
-    return
-  }
+  const name = query.value.trim()
+  if (!name || saving.value) return
   if (!userId.value) {
     saveError.value = '登入狀態好像過期了，重新登入一次再試'
     return
   }
+
   saving.value = true
   saveError.value = ''
 
@@ -88,96 +106,130 @@ async function create() {
   saving.value = false
 
   if (error) {
-    saveError.value = `沒有存起來：${error.message}`
+    saveError.value = `沒有新增成功：${error.message}`
     return
   }
   const created = data as unknown as LookupItem
   items.value = [...items.value, created]
-  emit('update:modelValue', created.id)
-  creating.value = false
-  draft.value = ''
+  pick(created.id)
 }
+
+const optionStyle = { minHeight: '44px' }
 </script>
 
 <template>
-  <div>
+  <div ref="root" class="relative">
     <label class="block text-sm" :for="`lookup-${table}`">{{ label }}</label>
 
-    <select
+    <button
       :id="`lookup-${table}`"
-      :value="modelValue ?? ''"
+      type="button"
+      role="combobox"
+      :aria-expanded="open"
       :disabled="loading"
-      class="mt-1 block w-full rounded-sm border px-3 py-2.5"
+      class="mt-1 flex w-full items-center justify-between rounded-sm border px-3 py-2.5 text-left"
       :style="{ borderColor: 'var(--border)', background: 'var(--surface)', minHeight: '44px' }"
-      @change="onSelect"
+      @click="toggle"
     >
-      <option value="">不填</option>
-      <optgroup v-if="grouped.system.length" label="內建">
-        <option v-for="item in grouped.system" :key="item.id" :value="item.id">
-          {{ item.name }}
-        </option>
-      </optgroup>
-      <optgroup v-if="grouped.mine.length" label="我建立的">
-        <option v-for="item in grouped.mine" :key="item.id" :value="item.id">
-          {{ item.name }}
-        </option>
-      </optgroup>
-      <option value="__create__">新增…</option>
-    </select>
+      <!-- 未選取時用 --text-muted，避免看起來像已經填好的值 -->
+      <span :style="{ color: selected ? 'var(--text)' : 'var(--text-muted)' }">
+        {{ selected?.name ?? '選填' }}
+      </span>
+      <svg
+        width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"
+        :style="{
+          color: 'var(--text-muted)',
+          transform: open ? 'rotate(180deg)' : 'none',
+          transition: 'transform var(--motion-duration) var(--motion-ease)',
+        }"
+      >
+        <path d="M3 6l5 5 5-5" fill="none" stroke="currentColor" stroke-width="1.5" />
+      </svg>
+    </button>
 
     <p v-if="hint" class="mt-1 text-xs text-muted">{{ hint }}</p>
 
     <div
-      v-if="creating"
-      class="mt-2 rounded-sm border p-3"
-      :style="{ borderColor: 'var(--border)', background: 'var(--accent-wash)' }"
+      v-if="open"
+      class="absolute z-20 mt-1 w-full overflow-hidden rounded-sm border"
+      :style="{
+        borderColor: 'var(--border)',
+        background: 'var(--surface)',
+        boxShadow: 'var(--overlay-shadow)',
+      }"
+      @keydown.esc="close"
     >
-      <label class="block text-sm" :for="`new-${table}`">新增「{{ label }}」</label>
-      <input
-        :id="`new-${table}`"
-        v-model="draft"
-        type="text"
-        class="mt-1 block w-full rounded-sm border px-3 py-2.5"
-        :style="{ borderColor: 'var(--border)', background: 'var(--surface)', minHeight: '44px' }"
-      >
-
-      <div v-if="suggestions.length" class="mt-3">
-        <p class="text-sm">你是不是指這個？</p>
-        <div class="mt-2 flex flex-wrap gap-2">
-          <button
-            v-for="item in suggestions"
-            :key="item.id"
-            type="button"
-            class="rounded-sm border px-3 py-2 text-sm"
-            :style="{ borderColor: 'var(--accent)', color: 'var(--accent)', background: 'var(--surface)', minHeight: '44px' }"
-            @click="useExisting(item)"
-          >
-            {{ item.name }}
-          </button>
-        </div>
+      <div class="border-b p-2" :style="{ borderColor: 'var(--border)' }">
+        <input
+          ref="searchInput"
+          v-model="query"
+          type="text"
+          placeholder="打字找找看"
+          class="block w-full rounded-sm border px-3 py-2"
+          :style="{ borderColor: 'var(--border)', background: 'var(--surface)', minHeight: '44px' }"
+        >
       </div>
 
-      <p v-if="saveError" class="mt-2 text-sm" :style="{ color: 'var(--danger)' }">{{ saveError }}</p>
+      <ul class="max-h-64 overflow-y-auto">
+        <li v-if="modelValue">
+          <button
+            type="button"
+            class="block w-full px-3 py-2 text-left text-sm"
+            :style="{ ...optionStyle, color: 'var(--text-muted)' }"
+            @click="pick(null)"
+          >
+            清除選擇
+          </button>
+        </li>
 
-      <div class="mt-3 flex gap-2">
+        <template v-if="grouped.system.length">
+          <li class="px-3 pt-2 text-xs text-muted">內建</li>
+          <li v-for="item in grouped.system" :key="item.id">
+            <button
+              type="button"
+              class="block w-full px-3 py-2 text-left"
+              :style="{ ...optionStyle, background: item.id === modelValue ? 'var(--accent-wash)' : undefined }"
+              @click="pick(item.id)"
+            >
+              {{ item.name }}
+            </button>
+          </li>
+        </template>
+
+        <template v-if="grouped.mine.length">
+          <li class="px-3 pt-2 text-xs text-muted">我建立的</li>
+          <li v-for="item in grouped.mine" :key="item.id">
+            <button
+              type="button"
+              class="block w-full px-3 py-2 text-left"
+              :style="{ ...optionStyle, background: item.id === modelValue ? 'var(--accent-wash)' : undefined }"
+              @click="pick(item.id)"
+            >
+              {{ item.name }}
+            </button>
+          </li>
+        </template>
+
+        <li v-if="!matches.length && !canCreate" class="px-3 py-3 text-sm text-muted">
+          找不到相符的
+        </li>
+      </ul>
+
+      <div v-if="canCreate" class="border-t p-2" :style="{ borderColor: 'var(--border)' }">
         <button
           type="button"
           :disabled="saving"
-          class="rounded-sm px-4 py-2 text-sm font-medium disabled:opacity-60"
-          :style="{ background: 'var(--accent)', color: '#FFFFFF', minHeight: '44px' }"
+          class="block w-full rounded-sm px-3 py-2 text-left disabled:opacity-60"
+          :style="{ ...optionStyle, color: 'var(--accent)' }"
           @click="create"
         >
-          {{ saving ? '加入中' : '就用這個新的' }}
-        </button>
-        <button
-          type="button"
-          class="rounded-sm border px-4 py-2 text-sm"
-          :style="{ borderColor: 'var(--border)', minHeight: '44px' }"
-          @click="creating = false"
-        >
-          取消
+          {{ saving ? '新增中' : `新增「${query.trim()}」` }}
         </button>
       </div>
+
+      <p v-if="saveError" class="px-3 pb-3 text-sm" :style="{ color: 'var(--danger)' }">
+        {{ saveError }}
+      </p>
     </div>
   </div>
 </template>

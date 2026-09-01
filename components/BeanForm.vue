@@ -40,6 +40,9 @@ const values = reactive<BeanFormValues>({
 const photo = ref<CompressedImage | null>(null)
 const photoCleared = ref(false)
 const nameError = ref('')
+// 欄位層級的錯誤留在該欄位下方，但按鈕正下方也要有一則總結：
+// 長表單上使用者的視線在按鈕附近，只在上方顯示會讓人以為沒反應。
+const summaryError = ref('')
 
 const countries = ref<{ id: string; name_zh: string }[]>([])
 onMounted(async () => {
@@ -67,7 +70,11 @@ const roastOptions: { value: RoastLevel; label: string }[] = (
 function submit() {
   // 錯誤訊息只在送出時顯示，不在輸入過程中即時跳出（《03》§4.1）
   nameError.value = values.name.trim() ? '' : '豆子總得有個名字，其他都可以之後再說'
-  if (nameError.value) return
+  if (nameError.value) {
+    summaryError.value = '還沒存起來：上面的豆名還沒填。'
+    return
+  }
+  summaryError.value = ''
   emit('submit', {
     values: { ...values, name: values.name.trim() },
     photo: photo.value,
@@ -79,6 +86,11 @@ const inputStyle = {
   borderColor: 'var(--border)',
   background: 'var(--surface)',
   minHeight: '44px',
+}
+
+// 未選取的下拉要用 --text-muted，否則黑字看起來像已經填好的值
+function selectStyle(value: unknown) {
+  return { ...inputStyle, color: value == null ? 'var(--text-muted)' : 'var(--text)' }
 }
 </script>
 
@@ -117,9 +129,9 @@ const inputStyle = {
         id="bean-roast-level"
         v-model="values.roast_level"
         class="mt-1 block w-full rounded-sm border px-3 py-2.5"
-        :style="inputStyle"
+        :style="selectStyle(values.roast_level)"
       >
-        <option :value="null">不填</option>
+        <option :value="null">選填</option>
         <option v-for="option in roastOptions" :key="option.value" :value="option.value">
           {{ option.label }}
         </option>
@@ -132,9 +144,9 @@ const inputStyle = {
         id="bean-country"
         v-model="values.country_id"
         class="mt-1 block w-full rounded-sm border px-3 py-2.5"
-        :style="inputStyle"
+        :style="selectStyle(values.country_id)"
       >
-        <option :value="null">不填</option>
+        <option :value="null">選填</option>
         <option v-for="country in countries" :key="country.id" :value="country.id">
           {{ country.name_zh }}
         </option>
@@ -159,7 +171,7 @@ const inputStyle = {
       <LookupSelect v-model="values.variety_id" label="品種" table="varieties" />
     </div>
 
-    <CollapsibleSection title="其他" storage-key="beanForm.other.expanded">
+    <CollapsibleSection title="店家與備註" storage-key="beanForm.other.expanded">
       <div>
         <label class="block text-sm" for="bean-roaster">咖啡店名</label>
         <input
@@ -205,12 +217,12 @@ const inputStyle = {
     <!-- 錯誤訊息必須在按鈕正下方。放在按鈕上方時，長表單一捲動就看不到，
          使用者會以為「按了沒反應」。 -->
     <p
-      v-if="error"
+      v-if="error || summaryError"
       role="alert"
       class="mt-3 rounded-sm border px-3 py-3 text-sm"
       :style="{ color: 'var(--danger)', borderColor: 'var(--danger)' }"
     >
-      {{ error }}
+      {{ error || summaryError }}
     </p>
   </form>
 </template>

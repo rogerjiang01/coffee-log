@@ -57,8 +57,8 @@ function score(input: string, candidate: string) {
 }
 
 /**
- * 找出與輸入相近的既有項目。命中時介面會問「你是不是指『X』？」
- * 並提供直接選用，而不是逕自幫使用者決定。
+ * 找出與輸入相近的既有項目，供 filterLookup 在子字串比對無結果時退回使用。
+ * 結果直接列在下拉裡讓使用者點選，不另外跳確認。
  */
 export function findSimilar(input: string, items: LookupItem[], limit = 3) {
   if (!input.trim()) return []
@@ -74,6 +74,36 @@ export function findSimilar(input: string, items: LookupItem[], limit = 3) {
     .sort((a, b) => b.score - a.score)
     .slice(0, limit)
     .map(entry => entry.item)
+}
+
+/**
+ * 即時過濾。先做子字串比對（含 aliases），沒有結果才退回模糊比對，
+ * 讓「厭氧發酵」這種近似輸入仍然看得到「厭氧日曬」「厭氧水洗」。
+ *
+ * 用途是即時過濾而不是事後攔截：使用者打「厭氧」就會看到既有項目，
+ * 自然會選既有的，不需要再問他「你是不是指」。
+ */
+export function filterLookup(query: string, items: LookupItem[]) {
+  const q = normalize(query)
+  if (!q) return items
+
+  const direct = items.filter(item =>
+    normalize(item.name).includes(q)
+    || (item.aliases ?? []).some(alias => normalize(alias).includes(q)),
+  )
+  if (direct.length) return direct
+
+  return findSimilar(query, items, 5)
+}
+
+/** 是否已有完全相符的項目。有的話就不顯示「新增」那一列。 */
+export function hasExactMatch(query: string, items: LookupItem[]) {
+  const q = normalize(query)
+  if (!q) return false
+  return items.some(item =>
+    normalize(item.name) === q
+    || (item.aliases ?? []).some(alias => normalize(alias) === q),
+  )
 }
 
 /** 系統內建（user_id 為 null）排前面，使用者自建排後面 */
