@@ -20,6 +20,24 @@ export default defineNuxtConfig({
       callback: '/confirm',
       exclude: ['/signup'],
     },
+
+    cookieOptions: {
+      // 模組預設只有 8 小時，時間到就得重新登入。這是個人紀錄工具，
+      // 沒有理由讓使用者每天重登，改為 30 天。
+      maxAge: 60 * 60 * 24 * 30,
+      sameSite: 'lax',
+      // 正式環境走 HTTPS，維持 true。開發環境在下方的 $development 覆寫成
+      // false：若用手機連區網 IP（http://192.168.x.x）測試，瀏覽器會直接
+      // 丟棄 Secure cookie，於是每次回來都要重新登入。
+      secure: true,
+    },
+  },
+
+  // Nuxt 的環境覆寫，只影響 nuxt dev
+  $development: {
+    supabase: {
+      cookieOptions: { secure: false },
+    },
   },
 
   app: {

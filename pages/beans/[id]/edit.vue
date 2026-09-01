@@ -3,7 +3,7 @@
 
 const route = useRoute()
 const supabase = useSupabaseClient()
-const user = useSupabaseUser()
+const userId = useCurrentUserId()
 const { upload, remove, signedUrl } = useBeanPhotos()
 
 const id = computed(() => String(route.params.id))
@@ -19,7 +19,7 @@ const error = ref('')
 onMounted(async () => {
   const { data } = await supabase
     .from('beans')
-    .select('name, photo_path, roaster, roast_date, roast_level, country_id, region_id, processing_method_id, variety_id, official_notes')
+    .select('name, photo_path, roaster, roast_date, roast_level, country_id, region_id, processing_method_id, variety_id, official_notes, is_finished')
     .eq('id', id.value)
     .maybeSingle()
 
@@ -41,6 +41,7 @@ onMounted(async () => {
     processing_method_id: (bean.processing_method_id as string | null) ?? null,
     variety_id: (bean.variety_id as string | null) ?? null,
     official_notes: (bean.official_notes as string | null) ?? '',
+    is_finished: (bean.is_finished as boolean | null) ?? false,
   }
   loading.value = false
 })
@@ -48,7 +49,10 @@ onMounted(async () => {
 async function onSubmit(
   { values, photo, photoCleared }: { values: BeanFormValues; photo: CompressedImage | null; photoCleared: boolean },
 ) {
-  if (!user.value) return
+  if (!userId.value) {
+    error.value = '登入狀態好像過期了，重新登入一次再試'
+    return
+  }
   saving.value = true
   error.value = ''
 
@@ -56,7 +60,7 @@ async function onSubmit(
 
   if (photo) {
     try {
-      path = await upload(user.value.id, id.value, photo)
+      path = await upload(userId.value, id.value, photo)
     }
     catch (e) {
       saving.value = false
@@ -81,6 +85,7 @@ async function onSubmit(
       processing_method_id: values.processing_method_id,
       variety_id: values.variety_id,
       official_notes: values.official_notes.trim() || null,
+      is_finished: values.is_finished,
       photo_path: path,
     } as never)
     .eq('id', id.value)

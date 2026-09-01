@@ -5,8 +5,10 @@
 // 不得加任何前端必填驗證——這是首次流程能否成立的關鍵。
 //
 // 豆袋照片放在最上方，不是最下方（《02》§9）。
-
-// BeanFormValues 定義在 utils/bean.ts，由 Nuxt 自動匯入
+//
+// L1／L2 的切分：處理法、品種、產區留在 L1。台灣咖啡文化在豆袋上強調
+// 這三項，把它們藏進收合區正是競品被詬病的地方。咖啡店名反而是查閱時
+// 才需要，不是輸入時的重點，因此收進 L2。
 
 const props = defineProps<{
   initial?: Partial<BeanFormValues>
@@ -32,6 +34,7 @@ const values = reactive<BeanFormValues>({
   processing_method_id: props.initial?.processing_method_id ?? null,
   variety_id: props.initial?.variety_id ?? null,
   official_notes: props.initial?.official_notes ?? '',
+  is_finished: props.initial?.is_finished ?? false,
 })
 
 const photo = ref<CompressedImage | null>(null)
@@ -65,7 +68,11 @@ function submit() {
   // 錯誤訊息只在送出時顯示，不在輸入過程中即時跳出（《03》§4.1）
   nameError.value = values.name.trim() ? '' : '豆子總得有個名字，其他都可以之後再說'
   if (nameError.value) return
-  emit('submit', { values: { ...values, name: values.name.trim() }, photo: photo.value, photoCleared: photoCleared.value })
+  emit('submit', {
+    values: { ...values, name: values.name.trim() },
+    photo: photo.value,
+    photoCleared: photoCleared.value,
+  })
 }
 
 const inputStyle = {
@@ -90,17 +97,6 @@ const inputStyle = {
         :style="inputStyle"
       >
       <p v-if="nameError" class="mt-2 text-sm" :style="{ color: 'var(--danger)' }">{{ nameError }}</p>
-    </div>
-
-    <div class="mt-5">
-      <label class="block text-sm" for="bean-roaster">烘焙商</label>
-      <input
-        id="bean-roaster"
-        v-model="values.roaster"
-        type="text"
-        class="mt-1 block w-full rounded-sm border px-3 py-2.5"
-        :style="inputStyle"
-      >
     </div>
 
     <div class="mt-5">
@@ -130,42 +126,53 @@ const inputStyle = {
       </select>
     </div>
 
-    <CollapsibleSection title="產地與風味" storage-key="beanForm.origin.expanded">
+    <div class="mt-5">
+      <label class="block text-sm" for="bean-country">產國</label>
+      <select
+        id="bean-country"
+        v-model="values.country_id"
+        class="mt-1 block w-full rounded-sm border px-3 py-2.5"
+        :style="inputStyle"
+      >
+        <option :value="null">不填</option>
+        <option v-for="country in countries" :key="country.id" :value="country.id">
+          {{ country.name_zh }}
+        </option>
+      </select>
+    </div>
+
+    <div class="mt-5">
+      <LookupSelect
+        v-model="values.region_id"
+        label="產區"
+        table="regions"
+        :country-id="values.country_id"
+        :hint="values.country_id ? undefined : '選了產國就只會列出該國的產區'"
+      />
+    </div>
+
+    <div class="mt-5">
+      <LookupSelect v-model="values.processing_method_id" label="處理法" table="processing_methods" />
+    </div>
+
+    <div class="mt-5">
+      <LookupSelect v-model="values.variety_id" label="品種" table="varieties" />
+    </div>
+
+    <CollapsibleSection title="其他" storage-key="beanForm.other.expanded">
       <div>
-        <label class="block text-sm" for="bean-country">產國</label>
-        <select
-          id="bean-country"
-          v-model="values.country_id"
+        <label class="block text-sm" for="bean-roaster">咖啡店名</label>
+        <input
+          id="bean-roaster"
+          v-model="values.roaster"
+          type="text"
           class="mt-1 block w-full rounded-sm border px-3 py-2.5"
           :style="inputStyle"
         >
-          <option :value="null">不填</option>
-          <option v-for="country in countries" :key="country.id" :value="country.id">
-            {{ country.name_zh }}
-          </option>
-        </select>
       </div>
 
       <div class="mt-5">
-        <LookupSelect
-          v-model="values.region_id"
-          label="產區"
-          table="regions"
-          :country-id="values.country_id"
-          :hint="values.country_id ? undefined : '選了產國就只會列出該國的產區'"
-        />
-      </div>
-
-      <div class="mt-5">
-        <LookupSelect v-model="values.processing_method_id" label="處理法" table="processing_methods" />
-      </div>
-
-      <div class="mt-5">
-        <LookupSelect v-model="values.variety_id" label="品種" table="varieties" />
-      </div>
-
-      <div class="mt-5">
-        <label class="block text-sm" for="bean-notes">袋上的風味描述</label>
+        <label class="block text-sm" for="bean-notes">官方風味描述</label>
         <textarea
           id="bean-notes"
           v-model="values.official_notes"
@@ -174,17 +181,36 @@ const inputStyle = {
           :style="{ borderColor: 'var(--border)', background: 'var(--surface)' }"
         />
       </div>
-    </CollapsibleSection>
 
-    <p v-if="error" class="mt-6 text-sm" :style="{ color: 'var(--danger)' }">{{ error }}</p>
+      <label class="mt-5 flex items-center gap-3" :style="{ minHeight: '44px' }">
+        <input
+          v-model="values.is_finished"
+          type="checkbox"
+          class="size-5"
+          :style="{ accentColor: 'var(--accent)' }"
+        >
+        <span>已經喝完了</span>
+      </label>
+    </CollapsibleSection>
 
     <button
       type="submit"
       :disabled="busy"
-      class="mt-6 w-full rounded-sm px-4 py-3 font-medium disabled:opacity-60"
+      class="mt-8 w-full rounded-sm px-4 py-3 font-medium disabled:opacity-60"
       :style="{ background: 'var(--accent)', color: '#FFFFFF', minHeight: '44px' }"
     >
       {{ busy ? '儲存中' : submitLabel }}
     </button>
+
+    <!-- 錯誤訊息必須在按鈕正下方。放在按鈕上方時，長表單一捲動就看不到，
+         使用者會以為「按了沒反應」。 -->
+    <p
+      v-if="error"
+      role="alert"
+      class="mt-3 rounded-sm border px-3 py-3 text-sm"
+      :style="{ color: 'var(--danger)', borderColor: 'var(--danger)' }"
+    >
+      {{ error }}
+    </p>
   </form>
 </template>

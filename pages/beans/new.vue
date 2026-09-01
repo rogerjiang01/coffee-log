@@ -5,20 +5,23 @@
 // 最後回寫 photo_path。路徑格式由 §7 決定，而 bean_id 在建立前不存在。
 
 const supabase = useSupabaseClient()
-const user = useSupabaseUser()
+const userId = useCurrentUserId()
 const { upload } = useBeanPhotos()
 
 const saving = ref(false)
 const error = ref('')
 
 async function onSubmit({ values, photo }: { values: BeanFormValues; photo: CompressedImage | null }) {
-  if (!user.value) return
+  if (!userId.value) {
+    error.value = '登入狀態好像過期了，重新登入一次再試'
+    return
+  }
   saving.value = true
   error.value = ''
 
   // 空字串一律轉 null，避免資料庫留下一堆空字串
   const row = {
-    user_id: user.value.id,
+    user_id: userId.value,
     name: values.name,
     roaster: values.roaster.trim() || null,
     roast_date: values.roast_date || null,
@@ -28,6 +31,7 @@ async function onSubmit({ values, photo }: { values: BeanFormValues; photo: Comp
     processing_method_id: values.processing_method_id,
     variety_id: values.variety_id,
     official_notes: values.official_notes.trim() || null,
+    is_finished: values.is_finished,
   }
 
   const { data, error: insertError } = await supabase
@@ -46,7 +50,7 @@ async function onSubmit({ values, photo }: { values: BeanFormValues; photo: Comp
 
   if (photo) {
     try {
-      const path = await upload(user.value.id, beanId, photo)
+      const path = await upload(userId.value, beanId, photo)
       await supabase.from('beans').update({ photo_path: path } as never).eq('id', beanId)
     }
     catch (e) {

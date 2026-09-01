@@ -18,7 +18,7 @@ const props = defineProps<{
 const emit = defineEmits<{ 'update:modelValue': [string | null] }>()
 
 const supabase = useSupabaseClient()
-const user = useSupabaseUser()
+const userId = useCurrentUserId()
 
 const items = ref<LookupItem[]>([])
 const loading = ref(true)
@@ -70,10 +70,14 @@ async function create() {
     saveError.value = '填一下名稱'
     return
   }
+  if (!userId.value) {
+    saveError.value = '登入狀態好像過期了，重新登入一次再試'
+    return
+  }
   saving.value = true
   saveError.value = ''
 
-  const row: Record<string, unknown> = { name, user_id: user.value?.id }
+  const row: Record<string, unknown> = { name, user_id: userId.value }
   if (props.table === 'regions' && props.countryId) row.country_id = props.countryId
 
   const { data, error } = await supabase

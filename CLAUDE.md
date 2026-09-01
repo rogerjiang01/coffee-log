@@ -67,8 +67,10 @@ Supabase（Auth / Postgres / Storage）
 
 ### 待辦（記下來，之後處理）
 
-- **階段 10**：auth 的錯誤訊息目前直接顯示 Supabase 回傳的英文原文（例如
-  `Email signups are disabled`）。收尾時把常見錯誤碼對應成中文。
+- **階段 10**：錯誤訊息中文化。auth 與資料庫兩邊目前都直接顯示 Supabase
+  回傳的英文原文（例如 `Email signups are disabled`、
+  `new row violates row-level security policy`）。收尾時把常見錯誤碼
+  統一對應成中文。
 
 ### 階段備註
 

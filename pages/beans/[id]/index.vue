@@ -66,7 +66,7 @@ const rows = computed(() => {
   const b = bean.value
   if (!b) return []
   return [
-    { label: '烘焙商', value: b.roaster },
+    { label: '咖啡店名', value: b.roaster },
     { label: '烘焙日期', value: b.roast_date },
     { label: '養豆天數', value: days.value === null ? null : `${days.value} 天` },
     { label: '烘焙度', value: b.roast_level ? roastLabels[b.roast_level] : null },
@@ -158,7 +158,7 @@ async function destroy() {
       <p v-else class="mt-6 text-muted">除了豆名還沒填其他東西，想到再補就好。</p>
 
       <section v-if="bean.official_notes" class="mt-6">
-        <h2 class="text-sm text-muted">袋上的風味描述</h2>
+        <h2 class="text-sm text-muted">官方風味描述</h2>
         <p class="mt-1 whitespace-pre-line">{{ bean.official_notes }}</p>
       </section>
 
