@@ -1,10 +1,13 @@
 <script setup lang="ts">
 // 豆子列表頁的單欄列項（《03-介面規範》§4.5.2）。
 //
-// 橫式：左側 80px 見方縮圖，右側資訊。直式大圖在單欄列表上每一項都太高，
-// 一個畫面看不到幾支豆子。
+// 卡片的功能是「讓使用者認出這是哪支豆子」，不是呈現完整資訊，因此只有兩行。
 //
-// §4.5.1 的「等高」規則不適用於這裡——那條是給首頁橫向卡片列的版面限制。
+// 高度由固定尺寸的縮圖決定，不由文字內容決定——有沒有標籤、名字幾個字，
+// 都不該影響版面。右側資訊區鎖成與縮圖等高，超出就截斷。
+//
+// 烘焙度不另外寫字：縮圖的烘焙度色塊已經表達了。
+// 已喝完不用標籤：整張卡片降低透明度，不佔版面高度。
 
 const props = defineProps<{
   name: string
@@ -21,10 +24,13 @@ const days = computed(() => restDays(props.roastDate))
 
 <template>
   <article
-    class="flex gap-3 overflow-hidden rounded-md border"
-    :style="{ borderColor: 'var(--border)', background: 'var(--surface)' }"
+    class="flex overflow-hidden rounded-md border"
+    :style="{
+      borderColor: 'var(--border)',
+      background: 'var(--surface)',
+      opacity: isFinished ? 0.5 : 1,
+    }"
   >
-    <!-- 左側縮圖：有無照片都是 80×80 -->
     <div class="size-20 shrink-0">
       <img
         v-if="photoUrl"
@@ -41,24 +47,13 @@ const days = computed(() => restDays(props.roastDate))
       />
     </div>
 
-    <div class="min-w-0 flex-1 py-2 pr-3">
+    <!-- h-20 與縮圖同高，overflow-hidden 讓內容再多也撐不開卡片 -->
+    <div class="flex h-20 min-w-0 flex-1 flex-col justify-center gap-1 overflow-hidden px-3">
       <h3 class="truncate font-medium">{{ name }}</h3>
 
-      <!-- 沒填就不顯示，不寫「未填」之類複述畫面的字（§5.6） -->
-      <p v-if="roastLevel" class="mt-0.5 text-sm text-muted">{{ roastLabels[roastLevel] }}</p>
-
-      <p class="mt-0.5 text-sm tabular-nums text-muted">
-        <span v-if="days !== null" class="mr-3">養豆 {{ days }} 天</span>
+      <p class="truncate text-sm tabular-nums text-muted">
+        <span v-if="days !== null" class="mr-4">養豆 {{ days }} 天</span>
         <span>沖煮 {{ brewCount }} 次</span>
-      </p>
-
-      <!-- 狀態要有視覺，不只是文字（§4.10） -->
-      <p
-        v-if="isFinished"
-        class="mt-1 inline-block rounded-sm px-2 py-0.5 text-xs"
-        :style="{ background: 'var(--accent-wash)', color: 'var(--accent)' }"
-      >
-        已喝完
       </p>
     </div>
   </article>

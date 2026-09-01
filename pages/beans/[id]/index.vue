@@ -77,9 +77,8 @@ const rows = computed(() => {
   ].filter(row => row.value)
 })
 
-async function toggleFinished() {
+async function toggleFinished(next: boolean) {
   if (!bean.value) return
-  const next = !bean.value.is_finished
   const { error } = await supabase.from('beans').update({ is_finished: next } as never).eq('id', id.value)
   if (error) {
     actionError.value = `沒有改成功：${error.message}`
@@ -160,19 +159,14 @@ async function destroy() {
         <p class="mt-1 whitespace-pre-line">{{ bean.official_notes }}</p>
       </section>
 
-      <!-- 狀態切換必須同時有文案與視覺變化，不能只換文字。
-           未標記時是一般次要按鈕，已標記時填上底色與主色框線。 -->
-      <button
-        type="button"
-        :aria-pressed="bean.is_finished"
-        class="mt-8 w-full rounded-sm border px-4 py-3"
-        :style="bean.is_finished
-          ? { borderColor: 'var(--accent)', background: 'var(--accent-wash)', color: 'var(--accent)', minHeight: '44px' }
-          : { borderColor: 'var(--border)', background: 'var(--surface)', color: 'var(--text)', minHeight: '44px' }"
-        @click="toggleFinished"
-      >
-        已喝完
-      </button>
+      <!-- 狀態不是動作，用 role="switch" 的開關而不是按鈕 -->
+      <div class="mt-8">
+        <ToggleSwitch
+          :model-value="bean.is_finished"
+          label="已喝完"
+          @update:model-value="toggleFinished"
+        />
+      </div>
 
       <p v-if="actionError" class="mt-4 text-sm" :style="{ color: 'var(--danger)' }">{{ actionError }}</p>
 

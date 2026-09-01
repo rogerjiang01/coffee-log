@@ -100,7 +100,12 @@ function selectStyle(value: unknown) {
     <PhotoField :preview-url="photoUrl ?? null" @picked="onPhotoPicked" />
 
     <div class="mt-8">
-      <label class="block text-sm" for="bean-name">豆名</label>
+      <!-- 只有必填欄位有標示，其他欄位一律不標，讓對比本身說明「其他都可空」 -->
+      <label class="block text-sm" for="bean-name">
+        豆名
+        <span :style="{ color: 'var(--danger)' }" aria-hidden="true">*</span>
+        <span class="sr-only">必填</span>
+      </label>
       <input
         id="bean-name"
         v-model="values.name"
