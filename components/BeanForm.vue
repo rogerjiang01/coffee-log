@@ -120,7 +120,7 @@ function selectStyle(value: unknown) {
         class="mt-1 block w-full rounded-sm border px-3 py-2.5"
         :style="inputStyle"
       >
-      <p class="mt-1 text-xs text-muted">填了才會顯示養豆天數，不填也能存。</p>
+      <p class="mt-1 text-xs text-muted">填了才會顯示養豆天數</p>
     </div>
 
     <div class="mt-5">
@@ -201,7 +201,7 @@ function selectStyle(value: unknown) {
           class="size-5"
           :style="{ accentColor: 'var(--accent)' }"
         >
-        <span>已經喝完了</span>
+        <span>已喝完</span>
       </label>
     </CollapsibleSection>
 

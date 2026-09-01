@@ -45,8 +45,14 @@ const days = computed(() => restDays(props.roastDate))
       <!-- 規範第 1 節禁止中間點串接的 meta 字串，因此分行呈現 -->
       <p v-if="days !== null" class="mt-1 text-sm tabular-nums text-muted">養豆 {{ days }} 天</p>
       <p v-if="roaster" class="mt-1 text-sm text-muted">{{ roaster }}</p>
-      <p v-if="!roaster && days === null" class="mt-1 text-sm text-muted">還沒填其他資訊</p>
-      <p v-if="isFinished" class="mt-2 text-xs text-muted">已喝完</p>
+      <!-- 狀態要有視覺，不只是文字 -->
+      <p
+        v-if="isFinished"
+        class="mt-2 inline-block rounded-sm px-2 py-0.5 text-xs"
+        :style="{ background: 'var(--accent-wash)', color: 'var(--accent)' }"
+      >
+        已喝完
+      </p>
     </div>
   </article>
 </template>

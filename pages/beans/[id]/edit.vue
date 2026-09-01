@@ -106,7 +106,7 @@ async function onSubmit(
     <template v-else-if="notFound">
       <h1 class="font-serif text-xl font-bold">找不到這支豆子</h1>
       <NuxtLink to="/beans" class="mt-4 inline-block underline" :style="{ color: 'var(--accent)' }">
-        回到豆子列表
+        回豆子列表
       </NuxtLink>
     </template>
 

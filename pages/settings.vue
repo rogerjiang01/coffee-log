@@ -32,7 +32,7 @@ async function signOut() {
     </button>
 
     <p class="mt-8 text-sm text-muted">
-      <NuxtLink to="/" class="underline" :style="{ color: 'var(--accent)' }">回到首頁</NuxtLink>
+      <NuxtLink to="/" class="underline" :style="{ color: 'var(--accent)' }">回首頁</NuxtLink>
     </p>
   </main>
 </template>

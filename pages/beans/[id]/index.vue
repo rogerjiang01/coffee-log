@@ -110,9 +110,8 @@ async function destroy() {
 
     <template v-else-if="notFound">
       <h1 class="font-serif text-xl font-bold">找不到這支豆子</h1>
-      <p class="mt-2 text-muted">可能已經被刪掉了。</p>
       <NuxtLink to="/beans" class="mt-6 inline-block underline" :style="{ color: 'var(--accent)' }">
-        回到豆子列表
+        回豆子列表
       </NuxtLink>
     </template>
 
@@ -140,7 +139,7 @@ async function destroy() {
 
       <h1 class="mt-5 font-serif text-2xl font-bold">{{ bean.name }}</h1>
 
-      <dl v-if="rows.length" class="mt-6">
+      <dl class="mt-6">
         <div
           v-for="row in rows"
           :key="row.label"
@@ -155,20 +154,24 @@ async function destroy() {
           <dd class="tabular-nums">{{ brewCount }}</dd>
         </div>
       </dl>
-      <p v-else class="mt-6 text-muted">除了豆名還沒填其他東西，想到再補就好。</p>
 
       <section v-if="bean.official_notes" class="mt-6">
         <h2 class="text-sm text-muted">官方風味描述</h2>
         <p class="mt-1 whitespace-pre-line">{{ bean.official_notes }}</p>
       </section>
 
+      <!-- 狀態切換必須同時有文案與視覺變化，不能只換文字。
+           未標記時是一般次要按鈕，已標記時填上底色與主色框線。 -->
       <button
         type="button"
+        :aria-pressed="bean.is_finished"
         class="mt-8 w-full rounded-sm border px-4 py-3"
-        :style="{ borderColor: 'var(--border)', background: 'var(--surface)', minHeight: '44px' }"
+        :style="bean.is_finished
+          ? { borderColor: 'var(--accent)', background: 'var(--accent-wash)', color: 'var(--accent)', minHeight: '44px' }
+          : { borderColor: 'var(--border)', background: 'var(--surface)', color: 'var(--text)', minHeight: '44px' }"
         @click="toggleFinished"
       >
-        {{ bean.is_finished ? '標成還在喝' : '標成已喝完' }}
+        已喝完
       </button>
 
       <p v-if="actionError" class="mt-4 text-sm" :style="{ color: 'var(--danger)' }">{{ actionError }}</p>
@@ -179,7 +182,7 @@ async function destroy() {
         :style="{ color: 'var(--danger)', minHeight: '44px' }"
         @click="confirmOpen = true"
       >
-        刪除這支豆子
+        刪除
       </button>
 
       <ConfirmDialog

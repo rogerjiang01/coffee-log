@@ -64,7 +64,7 @@ onMounted(load)
       class="mt-6 block w-full rounded-sm px-4 py-3 text-center font-medium"
       :style="{ background: 'var(--accent)', color: '#FFFFFF', minHeight: '44px' }"
     >
-      新增豆子
+      新增
     </NuxtLink>
 
     <p v-if="loadError" role="alert" class="mt-4 text-sm" :style="{ color: 'var(--danger)' }">
@@ -73,13 +73,11 @@ onMounted(load)
 
     <p v-if="loading" class="mt-6 text-muted">讀取中</p>
 
-    <!-- 空狀態是邀請行動的時機，不是說明現況的時機（《02》§9） -->
-    <section v-else-if="!beans.length && !loadError" class="mt-8">
-      <h2 class="font-serif text-lg font-bold">還沒有豆子</h2>
-      <p class="mt-2 text-muted">
-        拍一張豆袋、打個豆名就能存。其他欄位想填再填，之後隨時可以補。
-      </p>
-    </section>
+    <!-- 空狀態是邀請行動的時機，不是說明現況的時機（《02》§9）。
+         新增入口就在上方，這裡只說第一步怎麼做。 -->
+    <p v-else-if="!beans.length && !loadError" class="mt-6 text-muted">
+      拍一張豆袋、打個豆名就能存。
+    </p>
 
     <ul v-else class="mt-6 space-y-4">
       <li v-for="bean in beans" :key="bean.id">

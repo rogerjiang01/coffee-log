@@ -59,7 +59,7 @@ async function submit() {
         class="mt-7 block w-full rounded-sm px-4 py-3 text-center font-medium"
         :style="{ background: 'var(--accent)', color: '#FFFFFF', minHeight: '44px' }"
       >
-        回到登入
+        去登入
       </NuxtLink>
     </template>
 

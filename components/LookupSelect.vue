@@ -178,7 +178,7 @@ const optionStyle = { minHeight: '44px' }
             :style="{ ...optionStyle, color: 'var(--text-muted)' }"
             @click="pick(null)"
           >
-            清除選擇
+            清除
           </button>
         </li>
 

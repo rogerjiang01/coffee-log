@@ -81,7 +81,7 @@ async function submit() {
     <p class="mt-8 text-sm text-muted">
       還沒有帳號？
       <NuxtLink to="/signup" class="underline" :style="{ color: 'var(--accent)' }">
-        註冊一個
+        註冊
       </NuxtLink>
     </p>
   </main>
