@@ -13,104 +13,101 @@
    ============================================================ */
 
 :root {
-  /* ---- 色彩：主色 --------------------------------------- */
+    /* ---- 色彩：主色 --------------------------------------- */
 
-  /* 主要行動、選取狀態、連結。取自生豆的綠，
+    /* 主要行動、選取狀態、連結。取自生豆的綠，
      刻意避開「咖啡＝褐色」的預設聯想。
      對比：on --bg 5.52:1、配白字 5.74:1 */
-  --accent: #516E41;
-  --accent-soft: #678C53;                /* 圖示、hover、次要狀態 */
-  --accent-wash: rgb(81 110 65 / 0.08);  /* 選取項目底色 */
+    --accent: #516e41;
+    --accent-soft: #678c53; /* 圖示、hover、次要狀態 */
+    --accent-wash: rgb(81 110 65 / 0.08); /* 選取項目底色 */
 
-  /* ---- 色彩：中性 --------------------------------------- */
+    /* ---- 色彩：中性 --------------------------------------- */
 
-  --bg: #FFFAEF;         /* 頁面底色 */
-  --surface: #FFFFFF;    /* 卡片、表單區塊 */
-  --text: #2A2E26;       /* 主要文字，on --bg 13.30:1 */
-  --text-muted: #6B6F63; /* 次要文字、單位，on --bg 4.95:1 */
-  --border: #E8E1D2;     /* 分隔線、輸入框邊框 */
+    --bg: #fffaef; /* 頁面底色 */
+    --surface: #ffffff; /* 卡片、表單區塊 */
+    --text: #2a2e26; /* 主要文字，on --bg 13.30:1 */
+    --text-muted: #6b6f63; /* 次要文字、單位，on --bg 4.95:1 */
+    --border: #e8e1d2; /* 分隔線、輸入框邊框 */
 
-  /* ---- 色彩：狀態 --------------------------------------- */
+    /* ---- 色彩：狀態 --------------------------------------- */
 
-  --favorite: #C0453A;   /* 愛心。on --bg 4.86:1、配白字 5.06:1 */
-  --danger: #8B2318;     /* 刪除、錯誤。on --bg 8.58:1、配白字 8.93:1 */
-  --diff: #516E41;       /* 差異標記。主要靠字重表達，顏色為輔 */
+    --favorite: #c0453a; /* 愛心。on --bg 4.86:1、配白字 5.06:1 */
+    --danger: #8b2318; /* 刪除、錯誤。on --bg 8.58:1、配白字 8.93:1 */
+    --diff: #516e41; /* 差異標記。主要靠字重表達，顏色為輔 */
 
-  /* 暖黃。規範第 2 節：與 --bg 對比僅 1.1:1，
+    /* 暖黃。規範第 2 節：與 --bg 對比僅 1.1:1，
      不得用於愛心列底色，只可用於照片位置的填充 */
-  --wash-warm: #FFEEC2;
+    --wash-warm: #ffeec2;
 
-  /* ---- 色彩：烘焙度五級 --------------------------------- */
-  /* 無豆袋照片時的卡片填充。色塊上會疊豆名，因此每一級都配一個
+    /* ---- 色彩：烘焙度五級 --------------------------------- */
+    /* 無豆袋照片時的卡片填充。色塊上會疊豆名，因此每一級都配一個
      經對比驗算的文字色，實作時依烘焙度切換。
      驗算結果（門檻 4.5:1）五級全部通過，數值註記於各行。 */
 
-  --roast-light: #F5E3B8;
-  --roast-light-text: var(--text);         /* 10.92:1 */
-  --roast-medium-light: #E0C089;
-  --roast-medium-light-text: var(--text);  /*  7.96:1 */
-  --roast-medium: #C09A5E;
-  --roast-medium-text: var(--text);        /*  5.29:1 */
-  --roast-medium-dark: #8A6136;
-  --roast-medium-dark-text: #FFFFFF;       /*  5.46:1 */
-  --roast-dark: #4A3323;
-  --roast-dark-text: #FFFFFF;              /* 11.74:1 */
+    --roast-light: #f5e3b8;
+    --roast-light-text: var(--text); /* 10.92:1 */
+    --roast-medium-light: #e0c089;
+    --roast-medium-light-text: var(--text); /*  7.96:1 */
+    --roast-medium: #c09a5e;
+    --roast-medium-text: var(--text); /*  5.29:1 */
+    --roast-medium-dark: #8a6136;
+    --roast-medium-dark-text: #ffffff; /*  5.46:1 */
+    --roast-dark: #4a3323;
+    --roast-dark-text: #ffffff; /* 11.74:1 */
 
-  /* ---- 字體 --------------------------------------------- */
+    /* ---- 字體 --------------------------------------------- */
 
-  --font-heading: "Noto Serif TC", ui-serif, Georgia, "Songti TC", serif;
-  --font-body: "Noto Sans TC", ui-sans-serif, system-ui, -apple-system,
-    "PingFang TC", "Microsoft JhengHei", sans-serif;
+    --font-heading: "Noto Serif TC", ui-serif, Georgia, "Songti TC", serif;
+    --font-body: "Noto Sans TC", ui-sans-serif, system-ui, -apple-system, "PingFang TC", "Microsoft JhengHei", sans-serif;
 
-  /* ---- 字級階層（六級，基準 16px）----------------------- */
-  /* 規範：中文文字不得小於 0.75rem，--text-xs 即為下限。
+    /* ---- 字級階層（六級，基準 16px）----------------------- */
+    /* 規範：中文文字不得小於 0.75rem，--text-xs 即為下限。
      行高：內文級距（base / sm / xs）維持規範要求的 ≥1.7；
      標題級距（lg 以上）收緊，中文標題行高過大會散。 */
 
-  --text-2xl: 2rem;                /* 頁面主標 */
-  --text-2xl--line-height: 1.3;
-  --text-xl: 1.5rem;               /* 區塊標題 */
-  --text-xl--line-height: 1.35;
-  --text-lg: 1.125rem;             /* 卡片標題、數值強調 */
-  --text-lg--line-height: 1.5;
-  --text-base: 1rem;               /* 內文 */
-  --text-base--line-height: 1.75;
-  --text-sm: 0.875rem;             /* 次要文字、標籤 */
-  --text-sm--line-height: 1.7;
-  --text-xs: 0.75rem;              /* 單位、輔助說明 */
-  --text-xs--line-height: 1.7;
+    --text-2xl: 2rem; /* 頁面主標 */
+    --text-2xl--line-height: 1.3;
+    --text-xl: 1.5rem; /* 區塊標題 */
+    --text-xl--line-height: 1.35;
+    --text-lg: 1.125rem; /* 卡片標題、數值強調 */
+    --text-lg--line-height: 1.5;
+    --text-base: 1rem; /* 內文 */
+    --text-base--line-height: 1.75;
+    --text-sm: 0.875rem; /* 次要文字、標籤 */
+    --text-sm--line-height: 1.7;
+    --text-xs: 0.75rem; /* 單位、輔助說明 */
+    --text-xs--line-height: 1.7;
 
-  /* 規範：中文內文行高不低於 1.7；中文字距不加 */
-  --leading-body: 1.75;
+    /* 規範：中文內文行高不低於 1.7；中文字距不加 */
+    --leading-body: 1.75;
 
-  /* ---- 圓角（三級）-------------------------------------- */
-  /* 不同層級的元件用不同級距，不得全站共用同一個值。
+    /* ---- 圓角（三級）-------------------------------------- */
+    /* 不同層級的元件用不同級距，不得全站共用同一個值。
      《03-介面規範》第 1 節禁止的是「所有內容都用同一個圓角、
      同一個淺灰陰影切成卡片」，靠這裡的分級與下方的陰影限制擋掉。 */
 
-  --radius-sm: 4px;   /* 輸入框、標籤、徽章、表格內的標記 */
-  --radius-md: 8px;   /* 卡片、表單區塊 */
-  --radius-lg: 12px;  /* 對話框、浮出層 */
+    --radius-sm: 4px; /* 輸入框、標籤、徽章、表格內的標記 */
+    --radius-md: 8px; /* 卡片、表單區塊 */
+    --radius-lg: 12px; /* 對話框、浮出層 */
 
-  /* ---- 陰影（只有一級）---------------------------------- */
-  /* 僅供浮出層使用：對話框、右下角浮動新增按鈕。
+    /* ---- 陰影（只有一級）---------------------------------- */
+    /* 僅供浮出層使用：對話框、右下角浮動新增按鈕。
      卡片與表單區塊一律不用陰影，改以 --border 或
      --surface / --bg 的底色差異分層。
      色相取自 --text 而非中性灰，避免在暖底色上顯冷。 */
 
-  --overlay-shadow:
-    0 8px 24px -4px rgb(42 46 38 / 0.18),
-    0 2px 6px -1px rgb(42 46 38 / 0.10);
+    --overlay-shadow: 0 8px 24px -4px rgb(42 46 38 / 0.18), 0 2px 6px -1px rgb(42 46 38 / 0.1);
 
-  /* ---- 版面 --------------------------------------------- */
+    /* ---- 版面 --------------------------------------------- */
 
-  /* 規範第 3 節：≥640px 時單欄置中，最大寬度 720px
+    /* 規範第 3 節：≥640px 時單欄置中，最大寬度 720px
      （640px 斷點沿用 Tailwind 預設 sm） */
-  --content-max: 720px;
+    --content-max: 720px;
 
-  /* ---- 動態 --------------------------------------------- */
+    /* ---- 動態 --------------------------------------------- */
 
-  /* 規範第 6 節：只做回應操作的動態，時長 150–200ms */
-  --motion-duration: 175ms;
-  --motion-ease: cubic-bezier(0.2, 0, 0, 1);
+    /* 規範第 6 節：只做回應操作的動態，時長 150–200ms */
+    --motion-duration: 175ms;
+    --motion-ease: cubic-bezier(0.2, 0, 0, 1);
 }

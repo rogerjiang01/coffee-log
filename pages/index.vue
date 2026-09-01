@@ -67,9 +67,10 @@ const sampleValues = [
     <div class="flex items-baseline justify-between">
       <p class="text-sm text-muted">階段 0</p>
       <!-- 暫時的設定入口。規範第 3 節的底部分頁列在階段 7 才做。 -->
-      <NuxtLink to="/settings" class="text-sm underline" :style="{ color: 'var(--accent)' }">
-        設定
-      </NuxtLink>
+      <span class="flex gap-4">
+        <NuxtLink to="/beans" class="text-sm underline" :style="{ color: 'var(--accent)' }">豆子</NuxtLink>
+        <NuxtLink to="/settings" class="text-sm underline" :style="{ color: 'var(--accent)' }">設定</NuxtLink>
+      </span>
     </div>
     <h1 class="mt-1 font-serif text-2xl font-bold">手沖咖啡紀錄</h1>
     <p class="mt-3 text-muted">
