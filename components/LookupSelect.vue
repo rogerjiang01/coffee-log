@@ -28,6 +28,7 @@ const saving = ref(false)
 const saveError = ref('')
 
 const root = ref<HTMLElement | null>(null)
+const panel = ref<HTMLElement | null>(null)
 const searchInput = ref<HTMLInputElement | null>(null)
 
 const selected = computed(() => items.value.find(item => item.id === props.modelValue) ?? null)
@@ -39,16 +40,20 @@ const canCreate = computed(() =>
 
 async function load() {
   loading.value = true
-  // sort_order 在使用者自建項目上一律是預設值 0，會產生並列，
-  // 因此補 name 當決勝鍵，避免每次載入順序不同
-  const { data } = await supabase
-    .from(props.table)
-    .select('id, name, aliases, user_id')
-    .order('user_id', { nullsFirst: true })
-    .order('sort_order')
-    .order('name')
-  items.value = (data ?? []) as unknown as LookupItem[]
-  loading.value = false
+  try {
+    // sort_order 在使用者自建項目上一律是預設值 0，會產生並列，
+    // 因此補 name 當決勝鍵，避免每次載入順序不同
+    const { data } = await supabase
+      .from(props.table)
+      .select('id, name, aliases, user_id')
+      .order('user_id', { nullsFirst: true })
+      .order('sort_order')
+      .order('name')
+    items.value = (data ?? []) as unknown as LookupItem[]
+  }
+  finally {
+    loading.value = false
+  }
 }
 
 onMounted(() => {
@@ -57,8 +62,11 @@ onMounted(() => {
 })
 onBeforeUnmount(() => document.removeEventListener('click', onDocumentClick))
 
+const { style: panelStyle, isOutside } = useAnchoredPanel(root, panel, open)
+
 function onDocumentClick(event: MouseEvent) {
-  if (open.value && root.value && !root.value.contains(event.target as Node)) close()
+  // 浮層已 teleport 到 body，不能只檢查觸發元素的父層
+  if (open.value && isOutside(event.target as Node)) close()
 }
 
 async function toggle() {
@@ -124,8 +132,10 @@ const optionStyle = { minHeight: '44px' }
       role="combobox"
       :aria-expanded="open"
       :disabled="loading"
-      class="mt-1 flex w-full items-center justify-between rounded-sm border px-3 py-2.5 text-left"
-      :style="{ borderColor: 'var(--field-border)', background: 'var(--field-bg)', minHeight: '44px' }"
+      class="mt-1 flex w-full items-center justify-between field px-3 py-2.5 text-left"
+      data-field
+      :data-filled="!!selected"
+      :style="{ minHeight: '44px' }"
       @click="toggle"
     >
       <!-- 未選取時用 --text-muted，避免看起來像已經填好的值 -->
@@ -146,87 +156,86 @@ const optionStyle = { minHeight: '44px' }
 
     <p v-if="hint" class="mt-1 text-xs text-muted">{{ hint }}</p>
 
-    <div
-      v-if="open"
-      class="absolute z-20 mt-1 w-full overflow-hidden rounded-sm border"
-      :style="{
-        borderColor: 'var(--border)',
-        background: 'var(--surface)',
-        boxShadow: 'var(--overlay-shadow)',
-      }"
-      @keydown.esc="close"
-    >
-      <div class="border-b p-2" :style="{ borderColor: 'var(--border)' }">
-        <input
-          ref="searchInput"
-          v-model="query"
-          type="text"
-          placeholder="打字找找看"
-          class="block w-full rounded-sm border px-3 py-2"
-          :style="{ borderColor: 'var(--field-border)', background: 'var(--field-bg)', minHeight: '44px' }"
-        >
-      </div>
+    <Teleport to="body">
+      <div
+        v-if="open"
+        ref="panel"
+        class="z-40 flex flex-col overflow-hidden rounded-sm border"
+        :style="{ ...panelStyle, borderColor: 'var(--border)', background: 'var(--surface)', boxShadow: 'var(--overlay-shadow)' }"
+        @keydown.esc="close"
+      >
+        <div class="border-b p-2" :style="{ borderColor: 'var(--border)' }">
+          <input
+            ref="searchInput"
+            v-model="query"
+            type="text"
+            placeholder="打字找找看"
+            class="block w-full field px-3 py-2"
+            :style="{ minHeight: '44px' }"
+          >
+        </div>
 
-      <ul class="max-h-64 overflow-y-auto">
-        <li v-if="modelValue">
+        <ul class="max-h-64 overflow-y-auto">
+          <li v-if="modelValue">
+            <button
+              type="button"
+              class="block w-full px-3 py-2 text-left text-sm"
+              :style="{ ...optionStyle, color: 'var(--text-muted)' }"
+              @click="pick(null)"
+            >
+              清除
+            </button>
+          </li>
+
+          <template v-if="grouped.system.length">
+            <li class="px-3 pt-2 text-xs text-muted">內建</li>
+            <li v-for="item in grouped.system" :key="item.id">
+              <button
+                type="button"
+                class="block w-full px-3 py-2 text-left"
+                :style="{ ...optionStyle, background: item.id === modelValue ? 'var(--accent-wash)' : undefined }"
+                @click="pick(item.id)"
+              >
+                {{ item.name }}
+              </button>
+            </li>
+          </template>
+
+          <template v-if="grouped.mine.length">
+            <li class="px-3 pt-2 text-xs text-muted">我建立的</li>
+            <li v-for="item in grouped.mine" :key="item.id">
+              <button
+                type="button"
+                class="block w-full px-3 py-2 text-left"
+                :style="{ ...optionStyle, background: item.id === modelValue ? 'var(--accent-wash)' : undefined }"
+                @click="pick(item.id)"
+              >
+                {{ item.name }}
+              </button>
+            </li>
+          </template>
+
+          <li v-if="!matches.length && !canCreate" class="px-3 py-3 text-sm text-muted">
+            找不到相符的
+          </li>
+        </ul>
+
+        <div v-if="canCreate" class="border-t p-2" :style="{ borderColor: 'var(--border)' }">
           <button
             type="button"
-            class="block w-full px-3 py-2 text-left text-sm"
-            :style="{ ...optionStyle, color: 'var(--text-muted)' }"
-            @click="pick(null)"
+            :disabled="saving"
+            class="block w-full rounded-sm px-3 py-2 text-left disabled:opacity-60"
+            :style="{ ...optionStyle, color: 'var(--accent)' }"
+            @click="create"
           >
-            清除
+            {{ saving ? '新增中' : `新增「${query.trim()}」` }}
           </button>
-        </li>
+        </div>
 
-        <template v-if="grouped.system.length">
-          <li class="px-3 pt-2 text-xs text-muted">內建</li>
-          <li v-for="item in grouped.system" :key="item.id">
-            <button
-              type="button"
-              class="block w-full px-3 py-2 text-left"
-              :style="{ ...optionStyle, background: item.id === modelValue ? 'var(--accent-wash)' : undefined }"
-              @click="pick(item.id)"
-            >
-              {{ item.name }}
-            </button>
-          </li>
-        </template>
-
-        <template v-if="grouped.mine.length">
-          <li class="px-3 pt-2 text-xs text-muted">我建立的</li>
-          <li v-for="item in grouped.mine" :key="item.id">
-            <button
-              type="button"
-              class="block w-full px-3 py-2 text-left"
-              :style="{ ...optionStyle, background: item.id === modelValue ? 'var(--accent-wash)' : undefined }"
-              @click="pick(item.id)"
-            >
-              {{ item.name }}
-            </button>
-          </li>
-        </template>
-
-        <li v-if="!matches.length && !canCreate" class="px-3 py-3 text-sm text-muted">
-          找不到相符的
-        </li>
-      </ul>
-
-      <div v-if="canCreate" class="border-t p-2" :style="{ borderColor: 'var(--border)' }">
-        <button
-          type="button"
-          :disabled="saving"
-          class="block w-full rounded-sm px-3 py-2 text-left disabled:opacity-60"
-          :style="{ ...optionStyle, color: 'var(--accent)' }"
-          @click="create"
-        >
-          {{ saving ? '新增中' : `新增「${query.trim()}」` }}
-        </button>
+        <p v-if="saveError" class="px-3 pb-3 text-sm" :style="{ color: 'var(--danger)' }">
+          {{ saveError }}
+        </p>
       </div>
-
-      <p v-if="saveError" class="px-3 pb-3 text-sm" :style="{ color: 'var(--danger)' }">
-        {{ saveError }}
-      </p>
-    </div>
+    </Teleport>
   </div>
 </template>

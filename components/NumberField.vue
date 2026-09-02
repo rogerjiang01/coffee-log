@@ -45,14 +45,13 @@ function onInput(event: Event) {
     <input
       :id="id"
       :value="draft"
+      :data-filled="draft !== ''"
       type="text"
       inputmode="decimal"
       :placeholder="placeholder"
       :aria-label="ariaLabel"
-      class="block w-full rounded-sm border px-3 py-2.5 tabular-nums"
+      class="block w-full field px-3 py-2.5 tabular-nums"
       :style="{
-        borderColor: 'var(--field-border)',
-        background: 'var(--field-bg)',
         minHeight: '44px',
         paddingRight: unit ? '2.75rem' : undefined,
       }"

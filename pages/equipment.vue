@@ -206,8 +206,6 @@ async function destroy() {
 }
 
 const inputStyle = {
-  borderColor: 'var(--field-border)',
-  background: 'var(--field-bg)',
   minHeight: '44px',
 }
 </script>
@@ -238,7 +236,7 @@ const inputStyle = {
           <select
             id="equipment-type"
             v-model="form.type"
-            class="mt-1 block w-full rounded-sm border py-2.5"
+            class="mt-1 block w-full field py-2.5"
             :style="inputStyle"
           >
             <option v-for="type in equipmentTypes" :key="type" :value="type">
@@ -285,7 +283,7 @@ const inputStyle = {
             v-model="form.custom_name"
             type="text"
             :disabled="!!form.catalog_id"
-            class="mt-1 block w-full rounded-sm border py-2.5 disabled:opacity-60"
+            class="mt-1 block w-full field py-2.5 disabled:opacity-60"
             :style="inputStyle"
           >
           <p class="mt-1 text-xs text-muted">
@@ -299,7 +297,7 @@ const inputStyle = {
             id="equipment-note"
             v-model="form.note"
             type="text"
-            class="mt-1 block w-full rounded-sm border py-2.5"
+            class="mt-1 block w-full field py-2.5"
             :style="inputStyle"
           >
           <p class="mt-1 text-xs text-muted">換刀盤、加裝配件這類個體差異記在這裡</p>

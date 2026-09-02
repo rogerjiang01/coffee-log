@@ -85,8 +85,6 @@ function submit() {
 }
 
 const inputStyle = {
-  borderColor: 'var(--field-border)',
-  background: 'var(--field-bg)',
   minHeight: '44px',
 }
 
@@ -113,8 +111,9 @@ function selectStyle(value: unknown) {
         <input
           id="bean-name"
           v-model="values.name"
+          :data-filled="!!values.name"
           type="text"
-          class="mt-1 block w-full rounded-sm border py-2.5"
+          class="mt-1 block w-full field py-2.5"
           :style="inputStyle"
         >
         <p v-if="nameError" class="mt-2 text-sm" :style="{ color: 'var(--danger)' }">{{ nameError }}</p>
@@ -125,8 +124,9 @@ function selectStyle(value: unknown) {
         <input
           id="bean-roaster"
           v-model="values.roaster"
+          :data-filled="!!values.roaster"
           type="text"
-          class="mt-1 block w-full rounded-sm border py-2.5"
+          class="mt-1 block w-full field py-2.5"
           :style="inputStyle"
         >
       </FormRow>
@@ -136,8 +136,9 @@ function selectStyle(value: unknown) {
         <input
           id="bean-roast-date"
           v-model="values.roast_date"
+          :data-filled="!!values.roast_date"
           type="date"
-          class="mt-1 block w-full rounded-sm border py-2.5"
+          class="mt-1 block w-full field py-2.5"
           :class="{ 'date-empty': !values.roast_date }"
           :style="inputStyle"
         >
@@ -149,7 +150,8 @@ function selectStyle(value: unknown) {
         <select
           id="bean-roast-level"
           v-model="values.roast_level"
-          class="mt-1 block w-full rounded-sm border py-2.5"
+          :data-filled="values.roast_level !== null"
+          class="mt-1 block w-full field py-2.5"
           :style="selectStyle(values.roast_level)"
         >
           <option :value="null">選填</option>
@@ -164,7 +166,8 @@ function selectStyle(value: unknown) {
         <select
           id="bean-country"
           v-model="values.country_id"
-          class="mt-1 block w-full rounded-sm border py-2.5"
+          :data-filled="values.country_id !== null"
+          class="mt-1 block w-full field py-2.5"
           :style="selectStyle(values.country_id)"
         >
           <option :value="null">選填</option>
@@ -179,9 +182,10 @@ function selectStyle(value: unknown) {
         <input
           id="bean-region"
           v-model="values.region"
+          :data-filled="!!values.region"
           type="text"
           list="bean-region-options"
-          class="mt-1 block w-full rounded-sm border py-2.5"
+          class="mt-1 block w-full field py-2.5"
           :style="inputStyle"
         >
         <!-- 建議來自使用者填過的值，沒有歷史就沒有建議，不擋任何輸入 -->
@@ -203,9 +207,9 @@ function selectStyle(value: unknown) {
         <textarea
           id="bean-notes"
           v-model="values.official_notes"
+          :data-filled="!!values.official_notes"
           rows="3"
-          class="mt-1 block w-full rounded-sm border py-2.5"
-          :style="{ borderColor: 'var(--field-border)', background: 'var(--field-bg)' }"
+          class="mt-1 block w-full field py-2.5"
         />
       </FormRow>
     </FormCard>

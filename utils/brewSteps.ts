@@ -24,6 +24,8 @@ export interface StepInput {
   stepType: StepType
   cumulativeWater: number | null
   holdSeconds: number | null
+  /** 自由文字備註。與 stepType 是兩件事：前者是結構化標記，後者是自由文字。 */
+  note: string
 }
 
 /** 資料庫裡的一段 */
@@ -32,10 +34,11 @@ export interface StepRow {
   time_offset: number
   cumulative_water: number
   step_type: StepType
+  note: string | null
 }
 
 export function emptyStep(stepType: StepType = 'pour'): StepInput {
-  return { stepType, cumulativeWater: null, holdSeconds: null }
+  return { stepType, cumulativeWater: null, holdSeconds: null, note: '' }
 }
 
 /** 悶蒸就是 step_index = 1 且 step_type = 'bloom' 的那一筆，沒有獨立欄位 */
@@ -62,6 +65,7 @@ export function toStepRows(steps: StepInput[]): StepRow[] {
       time_offset: offset,
       cumulative_water: step.cumulativeWater!,
       step_type: step.stepType,
+      note: (step.note ?? '').trim() || null,
     })
   })
 
@@ -88,7 +92,12 @@ export function toStepInputs(rows: StepRow[], totalTime: number | null): StepInp
     else {
       holdSeconds = null
     }
-    return { stepType: row.step_type, cumulativeWater: row.cumulative_water, holdSeconds }
+    return {
+      stepType: row.step_type,
+      cumulativeWater: row.cumulative_water,
+      holdSeconds,
+      note: row.note ?? '',
+    }
   })
 }
 
@@ -124,6 +133,7 @@ export function stepsFromTemplate(
       // 磅秤讀的是整數克，換算結果四捨五入到整數
       cumulativeWater: Math.round(cumulative),
       holdSeconds: step.duration,
+      note: '',
     }
   })
 }

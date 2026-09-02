@@ -35,49 +35,58 @@ const brew = ref<BrewDetail | null>(null)
 const steps = ref<StepInput[]>([])
 const tags = ref<string[]>([])
 const loading = ref(true)
+const loadError = ref('')
 const notFound = ref(false)
 const confirmOpen = ref(false)
 const deleting = ref(false)
 const actionError = ref('')
 
 async function load() {
-  const { data } = await supabase
-    .from('brews')
-    .select(`
-      id, dose, water_temp, grind_setting, total_time, brewed_at,
-      rating, is_favorite, tasting_notes, intensity,
-      beans ( id, name, roast_date ),
-      brew_methods ( name ),
-      grinder:grinder_id ( custom_name, equipment_catalog ( brand, model, variant ) ),
-      dripper:dripper_id ( custom_name, equipment_catalog ( brand, model, variant ) ),
-      kettle:kettle_id ( custom_name, equipment_catalog ( brand, model, variant ) )
-    `)
-    .eq('id', id.value)
-    .maybeSingle()
+  try {
+    const { data } = await supabase
+      .from('brews')
+      .select(`
+        id, dose, water_temp, grind_setting, total_time, brewed_at,
+        rating, is_favorite, tasting_notes, intensity,
+        beans ( id, name, roast_date ),
+        brew_methods ( name ),
+        grinder:grinder_id ( custom_name, equipment_catalog ( brand, model, variant ) ),
+        dripper:dripper_id ( custom_name, equipment_catalog ( brand, model, variant ) ),
+        kettle:kettle_id ( custom_name, equipment_catalog ( brand, model, variant ) )
+      `)
+      .eq('id', id.value)
+      .maybeSingle()
 
-  if (!data) {
-    notFound.value = true
+    if (!data) {
+      notFound.value = true
+      return
+    }
+    brew.value = data as unknown as BrewDetail
+
+    const { data: stepRows } = await supabase
+      .from('brew_steps')
+      .select('step_index, time_offset, cumulative_water, step_type, note')
+      .eq('brew_id', id.value)
+      .order('step_index')
+    steps.value = toStepInputs((stepRows ?? []) as unknown as StepRow[], brew.value.total_time)
+
+    const { data: tagRows } = await supabase
+      .from('brew_flavor_tags')
+      .select('flavor_tags ( name )')
+      .eq('brew_id', id.value)
+    tags.value = ((tagRows ?? []) as unknown as { flavor_tags: { name: string } | null }[])
+      .map(row => row.flavor_tags?.name)
+      .filter((name): name is string => !!name)
+
     loading.value = false
-    return
   }
-  brew.value = data as unknown as BrewDetail
-
-  const { data: stepRows } = await supabase
-    .from('brew_steps')
-    .select('step_index, time_offset, cumulative_water, step_type')
-    .eq('brew_id', id.value)
-    .order('step_index')
-  steps.value = toStepInputs((stepRows ?? []) as unknown as StepRow[], brew.value.total_time)
-
-  const { data: tagRows } = await supabase
-    .from('brew_flavor_tags')
-    .select('flavor_tags ( name )')
-    .eq('brew_id', id.value)
-  tags.value = ((tagRows ?? []) as unknown as { flavor_tags: { name: string } | null }[])
-    .map(row => row.flavor_tags?.name)
-    .filter((name): name is string => !!name)
-
-  loading.value = false
+  catch (e) {
+    loadError.value = e instanceof Error ? `讀不到資料：${e.message}` : '讀不到資料'
+  }
+  finally {
+    // finally：任何失敗都不能讓頁面停在「讀取中」
+    loading.value = false
+  }
 }
 onMounted(load)
 
@@ -136,6 +145,7 @@ async function destroy() {
 
 <template>
   <main class="mx-auto px-5 pt-10 pb-16" :style="{ maxWidth: 'var(--content-max)' }">
+    <p v-if="loadError" role="alert" class="text-sm" :style="{ color: 'var(--danger)' }">{{ loadError }}</p>
     <p v-if="loading" class="text-muted">讀取中</p>
 
     <template v-else-if="notFound">
@@ -202,8 +212,11 @@ async function destroy() {
             class="flex items-baseline justify-between border-t py-3"
             :style="{ borderColor: 'var(--border)' }"
           >
-            <span class="text-sm">
-              {{ step.stepType === 'bloom' ? '悶蒸' : step.stepType === 'stir' ? '攪拌' : `第 ${index} 段` }}
+            <span class="min-w-0 flex-1 text-sm">
+              <span class="block">
+                {{ step.stepType === 'bloom' ? '悶蒸' : `第 ${index} 段` }}<template v-if="step.stepType === 'stir'">・攪拌</template>
+              </span>
+              <span v-if="step.note" class="block text-xs text-muted">{{ step.note }}</span>
             </span>
             <span class="tabular-nums">
               注到 {{ step.cumulativeWater }}g

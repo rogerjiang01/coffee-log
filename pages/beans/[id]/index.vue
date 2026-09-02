@@ -24,6 +24,7 @@ const bean = ref<BeanDetail | null>(null)
 const photoUrl = ref<string | null>(null)
 const brewCount = ref(0)
 const loading = ref(true)
+const loadError = ref('')
 const notFound = ref(false)
 const confirmOpen = ref(false)
 const deleting = ref(false)
@@ -32,30 +33,38 @@ const actionError = ref('')
 const id = computed(() => String(route.params.id))
 
 async function load() {
-  const { data } = await supabase
-    .from('beans')
-    .select(`
-      id, name, photo_path, roaster, roast_date, roast_level, region, official_notes, is_finished,
-      countries ( name_zh ),
-      processing_methods ( name ), varieties ( name )
-    `)
-    .eq('id', id.value)
-    .maybeSingle()
+  try {
+    const { data } = await supabase
+      .from('beans')
+      .select(`
+        id, name, photo_path, roaster, roast_date, roast_level, region, official_notes, is_finished,
+        countries ( name_zh ),
+        processing_methods ( name ), varieties ( name )
+      `)
+      .eq('id', id.value)
+      .maybeSingle()
 
-  if (!data) {
-    notFound.value = true
+    if (!data) {
+      notFound.value = true
+      return
+    }
+    bean.value = data as unknown as BeanDetail
+    photoUrl.value = await signedUrl(bean.value.photo_path)
+
+    const { count } = await supabase
+      .from('brews')
+      .select('id', { count: 'exact', head: true })
+      .eq('bean_id', id.value)
+    brewCount.value = count ?? 0
     loading.value = false
-    return
   }
-  bean.value = data as unknown as BeanDetail
-  photoUrl.value = await signedUrl(bean.value.photo_path)
-
-  const { count } = await supabase
-    .from('brews')
-    .select('id', { count: 'exact', head: true })
-    .eq('bean_id', id.value)
-  brewCount.value = count ?? 0
-  loading.value = false
+  catch (e) {
+    loadError.value = e instanceof Error ? `讀不到資料：${e.message}` : '讀不到資料'
+  }
+  finally {
+    // finally：任何失敗都不能讓頁面停在「讀取中」
+    loading.value = false
+  }
 }
 
 onMounted(load)
@@ -105,6 +114,7 @@ async function destroy() {
 
 <template>
   <main class="mx-auto px-5 py-10" :style="{ maxWidth: 'var(--content-max)' }">
+    <p v-if="loadError" role="alert" class="text-sm" :style="{ color: 'var(--danger)' }">{{ loadError }}</p>
     <p v-if="loading" class="text-muted">讀取中</p>
 
     <template v-else-if="notFound">

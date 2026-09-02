@@ -89,7 +89,7 @@ async function create() {
           class="rounded-sm border px-3 py-2 text-sm"
           :style="modelValue.includes(tag.id)
             ? { borderColor: 'var(--accent)', background: 'var(--accent-wash)', color: 'var(--on-accent-wash)', minHeight: '44px' }
-            : { borderColor: 'var(--field-border)', background: 'var(--field-bg)', minHeight: '44px' }"
+            : { minHeight: '44px' }"
           @click="toggle(tag.id)"
         >
           {{ tag.name }}
@@ -102,8 +102,8 @@ async function create() {
         v-model="draft"
         type="text"
         placeholder="想到別的詞就打在這裡"
-        class="block flex-1 rounded-sm border px-3 py-2.5"
-        :style="{ borderColor: 'var(--field-border)', background: 'var(--field-bg)', minHeight: '44px' }"
+        class="block flex-1 field px-3 py-2.5"
+        :style="{ minHeight: '44px' }"
       >
       <button
         v-if="canCreate"

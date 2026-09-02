@@ -49,8 +49,6 @@ function onSecondsBlur() {
 }
 
 const boxStyle = {
-  borderColor: 'var(--field-border)',
-  background: 'var(--field-bg)',
   minHeight: '44px',
 }
 </script>
@@ -60,22 +58,24 @@ const boxStyle = {
     <input
       :id="id"
       :value="minutes"
+      :data-filled="minutes !== ''"
       type="text"
       inputmode="numeric"
       placeholder="0"
       aria-label="分"
-      class="w-12 rounded-sm border py-2.5 text-center tabular-nums"
+      class="w-16 shrink-0 field py-2.5 text-center tabular-nums"
       :style="boxStyle"
       @input="onMinutes"
     >
     <span aria-hidden="true" :style="{ color: 'var(--text-muted)' }">:</span>
     <input
       :value="seconds"
+      :data-filled="seconds !== ''"
       type="text"
       inputmode="numeric"
       placeholder="00"
       aria-label="秒"
-      class="w-12 rounded-sm border py-2.5 text-center tabular-nums"
+      class="w-16 shrink-0 field py-2.5 text-center tabular-nums"
       :style="boxStyle"
       @input="onSeconds"
       @blur="onSecondsBlur"

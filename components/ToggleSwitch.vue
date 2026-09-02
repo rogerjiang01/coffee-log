@@ -21,7 +21,7 @@ const emit = defineEmits<{ 'update:modelValue': [boolean] }>()
     :aria-checked="modelValue"
     :disabled="busy"
     class="flex w-full items-center justify-between rounded-sm border px-4 py-3 disabled:opacity-60"
-    :style="{ borderColor: 'var(--field-border)', background: 'var(--field-bg)', minHeight: '44px' }"
+    :style="{ borderColor: 'var(--border)', background: 'var(--surface)', minHeight: '44px' }"
     @click="emit('update:modelValue', !modelValue)"
   >
     <span>{{ label }}</span>

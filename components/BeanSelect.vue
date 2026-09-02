@@ -29,6 +29,7 @@ const saving = ref(false)
 const createError = ref('')
 
 const root = ref<HTMLElement | null>(null)
+const panel = ref<HTMLElement | null>(null)
 const searchInput = ref<HTMLInputElement | null>(null)
 
 const selected = computed(() => beans.value.find(bean => bean.id === props.modelValue) ?? null)
@@ -43,14 +44,18 @@ const finished = computed(() => matches.value.filter(bean => bean.is_finished))
 
 async function load() {
   loading.value = true
-  const { data } = await supabase
-    .from('beans')
-    .select('id, name, is_finished')
-    .order('is_finished', { ascending: true })
-    .order('created_at', { ascending: false })
-    .order('id', { ascending: false })
-  beans.value = (data ?? []) as unknown as BeanOption[]
-  loading.value = false
+  try {
+    const { data } = await supabase
+      .from('beans')
+      .select('id, name, is_finished')
+      .order('is_finished', { ascending: true })
+      .order('created_at', { ascending: false })
+      .order('id', { ascending: false })
+    beans.value = (data ?? []) as unknown as BeanOption[]
+  }
+  finally {
+    loading.value = false
+  }
 }
 
 onMounted(() => {
@@ -59,8 +64,11 @@ onMounted(() => {
 })
 onBeforeUnmount(() => document.removeEventListener('click', onDocumentClick))
 
+const { style: panelStyle, isOutside } = useAnchoredPanel(root, panel, open)
+
 function onDocumentClick(event: MouseEvent) {
-  if (open.value && root.value && !root.value.contains(event.target as Node)) close()
+  // 浮層已 teleport 到 body，不能只檢查觸發元素的父層
+  if (open.value && isOutside(event.target as Node)) close()
 }
 
 async function toggle() {
@@ -145,8 +153,10 @@ async function create() {
       role="combobox"
       :aria-expanded="open"
       :disabled="loading"
-      class="mt-1 flex w-full items-center justify-between rounded-sm border px-3 py-2.5 text-left"
-      :style="{ borderColor: 'var(--field-border)', background: 'var(--field-bg)', minHeight: '44px' }"
+      class="mt-1 flex w-full items-center justify-between field px-3 py-2.5 text-left"
+      data-field
+      :data-filled="!!selected"
+      :style="{ minHeight: '44px' }"
       @click="toggle"
     >
       <span :style="{ color: selected ? 'var(--text)' : 'var(--text-muted)' }">
@@ -160,38 +170,28 @@ async function create() {
       </svg>
     </button>
 
-    <div
-      v-if="open"
-      class="absolute z-20 mt-1 w-full overflow-hidden rounded-sm border"
-      :style="{ borderColor: 'var(--border)', background: 'var(--surface)', boxShadow: 'var(--overlay-shadow)' }"
-      @keydown.esc="close"
-    >
-      <template v-if="!creating">
-        <div class="border-b p-2" :style="{ borderColor: 'var(--border)' }">
-          <input
-            ref="searchInput"
-            v-model="query"
-            type="text"
-            placeholder="打字找找看"
-            class="block w-full rounded-sm border px-3 py-2"
-            :style="{ borderColor: 'var(--field-border)', background: 'var(--field-bg)', minHeight: '44px' }"
-          >
-        </div>
-
-        <ul class="max-h-56 overflow-y-auto">
-          <li v-for="bean in active" :key="bean.id">
-            <button
-              type="button"
-              class="block w-full truncate px-3 py-2 text-left"
-              :style="{ minHeight: '44px', background: bean.id === modelValue ? 'var(--accent-wash)' : undefined }"
-              @click="pick(bean.id)"
+    <Teleport to="body">
+      <div
+        v-if="open"
+        ref="panel"
+        class="z-40 flex flex-col overflow-hidden rounded-sm border"
+        :style="{ ...panelStyle, borderColor: 'var(--border)', background: 'var(--surface)', boxShadow: 'var(--overlay-shadow)' }"
+        @keydown.esc="close"
+      >
+        <template v-if="!creating">
+          <div class="border-b p-2" :style="{ borderColor: 'var(--border)' }">
+            <input
+              ref="searchInput"
+              v-model="query"
+              type="text"
+              placeholder="打字找找看"
+              class="block w-full field px-3 py-2"
+              :style="{ minHeight: '44px' }"
             >
-              {{ bean.name }}
-            </button>
-          </li>
-          <template v-if="finished.length">
-            <li class="px-3 pt-2 text-xs text-muted">已喝完</li>
-            <li v-for="bean in finished" :key="bean.id">
+          </div>
+
+          <ul class="max-h-56 overflow-y-auto">
+            <li v-for="bean in active" :key="bean.id">
               <button
                 type="button"
                 class="block w-full truncate px-3 py-2 text-left"
@@ -201,64 +201,77 @@ async function create() {
                 {{ bean.name }}
               </button>
             </li>
-          </template>
-        </ul>
+            <template v-if="finished.length">
+              <li class="px-3 pt-2 text-xs text-muted">已喝完</li>
+              <li v-for="bean in finished" :key="bean.id">
+                <button
+                  type="button"
+                  class="block w-full truncate px-3 py-2 text-left"
+                  :style="{ minHeight: '44px', background: bean.id === modelValue ? 'var(--accent-wash)' : undefined }"
+                  @click="pick(bean.id)"
+                >
+                  {{ bean.name }}
+                </button>
+              </li>
+            </template>
+          </ul>
 
-        <div class="border-t p-2" :style="{ borderColor: 'var(--border)' }">
-          <button
-            type="button"
-            class="block w-full rounded-sm px-3 py-2 text-left"
-            :style="{ minHeight: '44px', color: 'var(--accent)' }"
-            @click="startCreate"
+          <div class="border-t p-2" :style="{ borderColor: 'var(--border)' }">
+            <button
+              type="button"
+              class="block w-full rounded-sm px-3 py-2 text-left"
+              :style="{ minHeight: '44px', color: 'var(--accent)' }"
+              @click="startCreate"
+            >
+              {{ query.trim() ? `新增「${query.trim()}」` : '新增豆子' }}
+            </button>
+          </div>
+        </template>
+
+        <!-- 就地新增：只要豆名，照片可選，全程留在這一頁 -->
+        <div v-else class="p-3">
+          <label class="block text-sm" for="new-bean-name">
+            豆名
+            <span :style="{ color: 'var(--danger)' }" aria-hidden="true">*</span>
+            <span class="sr-only">必填</span>
+          </label>
+          <input
+            id="new-bean-name"
+            v-model="draftName"
+            type="text"
+            class="mt-1 block w-full field px-3 py-2.5"
+            :style="{ minHeight: '44px' }"
           >
-            {{ query.trim() ? `新增「${query.trim()}」` : '新增豆子' }}
-          </button>
-        </div>
-      </template>
 
-      <!-- 就地新增：只要豆名，照片可選，全程留在這一頁 -->
-      <div v-else class="p-3">
-        <label class="block text-sm" for="new-bean-name">
-          豆名
-          <span :style="{ color: 'var(--danger)' }" aria-hidden="true">*</span>
-          <span class="sr-only">必填</span>
-        </label>
-        <input
-          id="new-bean-name"
-          v-model="draftName"
-          type="text"
-          class="mt-1 block w-full rounded-sm border px-3 py-2.5"
-          :style="{ borderColor: 'var(--field-border)', background: 'var(--field-bg)', minHeight: '44px' }"
-        >
+          <div class="mt-3">
+            <PhotoField :preview-url="null" @picked="draftPhoto = $event" />
+          </div>
 
-        <div class="mt-3">
-          <PhotoField :preview-url="null" @picked="draftPhoto = $event" />
-        </div>
+          <p v-if="createError" role="alert" class="mt-2 text-sm" :style="{ color: 'var(--danger)' }">
+            {{ createError }}
+          </p>
 
-        <p v-if="createError" role="alert" class="mt-2 text-sm" :style="{ color: 'var(--danger)' }">
-          {{ createError }}
-        </p>
-
-        <div class="mt-3 flex gap-2">
-          <button
-            type="button"
-            :disabled="saving"
-            class="flex-1 rounded-sm px-3 py-2 font-medium disabled:opacity-60"
-            :style="{ background: 'var(--accent)', color: 'var(--on-accent)', minHeight: '44px' }"
-            @click="create"
-          >
-            {{ saving ? '儲存中' : '儲存' }}
-          </button>
-          <button
-            type="button"
-            class="rounded-sm border px-3 py-2"
-            :style="{ borderColor: 'var(--border)', minHeight: '44px' }"
-            @click="creating = false"
-          >
-            取消
-          </button>
+          <div class="mt-3 flex gap-2">
+            <button
+              type="button"
+              :disabled="saving"
+              class="flex-1 rounded-sm px-3 py-2 font-medium disabled:opacity-60"
+              :style="{ background: 'var(--accent)', color: 'var(--on-accent)', minHeight: '44px' }"
+              @click="create"
+            >
+              {{ saving ? '儲存中' : '儲存' }}
+            </button>
+            <button
+              type="button"
+              class="rounded-sm border px-3 py-2"
+              :style="{ borderColor: 'var(--border)', minHeight: '44px' }"
+              @click="creating = false"
+            >
+              取消
+            </button>
+          </div>
         </div>
       </div>
-    </div>
+    </Teleport>
   </div>
 </template>

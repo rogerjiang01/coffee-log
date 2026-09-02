@@ -37,7 +37,11 @@ const formError = ref('')
 
 const title = computed(() => `選擇${equipmentLabels[props.type]}`)
 
-watch(() => props.open, (open) => {
+// immediate 不可省略：父層用 v-if 掛載這個元件，掛載時 props.open 已經
+// 是 true，沒有 immediate 的話這個 watch 等的 false→true 永遠不會發生，
+// load() 一次都不會被呼叫，畫面就永遠停在「讀取中」。
+// 一併監看 type，直接切換器材類型時也要重新載入。
+watch([() => props.open, () => props.type], ([open]) => {
   if (open) {
     draftId.value = props.modelValue
     mode.value = 'list'
@@ -47,7 +51,7 @@ watch(() => props.open, (open) => {
   else {
     document.body.style.overflow = ''
   }
-})
+}, { immediate: true })
 onBeforeUnmount(() => { document.body.style.overflow = '' })
 
 async function load() {
@@ -162,7 +166,7 @@ async function create() {
   }
 }
 
-const inputStyle = { borderColor: 'var(--field-border)', background: 'var(--field-bg)', minHeight: '44px' }
+const inputStyle = { minHeight: '44px' }
 </script>
 
 <template>
@@ -264,7 +268,7 @@ const inputStyle = { borderColor: 'var(--field-border)', background: 'var(--fiel
           v-model="form.custom_name"
           type="text"
           :disabled="!!form.catalog_id"
-          class="mt-1 block w-full rounded-sm border px-3 py-2.5 disabled:opacity-60"
+          class="mt-1 block w-full field px-3 py-2.5 disabled:opacity-60"
           :style="inputStyle"
         >
         <p class="mt-1 text-xs text-muted">
@@ -278,7 +282,7 @@ const inputStyle = { borderColor: 'var(--field-border)', background: 'var(--fiel
           id="picker-note"
           v-model="form.note"
           type="text"
-          class="mt-1 block w-full rounded-sm border px-3 py-2.5"
+          class="mt-1 block w-full field px-3 py-2.5"
           :style="inputStyle"
         >
       </div>

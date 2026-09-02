@@ -49,20 +49,42 @@ function setStir(index: number, stir: boolean) {
         :key="index"
         class="step-row py-3"
       >
-        <div class="flex items-baseline justify-between gap-3">
+        <div class="flex items-center justify-between gap-3">
           <p class="text-sm font-medium">
-            {{ step.stepType === 'bloom' ? '悶蒸' : `第 ${index} 段` }}
+            {{ step.stepType === 'bloom' ? '悶蒸' : `第 ${index} 段` }}<template v-if="step.stepType === 'stir'">・攪拌</template>
           </p>
 
-          <div class="flex items-baseline gap-3">
+          <div class="flex items-center gap-1">
             <!-- 段落之間顯示算出來的增量水量，幫使用者確認自己填對了 -->
             <span
               v-if="index > 0 && increments[index] !== null"
-              class="text-xs tabular-nums"
+              class="mr-1 text-xs tabular-nums"
               :style="{ color: 'var(--text-muted)' }"
             >
               +{{ increments[index] }}g
             </span>
+
+            <!-- 攪拌是結構化標記（未來要做時間軸視覺化、或算總水量時排除
+                 攪拌步驟都需要它機器可讀），但不值得佔一整列。
+                 收成標題列右側的圖示切換鈕。 -->
+            <button
+              v-if="step.stepType !== 'bloom'"
+              type="button"
+              class="flex shrink-0 items-center justify-center rounded-sm"
+              :style="step.stepType === 'stir'
+                ? { color: 'var(--on-accent-wash)', background: 'var(--accent-wash)', minHeight: '44px', minWidth: '44px' }
+                : { color: 'var(--text-muted)', minHeight: '44px', minWidth: '44px' }"
+              :aria-pressed="step.stepType === 'stir'"
+              :aria-label="`把第 ${index} 段標成攪拌`"
+              @click="setStir(index, step.stepType !== 'stir')"
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"
+                   fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round">
+                <path d="M12 3a6 6 0 016 6c0 3.5-3 5-6 5s-6-1.5-6-5" />
+                <path d="M12 14v7" />
+                <path d="M9 21h6" />
+              </svg>
+            </button>
             <button
               v-if="step.stepType !== 'bloom'"
               type="button"
@@ -103,21 +125,17 @@ function setStir(index: number, stir: boolean) {
           </div>
         </div>
 
-        <!-- 段落型態屬 L2，第一版只提供切換為「攪拌」 -->
-        <label
-          v-if="step.stepType !== 'bloom'"
-          class="mt-3 flex items-center gap-2 text-sm"
-          :style="{ minHeight: '44px' }"
+        <!-- 段落備註。單行輸入，沒填時只有一條底線的高度，不佔額外空間。
+             與攪拌標記是兩個不同需求：那個是結構化標記，這個是自由文字。 -->
+        <input
+          :value="step.note"
+          :data-filled="!!step.note"
+          type="text"
+          class="mt-2 block w-full field py-1.5 text-sm"
+          placeholder="這段的備註"
+          :aria-label="`第 ${index} 段的備註`"
+          @input="patch(index, { note: ($event.target as HTMLInputElement).value })"
         >
-          <input
-            type="checkbox"
-            class="size-5"
-            :style="{ accentColor: 'var(--accent)' }"
-            :checked="step.stepType === 'stir'"
-            @change="setStir(index, ($event.target as HTMLInputElement).checked)"
-          >
-          <span>這段是攪拌，不是注水</span>
-        </label>
       </li>
     </ul>
 

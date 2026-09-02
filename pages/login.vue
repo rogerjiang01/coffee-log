@@ -50,8 +50,8 @@ async function submit() {
         v-model="email"
         type="email"
         autocomplete="email"
-        class="mt-1 block w-full rounded-sm border px-3 py-2.5"
-        :style="{ borderColor: 'var(--field-border)', background: 'var(--field-bg)', minHeight: '44px' }"
+        class="mt-1 block w-full field px-3 py-2.5"
+        :style="{ minHeight: '44px' }"
       >
 
       <label class="mt-5 block text-sm" for="password">密碼</label>
@@ -60,8 +60,8 @@ async function submit() {
         v-model="password"
         type="password"
         autocomplete="current-password"
-        class="mt-1 block w-full rounded-sm border px-3 py-2.5"
-        :style="{ borderColor: 'var(--field-border)', background: 'var(--field-bg)', minHeight: '44px' }"
+        class="mt-1 block w-full field px-3 py-2.5"
+        :style="{ minHeight: '44px' }"
       >
 
       <p v-if="error" class="mt-4 text-sm" :style="{ color: 'var(--danger)' }">

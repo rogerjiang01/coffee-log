@@ -1,8 +1,9 @@
 <script setup lang="ts">
 // 分組卡片。卡片內的欄位用分隔線區隔，輸入區直接坐在卡片內。
 //
-// 卡片會把 --field-border / --field-bg 覆寫成透明：輸入框放棄自己的邊框
-// 之後，分組層級才會成為畫面上唯一的結構線索，不會變成框中框。
+// 欄位是底線制（見 main.css 的 .field）：底線同時扮演該列的分隔線，
+// 卡片內不另外畫線。使用者一眼看得出哪裡可以填、填到哪裡為止，
+// 同時不會出現框中框。
 //
 // 標題放在卡片上方外側，小字、--text-muted。它是標籤不是段落標題，
 // 不搶欄位的視覺權重。
@@ -25,14 +26,9 @@ defineProps<{ title?: string }>()
 </template>
 
 <style scoped>
-.form-card {
-  /* 自訂屬性會往下繼承，子元件不必知道自己在卡片裡 */
-  --field-border: transparent;
-  --field-bg: transparent;
-}
-
-/* 水平內距由 FormRow 提供，欄位本身貼齊列的左右邊界。
-   padding 是用 class 設的（px-3），不是 inline style，所以不需要 !important。 */
+/* 水平內距由 FormRow 提供，欄位本身貼齊列的內容邊界——
+   底線因此不會碰到卡片外框，左右各有一個 FormRow 內距的呼吸空間。
+   padding 是用 class 設的（px-3），不是 inline style，不需要 !important。 */
 .form-card :deep(input),
 .form-card :deep(select),
 .form-card :deep(textarea),

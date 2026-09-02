@@ -176,8 +176,6 @@ function submit() {
 }
 
 const inputStyle = {
-  borderColor: 'var(--field-border)',
-  background: 'var(--field-bg)',
   minHeight: '44px',
 }
 </script>
@@ -194,8 +192,9 @@ const inputStyle = {
           <input
             id="brew-at"
             v-model="values.brewed_at"
+            :data-filled="!!values.brewed_at"
             type="datetime-local"
-            class="block w-full min-w-0 max-w-full rounded-sm border py-2.5"
+            class="block w-full min-w-0 max-w-full field py-2.5"
             :style="inputStyle"
           >
         </div>
@@ -237,7 +236,7 @@ const inputStyle = {
         />
       </FormRow>
       <!-- 收合區是這張卡片內部的最後一列，語意明確是「這組裡的次要項目」 -->
-      <FormRow>
+      <FormRow divider>
         <CollapsibleSection flat title="濾紙與分享壺" storage-key="brewForm.equipment.expanded">
           <EquipmentTrigger
             label="濾紙"
@@ -279,7 +278,8 @@ const inputStyle = {
         <select
           id="brew-method"
           v-model="values.brew_method_id"
-          class="mt-1 block w-full rounded-sm border py-2.5"
+          :data-filled="values.brew_method_id !== null"
+          class="mt-1 block w-full field py-2.5"
           :style="{ ...inputStyle, color: values.brew_method_id ? 'var(--text)' : 'var(--text-muted)' }"
         >
           <option :value="null">選填</option>
@@ -288,21 +288,20 @@ const inputStyle = {
         <p v-if="!methods.length" class="mt-1 text-xs text-muted">手法的分段模板還沒建立</p>
         <p v-else class="mt-1 text-xs text-muted">選了手法會依粉重把分段填進下面</p>
       </FormRow>
-      <FormRow>
+      <FormRow divider>
         <PourStepsEditor v-model="steps" :dose="values.dose" />
       </FormRow>
       <FormRow>
         <label class="block text-sm" for="brew-total-time">總沖煮時間</label>
         <DurationPicker id="brew-total-time" v-model="values.total_time" class="mt-1" />
-        <p class="mt-1 text-xs text-muted">以下壺滴完為準</p>
       </FormRow>
     </FormCard>
 
     <FormCard title="喝起來">
-      <FormRow>
+      <FormRow divider>
         <IntensityPicker v-model="values.intensity" />
       </FormRow>
-      <FormRow>
+      <FormRow divider>
         <CollapsibleSection flat title="風味標籤" storage-key="brewForm.flavor.expanded">
           <FlavorTagPicker v-model="flavorTagIds" />
         </CollapsibleSection>
@@ -312,9 +311,9 @@ const inputStyle = {
         <textarea
           id="brew-notes"
           v-model="values.tasting_notes"
+          :data-filled="!!values.tasting_notes"
           rows="3"
-          class="mt-1 block w-full rounded-sm border py-2.5"
-          :style="{ borderColor: 'var(--field-border)', background: 'var(--field-bg)' }"
+          class="mt-1 block w-full field py-2.5"
         />
       </FormRow>
       <FormRow>

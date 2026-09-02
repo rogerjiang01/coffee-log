@@ -14,60 +14,69 @@ const initial = ref<Partial<BrewFormValues> | null>(null)
 const stepInputs = ref<StepInput[]>([])
 const tagIds = ref<string[]>([])
 const loading = ref(true)
+const loadError = ref('')
 const notFound = ref(false)
 const saving = ref(false)
 const error = ref('')
 
 onMounted(async () => {
-  const { data } = await supabase
-    .from('brews')
-    .select('bean_id, brew_method_id, dose, water_temp, grinder_id, grind_setting, dripper_id, kettle_id, filter_id, server_id, total_time, brewed_at, rating, is_favorite, tasting_notes, intensity')
-    .eq('id', id.value)
-    .maybeSingle()
+  try {
+    const { data } = await supabase
+      .from('brews')
+      .select('bean_id, brew_method_id, dose, water_temp, grinder_id, grind_setting, dripper_id, kettle_id, filter_id, server_id, total_time, brewed_at, rating, is_favorite, tasting_notes, intensity')
+      .eq('id', id.value)
+      .maybeSingle()
 
-  if (!data) {
-    notFound.value = true
+    if (!data) {
+      notFound.value = true
+      return
+    }
+    const brew = data as unknown as Record<string, unknown>
+    const totalTime = (brew.total_time as number | null) ?? null
+
+    initial.value = {
+      bean_id: (brew.bean_id as string | null) ?? null,
+      brew_method_id: (brew.brew_method_id as string | null) ?? null,
+      dose: (brew.dose as number | null) ?? null,
+      water_temp: (brew.water_temp as number | null) ?? null,
+      grinder_id: (brew.grinder_id as string | null) ?? null,
+      grind_setting: (brew.grind_setting as number | null) ?? null,
+      dripper_id: (brew.dripper_id as string | null) ?? null,
+      kettle_id: (brew.kettle_id as string | null) ?? null,
+      filter_id: (brew.filter_id as string | null) ?? null,
+      server_id: (brew.server_id as string | null) ?? null,
+      total_time: totalTime,
+      brewed_at: toLocalInput(new Date(brew.brewed_at as string)),
+      rating: (brew.rating as number | null) ?? null,
+      is_favorite: (brew.is_favorite as boolean | null) ?? false,
+      tasting_notes: (brew.tasting_notes as string | null) ?? '',
+      intensity: (brew.intensity as Intensity | null) ?? {},
+    }
+
+    const { data: steps } = await supabase
+      .from('brew_steps')
+      .select('step_index, time_offset, cumulative_water, step_type, note')
+      .eq('brew_id', id.value)
+      .order('step_index')
+    // 資料庫的累積時間點在這裡換算回介面的停留秒數
+    const rows = (steps ?? []) as unknown as StepRow[]
+    stepInputs.value = rows.length ? toStepInputs(rows, totalTime) : initialSteps()
+
+    const { data: tags } = await supabase
+      .from('brew_flavor_tags')
+      .select('flavor_tag_id')
+      .eq('brew_id', id.value)
+    tagIds.value = ((tags ?? []) as unknown as { flavor_tag_id: string }[]).map(t => t.flavor_tag_id)
+
     loading.value = false
-    return
   }
-  const brew = data as unknown as Record<string, unknown>
-  const totalTime = (brew.total_time as number | null) ?? null
-
-  initial.value = {
-    bean_id: (brew.bean_id as string | null) ?? null,
-    brew_method_id: (brew.brew_method_id as string | null) ?? null,
-    dose: (brew.dose as number | null) ?? null,
-    water_temp: (brew.water_temp as number | null) ?? null,
-    grinder_id: (brew.grinder_id as string | null) ?? null,
-    grind_setting: (brew.grind_setting as number | null) ?? null,
-    dripper_id: (brew.dripper_id as string | null) ?? null,
-    kettle_id: (brew.kettle_id as string | null) ?? null,
-    filter_id: (brew.filter_id as string | null) ?? null,
-    server_id: (brew.server_id as string | null) ?? null,
-    total_time: totalTime,
-    brewed_at: toLocalInput(new Date(brew.brewed_at as string)),
-    rating: (brew.rating as number | null) ?? null,
-    is_favorite: (brew.is_favorite as boolean | null) ?? false,
-    tasting_notes: (brew.tasting_notes as string | null) ?? '',
-    intensity: (brew.intensity as Intensity | null) ?? {},
+  catch (e) {
+    loadError.value = e instanceof Error ? `讀不到資料：${e.message}` : '讀不到資料'
   }
-
-  const { data: steps } = await supabase
-    .from('brew_steps')
-    .select('step_index, time_offset, cumulative_water, step_type')
-    .eq('brew_id', id.value)
-    .order('step_index')
-  // 資料庫的累積時間點在這裡換算回介面的停留秒數
-  const rows = (steps ?? []) as unknown as StepRow[]
-  stepInputs.value = rows.length ? toStepInputs(rows, totalTime) : initialSteps()
-
-  const { data: tags } = await supabase
-    .from('brew_flavor_tags')
-    .select('flavor_tag_id')
-    .eq('brew_id', id.value)
-  tagIds.value = ((tags ?? []) as unknown as { flavor_tag_id: string }[]).map(t => t.flavor_tag_id)
-
-  loading.value = false
+  finally {
+    // finally：任何失敗都不能讓頁面停在「讀取中」
+    loading.value = false
+  }
 })
 
 async function onSubmit(payload: {
@@ -137,6 +146,7 @@ async function onSubmit(payload: {
 
 <template>
   <main class="mx-auto px-5 pt-10 pb-16" :style="{ maxWidth: 'var(--content-max)' }">
+    <p v-if="loadError" role="alert" class="text-sm" :style="{ color: 'var(--danger)' }">{{ loadError }}</p>
     <p v-if="loading" class="text-muted">讀取中</p>
 
     <template v-else-if="notFound">

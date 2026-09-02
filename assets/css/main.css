@@ -39,6 +39,40 @@
   --shadow-overlay: var(--overlay-shadow);
 }
 
+/* 表單欄位一律是底線制。
+   底線同時扮演該列的分隔線，所以卡片內不另外畫線——線的總數不增加。
+   輸入區左右由 FormRow 的內距撐開，底線不會碰到卡片外框。
+
+   三個狀態只變顏色與粗細，線的位置不動，聚焦時不會跳版：
+     未填  --border      已填  --text-muted      聚焦  --accent 且加粗
+
+   加粗用 box-shadow 疊一條線而不是改 border-width，
+   後者會讓元素高度變化，整列跟著位移。 */
+@layer components {
+  .field {
+    border: 0;
+    border-bottom: 1px solid var(--field-border);
+    border-radius: 0;
+    background: transparent;
+  }
+
+  .field[data-filled="true"] {
+    border-bottom-color: var(--text-muted);
+  }
+
+  .field:focus,
+  .field:focus-visible {
+    outline: none;
+    border-bottom-color: var(--accent);
+    box-shadow: 0 1px 0 0 var(--accent);
+  }
+
+  /* 觸發用的按鈕（下拉、器材選擇）行為與輸入框一致 */
+  .field:focus-visible {
+    border-bottom-color: var(--accent);
+  }
+}
+
 @layer base {
   html {
     background-color: var(--bg);

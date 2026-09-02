@@ -22,6 +22,7 @@ const loading = ref(true)
 const open = ref(false)
 const query = ref('')
 const root = ref<HTMLElement | null>(null)
+const panel = ref<HTMLElement | null>(null)
 const searchInput = ref<HTMLInputElement | null>(null)
 
 const selected = computed(() => items.value.find(item => item.id === props.modelValue) ?? null)
@@ -36,14 +37,19 @@ const matches = computed(() =>
 
 async function load() {
   loading.value = true
-  const { data } = await supabase
-    .from('equipment_catalog')
-    .select('id, brand, model, variant, grind_scale_min, grind_scale_max, grind_scale_increment, grind_scale_suggested_min, grind_scale_suggested_max, grind_scale_note')
-    .eq('type', props.type)
-    .order('sort_order')
-    .order('model')
-  items.value = (data ?? []) as unknown as CatalogRow[]
-  loading.value = false
+  try {
+    const { data } = await supabase
+      .from('equipment_catalog')
+      .select('id, brand, model, variant, grind_scale_min, grind_scale_max, grind_scale_increment, grind_scale_suggested_min, grind_scale_suggested_max, grind_scale_note')
+      .eq('type', props.type)
+      .order('sort_order')
+      .order('model')
+    items.value = (data ?? []) as unknown as CatalogRow[]
+  }
+  finally {
+    // finally：任何失敗都不能讓元件停在「讀取中」
+    loading.value = false
+  }
 }
 
 onMounted(() => {
@@ -57,8 +63,11 @@ watch(() => props.type, () => {
   load()
 })
 
+const { style: panelStyle, isOutside } = useAnchoredPanel(root, panel, open)
+
 function onDocumentClick(event: MouseEvent) {
-  if (open.value && root.value && !root.value.contains(event.target as Node)) close()
+  // 浮層已 teleport 到 body，不能只檢查觸發元素的父層
+  if (open.value && isOutside(event.target as Node)) close()
 }
 
 async function toggle() {
@@ -93,8 +102,10 @@ function pick(row: CatalogRow | null) {
       role="combobox"
       :aria-expanded="open"
       :disabled="loading"
-      class="mt-1 flex w-full items-center justify-between rounded-sm border px-3 py-2.5 text-left"
-      :style="{ borderColor: 'var(--field-border)', background: 'var(--field-bg)', minHeight: '44px' }"
+      class="mt-1 flex w-full items-center justify-between field px-3 py-2.5 text-left"
+      data-field
+      :data-filled="!!selected"
+      :style="{ minHeight: '44px' }"
       @click="toggle"
     >
       <span :style="{ color: selected ? 'var(--text)' : 'var(--text-muted)' }">
@@ -112,48 +123,51 @@ function pick(row: CatalogRow | null) {
       </svg>
     </button>
 
-    <div
-      v-if="open"
-      class="absolute z-20 mt-1 w-full overflow-hidden rounded-sm border"
-      :style="{ borderColor: 'var(--border)', background: 'var(--surface)', boxShadow: 'var(--overlay-shadow)' }"
-      @keydown.esc="close"
-    >
-      <div class="border-b p-2" :style="{ borderColor: 'var(--border)' }">
-        <input
-          ref="searchInput"
-          v-model="query"
-          type="text"
-          placeholder="打字找找看"
-          class="block w-full rounded-sm border px-3 py-2"
-          :style="{ borderColor: 'var(--field-border)', background: 'var(--field-bg)', minHeight: '44px' }"
-        >
-      </div>
+    <Teleport to="body">
+      <div
+        v-if="open"
+        ref="panel"
+        class="z-40 flex flex-col overflow-hidden rounded-sm border"
+        :style="{ ...panelStyle, borderColor: 'var(--border)', background: 'var(--surface)', boxShadow: 'var(--overlay-shadow)' }"
+        @keydown.esc="close"
+      >
+        <div class="border-b p-2" :style="{ borderColor: 'var(--border)' }">
+          <input
+            ref="searchInput"
+            v-model="query"
+            type="text"
+            placeholder="打字找找看"
+            class="block w-full field px-3 py-2"
+            :style="{ minHeight: '44px' }"
+          >
+        </div>
 
-      <ul class="max-h-64 overflow-y-auto">
-        <li v-if="modelValue">
-          <button
-            type="button"
-            class="block w-full px-3 py-2 text-left text-sm"
-            :style="{ minHeight: '44px', color: 'var(--text-muted)' }"
-            @click="pick(null)"
-          >
-            清除
-          </button>
-        </li>
-        <li v-for="row in matches" :key="row.id">
-          <button
-            type="button"
-            class="block w-full px-3 py-2 text-left"
-            :style="{ minHeight: '44px', background: row.id === modelValue ? 'var(--accent-wash)' : undefined }"
-            @click="pick(row)"
-          >
-            {{ catalogDisplayName(row) }}
-          </button>
-        </li>
-        <li v-if="!matches.length" class="px-3 py-3 text-sm text-muted">
-          型錄裡沒有，用下面的自訂名稱
-        </li>
-      </ul>
-    </div>
+        <ul class="max-h-64 overflow-y-auto">
+          <li v-if="modelValue">
+            <button
+              type="button"
+              class="block w-full px-3 py-2 text-left text-sm"
+              :style="{ minHeight: '44px', color: 'var(--text-muted)' }"
+              @click="pick(null)"
+            >
+              清除
+            </button>
+          </li>
+          <li v-for="row in matches" :key="row.id">
+            <button
+              type="button"
+              class="block w-full px-3 py-2 text-left"
+              :style="{ minHeight: '44px', background: row.id === modelValue ? 'var(--accent-wash)' : undefined }"
+              @click="pick(row)"
+            >
+              {{ catalogDisplayName(row) }}
+            </button>
+          </li>
+          <li v-if="!matches.length" class="px-3 py-3 text-sm text-muted">
+            型錄裡沒有，用下面的自訂名稱
+          </li>
+        </ul>
+      </div>
+    </Teleport>
   </div>
 </template>

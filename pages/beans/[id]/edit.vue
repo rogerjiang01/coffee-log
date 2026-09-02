@@ -12,37 +12,46 @@ const initial = ref<Partial<BeanFormValues> | null>(null)
 const existingPath = ref<string | null>(null)
 const photoUrl = ref<string | null>(null)
 const loading = ref(true)
+const loadError = ref('')
 const notFound = ref(false)
 const saving = ref(false)
 const error = ref('')
 
 onMounted(async () => {
-  const { data } = await supabase
-    .from('beans')
-    .select('name, photo_path, roaster, roast_date, roast_level, country_id, region, processing_method_id, variety_id, official_notes')
-    .eq('id', id.value)
-    .maybeSingle()
+  try {
+    const { data } = await supabase
+      .from('beans')
+      .select('name, photo_path, roaster, roast_date, roast_level, country_id, region, processing_method_id, variety_id, official_notes')
+      .eq('id', id.value)
+      .maybeSingle()
 
-  if (!data) {
-    notFound.value = true
+    if (!data) {
+      notFound.value = true
+      return
+    }
+    const bean = data as unknown as Record<string, unknown>
+    existingPath.value = (bean.photo_path as string | null) ?? null
+    photoUrl.value = await signedUrl(existingPath.value)
+    initial.value = {
+      name: (bean.name as string) ?? '',
+      roaster: (bean.roaster as string | null) ?? '',
+      roast_date: (bean.roast_date as string | null) ?? '',
+      roast_level: (bean.roast_level as RoastLevel | null) ?? null,
+      country_id: (bean.country_id as string | null) ?? null,
+      region: (bean.region as string | null) ?? '',
+      processing_method_id: (bean.processing_method_id as string | null) ?? null,
+      variety_id: (bean.variety_id as string | null) ?? null,
+      official_notes: (bean.official_notes as string | null) ?? '',
+    }
     loading.value = false
-    return
   }
-  const bean = data as unknown as Record<string, unknown>
-  existingPath.value = (bean.photo_path as string | null) ?? null
-  photoUrl.value = await signedUrl(existingPath.value)
-  initial.value = {
-    name: (bean.name as string) ?? '',
-    roaster: (bean.roaster as string | null) ?? '',
-    roast_date: (bean.roast_date as string | null) ?? '',
-    roast_level: (bean.roast_level as RoastLevel | null) ?? null,
-    country_id: (bean.country_id as string | null) ?? null,
-    region: (bean.region as string | null) ?? '',
-    processing_method_id: (bean.processing_method_id as string | null) ?? null,
-    variety_id: (bean.variety_id as string | null) ?? null,
-    official_notes: (bean.official_notes as string | null) ?? '',
+  catch (e) {
+    loadError.value = e instanceof Error ? `讀不到資料：${e.message}` : '讀不到資料'
   }
-  loading.value = false
+  finally {
+    // finally：任何失敗都不能讓頁面停在「讀取中」
+    loading.value = false
+  }
 })
 
 async function onSubmit(
@@ -99,6 +108,7 @@ async function onSubmit(
 
 <template>
   <main class="mx-auto px-5 py-10" :style="{ maxWidth: 'var(--content-max)' }">
+    <p v-if="loadError" role="alert" class="text-sm" :style="{ color: 'var(--danger)' }">{{ loadError }}</p>
     <p v-if="loading" class="text-muted">讀取中</p>
 
     <template v-else-if="notFound">
