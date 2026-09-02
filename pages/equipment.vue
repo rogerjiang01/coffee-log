@@ -206,8 +206,8 @@ async function destroy() {
 }
 
 const inputStyle = {
-  borderColor: 'var(--border)',
-  background: 'var(--surface)',
+  borderColor: 'var(--field-border)',
+  background: 'var(--field-bg)',
   minHeight: '44px',
 }
 </script>
@@ -226,101 +226,95 @@ const inputStyle = {
       {{ actionError }}
     </p>
 
-    <!-- 新增／編輯表單 -->
-    <section
-      v-if="editing"
-      class="mt-6 rounded-md border p-4"
-      :style="{ borderColor: 'var(--accent)', background: 'var(--surface)' }"
-    >
-      <h2 class="font-serif text-lg font-bold">{{ editing === 'new' ? '新增器材' : '編輯器材' }}</h2>
+    <!-- 新增／編輯表單。與豆子、沖煮表單同一套分組卡片。 -->
+    <div v-if="editing" class="mt-6">
+      <FormCard :title="editing === 'new' ? '新增器材' : '編輯器材'">
+        <FormRow>
+          <label class="block text-sm" for="equipment-type">
+            類型
+            <span :style="{ color: 'var(--danger)' }" aria-hidden="true">*</span>
+            <span class="sr-only">必填</span>
+          </label>
+          <select
+            id="equipment-type"
+            v-model="form.type"
+            class="mt-1 block w-full rounded-sm border py-2.5"
+            :style="inputStyle"
+          >
+            <option v-for="type in equipmentTypes" :key="type" :value="type">
+              {{ equipmentLabels[type] }}
+            </option>
+          </select>
+        </FormRow>
 
-      <div class="mt-4">
-        <label class="block text-sm" for="equipment-type">
-          類型
-          <span :style="{ color: 'var(--danger)' }" aria-hidden="true">*</span>
-          <span class="sr-only">必填</span>
-        </label>
-        <select
-          id="equipment-type"
-          v-model="form.type"
-          class="mt-1 block w-full rounded-sm border px-3 py-2.5"
-          :style="inputStyle"
-        >
-          <option v-for="type in equipmentTypes" :key="type" :value="type">
-            {{ equipmentLabels[type] }}
-          </option>
-        </select>
-      </div>
+        <FormRow>
+          <CatalogSelect
+            v-model="form.catalog_id"
+            :type="form.type"
+            @selected="selectedCatalog = $event"
+          />
+          <!-- 型錄存在的唯一目的是讓刻度這個數字可以被正確解讀（§3.2） -->
+          <div
+            v-if="form.type === 'grinder' && selectedCatalog"
+            class="mt-3 rounded-sm px-3 py-3 text-sm"
+            :style="{ background: 'var(--accent-wash)', color: 'var(--on-accent-wash)' }"
+          >
+            <p v-if="isFreeformScale(scaleSpec)">這台面板沒有刻度標示，刻度可自由填寫。</p>
+            <template v-else>
+              <p class="tabular-nums">
+                刻度範圍 {{ grindScaleRangeLabel(scaleSpec) }}
+                <span v-if="scaleSpec.increment !== null" class="ml-3">最小間隔 {{ scaleSpec.increment }}</span>
+                <span v-else class="ml-3">連續無段</span>
+              </p>
+              <p v-if="grindScaleSuggestionLabel(scaleSpec)" class="mt-1 tabular-nums">
+                {{ grindScaleSuggestionLabel(scaleSpec) }}
+              </p>
+            </template>
+            <p v-if="scaleSpec.note" class="mt-1">{{ scaleSpec.note }}</p>
+          </div>
+        </FormRow>
 
-      <div class="mt-5">
-        <CatalogSelect
-          v-model="form.catalog_id"
-          :type="form.type"
-          @selected="selectedCatalog = $event"
-        />
-      </div>
-
-      <!-- 型錄存在的唯一目的是讓刻度這個數字可以被正確解讀（§3.2），
-           因此選定型號後把刻度規格顯示出來。 -->
-      <div
-        v-if="form.type === 'grinder' && selectedCatalog"
-        class="mt-3 rounded-sm px-3 py-3 text-sm"
-        :style="{ background: 'var(--accent-wash)' }"
-      >
-        <p v-if="isFreeformScale(scaleSpec)">這台面板沒有刻度標示，刻度可自由填寫。</p>
-        <template v-else>
-          <p class="tabular-nums">
-            刻度範圍 {{ grindScaleRangeLabel(scaleSpec) }}
-            <span v-if="scaleSpec.increment !== null" class="ml-3">最小間隔 {{ scaleSpec.increment }}</span>
-            <span v-else class="ml-3">連續無段</span>
+        <FormRow>
+          <label class="block text-sm" for="equipment-name">
+            自訂名稱
+            <span v-if="!form.catalog_id" :style="{ color: 'var(--danger)' }" aria-hidden="true">*</span>
+            <span v-if="!form.catalog_id" class="sr-only">必填</span>
+          </label>
+          <input
+            id="equipment-name"
+            v-model="form.custom_name"
+            type="text"
+            :disabled="!!form.catalog_id"
+            class="mt-1 block w-full rounded-sm border py-2.5 disabled:opacity-60"
+            :style="inputStyle"
+          >
+          <p class="mt-1 text-xs text-muted">
+            {{ form.catalog_id ? '已選型號，用型錄的名稱' : '型錄裡沒有的機器就打在這裡' }}
           </p>
-          <p v-if="grindScaleSuggestionLabel(scaleSpec)" class="mt-1 tabular-nums">
-            {{ grindScaleSuggestionLabel(scaleSpec) }}
-          </p>
-        </template>
-        <p v-if="scaleSpec.note" class="mt-1 text-muted">{{ scaleSpec.note }}</p>
-      </div>
+        </FormRow>
 
-      <div class="mt-5">
-        <label class="block text-sm" for="equipment-name">
-          自訂名稱
-          <span v-if="!form.catalog_id" :style="{ color: 'var(--danger)' }" aria-hidden="true">*</span>
-          <span v-if="!form.catalog_id" class="sr-only">必填</span>
-        </label>
-        <input
-          id="equipment-name"
-          v-model="form.custom_name"
-          type="text"
-          :disabled="!!form.catalog_id"
-          class="mt-1 block w-full rounded-sm border px-3 py-2.5 disabled:opacity-60"
-          :style="inputStyle"
-        >
-        <p class="mt-1 text-xs text-muted">
-          {{ form.catalog_id ? '已選型號，用型錄的名稱' : '型錄裡沒有的機器就打在這裡' }}
-        </p>
-      </div>
+        <FormRow>
+          <label class="block text-sm" for="equipment-note">備註</label>
+          <input
+            id="equipment-note"
+            v-model="form.note"
+            type="text"
+            class="mt-1 block w-full rounded-sm border py-2.5"
+            :style="inputStyle"
+          >
+          <p class="mt-1 text-xs text-muted">換刀盤、加裝配件這類個體差異記在這裡</p>
+        </FormRow>
 
-      <div class="mt-5">
-        <label class="block text-sm" for="equipment-note">備註</label>
-        <input
-          id="equipment-note"
-          v-model="form.note"
-          type="text"
-          class="mt-1 block w-full rounded-sm border px-3 py-2.5"
-          :style="inputStyle"
-        >
-        <p class="mt-1 text-xs text-muted">換刀盤、加裝配件這類個體差異記在這裡</p>
-      </div>
-
-      <div class="mt-5">
-        <ToggleSwitch v-model="form.is_default" label="設為這個類型的預設" />
-      </div>
+        <FormRow>
+          <ToggleSwitch v-model="form.is_default" label="設為這個類型的預設" />
+        </FormRow>
+      </FormCard>
 
       <button
         type="button"
         :disabled="saving"
-        class="mt-6 w-full rounded-sm px-4 py-3 font-medium disabled:opacity-60"
-        :style="{ background: 'var(--accent)', color: '#FFFFFF', minHeight: '44px' }"
+        class="mt-4 w-full rounded-sm px-4 py-3 font-medium disabled:opacity-60"
+        :style="{ background: 'var(--accent)', color: 'var(--on-accent)', minHeight: '44px' }"
         @click="save"
       >
         {{ saving ? '儲存中' : '儲存' }}
@@ -338,7 +332,7 @@ const inputStyle = {
       >
         取消
       </button>
-    </section>
+    </div>
 
     <p v-if="loading" class="mt-6 text-muted">讀取中</p>
 
@@ -395,7 +389,7 @@ const inputStyle = {
       to="#"
       aria-label="新增器材"
       class="fixed right-5 bottom-6 flex size-14 items-center justify-center rounded-lg"
-      :style="{ background: 'var(--accent)', color: '#FFFFFF', boxShadow: 'var(--overlay-shadow)' }"
+      :style="{ background: 'var(--accent)', color: 'var(--on-accent)', boxShadow: 'var(--overlay-shadow)' }"
       @click.prevent="startCreate"
     >
       <svg width="24" height="24" viewBox="0 0 24 24" aria-hidden="true">

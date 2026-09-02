@@ -85,8 +85,8 @@ function submit() {
 }
 
 const inputStyle = {
-  borderColor: 'var(--border)',
-  background: 'var(--surface)',
+  borderColor: 'var(--field-border)',
+  background: 'var(--field-bg)',
   minHeight: '44px',
 }
 
@@ -98,124 +98,128 @@ function selectStyle(value: unknown) {
 
 <template>
   <form novalidate @submit.prevent="submit">
-    <!-- 逃生路徑：放在最上方 -->
+    <!-- 逃生路徑：放在最上方，且不進卡片——它是媒體區塊不是欄位列，
+         塞進卡片會變成框中框。 -->
     <PhotoField :preview-url="photoUrl ?? null" @picked="onPhotoPicked" />
 
-    <div class="mt-8">
-      <!-- 只有必填欄位有標示，其他欄位一律不標，讓對比本身說明「其他都可空」 -->
-      <label class="block text-sm" for="bean-name">
-        豆名
-        <span :style="{ color: 'var(--danger)' }" aria-hidden="true">*</span>
-        <span class="sr-only">必填</span>
-      </label>
-      <input
-        id="bean-name"
-        v-model="values.name"
-        type="text"
-        class="mt-1 block w-full rounded-sm border px-3 py-2.5"
-        :style="inputStyle"
-      >
-      <p v-if="nameError" class="mt-2 text-sm" :style="{ color: 'var(--danger)' }">{{ nameError }}</p>
-    </div>
+    <FormCard class="mt-6">
+      <FormRow>
+        <!-- 只有必填欄位有標示，其他不標，讓對比本身說明「其他都可空」 -->
+        <label class="block text-sm" for="bean-name">
+          豆名
+          <span :style="{ color: 'var(--danger)' }" aria-hidden="true">*</span>
+          <span class="sr-only">必填</span>
+        </label>
+        <input
+          id="bean-name"
+          v-model="values.name"
+          type="text"
+          class="mt-1 block w-full rounded-sm border py-2.5"
+          :style="inputStyle"
+        >
+        <p v-if="nameError" class="mt-2 text-sm" :style="{ color: 'var(--danger)' }">{{ nameError }}</p>
+      </FormRow>
 
-    <div class="mt-5">
-      <label class="block text-sm" for="bean-roaster">咖啡店名</label>
-      <input
-        id="bean-roaster"
-        v-model="values.roaster"
-        type="text"
-        class="mt-1 block w-full rounded-sm border px-3 py-2.5"
-        :style="inputStyle"
-      >
-    </div>
-    <div class="mt-5">
-      <label class="block text-sm" for="bean-roast-date">烘焙日期</label>
-      <input
-        id="bean-roast-date"
-        v-model="values.roast_date"
-        type="date"
-        class="mt-1 block w-full rounded-sm border px-3 py-2.5"
-        :class="{ 'date-empty': !values.roast_date }"
-        :style="inputStyle"
-      >
-      <p class="mt-1 text-xs text-muted">填了才會顯示養豆天數</p>
-    </div>
+      <FormRow>
+        <label class="block text-sm" for="bean-roaster">咖啡店名</label>
+        <input
+          id="bean-roaster"
+          v-model="values.roaster"
+          type="text"
+          class="mt-1 block w-full rounded-sm border py-2.5"
+          :style="inputStyle"
+        >
+      </FormRow>
 
-    <div class="mt-5">
-      <label class="block text-sm" for="bean-roast-level">烘焙度</label>
-      <select
-        id="bean-roast-level"
-        v-model="values.roast_level"
-        class="mt-1 block w-full rounded-sm border px-3 py-2.5"
-        :style="selectStyle(values.roast_level)"
-      >
-        <option :value="null">選填</option>
-        <option v-for="option in roastOptions" :key="option.value" :value="option.value">
-          {{ option.label }}
-        </option>
-      </select>
-    </div>
+      <FormRow>
+        <label class="block text-sm" for="bean-roast-date">烘焙日期</label>
+        <input
+          id="bean-roast-date"
+          v-model="values.roast_date"
+          type="date"
+          class="mt-1 block w-full rounded-sm border py-2.5"
+          :class="{ 'date-empty': !values.roast_date }"
+          :style="inputStyle"
+        >
+        <p class="mt-1 text-xs text-muted">填了才會顯示養豆天數</p>
+      </FormRow>
 
-    <div class="mt-5">
-      <label class="block text-sm" for="bean-country">產國</label>
-      <select
-        id="bean-country"
-        v-model="values.country_id"
-        class="mt-1 block w-full rounded-sm border px-3 py-2.5"
-        :style="selectStyle(values.country_id)"
-      >
-        <option :value="null">選填</option>
-        <option v-for="country in countries" :key="country.id" :value="country.id">
-          {{ country.name_zh }}
-        </option>
-      </select>
-    </div>
+      <FormRow>
+        <label class="block text-sm" for="bean-roast-level">烘焙度</label>
+        <select
+          id="bean-roast-level"
+          v-model="values.roast_level"
+          class="mt-1 block w-full rounded-sm border py-2.5"
+          :style="selectStyle(values.roast_level)"
+        >
+          <option :value="null">選填</option>
+          <option v-for="option in roastOptions" :key="option.value" :value="option.value">
+            {{ option.label }}
+          </option>
+        </select>
+      </FormRow>
 
-    <div class="mt-5">
-      <label class="block text-sm" for="bean-region">產區</label>
-      <input
-        id="bean-region"
-        v-model="values.region"
-        type="text"
-        list="bean-region-options"
-        class="mt-1 block w-full rounded-sm border px-3 py-2.5"
-        :style="inputStyle"
-      >
-      <!-- 建議來自使用者填過的值，沒有歷史就沒有建議，不擋任何輸入 -->
-      <datalist id="bean-region-options">
-        <option v-for="suggestion in regionSuggestions" :key="suggestion" :value="suggestion" />
-      </datalist>
-    </div>
+      <FormRow>
+        <label class="block text-sm" for="bean-country">產國</label>
+        <select
+          id="bean-country"
+          v-model="values.country_id"
+          class="mt-1 block w-full rounded-sm border py-2.5"
+          :style="selectStyle(values.country_id)"
+        >
+          <option :value="null">選填</option>
+          <option v-for="country in countries" :key="country.id" :value="country.id">
+            {{ country.name_zh }}
+          </option>
+        </select>
+      </FormRow>
 
-    <div class="mt-5">
-      <LookupSelect v-model="values.processing_method_id" label="處理法" table="processing_methods" />
-    </div>
+      <FormRow>
+        <label class="block text-sm" for="bean-region">產區</label>
+        <input
+          id="bean-region"
+          v-model="values.region"
+          type="text"
+          list="bean-region-options"
+          class="mt-1 block w-full rounded-sm border py-2.5"
+          :style="inputStyle"
+        >
+        <!-- 建議來自使用者填過的值，沒有歷史就沒有建議，不擋任何輸入 -->
+        <datalist id="bean-region-options">
+          <option v-for="suggestion in regionSuggestions" :key="suggestion" :value="suggestion" />
+        </datalist>
+      </FormRow>
 
-    <div class="mt-5">
-      <LookupSelect v-model="values.variety_id" label="品種" table="varieties" />
-    </div>
+      <FormRow>
+        <LookupSelect v-model="values.processing_method_id" label="處理法" table="processing_methods" />
+      </FormRow>
 
-    <div class="mt-5">
-      <label class="block text-sm" for="bean-notes">官方風味描述</label>
-      <textarea
-        id="bean-notes"
-        v-model="values.official_notes"
-        rows="3"
-        class="mt-1 block w-full rounded-sm border px-3 py-2.5"
-        :style="{ borderColor: 'var(--border)', background: 'var(--surface)' }"
-      />
-    </div>
+      <FormRow>
+        <LookupSelect v-model="values.variety_id" label="品種" table="varieties" />
+      </FormRow>
+
+      <FormRow>
+        <label class="block text-sm" for="bean-notes">官方風味描述</label>
+        <textarea
+          id="bean-notes"
+          v-model="values.official_notes"
+          rows="3"
+          class="mt-1 block w-full rounded-sm border py-2.5"
+          :style="{ borderColor: 'var(--field-border)', background: 'var(--field-bg)' }"
+        />
+      </FormRow>
+    </FormCard>
 
     <button
       type="submit"
       :disabled="busy"
-      class="mt-8 w-full rounded-sm px-4 py-3 font-medium disabled:opacity-60"
-      :style="{ background: 'var(--accent)', color: '#FFFFFF', minHeight: '44px' }"
+      class="mt-6 w-full rounded-sm px-4 py-3 font-medium disabled:opacity-60"
+      :style="{ background: 'var(--accent)', color: 'var(--on-accent)', minHeight: '44px' }"
     >
       {{ busy ? '儲存中' : submitLabel }}
     </button>
 
-    <!-- 錯誤訊息必須在按鈕正下方。放在按鈕上方時，長表單一捲動就看不到，
+    <!-- 錯誤訊息在按鈕正下方。放上方時長表單一捲動就看不到，
          使用者會以為「按了沒反應」。 -->
     <p
       v-if="error || summaryError"

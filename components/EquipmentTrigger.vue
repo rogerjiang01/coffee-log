@@ -11,7 +11,7 @@ defineEmits<{ open: [] }>()
     <button
       type="button"
       class="mt-1 flex w-full items-center justify-between rounded-sm border px-3 py-2.5 text-left"
-      :style="{ borderColor: 'var(--border)', background: 'var(--surface)', minHeight: '44px' }"
+      :style="{ borderColor: 'var(--field-border)', background: 'var(--field-bg)', minHeight: '44px' }"
       @click="$emit('open')"
     >
       <span class="min-w-0 truncate" :style="{ color: name ? 'var(--text)' : 'var(--text-muted)' }">

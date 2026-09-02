@@ -162,7 +162,7 @@ async function create() {
   }
 }
 
-const inputStyle = { borderColor: 'var(--border)', background: 'var(--surface)', minHeight: '44px' }
+const inputStyle = { borderColor: 'var(--field-border)', background: 'var(--field-bg)', minHeight: '44px' }
 </script>
 
 <template>
@@ -306,7 +306,7 @@ const inputStyle = { borderColor: 'var(--border)', background: 'var(--surface)',
         v-if="mode === 'list'"
         type="button"
         class="flex-1 rounded-sm px-4 py-3 font-medium"
-        :style="{ background: 'var(--accent)', color: '#FFFFFF', minHeight: '44px' }"
+        :style="{ background: 'var(--accent)', color: 'var(--on-accent)', minHeight: '44px' }"
         @click="confirmChoice"
       >
         選好了
@@ -316,7 +316,7 @@ const inputStyle = { borderColor: 'var(--border)', background: 'var(--surface)',
         type="button"
         :disabled="saving"
         class="flex-1 rounded-sm px-4 py-3 font-medium disabled:opacity-60"
-        :style="{ background: 'var(--accent)', color: '#FFFFFF', minHeight: '44px' }"
+        :style="{ background: 'var(--accent)', color: 'var(--on-accent)', minHeight: '44px' }"
         @click="create"
       >
         {{ saving ? '儲存中' : '儲存' }}

@@ -94,7 +94,7 @@ function pick(row: CatalogRow | null) {
       :aria-expanded="open"
       :disabled="loading"
       class="mt-1 flex w-full items-center justify-between rounded-sm border px-3 py-2.5 text-left"
-      :style="{ borderColor: 'var(--border)', background: 'var(--surface)', minHeight: '44px' }"
+      :style="{ borderColor: 'var(--field-border)', background: 'var(--field-bg)', minHeight: '44px' }"
       @click="toggle"
     >
       <span :style="{ color: selected ? 'var(--text)' : 'var(--text-muted)' }">
@@ -125,7 +125,7 @@ function pick(row: CatalogRow | null) {
           type="text"
           placeholder="打字找找看"
           class="block w-full rounded-sm border px-3 py-2"
-          :style="{ borderColor: 'var(--border)', background: 'var(--surface)', minHeight: '44px' }"
+          :style="{ borderColor: 'var(--field-border)', background: 'var(--field-bg)', minHeight: '44px' }"
         >
       </div>
 

@@ -162,7 +162,7 @@ async function destroy() {
       <NuxtLink
         :to="`/brews/new?bean=${bean.id}`"
         class="mt-8 block w-full rounded-sm px-4 py-3 text-center font-medium"
-        :style="{ background: 'var(--accent)', color: '#FFFFFF', minHeight: '44px' }"
+        :style="{ background: 'var(--accent)', color: 'var(--on-accent)', minHeight: '44px' }"
       >
         用這支豆子沖一杯
       </NuxtLink>

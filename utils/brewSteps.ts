@@ -92,6 +92,42 @@ export function toStepInputs(rows: StepRow[], totalTime: number | null): StepInp
   })
 }
 
+/** 沖煮手法的分段模板（《01-資料庫規格》§3.7），比例制 */
+export interface MethodTemplate {
+  steps: { type: StepType; water_ratio: number; duration: number }[]
+}
+
+/**
+ * 依手法模板換算成實際分段。
+ *
+ * water_ratio 是該段注水量佔總水量的比例，全部相加為 1。
+ * 總水量由粉重與手法的 default_ratio 算出，再累加成累積水量。
+ * duration 就是該段的停留秒數，直接對應。
+ *
+ * 帶入之後使用者可以自由修改任何數值、增減段數，brew_method_id 保持不變。
+ * 系統不得在儲存時檢查實際分段是否符合模板（§3.7）。
+ */
+export function stepsFromTemplate(
+  template: MethodTemplate | null,
+  dose: number | null,
+  defaultRatio: number | null,
+): StepInput[] | null {
+  if (!template?.steps?.length || dose === null || defaultRatio === null) return null
+
+  const total = dose * defaultRatio
+  let cumulative = 0
+
+  return template.steps.map((step) => {
+    cumulative += total * step.water_ratio
+    return {
+      stepType: step.type,
+      // 磅秤讀的是整數克，換算結果四捨五入到整數
+      cumulativeWater: Math.round(cumulative),
+      holdSeconds: step.duration,
+    }
+  })
+}
+
 /** 每段增量水量。第一段即其本身（§8）。 */
 export function incrementalWater(steps: StepInput[]): (number | null)[] {
   let previous = 0

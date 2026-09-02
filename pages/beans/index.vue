@@ -120,7 +120,7 @@ onMounted(load)
       to="/beans/new"
       aria-label="新增豆子"
       class="fixed right-5 bottom-6 flex size-14 items-center justify-center rounded-lg"
-      :style="{ background: 'var(--accent)', color: '#FFFFFF', boxShadow: 'var(--overlay-shadow)' }"
+      :style="{ background: 'var(--accent)', color: 'var(--on-accent)', boxShadow: 'var(--overlay-shadow)' }"
     >
       <svg width="24" height="24" viewBox="0 0 24 24" aria-hidden="true">
         <path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2" stroke-linecap="round" />

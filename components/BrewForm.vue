@@ -97,9 +97,15 @@ async function loadEquipment() {
 onMounted(async () => {
   const [, methodResult] = await Promise.all([
     loadEquipment(),
-    supabase.from('brew_methods').select('id, name').order('sort_order').order('name'),
+    supabase.from('brew_methods').select('id, name, default_ratio, step_template').order('sort_order').order('name'),
   ])
-  methods.value = (methodResult.data ?? []) as unknown as { id: string; name: string }[]
+  const rows = (methodResult.data ?? []) as unknown as {
+    id: string; name: string; default_ratio: number | null; step_template: MethodTemplate | null
+  }[]
+  methods.value = rows.map(row => ({ id: row.id, name: row.name }))
+  methodTemplates.value = new Map(
+    rows.map(row => [row.id, { template: row.step_template, ratio: row.default_ratio }]),
+  )
 
   // 只在新增（沒有初始值）時帶入預設，編輯既有紀錄不覆蓋使用者當初的選擇
   if (!props.initial) {
@@ -130,6 +136,26 @@ const grindSpec = computed<GrindScaleSpec>(() => {
   }
 })
 
+// 手法選定後依粉重換算並填入分段（§3.7、§5）。
+// 手法只是模板來源，帶入後使用者可自由修改，brew_method_id 不變，
+// 儲存時也不檢查實際分段是否符合模板。
+const methodTemplates = ref<Map<string, { template: MethodTemplate | null; ratio: number | null }>>(new Map())
+
+function applyMethod() {
+  const id = values.brew_method_id
+  if (!id) return
+  const method = methodTemplates.value.get(id)
+  if (!method) return
+  const filled = stepsFromTemplate(method.template, values.dose, method.ratio)
+  if (filled) steps.value = filled
+}
+
+// 選了手法就套用；粉重還沒填時，等粉重填好再套用
+watch(() => values.brew_method_id, applyMethod)
+watch(() => values.dose, () => {
+  if (values.brew_method_id && steps.value.every(step => step.cumulativeWater === null)) applyMethod()
+})
+
 // 粉水比即時顯示。衍生值，不可編輯、不存資料庫。
 const water = computed(() => totalWater(steps.value))
 const ratio = computed(() => brewRatioLabel(water.value, values.dose))
@@ -150,127 +176,155 @@ function submit() {
 }
 
 const inputStyle = {
-  borderColor: 'var(--border)',
-  background: 'var(--surface)',
+  borderColor: 'var(--field-border)',
+  background: 'var(--field-bg)',
   minHeight: '44px',
 }
 </script>
 
 <template>
-  <form novalidate @submit.prevent="submit">
-    <!-- 區塊一：豆子與手法 -->
-    <BeanSelect v-model="values.bean_id" />
+  <form novalidate class="space-y-6" @submit.prevent="submit">
+    <!-- 時間戳最前面：事後補記時可能要先改日期，越早改完，
+         後面的填寫都在正確的時間脈絡下。 -->
+    <FormCard title="這一杯">
+      <FormRow>
+        <label class="block text-sm" for="brew-at">沖煮時間</label>
+        <!-- datetime-local 的原生內容有自己的最小寬度，w-full 擋不住它撐開容器 -->
+        <div class="mt-1 overflow-hidden">
+          <input
+            id="brew-at"
+            v-model="values.brewed_at"
+            type="datetime-local"
+            class="block w-full min-w-0 max-w-full rounded-sm border py-2.5"
+            :style="inputStyle"
+          >
+        </div>
+      </FormRow>
+      <FormRow>
+        <BeanSelect v-model="values.bean_id" />
+      </FormRow>
+    </FormCard>
 
-    <div class="mt-5">
-      <label class="block text-sm" for="brew-method">沖煮手法</label>
-      <select
-        id="brew-method"
-        v-model="values.brew_method_id"
-        class="mt-1 block w-full rounded-sm border px-3 py-2.5"
-        :style="{ ...inputStyle, color: values.brew_method_id ? 'var(--text)' : 'var(--text-muted)' }"
-      >
-        <option :value="null">選填</option>
-        <option v-for="method in methods" :key="method.id" :value="method.id">{{ method.name }}</option>
-      </select>
-      <p v-if="!methods.length" class="mt-1 text-xs text-muted">手法的分段模板還沒建立</p>
-    </div>
-
-    <!-- 區塊二：核心參數 -->
-    <div class="mt-5">
-      <label class="block text-sm" for="brew-dose">
-        粉重
-        <span :style="{ color: 'var(--danger)' }" aria-hidden="true">*</span>
-        <span class="sr-only">必填</span>
-      </label>
-      <NumberField id="brew-dose" v-model="values.dose" unit="g" />
-      <p v-if="ratio" class="mt-1 text-xs tabular-nums text-muted">粉水比 {{ ratio }}</p>
-      <p v-if="doseError" class="mt-2 text-sm" :style="{ color: 'var(--danger)' }">{{ doseError }}</p>
-    </div>
-
-    <div class="mt-5">
-      <label class="block text-sm" for="brew-temp">水溫</label>
-      <NumberField id="brew-temp" v-model="values.water_temp" unit="°C" integer />
-    </div>
-
-    <div class="mt-5">
-      <EquipmentTrigger
-        label="磨豆機"
-        :name="equipmentName(values.grinder_id)"
-        @open="pickerType = 'grinder'"
-      />
-    </div>
-
-    <div class="mt-5">
-      <GrindSettingInput
-        v-model="values.grind_setting"
-        :spec="grindSpec"
-        :has-catalog="!!selectedGrinder?.catalog_id"
-      />
-    </div>
-
-    <div class="mt-5">
-      <EquipmentTrigger
-        label="濾杯"
-        :name="equipmentName(values.dripper_id)"
-        @open="pickerType = 'dripper'"
-      />
-    </div>
-
-    <div class="mt-5">
-      <EquipmentTrigger
-        label="手沖壺"
-        :name="equipmentName(values.kettle_id)"
-        @open="pickerType = 'kettle'"
-      />
-    </div>
-
-    <div class="mt-5">
-      <label class="block text-sm" for="brew-total-time">總沖煮時間</label>
-      <DurationPicker id="brew-total-time" v-model="values.total_time" class="mt-1" />
-      <p class="mt-1 text-xs text-muted">以下壺滴完為準</p>
-    </div>
-
-    <div class="mt-5">
-      <label class="block text-sm" for="brew-at">沖煮時間</label>
-      <!-- datetime-local 的原生內容有自己的最小寬度，w-full 擋不住它撐開容器。
-           min-w-0 讓它可以被壓縮，max-w-full 與 overflow-hidden 收住溢位。 -->
-      <div class="mt-1 overflow-hidden">
-        <input
-          id="brew-at"
-          v-model="values.brewed_at"
-          type="datetime-local"
-          class="block w-full min-w-0 max-w-full rounded-sm border px-3 py-2.5"
-          :style="inputStyle"
-        >
-      </div>
-    </div>
-
-    <CollapsibleSection title="其他器材" storage-key="brewForm.equipment.expanded">
-      <EquipmentTrigger
-        label="濾紙"
-        :name="equipmentName(values.filter_id)"
-        @open="pickerType = 'filter'"
-      />
-      <div class="mt-5">
+    <!-- 研磨刻度緊接磨豆機：刻度的驗證依賴磨豆機型錄，
+         兩者分開會讓刻度失去上下文。依賴關係優先於變動頻率。 -->
+    <FormCard title="器材">
+      <FormRow>
         <EquipmentTrigger
-          label="分享壺"
-          :name="equipmentName(values.server_id)"
-          @open="pickerType = 'server'"
+          label="磨豆機"
+          :name="equipmentName(values.grinder_id)"
+          @open="pickerType = 'grinder'"
         />
-      </div>
-    </CollapsibleSection>
+      </FormRow>
+      <FormRow>
+        <GrindSettingInput
+          v-model="values.grind_setting"
+          :spec="grindSpec"
+          :has-catalog="!!selectedGrinder?.catalog_id"
+        />
+      </FormRow>
+      <FormRow>
+        <EquipmentTrigger
+          label="濾杯"
+          :name="equipmentName(values.dripper_id)"
+          @open="pickerType = 'dripper'"
+        />
+      </FormRow>
+      <FormRow>
+        <EquipmentTrigger
+          label="手沖壺"
+          :name="equipmentName(values.kettle_id)"
+          @open="pickerType = 'kettle'"
+        />
+      </FormRow>
+      <!-- 收合區是這張卡片內部的最後一列，語意明確是「這組裡的次要項目」 -->
+      <FormRow>
+        <CollapsibleSection flat title="濾紙與分享壺" storage-key="brewForm.equipment.expanded">
+          <EquipmentTrigger
+            label="濾紙"
+            :name="equipmentName(values.filter_id)"
+            @open="pickerType = 'filter'"
+          />
+          <div class="mt-5">
+            <EquipmentTrigger
+              label="分享壺"
+              :name="equipmentName(values.server_id)"
+              @open="pickerType = 'server'"
+            />
+          </div>
+        </CollapsibleSection>
+      </FormRow>
+    </FormCard>
 
-    <!-- 區塊三：分段注水 -->
-    <div class="mt-8">
-      <PourStepsEditor v-model="steps" :dose="values.dose" />
-    </div>
+    <!-- 手法在粉重與水溫之後、分段之前：手法選定後會依粉重換算並填入分段，
+         兩者相隔太遠使用者看不到這件事發生。
+         總沖煮時間在分段最下方：最後一段的停留秒數是由 total_time
+         減去最後的 time_offset 反推的，資料上與分段直接相關。 -->
+    <FormCard title="沖煮">
+      <FormRow>
+        <label class="block text-sm" for="brew-dose">
+          粉重
+          <span :style="{ color: 'var(--danger)' }" aria-hidden="true">*</span>
+          <span class="sr-only">必填</span>
+        </label>
+        <NumberField id="brew-dose" v-model="values.dose" unit="g" class="mt-1" />
+        <p v-if="ratio" class="mt-1 text-xs tabular-nums text-muted">粉水比 {{ ratio }}</p>
+        <p v-if="doseError" class="mt-2 text-sm" :style="{ color: 'var(--danger)' }">{{ doseError }}</p>
+      </FormRow>
+      <FormRow>
+        <label class="block text-sm" for="brew-temp">水溫</label>
+        <NumberField id="brew-temp" v-model="values.water_temp" unit="°C" integer class="mt-1" />
+      </FormRow>
+      <FormRow>
+        <label class="block text-sm" for="brew-method">沖煮手法</label>
+        <select
+          id="brew-method"
+          v-model="values.brew_method_id"
+          class="mt-1 block w-full rounded-sm border py-2.5"
+          :style="{ ...inputStyle, color: values.brew_method_id ? 'var(--text)' : 'var(--text-muted)' }"
+        >
+          <option :value="null">選填</option>
+          <option v-for="method in methods" :key="method.id" :value="method.id">{{ method.name }}</option>
+        </select>
+        <p v-if="!methods.length" class="mt-1 text-xs text-muted">手法的分段模板還沒建立</p>
+        <p v-else class="mt-1 text-xs text-muted">選了手法會依粉重把分段填進下面</p>
+      </FormRow>
+      <FormRow>
+        <PourStepsEditor v-model="steps" :dose="values.dose" />
+      </FormRow>
+      <FormRow>
+        <label class="block text-sm" for="brew-total-time">總沖煮時間</label>
+        <DurationPicker id="brew-total-time" v-model="values.total_time" class="mt-1" />
+        <p class="mt-1 text-xs text-muted">以下壺滴完為準</p>
+      </FormRow>
+    </FormCard>
 
-    <!-- 區塊四：品飲。評分與收藏是兩件事，分開呈現不疊成複合元件。 -->
-    <div class="mt-8">
-      <StarRating v-model="values.rating" />
-    </div>
+    <FormCard title="喝起來">
+      <FormRow>
+        <IntensityPicker v-model="values.intensity" />
+      </FormRow>
+      <FormRow>
+        <CollapsibleSection flat title="風味標籤" storage-key="brewForm.flavor.expanded">
+          <FlavorTagPicker v-model="flavorTagIds" />
+        </CollapsibleSection>
+      </FormRow>
+      <FormRow>
+        <label class="block text-sm" for="brew-notes">心得筆記</label>
+        <textarea
+          id="brew-notes"
+          v-model="values.tasting_notes"
+          rows="3"
+          class="mt-1 block w-full rounded-sm border py-2.5"
+          :style="{ borderColor: 'var(--field-border)', background: 'var(--field-bg)' }"
+        />
+      </FormRow>
+      <FormRow>
+        <StarRating v-model="values.rating" />
+      </FormRow>
+    </FormCard>
 
-    <div class="mt-5">
+    <!-- 收藏在卡片外：它不是品飲判斷，是「還想不想再沖」的實用決定，
+         跟儲存這個動作在同一個心理時刻。 -->
+    <div>
       <button
         type="button"
         role="switch"
@@ -281,7 +335,7 @@ const inputStyle = {
       >
         <span>
           收藏
-          <span class="ml-2 text-sm text-muted">想再沖一次</span>
+          <span class="ml-2 text-sm text-muted">還想再沖一次</span>
         </span>
         <svg width="24" height="24" viewBox="0 0 24 24" aria-hidden="true">
           <path
@@ -293,52 +347,33 @@ const inputStyle = {
           />
         </svg>
       </button>
+
+      <button
+        type="submit"
+        :disabled="busy"
+        class="mt-3 w-full rounded-sm px-4 py-3 font-medium disabled:opacity-60"
+        :style="{ background: 'var(--accent)', color: 'var(--on-accent)', minHeight: '44px' }"
+      >
+        {{ busy ? '儲存中' : submitLabel }}
+      </button>
+
+      <p
+        v-if="error || summaryError"
+        role="alert"
+        class="mt-3 rounded-sm border px-3 py-3 text-sm"
+        :style="{ color: 'var(--danger)', borderColor: 'var(--danger)' }"
+      >
+        {{ error || summaryError }}
+      </p>
     </div>
-
-    <div class="mt-6">
-      <IntensityPicker v-model="values.intensity" />
-    </div>
-
-    <div class="mt-6">
-      <label class="block text-sm" for="brew-notes">心得筆記</label>
-      <textarea
-        id="brew-notes"
-        v-model="values.tasting_notes"
-        rows="3"
-        class="mt-1 block w-full rounded-sm border px-3 py-2.5"
-        :style="{ borderColor: 'var(--border)', background: 'var(--surface)' }"
-      />
-    </div>
-
-    <CollapsibleSection title="風味標籤" storage-key="brewForm.flavor.expanded">
-      <FlavorTagPicker v-model="flavorTagIds" />
-    </CollapsibleSection>
-
-    <button
-      type="submit"
-      :disabled="busy"
-      class="mt-8 w-full rounded-sm px-4 py-3 font-medium disabled:opacity-60"
-      :style="{ background: 'var(--accent)', color: '#FFFFFF', minHeight: '44px' }"
-    >
-      {{ busy ? '儲存中' : submitLabel }}
-    </button>
 
     <EquipmentPicker
       v-if="pickerType"
+      v-model="pickerValue"
       :open="!!pickerType"
       :type="pickerType"
-      v-model="pickerValue"
       @close="pickerType = null"
       @created="loadEquipment"
     />
-
-    <p
-      v-if="error || summaryError"
-      role="alert"
-      class="mt-3 rounded-sm border px-3 py-3 text-sm"
-      :style="{ color: 'var(--danger)', borderColor: 'var(--danger)' }"
-    >
-      {{ error || summaryError }}
-    </p>
   </form>
 </template>

@@ -1,113 +1,180 @@
 /* ============================================================
    設計 Token — 全站唯一的色彩與尺度來源
-   依《03-介面規範》第 2 節，數值由專案負責人定案。
+   依《03-介面規範》第 2 節。
 
-   規則：元件中不得寫死色碼與尺寸，一律引用本檔變數。
+   兩層結構：
+     第一層  色階。純數值，沒有語意。
+     第二層  語意 token。一律引用色階變數，不出現裸 hex。
+
+   元件只能引用第二層。直接使用色階變數等同繞過語意層，
+   之後要換色就得回頭掃全站——那正是這套系統要解決的問題。
 
    與 Tailwind 的關係：
    本檔的 --radius-* 與 --text-* 刻意沿用 Tailwind v4 的 theme 命名，
    且宣告在 unlayered 的 :root（Tailwind 預設值在 @layer theme），
-   因此會覆蓋 Tailwind 預設值，rounded-md / text-xl 這類 utility
-   直接吃到本檔的值。色彩與陰影的命名空間不同，在 main.css 以
-   @theme inline 對應。
+   因此會覆蓋 Tailwind 預設值。色彩與陰影在 main.css 以 @theme inline 對應。
    ============================================================ */
 
 :root {
-    /* ---- 色彩：主色 --------------------------------------- */
+  /* ══ 第一層：色階 ═══════════════════════════════════════ */
 
-    /* 主要行動、選取狀態、連結。取自生豆的綠，
-     刻意避開「咖啡＝褐色」的預設聯想。
-     對比：on --bg 5.52:1、配白字 5.74:1 */
-    --accent: #516e41;
-    --accent-soft: #678c53; /* 圖示、hover、次要狀態 */
-    --accent-wash: rgb(81 110 65 / 0.08); /* 選取項目底色 */
+  /* 綠 — 主色。取自生豆，刻意避開「咖啡＝褐色」的預設聯想。 */
+  --green-50: #D7DED4;
+  --green-100: #CAD7C3;
+  --green-200: #ADBFA3;
+  --green-300: #8DA581;
+  --green-400: #708B62;
+  --green-500: #516E41;
+  --green-600: #405933;
+  --green-700: #334727;
+  --green-800: #25331C;
+  --green-900: #172112;
+  --green-950: #0E130C;
 
-    /* ---- 色彩：中性 --------------------------------------- */
+  /* 紅 — 愛心與危險 */
+  --red-50: #FFE8E5;
+  --red-100: #FFDBD5;
+  --red-200: #FFB5AA;
+  --red-300: #F18F81;
+  --red-400: #DA6C5F;
+  --red-500: #C0453A;
+  --red-600: #9D352C;
+  --red-700: #7F2821;
+  --red-800: #5C1D18;
+  --red-900: #3B130F;
+  --red-950: #210D0A;
 
-    --bg: #fffaef; /* 頁面底色 */
-    --surface: #ffffff; /* 卡片、表單區塊 */
-    --text: #2a2e26; /* 主要文字，on --bg 13.30:1 */
-    --text-muted: #6b6f63; /* 次要文字、單位，on --bg 4.95:1 */
-    --border: #e8e1d2; /* 分隔線、輸入框邊框 */
+  /* 中性暖色 — 底色與邊界 */
+  --sand-50: #FFFAEF;
+  --sand-100: #F0E7D4;
+  --sand-200: #E1D3B3;
+  --sand-300: #CFBC91;
+  --sand-400: #BAA26C;
+  --sand-500: #A18545;
+  --sand-600: #846B2F;
+  --sand-700: #67521F;
+  --sand-800: #4B3B14;
+  --sand-900: #32270D;
+  --sand-950: #1E1708;
 
-    /* ---- 色彩：狀態 --------------------------------------- */
+  /* 色階之外的基礎色。刻意不放進上面三組，理由如下。 */
+  --white: #FFFFFF;
+  /* 帶綠調的極深暖灰。不在 sand 色階上是刻意的——sand 的深端偏土黃，
+     用來當內文會讓整頁看起來髒。 */
+  --ink: #2A2E26;
+  --ink-muted: #6B6F63;
 
-    --favorite: #c0453a; /* 愛心。on --bg 4.86:1、配白字 5.06:1 */
-    --danger: #8b2318; /* 刪除、錯誤。on --bg 8.58:1、配白字 8.93:1 */
-    --diff: #516e41; /* 差異標記。主要靠字重表達，顏色為輔 */
+  /* ──────────────────────────────────────────────────────
+     綠色色階的對比實況（配白字）：
+       green-300  2.68:1    green-400  3.78:1    green-500  5.74:1
 
-    /* 暖黃。規範第 2 節：與 --bg 對比僅 1.1:1，
-     不得用於愛心列底色，只可用於照片位置的填充 */
-    --wash-warm: #ffeec2;
+     兩者都低於 AA 的 4.5:1，所以**互動狀態不往 300 走**。
+     按鈕的三個狀態：
+       預設 green-500 → hover green-400 → active green-600
 
-    /* ---- 色彩：烘焙度五級 --------------------------------- */
-    /* 無豆袋照片時的卡片填充。色塊上會疊豆名，因此每一級都配一個
-     經對比驗算的文字色，實作時依烘焙度切換。
-     驗算結果（門檻 4.5:1）五級全部通過，數值註記於各行。 */
+     hover 落在 green-400 是可接受的例外：hover 是短暫的過渡狀態，
+     使用者不會停在那裡讀字。但 300 連當 hover 都太淺，不碰。
+     ────────────────────────────────────────────────────── */
 
-    --roast-light: #f5e3b8;
-    --roast-light-text: var(--text); /* 10.92:1 */
-    --roast-medium-light: #e0c089;
-    --roast-medium-light-text: var(--text); /*  7.96:1 */
-    --roast-medium: #c09a5e;
-    --roast-medium-text: var(--text); /*  5.29:1 */
-    --roast-medium-dark: #8a6136;
-    --roast-medium-dark-text: #ffffff; /*  5.46:1 */
-    --roast-dark: #4a3323;
-    --roast-dark-text: #ffffff; /* 11.74:1 */
+  /* ══ 第二層：語意 token ═════════════════════════════════ */
 
-    /* ---- 字體 --------------------------------------------- */
+  /* 主色 */
+  --accent: var(--green-500);
+  --accent-hover: var(--green-400);
+  --accent-active: var(--green-600);
+  --accent-soft: var(--green-400);   /* 圖示、次要狀態 */
+  --accent-wash: var(--green-50);    /* 選取項目底色 */
+  --on-accent: var(--white);         /* 疊在 --accent 上的文字，5.74:1 */
+  /* 疊在 --accent-wash 上的文字。不能用 --accent——green-500 在 green-50 上
+     只有 4.18:1，低於 AA。green-700 是 7.38:1。 */
+  --on-accent-wash: var(--green-700);
 
-    --font-heading: "Noto Serif TC", ui-serif, Georgia, "Songti TC", serif;
-    --font-body: "Noto Sans TC", ui-sans-serif, system-ui, -apple-system, "PingFang TC", "Microsoft JhengHei", sans-serif;
+  /* 中性 */
+  --bg: var(--sand-50);              /* 頁面底色 */
+  --surface: var(--white);           /* 卡片、表單區塊，需與 bg 區分 */
+  --text: var(--ink);
+  --text-muted: var(--ink-muted);
+  --border: var(--sand-200);         /* 分隔線、邊界 */
 
-    /* ---- 字級階層（六級，基準 16px）----------------------- */
-    /* 規範：中文文字不得小於 0.75rem，--text-xs 即為下限。
-     行高：內文級距（base / sm / xs）維持規範要求的 ≥1.7；
-     標題級距（lg 以上）收緊，中文標題行高過大會散。 */
+  /* 狀態 */
+  --favorite: var(--red-500);        /* 愛心 */
+  --danger: var(--red-700);          /* 刪除、錯誤 */
+  --on-danger: var(--white);         /* 疊在 --danger 上的文字，9.43:1 */
+  --diff: var(--green-600);          /* 差異標記。主要靠字重，顏色為輔 */
 
-    --text-2xl: 2rem; /* 頁面主標 */
-    --text-2xl--line-height: 1.3;
-    --text-xl: 1.5rem; /* 區塊標題 */
-    --text-xl--line-height: 1.35;
-    --text-lg: 1.125rem; /* 卡片標題、數值強調 */
-    --text-lg--line-height: 1.5;
-    --text-base: 1rem; /* 內文 */
-    --text-base--line-height: 1.75;
-    --text-sm: 0.875rem; /* 次要文字、標籤 */
-    --text-sm--line-height: 1.7;
-    --text-xs: 0.75rem; /* 單位、輔助說明 */
-    --text-xs--line-height: 1.7;
+  /* ══ 烘焙度色階 ═════════════════════════════════════════
+     獨立的語意色階，不併入上面三組——它表達的是被記錄的事物本身，
+     不是介面狀態。無豆袋照片時的卡片填充，色塊上會疊豆名，
+     因此每一級都配一個經對比驗算的文字色。 */
 
-    /* 規範：中文內文行高不低於 1.7；中文字距不加 */
-    --leading-body: 1.75;
+  --roast-light: #F5E3B8;
+  --roast-light-text: var(--text);         /* 10.92:1 */
+  --roast-medium-light: #E0C089;
+  --roast-medium-light-text: var(--text);  /*  7.96:1 */
+  --roast-medium: #C09A5E;
+  --roast-medium-text: var(--text);        /*  5.29:1 */
+  --roast-medium-dark: #8A6136;
+  --roast-medium-dark-text: var(--white);  /*  5.46:1 */
+  --roast-dark: #4A3323;
+  --roast-dark-text: var(--white);         /* 11.74:1 */
 
-    /* ---- 圓角（三級）-------------------------------------- */
-    /* 不同層級的元件用不同級距，不得全站共用同一個值。
-     《03-介面規範》第 1 節禁止的是「所有內容都用同一個圓角、
-     同一個淺灰陰影切成卡片」，靠這裡的分級與下方的陰影限制擋掉。 */
+  /* ══ 表單欄位的外觀 ═════════════════════════════════════
+     欄位獨立使用時有自己的邊框；放進分組卡片時，卡片會把這兩個
+     變數覆寫成透明，避免框中框。欄位元件一律引用這兩個變數，
+     不要直接寫 --border / --surface。 */
 
-    --radius-sm: 4px; /* 輸入框、標籤、徽章、表格內的標記 */
-    --radius-md: 8px; /* 卡片、表單區塊 */
-    --radius-lg: 12px; /* 對話框、浮出層 */
+  --field-border: var(--border);
+  --field-bg: var(--surface);
+  --field-padding-x: 0.75rem;
 
-    /* ---- 陰影（只有一級）---------------------------------- */
-    /* 僅供浮出層使用：對話框、右下角浮動新增按鈕。
-     卡片與表單區塊一律不用陰影，改以 --border 或
-     --surface / --bg 的底色差異分層。
-     色相取自 --text 而非中性灰，避免在暖底色上顯冷。 */
+  /* ══ 字體 ═══════════════════════════════════════════════ */
 
-    --overlay-shadow: 0 8px 24px -4px rgb(42 46 38 / 0.18), 0 2px 6px -1px rgb(42 46 38 / 0.1);
+  --font-heading: "Noto Serif TC", ui-serif, Georgia, "Songti TC", serif;
+  --font-body: "Noto Sans TC", ui-sans-serif, system-ui, -apple-system,
+    "PingFang TC", "Microsoft JhengHei", sans-serif;
 
-    /* ---- 版面 --------------------------------------------- */
+  /* 字級階層（六級，基準 16px）。
+     中文文字不得小於 0.75rem，--text-xs 即為下限。
+     內文級距行高維持 ≥1.7；標題級距收緊，中文標題行高過大會散。 */
 
-    /* 規範第 3 節：≥640px 時單欄置中，最大寬度 720px
-     （640px 斷點沿用 Tailwind 預設 sm） */
-    --content-max: 720px;
+  --text-2xl: 2rem;
+  --text-2xl--line-height: 1.3;
+  --text-xl: 1.5rem;
+  --text-xl--line-height: 1.35;
+  --text-lg: 1.125rem;
+  --text-lg--line-height: 1.5;
+  --text-base: 1rem;
+  --text-base--line-height: 1.75;
+  --text-sm: 0.875rem;
+  --text-sm--line-height: 1.7;
+  --text-xs: 0.75rem;
+  --text-xs--line-height: 1.7;
 
-    /* ---- 動態 --------------------------------------------- */
+  --leading-body: 1.75;
 
-    /* 規範第 6 節：只做回應操作的動態，時長 150–200ms */
-    --motion-duration: 175ms;
-    --motion-ease: cubic-bezier(0.2, 0, 0, 1);
+  /* ══ 圓角 ═══════════════════════════════════════════════
+     不同層級的元件用不同級距，不得全站共用同一個值。 */
+
+  --radius-sm: 4px;   /* 輸入框、標籤、徽章 */
+  --radius-md: 8px;   /* 卡片、表單區塊 */
+  --radius-lg: 12px;  /* 對話框、浮出層 */
+
+  /* ══ 陰影（只有一級）════════════════════════════════════
+     僅供浮出層：對話框、浮動按鈕、下拉面板。
+     卡片與表單區塊一律不用陰影，改以邊界或底色差異分層。
+     色相取自 --ink 而非中性灰，避免在暖底色上顯冷。 */
+
+  --overlay-shadow:
+    0 8px 24px -4px rgb(42 46 38 / 0.18),
+    0 2px 6px -1px rgb(42 46 38 / 0.10);
+
+  /* ══ 版面 ═══════════════════════════════════════════════ */
+
+  --content-max: 720px;
+
+  /* ══ 動態 ═══════════════════════════════════════════════
+     只做回應操作的動態，時長 150–200ms。 */
+
+  --motion-duration: 175ms;
+  --motion-ease: cubic-bezier(0.2, 0, 0, 1);
 }

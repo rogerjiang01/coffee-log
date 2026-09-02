@@ -33,8 +33,8 @@ function pick(key: keyof Intensity, level: number) {
 
 <template>
   <section>
-    <h2 class="font-serif text-lg font-bold">強度</h2>
-    <p class="mt-1 text-sm text-muted">描述強弱，不是好壞。留空也可以。</p>
+    <p class="text-sm">強度</p>
+    <p class="text-xs text-muted">描述強弱，不是好壞。留空也可以。</p>
 
     <div
       v-for="dimension in dimensions"

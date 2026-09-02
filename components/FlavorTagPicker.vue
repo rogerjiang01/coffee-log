@@ -88,8 +88,8 @@ async function create() {
           :aria-pressed="modelValue.includes(tag.id)"
           class="rounded-sm border px-3 py-2 text-sm"
           :style="modelValue.includes(tag.id)
-            ? { borderColor: 'var(--accent)', background: 'var(--accent-wash)', color: 'var(--accent)', minHeight: '44px' }
-            : { borderColor: 'var(--border)', background: 'var(--surface)', minHeight: '44px' }"
+            ? { borderColor: 'var(--accent)', background: 'var(--accent-wash)', color: 'var(--on-accent-wash)', minHeight: '44px' }
+            : { borderColor: 'var(--field-border)', background: 'var(--field-bg)', minHeight: '44px' }"
           @click="toggle(tag.id)"
         >
           {{ tag.name }}
@@ -103,14 +103,14 @@ async function create() {
         type="text"
         placeholder="想到別的詞就打在這裡"
         class="block flex-1 rounded-sm border px-3 py-2.5"
-        :style="{ borderColor: 'var(--border)', background: 'var(--surface)', minHeight: '44px' }"
+        :style="{ borderColor: 'var(--field-border)', background: 'var(--field-bg)', minHeight: '44px' }"
       >
       <button
         v-if="canCreate"
         type="button"
         :disabled="saving"
         class="shrink-0 rounded-sm px-4 py-2 text-sm font-medium disabled:opacity-60"
-        :style="{ background: 'var(--accent)', color: '#FFFFFF', minHeight: '44px' }"
+        :style="{ background: 'var(--accent)', color: 'var(--on-accent)', minHeight: '44px' }"
         @click="create"
       >
         {{ saving ? '新增中' : '新增' }}

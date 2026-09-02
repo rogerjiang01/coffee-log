@@ -6,27 +6,29 @@ const colorGroups = [
   {
     title: '主色',
     items: [
-      { name: '--accent', value: '#516E41', usage: '主要行動、選取狀態、連結', contrast: 'on --bg 5.52:1' },
-      { name: '--accent-soft', value: '#678C53', usage: '圖示、hover、次要狀態' },
-      { name: '--accent-wash', value: 'rgb(81 110 65 / 0.08)', usage: '選取項目底色' },
+      { name: '--accent', value: 'green-500', usage: '主要行動、選取狀態、連結', contrast: '配白字 5.74:1' },
+      { name: '--accent-hover', value: 'green-400', usage: 'hover' },
+      { name: '--accent-active', value: 'green-600', usage: 'active' },
+      { name: '--accent-wash', value: 'green-50', usage: '選取項目底色' },
+      { name: '--on-accent-wash', value: 'green-700', usage: '疊在 wash 上的文字，7.38:1' },
     ],
   },
   {
     title: '中性',
     items: [
-      { name: '--bg', value: '#FFFAEF', usage: '頁面底色' },
-      { name: '--surface', value: '#FFFFFF', usage: '卡片、表單區塊' },
-      { name: '--text', value: '#2A2E26', usage: '主要文字', contrast: 'on --bg 13.30:1' },
-      { name: '--text-muted', value: '#6B6F63', usage: '次要文字、單位', contrast: 'on --bg 4.95:1' },
-      { name: '--border', value: '#E8E1D2', usage: '分隔線、輸入框邊框' },
+      { name: '--bg', value: 'sand-50', usage: '頁面底色' },
+      { name: '--surface', value: 'white', usage: '卡片、表單區塊' },
+      { name: '--text', value: 'ink #2A2E26', usage: '主要文字，刻意不在色階上', contrast: 'on --bg 13.30:1' },
+      { name: '--text-muted', value: 'ink-muted #6B6F63', usage: '次要文字、單位', contrast: 'on --bg 4.95:1' },
+      { name: '--border', value: 'sand-200', usage: '分隔線、邊界' },
     ],
   },
   {
     title: '狀態',
     items: [
-      { name: '--favorite', value: '#C0453A', usage: '愛心', contrast: 'on --bg 4.86:1' },
-      { name: '--danger', value: '#8B2318', usage: '刪除、錯誤', contrast: 'on --bg 8.58:1' },
-      { name: '--diff', value: '#516E41', usage: '差異標記，字重為主、顏色為輔' },
+      { name: '--favorite', value: 'red-500', usage: '愛心', contrast: 'on --bg 4.86:1' },
+      { name: '--danger', value: 'red-700', usage: '刪除、錯誤', contrast: 'on --bg 9.05:1' },
+      { name: '--diff', value: 'green-600', usage: '差異標記，字重為主、顏色為輔' },
     ],
   },
 ]

@@ -146,7 +146,7 @@ async function create() {
       :aria-expanded="open"
       :disabled="loading"
       class="mt-1 flex w-full items-center justify-between rounded-sm border px-3 py-2.5 text-left"
-      :style="{ borderColor: 'var(--border)', background: 'var(--surface)', minHeight: '44px' }"
+      :style="{ borderColor: 'var(--field-border)', background: 'var(--field-bg)', minHeight: '44px' }"
       @click="toggle"
     >
       <span :style="{ color: selected ? 'var(--text)' : 'var(--text-muted)' }">
@@ -174,7 +174,7 @@ async function create() {
             type="text"
             placeholder="打字找找看"
             class="block w-full rounded-sm border px-3 py-2"
-            :style="{ borderColor: 'var(--border)', background: 'var(--surface)', minHeight: '44px' }"
+            :style="{ borderColor: 'var(--field-border)', background: 'var(--field-bg)', minHeight: '44px' }"
           >
         </div>
 
@@ -228,7 +228,7 @@ async function create() {
           v-model="draftName"
           type="text"
           class="mt-1 block w-full rounded-sm border px-3 py-2.5"
-          :style="{ borderColor: 'var(--border)', background: 'var(--surface)', minHeight: '44px' }"
+          :style="{ borderColor: 'var(--field-border)', background: 'var(--field-bg)', minHeight: '44px' }"
         >
 
         <div class="mt-3">
@@ -244,7 +244,7 @@ async function create() {
             type="button"
             :disabled="saving"
             class="flex-1 rounded-sm px-3 py-2 font-medium disabled:opacity-60"
-            :style="{ background: 'var(--accent)', color: '#FFFFFF', minHeight: '44px' }"
+            :style="{ background: 'var(--accent)', color: 'var(--on-accent)', minHeight: '44px' }"
             @click="create"
           >
             {{ saving ? '儲存中' : '儲存' }}

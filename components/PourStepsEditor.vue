@@ -37,20 +37,17 @@ function setStir(index: number, stir: boolean) {
   patch(index, { stepType: stir ? 'stir' : 'pour' })
 }
 
-const cardStyle = { borderColor: 'var(--border)', background: 'var(--surface)' }
 </script>
 
 <template>
   <section>
-    <h2 class="font-serif text-lg font-bold">分段注水</h2>
+    <p class="text-sm">分段注水</p>
 
-    <ul class="mt-3 space-y-3">
+    <ul class="mt-2">
       <li
         v-for="(step, index) in modelValue"
         :key="index"
-        class="rounded-md border p-4"
-        :class="index === 1 ? 'mt-5' : ''"
-        :style="cardStyle"
+        class="step-row py-3"
       >
         <div class="flex items-baseline justify-between gap-3">
           <p class="text-sm font-medium">
@@ -134,8 +131,15 @@ const cardStyle = { borderColor: 'var(--border)', background: 'var(--surface)' }
     </button>
 
     <!-- 總水量與粉水比都是衍生值，不設輸入欄位、不存資料庫 -->
-    <p v-if="water !== null" class="mt-3 text-sm tabular-nums" :style="{ color: 'var(--text-muted)' }">
+    <p v-if="water !== null" class="mt-2 text-sm tabular-nums" :style="{ color: 'var(--text-muted)' }">
       總水量 {{ water }}g<span v-if="ratio" class="ml-3">粉水比 {{ ratio }}</span>
     </p>
   </section>
 </template>
+
+<style scoped>
+/* 分段之間用分隔線，不用巢狀卡片——外層已經是分組卡片了 */
+.step-row + .step-row {
+  border-top: 1px solid var(--border);
+}
+</style>

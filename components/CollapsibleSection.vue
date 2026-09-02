@@ -6,6 +6,8 @@
 const props = defineProps<{
   title: string
   storageKey: string
+  // 放在分組卡片內時不要自己的上緣線與外距——分隔線由 FormRow 提供
+  flat?: boolean
 }>()
 
 const open = ref(false)
@@ -32,7 +34,7 @@ function toggle() {
 </script>
 
 <template>
-  <section class="mt-8 border-t pt-5" :style="{ borderColor: 'var(--border)' }">
+  <section :class="flat ? '' : 'mt-8 border-t pt-5'" :style="flat ? undefined : { borderColor: 'var(--border)' }">
     <button
       type="button"
       class="flex w-full items-center justify-between text-left"

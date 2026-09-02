@@ -51,8 +51,8 @@ function onInput(event: Event) {
       :aria-label="ariaLabel"
       class="block w-full rounded-sm border px-3 py-2.5 tabular-nums"
       :style="{
-        borderColor: 'var(--border)',
-        background: 'var(--surface)',
+        borderColor: 'var(--field-border)',
+        background: 'var(--field-bg)',
         minHeight: '44px',
         paddingRight: unit ? '2.75rem' : undefined,
       }"

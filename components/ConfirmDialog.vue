@@ -45,7 +45,7 @@ watch(() => props.open, (value) => {
         type="button"
         :disabled="busy"
         class="flex-1 rounded-sm px-4 py-3 font-medium disabled:opacity-60"
-        :style="{ background: 'var(--danger)', color: '#FFFFFF', minHeight: '44px' }"
+        :style="{ background: 'var(--danger)', color: 'var(--on-danger)', minHeight: '44px' }"
         @click="emit('confirm')"
       >
         {{ busy ? '刪除中' : confirmLabel }}
