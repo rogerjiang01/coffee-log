@@ -1,0 +1,263 @@
+<script setup lang="ts">
+// 沖煮表單的豆子欄位（《02-功能規格》§5 區塊一）。
+//
+// 未喝完的排前面。必須支援「就地新增」：只要豆名 ＋ 可選拍照，
+// 儲存後自動選定，**不得跳離頁面導致已填內容遺失**——所以新增流程
+// 完全在這個下拉裡完成，不做路由跳轉。
+
+interface BeanOption {
+  id: string
+  name: string
+  is_finished: boolean
+}
+
+const props = defineProps<{ modelValue: string | null }>()
+const emit = defineEmits<{ 'update:modelValue': [string | null] }>()
+
+const supabase = useSupabaseClient()
+const userId = useCurrentUserId()
+const { upload } = useBeanPhotos()
+
+const beans = ref<BeanOption[]>([])
+const loading = ref(true)
+const open = ref(false)
+const query = ref('')
+const creating = ref(false)
+const draftName = ref('')
+const draftPhoto = ref<CompressedImage | null>(null)
+const saving = ref(false)
+const createError = ref('')
+
+const root = ref<HTMLElement | null>(null)
+const searchInput = ref<HTMLInputElement | null>(null)
+
+const selected = computed(() => beans.value.find(bean => bean.id === props.modelValue) ?? null)
+const matches = computed(() =>
+  filterLookup(
+    query.value,
+    beans.value.map(bean => ({ id: bean.id, name: bean.name, aliases: [], user_id: null })),
+  ).map(match => beans.value.find(bean => bean.id === match.id)!).filter(Boolean),
+)
+const active = computed(() => matches.value.filter(bean => !bean.is_finished))
+const finished = computed(() => matches.value.filter(bean => bean.is_finished))
+
+async function load() {
+  loading.value = true
+  const { data } = await supabase
+    .from('beans')
+    .select('id, name, is_finished')
+    .order('is_finished', { ascending: true })
+    .order('created_at', { ascending: false })
+    .order('id', { ascending: false })
+  beans.value = (data ?? []) as unknown as BeanOption[]
+  loading.value = false
+}
+
+onMounted(() => {
+  load()
+  document.addEventListener('click', onDocumentClick)
+})
+onBeforeUnmount(() => document.removeEventListener('click', onDocumentClick))
+
+function onDocumentClick(event: MouseEvent) {
+  if (open.value && root.value && !root.value.contains(event.target as Node)) close()
+}
+
+async function toggle() {
+  open.value = !open.value
+  if (open.value) {
+    query.value = ''
+    creating.value = false
+    createError.value = ''
+    await nextTick()
+    searchInput.value?.focus()
+  }
+}
+
+function close() {
+  open.value = false
+  query.value = ''
+  creating.value = false
+}
+
+function pick(id: string | null) {
+  emit('update:modelValue', id)
+  close()
+}
+
+function startCreate() {
+  creating.value = true
+  draftName.value = query.value.trim()
+  draftPhoto.value = null
+  createError.value = ''
+}
+
+async function create() {
+  const name = draftName.value.trim()
+  if (!name) {
+    createError.value = '豆子總得有個名字'
+    return
+  }
+  if (!userId.value) {
+    createError.value = '登入狀態好像過期了，重新登入一次再試'
+    return
+  }
+
+  saving.value = true
+  createError.value = ''
+  const { data, error } = await supabase
+    .from('beans')
+    .insert({ user_id: userId.value, name } as never)
+    .select('id, name, is_finished')
+    .single()
+
+  if (error || !data) {
+    saving.value = false
+    createError.value = `沒有存起來：${error?.message ?? '未知狀況'}`
+    return
+  }
+  const created = data as unknown as BeanOption
+
+  if (draftPhoto.value) {
+    try {
+      const path = await upload(userId.value, created.id, draftPhoto.value)
+      await supabase.from('beans').update({ photo_path: path } as never).eq('id', created.id)
+    }
+    catch {
+      // 豆子已經建好，照片失敗不該讓整個流程回不去
+    }
+  }
+
+  saving.value = false
+  beans.value = [created, ...beans.value]
+  pick(created.id)
+}
+</script>
+
+<template>
+  <div ref="root" class="relative">
+    <label class="block text-sm" for="brew-bean">豆子</label>
+
+    <button
+      id="brew-bean"
+      type="button"
+      role="combobox"
+      :aria-expanded="open"
+      :disabled="loading"
+      class="mt-1 flex w-full items-center justify-between rounded-sm border px-3 py-2.5 text-left"
+      :style="{ borderColor: 'var(--border)', background: 'var(--surface)', minHeight: '44px' }"
+      @click="toggle"
+    >
+      <span :style="{ color: selected ? 'var(--text)' : 'var(--text-muted)' }">
+        {{ selected?.name ?? '選填' }}
+      </span>
+      <svg
+        width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"
+        :style="{ color: 'var(--text-muted)', transform: open ? 'rotate(180deg)' : 'none', transition: 'transform var(--motion-duration) var(--motion-ease)' }"
+      >
+        <path d="M3 6l5 5 5-5" fill="none" stroke="currentColor" stroke-width="1.5" />
+      </svg>
+    </button>
+
+    <div
+      v-if="open"
+      class="absolute z-20 mt-1 w-full overflow-hidden rounded-sm border"
+      :style="{ borderColor: 'var(--border)', background: 'var(--surface)', boxShadow: 'var(--overlay-shadow)' }"
+      @keydown.esc="close"
+    >
+      <template v-if="!creating">
+        <div class="border-b p-2" :style="{ borderColor: 'var(--border)' }">
+          <input
+            ref="searchInput"
+            v-model="query"
+            type="text"
+            placeholder="打字找找看"
+            class="block w-full rounded-sm border px-3 py-2"
+            :style="{ borderColor: 'var(--border)', background: 'var(--surface)', minHeight: '44px' }"
+          >
+        </div>
+
+        <ul class="max-h-56 overflow-y-auto">
+          <li v-for="bean in active" :key="bean.id">
+            <button
+              type="button"
+              class="block w-full truncate px-3 py-2 text-left"
+              :style="{ minHeight: '44px', background: bean.id === modelValue ? 'var(--accent-wash)' : undefined }"
+              @click="pick(bean.id)"
+            >
+              {{ bean.name }}
+            </button>
+          </li>
+          <template v-if="finished.length">
+            <li class="px-3 pt-2 text-xs text-muted">已喝完</li>
+            <li v-for="bean in finished" :key="bean.id">
+              <button
+                type="button"
+                class="block w-full truncate px-3 py-2 text-left"
+                :style="{ minHeight: '44px', background: bean.id === modelValue ? 'var(--accent-wash)' : undefined }"
+                @click="pick(bean.id)"
+              >
+                {{ bean.name }}
+              </button>
+            </li>
+          </template>
+        </ul>
+
+        <div class="border-t p-2" :style="{ borderColor: 'var(--border)' }">
+          <button
+            type="button"
+            class="block w-full rounded-sm px-3 py-2 text-left"
+            :style="{ minHeight: '44px', color: 'var(--accent)' }"
+            @click="startCreate"
+          >
+            {{ query.trim() ? `新增「${query.trim()}」` : '新增豆子' }}
+          </button>
+        </div>
+      </template>
+
+      <!-- 就地新增：只要豆名，照片可選，全程留在這一頁 -->
+      <div v-else class="p-3">
+        <label class="block text-sm" for="new-bean-name">
+          豆名
+          <span :style="{ color: 'var(--danger)' }" aria-hidden="true">*</span>
+          <span class="sr-only">必填</span>
+        </label>
+        <input
+          id="new-bean-name"
+          v-model="draftName"
+          type="text"
+          class="mt-1 block w-full rounded-sm border px-3 py-2.5"
+          :style="{ borderColor: 'var(--border)', background: 'var(--surface)', minHeight: '44px' }"
+        >
+
+        <div class="mt-3">
+          <PhotoField :preview-url="null" @picked="draftPhoto = $event" />
+        </div>
+
+        <p v-if="createError" role="alert" class="mt-2 text-sm" :style="{ color: 'var(--danger)' }">
+          {{ createError }}
+        </p>
+
+        <div class="mt-3 flex gap-2">
+          <button
+            type="button"
+            :disabled="saving"
+            class="flex-1 rounded-sm px-3 py-2 font-medium disabled:opacity-60"
+            :style="{ background: 'var(--accent)', color: '#FFFFFF', minHeight: '44px' }"
+            @click="create"
+          >
+            {{ saving ? '儲存中' : '儲存' }}
+          </button>
+          <button
+            type="button"
+            class="rounded-sm border px-3 py-2"
+            :style="{ borderColor: 'var(--border)', minHeight: '44px' }"
+            @click="creating = false"
+          >
+            取消
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</template>

@@ -159,8 +159,16 @@ async function destroy() {
         <p class="mt-1 whitespace-pre-line">{{ bean.official_notes }}</p>
       </section>
 
+      <NuxtLink
+        :to="`/brews/new?bean=${bean.id}`"
+        class="mt-8 block w-full rounded-sm px-4 py-3 text-center font-medium"
+        :style="{ background: 'var(--accent)', color: '#FFFFFF', minHeight: '44px' }"
+      >
+        用這支豆子沖一杯
+      </NuxtLink>
+
       <!-- 狀態不是動作，用 role="switch" 的開關而不是按鈕 -->
-      <div class="mt-8">
+      <div class="mt-4">
         <ToggleSwitch
           :model-value="bean.is_finished"
           label="已喝完"

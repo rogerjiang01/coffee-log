@@ -31,7 +31,6 @@ async function onSubmit({ values, photo }: { values: BeanFormValues; photo: Comp
     processing_method_id: values.processing_method_id,
     variety_id: values.variety_id,
     official_notes: values.official_notes.trim() || null,
-    is_finished: values.is_finished,
   }
 
   const { data, error: insertError } = await supabase

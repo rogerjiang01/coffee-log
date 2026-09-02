@@ -1,21 +1,20 @@
 <script setup lang="ts">
 // 豆子列表頁的單欄列項（《03-介面規範》§4.5.2）。
 //
-// 卡片的功能是「讓使用者認出這是哪支豆子」，不是呈現完整資訊，因此只有兩行。
+// 卡片的功能是「讓使用者認出這是哪支豆子」，不是呈現完整資訊。
+// 三行：豆名、咖啡店名、養豆天數。沒填的那行整行不顯示。
 //
-// 高度由固定尺寸的縮圖決定，不由文字內容決定——有沒有標籤、名字幾個字，
-// 都不該影響版面。右側資訊區鎖成與縮圖等高，超出就截斷。
+// 沖煮次數不放這裡——大多數時候是 0，佔一整行卻沒有資訊價值，放詳情頁。
+// 已喝完也不放這裡，由列表的分組表達。
 //
-// 烘焙度不另外寫字：縮圖的烘焙度色塊已經表達了。
-// 已喝完不用標籤：整張卡片降低透明度，不佔版面高度。
+// 高度由 96px 的縮圖決定，不由文字內容決定。
 
 const props = defineProps<{
   name: string
   photoUrl: string | null
   roastLevel: RoastLevel | null
+  roaster: string | null
   roastDate: string | null
-  brewCount: number
-  isFinished: boolean
 }>()
 
 const fill = computed(() => roastFill(props.roastLevel))
@@ -25,36 +24,29 @@ const days = computed(() => restDays(props.roastDate))
 <template>
   <article
     class="flex overflow-hidden rounded-md border"
-    :style="{
-      borderColor: 'var(--border)',
-      background: 'var(--surface)',
-      opacity: isFinished ? 0.5 : 1,
-    }"
+    :style="{ borderColor: 'var(--border)', background: 'var(--surface)' }"
   >
-    <div class="size-20 shrink-0">
+    <div class="size-24 shrink-0">
       <img
         v-if="photoUrl"
         :src="photoUrl"
         :alt="name"
         loading="lazy"
-        class="size-20 object-cover"
+        class="size-24 object-cover"
       >
       <div
         v-else
-        class="size-20"
+        class="size-24"
         :style="{ background: fill.background }"
         aria-hidden="true"
       />
     </div>
 
-    <!-- h-20 與縮圖同高，overflow-hidden 讓內容再多也撐不開卡片 -->
-    <div class="flex h-20 min-w-0 flex-1 flex-col justify-center gap-1 overflow-hidden px-3">
+    <!-- h-24 與縮圖同高，overflow-hidden 讓內容再多也撐不開卡片 -->
+    <div class="flex h-24 min-w-0 flex-1 flex-col justify-center gap-1 overflow-hidden px-3">
       <h3 class="truncate font-medium">{{ name }}</h3>
-
-      <p class="truncate text-sm tabular-nums text-muted">
-        <span v-if="days !== null" class="mr-4">養豆 {{ days }} 天</span>
-        <span>沖煮 {{ brewCount }} 次</span>
-      </p>
+      <p v-if="roaster" class="truncate text-sm text-muted">{{ roaster }}</p>
+      <p v-if="days !== null" class="truncate text-sm tabular-nums text-muted">養豆 {{ days }} 天</p>
     </div>
   </article>
 </template>

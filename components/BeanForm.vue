@@ -6,9 +6,12 @@
 //
 // 豆袋照片放在最上方，不是最下方（《02》§9）。
 //
-// L1／L2 的切分：處理法、品種、產區留在 L1。台灣咖啡文化在豆袋上強調
-// 這三項，把它們藏進收合區正是競品被詬病的地方。咖啡店名反而是查閱時
-// 才需要，不是輸入時的重點，因此收進 L2。
+// 豆子表單沒有收合區，九個欄位全部可見。
+// 咖啡店名緊接在豆名之後——豆袋上的資訊結構是「某某店的某某豆」，
+// 店名是豆名的所屬關係，不是並列的另一個屬性。
+// 一個欄位不值得做收合區，收合區機制留給真的很長的沖煮表單。
+//
+// 已喝完不在表單裡，由詳情頁的 toggle 負責。
 
 const props = defineProps<{
   initial?: Partial<BeanFormValues>
@@ -34,7 +37,6 @@ const values = reactive<BeanFormValues>({
   processing_method_id: props.initial?.processing_method_id ?? null,
   variety_id: props.initial?.variety_id ?? null,
   official_notes: props.initial?.official_notes ?? '',
-  is_finished: props.initial?.is_finished ?? false,
 })
 
 const photo = ref<CompressedImage | null>(null)
@@ -117,6 +119,16 @@ function selectStyle(value: unknown) {
     </div>
 
     <div class="mt-5">
+      <label class="block text-sm" for="bean-roaster">咖啡店名</label>
+      <input
+        id="bean-roaster"
+        v-model="values.roaster"
+        type="text"
+        class="mt-1 block w-full rounded-sm border px-3 py-2.5"
+        :style="inputStyle"
+      >
+    </div>
+    <div class="mt-5">
       <label class="block text-sm" for="bean-roast-date">烘焙日期</label>
       <input
         id="bean-roast-date"
@@ -183,39 +195,16 @@ function selectStyle(value: unknown) {
       <LookupSelect v-model="values.variety_id" label="品種" table="varieties" />
     </div>
 
-    <CollapsibleSection title="店家與備註" storage-key="beanForm.other.expanded">
-      <div>
-        <label class="block text-sm" for="bean-roaster">咖啡店名</label>
-        <input
-          id="bean-roaster"
-          v-model="values.roaster"
-          type="text"
-          class="mt-1 block w-full rounded-sm border px-3 py-2.5"
-          :style="inputStyle"
-        >
-      </div>
-
-      <div class="mt-5">
-        <label class="block text-sm" for="bean-notes">官方風味描述</label>
-        <textarea
-          id="bean-notes"
-          v-model="values.official_notes"
-          rows="3"
-          class="mt-1 block w-full rounded-sm border px-3 py-2.5"
-          :style="{ borderColor: 'var(--border)', background: 'var(--surface)' }"
-        />
-      </div>
-
-      <label class="mt-5 flex items-center gap-3" :style="{ minHeight: '44px' }">
-        <input
-          v-model="values.is_finished"
-          type="checkbox"
-          class="size-5"
-          :style="{ accentColor: 'var(--accent)' }"
-        >
-        <span>已喝完</span>
-      </label>
-    </CollapsibleSection>
+    <div class="mt-5">
+      <label class="block text-sm" for="bean-notes">官方風味描述</label>
+      <textarea
+        id="bean-notes"
+        v-model="values.official_notes"
+        rows="3"
+        class="mt-1 block w-full rounded-sm border px-3 py-2.5"
+        :style="{ borderColor: 'var(--border)', background: 'var(--surface)' }"
+      />
+    </div>
 
     <button
       type="submit"

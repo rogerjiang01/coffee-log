@@ -17,5 +17,4 @@ export interface BeanFormValues {
   processing_method_id: string | null
   variety_id: string | null
   official_notes: string
-  is_finished: boolean
 }

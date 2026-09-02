@@ -100,3 +100,35 @@ export interface CatalogRow {
 export function catalogDisplayName(row: CatalogRow) {
   return `${row.brand} ${row.model}${row.variant ? ` ${row.variant}` : ''}`
 }
+
+/** 使用者器材的顯示名稱：有型錄就用型錄的名字，否則用自訂名稱 */
+export function equipmentOptionName(item: {
+  custom_name: string | null
+  equipment_catalog: { brand: string, model: string, variant: string | null } | null
+}) {
+  if (item.equipment_catalog) {
+    const c = item.equipment_catalog
+    return `${c.brand} ${c.model}${c.variant ? ` ${c.variant}` : ''}`
+  }
+  return item.custom_name ?? '未命名器材'
+}
+
+/** 沖煮表單用的使用者器材（含型錄的刻度規格）。放在 utils 讓 Nuxt 自動匯入。 */
+export interface EquipmentOption {
+  id: string
+  type: EquipmentType
+  custom_name: string | null
+  is_default: boolean
+  catalog_id: string | null
+  equipment_catalog: {
+    brand: string
+    model: string
+    variant: string | null
+    grind_scale_min: number | null
+    grind_scale_max: number | null
+    grind_scale_increment: number | null
+    grind_scale_suggested_min: number | null
+    grind_scale_suggested_max: number | null
+    grind_scale_note: string | null
+  } | null
+}
