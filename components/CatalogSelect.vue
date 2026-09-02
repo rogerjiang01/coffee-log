@@ -66,7 +66,8 @@ async function toggle() {
   if (open.value) {
     query.value = ''
     await nextTick()
-    searchInput.value?.focus()
+    // preventScroll：取得焦點時不要把畫面捲到這個欄位
+    searchInput.value?.focus({ preventScroll: true })
   }
 }
 

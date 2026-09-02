@@ -42,6 +42,7 @@ async function onSubmit(payload: {
     filter_id: values.filter_id,
     server_id: values.server_id,
     total_time: values.total_time,
+    rating: values.rating,
     is_favorite: values.is_favorite,
     tasting_notes: values.tasting_notes.trim() || null,
     intensity: Object.keys(values.intensity).length ? values.intensity : null,

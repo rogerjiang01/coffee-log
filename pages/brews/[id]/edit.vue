@@ -21,7 +21,7 @@ const error = ref('')
 onMounted(async () => {
   const { data } = await supabase
     .from('brews')
-    .select('bean_id, brew_method_id, dose, water_temp, grinder_id, grind_setting, dripper_id, kettle_id, filter_id, server_id, total_time, brewed_at, is_favorite, tasting_notes, intensity')
+    .select('bean_id, brew_method_id, dose, water_temp, grinder_id, grind_setting, dripper_id, kettle_id, filter_id, server_id, total_time, brewed_at, rating, is_favorite, tasting_notes, intensity')
     .eq('id', id.value)
     .maybeSingle()
 
@@ -46,6 +46,7 @@ onMounted(async () => {
     server_id: (brew.server_id as string | null) ?? null,
     total_time: totalTime,
     brewed_at: toLocalInput(new Date(brew.brewed_at as string)),
+    rating: (brew.rating as number | null) ?? null,
     is_favorite: (brew.is_favorite as boolean | null) ?? false,
     tasting_notes: (brew.tasting_notes as string | null) ?? '',
     intensity: (brew.intensity as Intensity | null) ?? {},
@@ -97,6 +98,7 @@ async function onSubmit(payload: {
       filter_id: values.filter_id,
       server_id: values.server_id,
       total_time: values.total_time,
+      rating: values.rating,
       is_favorite: values.is_favorite,
       tasting_notes: values.tasting_notes.trim() || null,
       intensity: Object.keys(values.intensity).length ? values.intensity : null,

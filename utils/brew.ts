@@ -21,6 +21,7 @@ export interface BrewFormValues {
   server_id: string | null
   total_time: number | null
   brewed_at: string
+  rating: number | null
   is_favorite: boolean
   tasting_notes: string
   intensity: Intensity

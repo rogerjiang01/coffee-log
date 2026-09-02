@@ -16,6 +16,7 @@ interface BrewDetail {
   grind_setting: number | null
   total_time: number | null
   brewed_at: string
+  rating: number | null
   is_favorite: boolean
   tasting_notes: string | null
   intensity: Intensity | null
@@ -44,7 +45,7 @@ async function load() {
     .from('brews')
     .select(`
       id, dose, water_temp, grind_setting, total_time, brewed_at,
-      is_favorite, tasting_notes, intensity,
+      rating, is_favorite, tasting_notes, intensity,
       beans ( id, name, roast_date ),
       brew_methods ( name ),
       grinder:grinder_id ( custom_name, equipment_catalog ( brand, model, variant ) ),
@@ -154,10 +155,31 @@ async function destroy() {
         {{ brew.beans?.name ?? '沒有指定豆子' }}
       </h1>
       <p class="mt-1 text-sm tabular-nums text-muted">{{ formatDate(brew.brewed_at) }}</p>
-      <p v-if="brew.is_favorite" class="mt-2 inline-block rounded-sm px-2 py-0.5 text-xs"
-         :style="{ background: 'var(--accent-wash)', color: 'var(--accent)' }">
-        這杯好喝
-      </p>
+      <!-- 評分與收藏是兩個獨立欄位，分開顯示 -->
+      <div v-if="brew.rating !== null || brew.is_favorite" class="mt-3 flex items-center gap-3">
+        <span v-if="brew.rating !== null" class="flex" :aria-label="`評分 ${brew.rating} 顆星`">
+          <svg
+            v-for="level in 5" :key="level"
+            width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"
+          >
+            <path
+              d="M12 3.5l2.6 5.3 5.9.9-4.3 4.1 1 5.8-5.2-2.7-5.2 2.7 1-5.8L3.5 9.7l5.9-.9z"
+              :fill="brew.rating >= level ? 'var(--favorite)' : 'transparent'"
+              :stroke="brew.rating >= level ? 'var(--favorite)' : 'var(--border)'"
+              stroke-width="1.5" stroke-linejoin="round"
+            />
+          </svg>
+        </span>
+        <span v-if="brew.is_favorite" class="flex items-center gap-1 text-sm" :style="{ color: 'var(--favorite)' }">
+          <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true">
+            <path
+              d="M12 20s-7-4.5-7-9.5A3.5 3.5 0 0112 8a3.5 3.5 0 017 2.5C19 15.5 12 20 12 20z"
+              fill="var(--favorite)" stroke="var(--favorite)" stroke-width="1.5" stroke-linejoin="round"
+            />
+          </svg>
+          收藏
+        </span>
+      </div>
 
       <dl class="mt-6">
         <div

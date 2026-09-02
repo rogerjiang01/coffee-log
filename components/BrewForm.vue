@@ -42,15 +42,41 @@ const values = reactive<BrewFormValues>({
   server_id: props.initial?.server_id ?? null,
   total_time: props.initial?.total_time ?? null,
   brewed_at: props.initial?.brewed_at ?? toLocalInput(new Date()),
+  rating: props.initial?.rating ?? null,
   is_favorite: props.initial?.is_favorite ?? false,
   tasting_notes: props.initial?.tasting_notes ?? '',
   intensity: props.initial?.intensity ?? {},
 })
 
 const steps = ref<StepInput[]>(props.initialSteps ?? initialSteps())
-const flavorTagIds = ref<string[]>(props.initialFlavorTagIds ?? [])
-const totalTimeText = ref(secondsToClock(props.initial?.total_time ?? null))
 
+// 全頁器材選擇器：整個流程留在這一頁，沖煮表單已填的內容完全不動
+const pickerType = ref<EquipmentType | null>(null)
+const equipmentFields: { type: EquipmentType; label: string; key: keyof BrewFormValues }[] = [
+  { type: 'grinder', label: '磨豆機', key: 'grinder_id' },
+  { type: 'dripper', label: '濾杯', key: 'dripper_id' },
+  { type: 'kettle', label: '手沖壺', key: 'kettle_id' },
+  { type: 'filter', label: '濾紙', key: 'filter_id' },
+  { type: 'server', label: '分享壺', key: 'server_id' },
+]
+
+function equipmentName(id: string | null) {
+  if (!id) return null
+  const item = equipment.value.find(entry => entry.id === id)
+  return item ? equipmentOptionName(item) : null
+}
+
+const pickerValue = computed<string | null>({
+  get: () => {
+    const field = equipmentFields.find(entry => entry.type === pickerType.value)
+    return field ? (values[field.key] as string | null) : null
+  },
+  set: (next) => {
+    const field = equipmentFields.find(entry => entry.type === pickerType.value)
+    if (field) (values[field.key] as string | null) = next
+  },
+})
+const flavorTagIds = ref<string[]>(props.initialFlavorTagIds ?? [])
 const doseError = ref('')
 const summaryError = ref('')
 
@@ -58,17 +84,21 @@ const summaryError = ref('')
 const equipment = ref<EquipmentOption[]>([])
 const methods = ref<{ id: string; name: string }[]>([])
 
+async function loadEquipment() {
+  const { data } = await supabase
+    .from('user_equipment')
+    .select('id, type, custom_name, is_default, catalog_id, equipment_catalog ( brand, model, variant, grind_scale_min, grind_scale_max, grind_scale_increment, grind_scale_suggested_min, grind_scale_suggested_max, grind_scale_note )')
+    .order('is_default', { ascending: false })
+    .order('created_at', { ascending: true })
+    .order('id', { ascending: true })
+  equipment.value = (data ?? []) as unknown as EquipmentOption[]
+}
+
 onMounted(async () => {
-  const [equipmentResult, methodResult] = await Promise.all([
-    supabase
-      .from('user_equipment')
-      .select('id, type, custom_name, is_default, catalog_id, equipment_catalog ( brand, model, variant, grind_scale_min, grind_scale_max, grind_scale_increment, grind_scale_suggested_min, grind_scale_suggested_max, grind_scale_note )')
-      .order('is_default', { ascending: false })
-      .order('created_at', { ascending: true })
-      .order('id', { ascending: true }),
+  const [, methodResult] = await Promise.all([
+    loadEquipment(),
     supabase.from('brew_methods').select('id, name').order('sort_order').order('name'),
   ])
-  equipment.value = (equipmentResult.data ?? []) as unknown as EquipmentOption[]
   methods.value = (methodResult.data ?? []) as unknown as { id: string; name: string }[]
 
   // 只在新增（沒有初始值）時帶入預設，編輯既有紀錄不覆蓋使用者當初的選擇
@@ -103,10 +133,6 @@ const grindSpec = computed<GrindScaleSpec>(() => {
 // 粉水比即時顯示。衍生值，不可編輯、不存資料庫。
 const water = computed(() => totalWater(steps.value))
 const ratio = computed(() => brewRatioLabel(water.value, values.dose))
-
-watch(totalTimeText, (value) => {
-  values.total_time = clockToSeconds(value)
-})
 
 function submit() {
   doseError.value = values.dose === null ? '粉重要填，其他都可以之後再說' : ''
@@ -167,7 +193,11 @@ const inputStyle = {
     </div>
 
     <div class="mt-5">
-      <EquipmentSelect v-model="values.grinder_id" label="磨豆機" type="grinder" :options="equipment" />
+      <EquipmentTrigger
+        label="磨豆機"
+        :name="equipmentName(values.grinder_id)"
+        @open="pickerType = 'grinder'"
+      />
     </div>
 
     <div class="mt-5">
@@ -179,42 +209,54 @@ const inputStyle = {
     </div>
 
     <div class="mt-5">
-      <EquipmentSelect v-model="values.dripper_id" label="濾杯" type="dripper" :options="equipment" />
+      <EquipmentTrigger
+        label="濾杯"
+        :name="equipmentName(values.dripper_id)"
+        @open="pickerType = 'dripper'"
+      />
     </div>
 
     <div class="mt-5">
-      <EquipmentSelect v-model="values.kettle_id" label="手沖壺" type="kettle" :options="equipment" />
+      <EquipmentTrigger
+        label="手沖壺"
+        :name="equipmentName(values.kettle_id)"
+        @open="pickerType = 'kettle'"
+      />
     </div>
 
     <div class="mt-5">
       <label class="block text-sm" for="brew-total-time">總沖煮時間</label>
-      <input
-        id="brew-total-time"
-        v-model="totalTimeText"
-        type="text"
-        inputmode="numeric"
-        placeholder="2:30"
-        class="mt-1 block w-full rounded-sm border px-3 py-2.5 tabular-nums"
-        :style="inputStyle"
-      >
-      <p class="mt-1 text-xs text-muted">分:秒，以下壺滴完為準</p>
+      <DurationPicker id="brew-total-time" v-model="values.total_time" class="mt-1" />
+      <p class="mt-1 text-xs text-muted">以下壺滴完為準</p>
     </div>
 
     <div class="mt-5">
       <label class="block text-sm" for="brew-at">沖煮時間</label>
-      <input
-        id="brew-at"
-        v-model="values.brewed_at"
-        type="datetime-local"
-        class="mt-1 block w-full rounded-sm border px-3 py-2.5"
-        :style="inputStyle"
-      >
+      <!-- datetime-local 的原生內容有自己的最小寬度，w-full 擋不住它撐開容器。
+           min-w-0 讓它可以被壓縮，max-w-full 與 overflow-hidden 收住溢位。 -->
+      <div class="mt-1 overflow-hidden">
+        <input
+          id="brew-at"
+          v-model="values.brewed_at"
+          type="datetime-local"
+          class="block w-full min-w-0 max-w-full rounded-sm border px-3 py-2.5"
+          :style="inputStyle"
+        >
+      </div>
     </div>
 
     <CollapsibleSection title="其他器材" storage-key="brewForm.equipment.expanded">
-      <EquipmentSelect v-model="values.filter_id" label="濾紙" type="filter" :options="equipment" />
+      <EquipmentTrigger
+        label="濾紙"
+        :name="equipmentName(values.filter_id)"
+        @open="pickerType = 'filter'"
+      />
       <div class="mt-5">
-        <EquipmentSelect v-model="values.server_id" label="分享壺" type="server" :options="equipment" />
+        <EquipmentTrigger
+          label="分享壺"
+          :name="equipmentName(values.server_id)"
+          @open="pickerType = 'server'"
+        />
       </div>
     </CollapsibleSection>
 
@@ -223,9 +265,34 @@ const inputStyle = {
       <PourStepsEditor v-model="steps" :dose="values.dose" />
     </div>
 
-    <!-- 區塊四：品飲 -->
+    <!-- 區塊四：品飲。評分與收藏是兩件事，分開呈現不疊成複合元件。 -->
     <div class="mt-8">
-      <ToggleSwitch v-model="values.is_favorite" label="這杯好喝" />
+      <StarRating v-model="values.rating" />
+    </div>
+
+    <div class="mt-5">
+      <button
+        type="button"
+        role="switch"
+        :aria-checked="values.is_favorite"
+        class="flex w-full items-center justify-between rounded-sm border px-4 py-3"
+        :style="{ borderColor: 'var(--border)', background: 'var(--surface)', minHeight: '44px' }"
+        @click="values.is_favorite = !values.is_favorite"
+      >
+        <span>
+          收藏
+          <span class="ml-2 text-sm text-muted">想再沖一次</span>
+        </span>
+        <svg width="24" height="24" viewBox="0 0 24 24" aria-hidden="true">
+          <path
+            d="M12 20s-7-4.5-7-9.5A3.5 3.5 0 0112 8a3.5 3.5 0 017 2.5C19 15.5 12 20 12 20z"
+            :fill="values.is_favorite ? 'var(--favorite)' : 'transparent'"
+            :stroke="values.is_favorite ? 'var(--favorite)' : 'var(--border)'"
+            stroke-width="1.5"
+            stroke-linejoin="round"
+          />
+        </svg>
+      </button>
     </div>
 
     <div class="mt-6">
@@ -255,6 +322,15 @@ const inputStyle = {
     >
       {{ busy ? '儲存中' : submitLabel }}
     </button>
+
+    <EquipmentPicker
+      v-if="pickerType"
+      :open="!!pickerType"
+      :type="pickerType"
+      v-model="pickerValue"
+      @close="pickerType = null"
+      @created="loadEquipment"
+    />
 
     <p
       v-if="error || summaryError"
