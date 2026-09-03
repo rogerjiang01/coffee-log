@@ -62,7 +62,7 @@ onMounted(load)
 
 <template>
   <!-- 底部留白避開浮動按鈕，否則最後一筆會被永久遮住 -->
-  <main class="mx-auto px-5 pt-10 pb-28" :style="{ maxWidth: 'var(--content-max)' }">
+  <main class="mx-auto px-5 pt-10 pb-32" :style="{ maxWidth: 'var(--content-max)' }">
     <div class="flex items-baseline justify-between">
       <h1 class="font-serif text-xl font-bold">豆子</h1>
       <NuxtLink to="/" class="text-sm underline" :style="{ color: 'var(--accent)' }">回首頁</NuxtLink>
@@ -119,12 +119,14 @@ onMounted(load)
     <NuxtLink
       to="/beans/new"
       aria-label="新增豆子"
-      class="fixed right-5 bottom-6 flex size-14 items-center justify-center rounded-lg"
+      class="fixed right-5 bottom-20 z-30 flex size-14 items-center justify-center rounded-lg"
       :style="{ background: 'var(--accent)', color: 'var(--on-accent)', boxShadow: 'var(--overlay-shadow)' }"
     >
       <svg width="24" height="24" viewBox="0 0 24 24" aria-hidden="true">
         <path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
       </svg>
     </NuxtLink>
+
+    <BottomNav />
   </main>
 </template>

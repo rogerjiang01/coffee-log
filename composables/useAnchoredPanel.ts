@@ -27,7 +27,7 @@ const EDGE = 8
  * 而 position: fixed 使頁面捲不到它，底部的動作因此永遠點不到，
  * 且不會有任何錯誤訊息。
  */
-export function computePanelPlacement(rect: AnchorRect, viewportHeight: number) {
+export function computePanelPlacement(rect: AnchorRect, viewportHeight: number): Record<string, string> {
   const spaceBelow = viewportHeight - rect.bottom - GAP - EDGE
   const spaceAbove = rect.top - GAP - EDGE
 

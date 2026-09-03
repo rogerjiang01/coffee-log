@@ -59,5 +59,12 @@ export default defineNuxtConfig({
 
   typescript: {
     strict: true,
+    // tests/ 用 Node 內建的型別剝除直接跑 .ts，import 需要帶副檔名。
+    // 開這個選項才能同時讓測試受 typecheck 保護，而不是把 tests/ 排除掉。
+    tsConfig: {
+      compilerOptions: {
+        allowImportingTsExtensions: true,
+      },
+    },
   },
 })

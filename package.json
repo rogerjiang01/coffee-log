@@ -7,7 +7,8 @@
     "build": "nuxt build",
     "preview": "nuxt preview",
     "postinstall": "nuxt prepare",
-    "typecheck": "nuxt typecheck"
+    "typecheck": "nuxt typecheck",
+    "test": "node --experimental-strip-types tests/run.mjs"
   },
   "packageManager": "pnpm@10.28.0",
   "pnpm": {
@@ -22,6 +23,7 @@
     "vue-router": "^4.6.4"
   },
   "devDependencies": {
+    "@electric-sql/pglite": "^0.5.8",
     "@tailwindcss/vite": "^4.3.3",
     "supabase": "^2.116.0",
     "tailwindcss": "^4.3.3",

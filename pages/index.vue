@@ -1,190 +1,323 @@
 <script setup lang="ts">
-// 階段 0 的暫時畫面，唯一目的是驗證設計 token 已載入並生效。
-// 首頁的實際內容（沖煮中的豆子＋紀錄時間軸）在階段 7 實作，屆時整頁換掉。
+// 首頁（《02-功能規格》§4）。
+//
+// **首頁不是「新增入口」，是「查閱起點」。** 兩種使用情境都是先看既有紀錄，
+// 不是從零開始填表。上下兩區並存，不做視角切換——切換器會把決策成本
+// 丟給使用者，而兩區並存已經同時滿足兩種需求。
 
-const colorGroups = [
-  {
-    title: '主色',
-    items: [
-      { name: '--accent', value: 'green-500', usage: '主要行動、選取狀態、連結', contrast: '配白字 5.74:1' },
-      { name: '--accent-hover', value: 'green-400', usage: 'hover' },
-      { name: '--accent-active', value: 'green-600', usage: 'active' },
-      { name: '--accent-wash', value: 'green-50', usage: '選取項目底色' },
-      { name: '--on-accent-wash', value: 'green-700', usage: '疊在 wash 上的文字，7.38:1' },
-    ],
-  },
-  {
-    title: '中性',
-    items: [
-      { name: '--bg', value: 'sand-50', usage: '頁面底色' },
-      { name: '--surface', value: 'white', usage: '卡片、表單區塊' },
-      { name: '--text', value: 'ink #2A2E26', usage: '主要文字，刻意不在色階上', contrast: 'on --bg 13.30:1' },
-      { name: '--text-muted', value: 'ink-muted #6B6F63', usage: '次要文字、單位', contrast: 'on --bg 4.95:1' },
-      { name: '--border', value: 'sand-200', usage: '分隔線、邊界' },
-    ],
-  },
-  {
-    title: '狀態',
-    items: [
-      { name: '--favorite', value: 'red-500', usage: '愛心', contrast: 'on --bg 4.86:1' },
-      { name: '--danger', value: 'red-700', usage: '刪除、錯誤', contrast: 'on --bg 9.05:1' },
-      { name: '--diff', value: 'green-600', usage: '差異標記，字重為主、顏色為輔' },
-    ],
-  },
-]
+const supabase = useSupabaseClient()
+const { signedUrls } = useBeanPhotos()
 
-const roastScale = [
-  { name: '--roast-light', ratio: '10.92:1' },
-  { name: '--roast-medium-light', ratio: '7.96:1' },
-  { name: '--roast-medium', ratio: '5.29:1' },
-  { name: '--roast-medium-dark', ratio: '5.46:1' },
-  { name: '--roast-dark', ratio: '11.74:1' },
-]
+const PAGE_SIZE = 20
 
-const typeScale = [
-  { token: '--text-2xl', size: '2rem', usage: '頁面主標', cls: 'text-2xl' },
-  { token: '--text-xl', size: '1.5rem', usage: '區塊標題', cls: 'text-xl' },
-  { token: '--text-lg', size: '1.125rem', usage: '卡片標題、數值強調', cls: 'text-lg' },
-  { token: '--text-base', size: '1rem', usage: '內文', cls: 'text-base' },
-  { token: '--text-sm', size: '0.875rem', usage: '次要文字、標籤', cls: 'text-sm' },
-  { token: '--text-xs', size: '0.75rem', usage: '單位、輔助說明（中文下限）', cls: 'text-xs' },
-]
+interface ActiveBean {
+  id: string
+  name: string
+  photo_path: string | null
+  roast_date: string | null
+  roast_level: RoastLevel | null
+}
 
-const radiusScale = [
-  { token: '--radius-sm', value: '4px', usage: '輸入框、標籤、徽章、表格內標記', cls: 'rounded-sm' },
-  { token: '--radius-md', value: '8px', usage: '卡片、表單區塊', cls: 'rounded-md' },
-  { token: '--radius-lg', value: '12px', usage: '對話框、浮出層', cls: 'rounded-lg' },
-]
+interface TimelineEntry {
+  id: string
+  brewedAt: string
+  beanName: string | null
+  dose: number | null
+  waterTemp: number | null
+  grindSetting: number | null
+  isFavorite: boolean
+  totalWater: number | null
+  diffs: BrewDiff[]
+}
 
-const sampleValues = [
-  { label: '粉重', value: '15.0 g' },
-  { label: '水溫', value: '92 °C' },
-  { label: '刻度', value: '22.5' },
-  { label: '總水量', value: '225 g' },
-]
+const beans = ref<ActiveBean[]>([])
+const photoUrls = ref<Map<string, string>>(new Map())
+const brewCounts = ref<Map<string, number>>(new Map())
+const favoriteCounts = ref<Map<string, number>>(new Map())
+const timeline = ref<TimelineEntry[]>([])
+const hasMore = ref(false)
+const loading = ref(true)
+const loadingMore = ref(false)
+const loadError = ref('')
+
+// 一筆紀錄要算差異，需要它自己與來源的參數、器材名稱與分段
+const BREW_SELECT = `
+  id, brewed_at, dose, water_temp, grind_setting, total_time, is_favorite, copied_from_brew_id,
+  brew_method_id, grinder_id, dripper_id, kettle_id,
+  beans ( name ),
+  brew_methods ( name ),
+  grinder:grinder_id ( custom_name, equipment_catalog ( brand, model, variant ) ),
+  dripper:dripper_id ( custom_name, equipment_catalog ( brand, model, variant ) ),
+  kettle:kettle_id ( custom_name, equipment_catalog ( brand, model, variant ) )
+`
+
+type BrewRow = Record<string, unknown>
+
+function toSubject(row: BrewRow, steps: StepRow[]): DiffSubject {
+  const equipmentName = (value: unknown) =>
+    value ? equipmentOptionName(value as { custom_name: string | null, equipment_catalog: { brand: string, model: string, variant: string | null } | null }) : null
+  return {
+    dose: (row.dose as number | null) ?? null,
+    water_temp: (row.water_temp as number | null) ?? null,
+    grind_setting: (row.grind_setting as number | null) ?? null,
+    total_time: (row.total_time as number | null) ?? null,
+    grinder_id: (row.grinder_id as string | null) ?? null,
+    dripper_id: (row.dripper_id as string | null) ?? null,
+    kettle_id: (row.kettle_id as string | null) ?? null,
+    brew_method_id: (row.brew_method_id as string | null) ?? null,
+    grinderName: equipmentName(row.grinder),
+    dripperName: equipmentName(row.dripper),
+    kettleName: equipmentName(row.kettle),
+    methodName: (row.brew_methods as { name: string } | null)?.name ?? null,
+    steps,
+  }
+}
+
+/** 把一頁紀錄變成時間軸項目，順便把差異算出來 */
+async function buildEntries(rows: BrewRow[]): Promise<TimelineEntry[]> {
+  const sourceIds = [...new Set(
+    rows.map(row => row.copied_from_brew_id as string | null).filter((id): id is string => !!id),
+  )]
+
+  // 來源紀錄與所有分段各用一次查詢取回，不要每筆各查一次
+  const [sourceResult, stepResult] = await Promise.all([
+    sourceIds.length
+      ? supabase.from('brews').select(BREW_SELECT).in('id', sourceIds)
+      : Promise.resolve({ data: [] }),
+    supabase
+      .from('brew_steps')
+      .select('brew_id, step_index, time_offset, cumulative_water, step_type, note')
+      .in('brew_id', [...rows.map(row => row.id as string), ...sourceIds])
+      .order('step_index'),
+  ])
+
+  const sources = new Map(
+    ((sourceResult.data ?? []) as unknown as BrewRow[]).map(row => [row.id as string, row]),
+  )
+  const stepsByBrew = new Map<string, StepRow[]>()
+  for (const row of (stepResult.data ?? []) as unknown as (StepRow & { brew_id: string })[]) {
+    if (!stepsByBrew.has(row.brew_id)) stepsByBrew.set(row.brew_id, [])
+    stepsByBrew.get(row.brew_id)!.push(row)
+  }
+
+  return rows.map((row) => {
+    const id = row.id as string
+    const ownSteps = stepsByBrew.get(id) ?? []
+    const sourceId = row.copied_from_brew_id as string | null
+    const source = sourceId ? sources.get(sourceId) : undefined
+
+    return {
+      id,
+      brewedAt: row.brewed_at as string,
+      beanName: (row.beans as { name: string } | null)?.name ?? null,
+      dose: (row.dose as number | null) ?? null,
+      waterTemp: (row.water_temp as number | null) ?? null,
+      grindSetting: (row.grind_setting as number | null) ?? null,
+      isFavorite: (row.is_favorite as boolean | null) ?? false,
+      totalWater: ownSteps.length
+        ? Math.max(...ownSteps.map(step => Number(step.cumulative_water)))
+        : null,
+      diffs: source
+        ? computeBrewDiff(toSubject(row, ownSteps), toSubject(source, stepsByBrew.get(sourceId!) ?? []))
+        : [],
+    }
+  })
+}
+
+async function load() {
+  loading.value = true
+  loadError.value = ''
+  try {
+    const [beanResult, countResult, brewResult] = await Promise.all([
+      supabase
+        .from('beans')
+        .select('id, name, photo_path, roast_date, roast_level')
+        .eq('is_finished', false)
+        .order('created_at', { ascending: false })
+        .order('id', { ascending: false }),
+      supabase.from('brews').select('bean_id, is_favorite'),
+      supabase
+        .from('brews')
+        .select(BREW_SELECT)
+        .order('brewed_at', { ascending: false })
+        .order('id', { ascending: false })
+        .range(0, PAGE_SIZE - 1),
+    ])
+    if (beanResult.error) throw new Error(beanResult.error.message)
+    if (brewResult.error) throw new Error(brewResult.error.message)
+
+    beans.value = (beanResult.data ?? []) as unknown as ActiveBean[]
+
+    const counts = new Map<string, number>()
+    const favorites = new Map<string, number>()
+    for (const row of (countResult.data ?? []) as unknown as { bean_id: string, is_favorite: boolean }[]) {
+      counts.set(row.bean_id, (counts.get(row.bean_id) ?? 0) + 1)
+      if (row.is_favorite) favorites.set(row.bean_id, (favorites.get(row.bean_id) ?? 0) + 1)
+    }
+    brewCounts.value = counts
+    favoriteCounts.value = favorites
+
+    const rows = (brewResult.data ?? []) as unknown as BrewRow[]
+    timeline.value = await buildEntries(rows)
+    hasMore.value = rows.length === PAGE_SIZE
+
+    // 照片取不到不該拖垮整頁
+    try {
+      photoUrls.value = await signedUrls(beans.value.map(bean => bean.photo_path))
+    }
+    catch {
+      photoUrls.value = new Map()
+    }
+  }
+  catch (e) {
+    loadError.value = e instanceof Error ? `讀不到資料：${e.message}` : '讀不到資料'
+  }
+  finally {
+    // finally：任何失敗都不能讓頁面停在「讀取中」而看不到新增入口
+    loading.value = false
+  }
+}
+
+async function loadMore() {
+  loadingMore.value = true
+  try {
+    const from = timeline.value.length
+    const { data, error } = await supabase
+      .from('brews')
+      .select(BREW_SELECT)
+      .order('brewed_at', { ascending: false })
+      .order('id', { ascending: false })
+      .range(from, from + PAGE_SIZE - 1)
+    if (error) throw new Error(error.message)
+    const rows = (data ?? []) as unknown as BrewRow[]
+    timeline.value = [...timeline.value, ...await buildEntries(rows)]
+    hasMore.value = rows.length === PAGE_SIZE
+  }
+  catch (e) {
+    loadError.value = e instanceof Error ? `讀不到更多紀錄：${e.message}` : '讀不到更多紀錄'
+  }
+  finally {
+    loadingMore.value = false
+  }
+}
+
+onMounted(load)
+
+const isEmpty = computed(() => !loading.value && !loadError.value && !beans.value.length && !timeline.value.length)
+
+// 只有一支未喝完的豆子時直接帶入，少一步選擇
+const newBrewLink = computed(() =>
+  beans.value.length === 1 ? `/brews/new?bean=${beans.value[0]!.id}` : '/brews/new',
+)
 </script>
 
 <template>
-  <main class="mx-auto px-5 py-10" :style="{ maxWidth: 'var(--content-max)' }">
+  <!-- 底部留白同時避開分頁列與浮動按鈕 -->
+  <main class="mx-auto px-5 pt-10 pb-32" :style="{ maxWidth: 'var(--content-max)' }">
     <div class="flex items-baseline justify-between">
-      <p class="text-sm text-muted">階段 0</p>
-      <!-- 暫時的設定入口。規範第 3 節的底部分頁列在階段 7 才做。 -->
-      <span class="flex gap-4">
-        <NuxtLink to="/brews/new" class="text-sm underline" :style="{ color: 'var(--accent)' }">新增紀錄</NuxtLink>
-        <NuxtLink to="/beans" class="text-sm underline" :style="{ color: 'var(--accent)' }">豆子</NuxtLink>
-        <NuxtLink to="/equipment" class="text-sm underline" :style="{ color: 'var(--accent)' }">器材</NuxtLink>
-        <NuxtLink to="/settings" class="text-sm underline" :style="{ color: 'var(--accent)' }">設定</NuxtLink>
-      </span>
+      <h1 class="font-serif text-xl font-bold">手沖咖啡紀錄</h1>
+      <NuxtLink to="/settings" class="text-sm underline" :style="{ color: 'var(--accent)' }">設定</NuxtLink>
     </div>
-    <h1 class="mt-1 font-serif text-2xl font-bold">手沖咖啡紀錄</h1>
-    <p class="mt-3 text-muted">
-      Nuxt、Supabase、Tailwind 已初始化，設計 token 全數定案並寫入單一檔案。
-      這頁是暫時的檢核畫面，階段 7 會整個換成首頁。
+
+    <p v-if="loadError" role="alert" class="mt-4 text-sm" :style="{ color: 'var(--danger)' }">
+      {{ loadError }}
     </p>
 
-    <section v-for="group in colorGroups" :key="group.title" class="mt-10">
-      <h2 class="font-serif text-xl font-bold">色彩：{{ group.title }}</h2>
-      <ul class="mt-4">
-        <li
-          v-for="item in group.items"
-          :key="item.name"
-          class="flex items-center gap-4 border-t py-3"
-          :style="{ borderColor: 'var(--border)' }"
-        >
-          <span
-            class="size-10 shrink-0 rounded-sm border"
-            :style="{ background: `var(${item.name})`, borderColor: 'var(--border)' }"
-          />
-          <span class="flex-1">
-            <code>{{ item.name }}</code>
-            <span class="ml-2 text-sm tabular-nums text-muted">{{ item.value }}</span>
-            <span class="block text-sm text-muted">
-              {{ item.usage }}<template v-if="item.contrast">，{{ item.contrast }}</template>
-            </span>
-          </span>
-        </li>
-      </ul>
-    </section>
+    <p v-if="loading" class="mt-8 text-muted">讀取中</p>
 
-    <section class="mt-10">
-      <h2 class="font-serif text-xl font-bold">烘焙度五級與對比驗算</h2>
-      <p class="mt-2 text-sm text-muted">
-        無豆袋照片時的卡片填充。每一級疊上其指定文字色，五級皆通過 4.5:1。
+    <!-- 空狀態是邀請行動的時機，不是說明現況的時機 -->
+    <section v-else-if="isEmpty" class="mt-10">
+      <h2 class="font-serif text-lg font-bold">從一支豆子開始</h2>
+      <p class="mt-2 text-muted">
+        先建一支豆子，再記下這次怎麼沖的。豆子只要拍一張豆袋、打個豆名就能存。
       </p>
-      <ul class="mt-4 space-y-2">
-        <li
-          v-for="roast in roastScale"
-          :key="roast.name"
-          class="flex items-baseline justify-between rounded-md px-4 py-3"
-          :style="{ background: `var(${roast.name})`, color: `var(${roast.name}-text)` }"
-        >
-          <span>耶加雪菲 柯契爾</span>
-          <span class="text-sm tabular-nums">{{ roast.ratio }}</span>
-        </li>
-      </ul>
-    </section>
-
-    <section class="mt-10">
-      <h2 class="font-serif text-xl font-bold">字級階層</h2>
-      <ul class="mt-4">
-        <li
-          v-for="step in typeScale"
-          :key="step.token"
-          class="border-t py-3"
-          :style="{ borderColor: 'var(--border)' }"
-        >
-          <span :class="step.cls">手沖咖啡紀錄 15.0g</span>
-          <span class="block text-sm text-muted">
-            <code>{{ step.token }}</code>
-            <span class="ml-2 tabular-nums">{{ step.size }}</span>
-            <span class="ml-2">{{ step.usage }}</span>
-          </span>
-        </li>
-      </ul>
-    </section>
-
-    <section class="mt-10">
-      <h2 class="font-serif text-xl font-bold">圓角三級與陰影一級</h2>
-      <p class="mt-2 text-sm text-muted">
-        不同層級的元件用不同級距，不得全站共用同一個值。
-      </p>
-      <ul class="mt-4 space-y-3">
-        <li
-          v-for="r in radiusScale"
-          :key="r.token"
-          :class="r.cls"
-          class="border px-4 py-3"
-          :style="{ borderColor: 'var(--border)', background: 'var(--surface)' }"
-        >
-          <code>{{ r.token }}</code>
-          <span class="ml-2 text-sm tabular-nums text-muted">{{ r.value }}</span>
-          <span class="block text-sm text-muted">{{ r.usage }}</span>
-        </li>
-      </ul>
-      <div
-        class="mt-4 rounded-lg px-4 py-3"
-        :style="{ background: 'var(--surface)', boxShadow: 'var(--overlay-shadow)' }"
+      <NuxtLink
+        to="/beans/new"
+        class="mt-6 block w-full rounded-sm px-4 py-3 text-center font-medium"
+        :style="{ background: 'var(--accent)', color: 'var(--on-accent)', minHeight: '44px' }"
       >
-        <code>--overlay-shadow</code>
-        <span class="block text-sm text-muted">
-          唯一一級陰影，只給對話框與浮動按鈕。卡片與表單區塊改用邊框或底色差異分層。
-        </span>
-      </div>
+        新增豆子
+      </NuxtLink>
     </section>
 
-    <section class="mt-10">
-      <h2 class="font-serif text-xl font-bold">字體與數字對齊</h2>
-      <p class="mt-3 font-serif text-lg">標題使用 Noto Serif TC，載入 500 與 700</p>
-      <p class="mt-1">內文使用 Noto Sans TC，載入 400、500、700，行高 1.75。</p>
-      <table class="mt-4 text-sm tabular-nums">
-        <tbody>
-          <tr v-for="row in sampleValues" :key="row.label">
-            <td class="pr-6 text-muted">{{ row.label }}</td>
-            <td>{{ row.value }}</td>
-          </tr>
-        </tbody>
-      </table>
-      <p class="mt-2 text-sm text-muted">數字若等寬對齊，tabular-nums 即生效。</p>
-    </section>
+    <template v-else>
+      <!-- 上區：沖煮中的豆子。沒有未喝完的豆子時整區不顯示，不放空狀態佔位。 -->
+      <section v-if="beans.length" class="mt-8">
+        <h2 class="text-sm text-muted">沖煮中的豆子</h2>
+        <!-- 負邊距讓卡片列可以捲到螢幕邊緣，不被頁面內距切斷 -->
+        <div class="-mx-5 mt-2 overflow-x-auto px-5">
+          <ul class="flex gap-3">
+            <li v-for="bean in beans" :key="bean.id">
+              <NuxtLink :to="`/beans/${bean.id}`" class="block">
+                <HomeBeanCard
+                  :name="bean.name"
+                  :photo-url="bean.photo_path ? (photoUrls.get(bean.photo_path) ?? null) : null"
+                  :roast-level="bean.roast_level"
+                  :roast-date="bean.roast_date"
+                  :brew-count="brewCounts.get(bean.id) ?? 0"
+                  :favorite-count="favoriteCounts.get(bean.id) ?? 0"
+                />
+              </NuxtLink>
+            </li>
+          </ul>
+        </div>
+      </section>
+
+      <!-- 下區：沖煮紀錄時間軸 -->
+      <section class="mt-8">
+        <h2 class="text-sm text-muted">沖煮紀錄</h2>
+
+        <p v-if="!timeline.length" class="mt-3 text-muted">
+          記下第一次沖煮，之後就能比較每次的調整。
+        </p>
+
+        <ul v-else class="mt-1">
+          <li
+            v-for="entry in timeline"
+            :key="entry.id"
+            class="border-t"
+            :style="{ borderColor: 'var(--border)' }"
+          >
+            <NuxtLink :to="`/brews/${entry.id}`" class="block">
+              <BrewTimelineItem
+                :bean-name="entry.beanName"
+                :brewed-at="entry.brewedAt"
+                :dose="entry.dose"
+                :total-water="entry.totalWater"
+                :water-temp="entry.waterTemp"
+                :grind-setting="entry.grindSetting"
+                :is-favorite="entry.isFavorite"
+                :diffs="entry.diffs"
+              />
+            </NuxtLink>
+          </li>
+        </ul>
+
+        <button
+          v-if="hasMore"
+          type="button"
+          :disabled="loadingMore"
+          class="mt-4 w-full rounded-sm border px-4 py-3 disabled:opacity-60"
+          :style="{ borderColor: 'var(--border)', color: 'var(--accent)', minHeight: '44px' }"
+          @click="loadMore"
+        >
+          {{ loadingMore ? '讀取中' : '載入更多' }}
+        </button>
+      </section>
+    </template>
+
+    <!-- 列表頁的新增入口一律是右下角浮動按鈕（§3 導覽） -->
+    <NuxtLink
+      :to="newBrewLink"
+      aria-label="新增紀錄"
+      class="fixed right-5 bottom-20 z-30 flex size-14 items-center justify-center rounded-lg"
+      :style="{ background: 'var(--accent)', color: 'var(--on-accent)', boxShadow: 'var(--overlay-shadow)' }"
+    >
+      <svg width="24" height="24" viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+      </svg>
+    </NuxtLink>
+
+    <BottomNav />
   </main>
 </template>

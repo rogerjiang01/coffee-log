@@ -211,7 +211,7 @@ const inputStyle = {
 </script>
 
 <template>
-  <main class="mx-auto px-5 pt-10 pb-28" :style="{ maxWidth: 'var(--content-max)' }">
+  <main class="mx-auto px-5 pt-10 pb-32" :style="{ maxWidth: 'var(--content-max)' }">
     <div class="flex items-baseline justify-between">
       <h1 class="font-serif text-xl font-bold">器材</h1>
       <NuxtLink to="/" class="text-sm underline" :style="{ color: 'var(--accent)' }">回首頁</NuxtLink>
@@ -388,7 +388,7 @@ const inputStyle = {
     <NuxtLink
       to="#"
       aria-label="新增器材"
-      class="fixed right-5 bottom-6 flex size-14 items-center justify-center rounded-lg"
+      class="fixed right-5 bottom-20 z-30 flex size-14 items-center justify-center rounded-lg"
       :style="{ background: 'var(--accent)', color: 'var(--on-accent)', boxShadow: 'var(--overlay-shadow)' }"
       @click.prevent="startCreate"
     >
@@ -406,5 +406,7 @@ const inputStyle = {
       @cancel="confirmId = null"
       @confirm="destroy"
     />
+
+    <BottomNav />
   </main>
 </template>
