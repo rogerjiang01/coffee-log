@@ -244,9 +244,12 @@ const newBrewLink = computed(() =>
       <!-- 上區：沖煮中的豆子。沒有未喝完的豆子時整區不顯示，不放空狀態佔位。 -->
       <section v-if="beans.length" class="mt-8">
         <h2 class="text-sm text-muted">沖煮中的豆子</h2>
-        <!-- 負邊距讓卡片列可以捲到螢幕邊緣，不被頁面內距切斷 -->
-        <div class="-mx-5 mt-2 overflow-x-auto px-5">
-          <ul class="flex gap-3">
+        <!-- 負邊距讓卡片列可以捲到螢幕邊緣，不被頁面內距切斷。
+             內距放在 ul 而不是捲動容器上：捲動容器的 padding-right
+             不一定會被算進可捲動範圍，最後一張卡片會貼死在螢幕邊緣。
+             放在 ul 上就是它自己寬度的一部分，左右必然對稱。 -->
+        <div class="-mx-5 mt-2 overflow-x-auto">
+          <ul class="flex gap-3 px-5">
             <li v-for="bean in beans" :key="bean.id">
               <NuxtLink :to="`/beans/${bean.id}`" class="block">
                 <HomeBeanCard

@@ -1,5 +1,8 @@
 <script setup lang="ts">
-// 豆子詳情。這階段只做基本資訊顯示——比較表是階段 8 的事。
+// 豆子詳情（《02-功能規格》§8）。
+//
+// 此頁的重點是該豆子所有沖煮紀錄的並排比較——這是本產品「幫助使用者進步」
+// 的核心價值落點。
 
 interface BeanDetail {
   id: string
@@ -23,6 +26,8 @@ const { signedUrl, remove } = useBeanPhotos()
 const bean = ref<BeanDetail | null>(null)
 const photoUrl = ref<string | null>(null)
 const brewCount = ref(0)
+const favoriteCount = ref(0)
+const compareRows = ref<CompareRow[]>([])
 const loading = ref(true)
 const loadError = ref('')
 const notFound = ref(false)
@@ -51,12 +56,37 @@ async function load() {
     bean.value = data as unknown as BeanDetail
     photoUrl.value = await signedUrl(bean.value.photo_path)
 
-    const { count } = await supabase
+    // 比較表需要每一筆的參數與總水量，順便算次數，不另外發 count 查詢
+    const { data: brews, error: brewError } = await supabase
       .from('brews')
-      .select('id', { count: 'exact', head: true })
+      .select('id, brewed_at, dose, water_temp, grind_setting, total_time, is_favorite')
       .eq('bean_id', id.value)
-    brewCount.value = count ?? 0
-    loading.value = false
+      .order('brewed_at', { ascending: true })
+      .order('id', { ascending: true })
+    if (brewError) throw new Error(brewError.message)
+
+    const brewRows = (brews ?? []) as unknown as Omit<CompareBrew, 'totalWater'>[]
+    brewCount.value = brewRows.length
+    favoriteCount.value = brewRows.filter(row => row.is_favorite).length
+
+    // 總水量要靠分段算出來。一次把所有分段取回，不每筆各查一次。
+    const waterByBrew = new Map<string, number>()
+    if (brewRows.length) {
+      const { data: steps } = await supabase
+        .from('brew_steps')
+        .select('brew_id, cumulative_water')
+        .in('brew_id', brewRows.map(row => row.id))
+      for (const step of (steps ?? []) as unknown as { brew_id: string, cumulative_water: number }[]) {
+        const water = Number(step.cumulative_water)
+        const current = waterByBrew.get(step.brew_id)
+        if (current === undefined || water > current) waterByBrew.set(step.brew_id, water)
+      }
+    }
+
+    compareRows.value = buildCompareRows(
+      brewRows.map(row => ({ ...row, totalWater: waterByBrew.get(row.id) ?? null })),
+      (data as unknown as BeanDetail).roast_date,
+    )
   }
   catch (e) {
     loadError.value = e instanceof Error ? `讀不到資料：${e.message}` : '讀不到資料'
@@ -162,11 +192,41 @@ async function destroy() {
           <dt class="text-sm text-muted">沖煮次數</dt>
           <dd class="tabular-nums">{{ brewCount }}</dd>
         </div>
+        <div
+          v-if="favoriteCount > 0"
+          class="flex justify-between border-t py-3"
+          :style="{ borderColor: 'var(--border)' }"
+        >
+          <dt class="text-sm text-muted">收藏次數</dt>
+          <dd class="tabular-nums">{{ favoriteCount }}</dd>
+        </div>
       </dl>
 
       <section v-if="bean.official_notes" class="mt-6">
         <h2 class="text-sm text-muted">官方風味描述</h2>
         <p class="mt-1 whitespace-pre-line">{{ bean.official_notes }}</p>
+      </section>
+
+      <!-- 比較表。這張表必須在手機上好用——Excel 在電腦上做得比這好，
+           但在手機上做得極差，而喝咖啡的當下人都在手機上。 -->
+      <section class="mt-8">
+        <h2 class="font-serif text-lg font-bold">每次怎麼沖的</h2>
+
+        <p v-if="!compareRows.length" class="mt-2 text-muted">
+          還沒有紀錄。沖一杯記下來，之後就能比較每次的調整。
+        </p>
+
+        <template v-else>
+          <p v-if="compareRows.length === 1" class="mt-2 text-muted">
+            再記一筆就能開始比較——改動的數值會標出來。
+          </p>
+          <div class="mt-3">
+            <BeanCompareTable :rows="compareRows" />
+          </div>
+          <p v-if="compareRows.length > 1" class="mt-2 text-xs text-muted">
+            由舊到新，與前一次不同的數值有標色。左右可以捲動。
+          </p>
+        </template>
       </section>
 
       <NuxtLink
