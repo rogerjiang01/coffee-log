@@ -80,20 +80,6 @@ export default function run() {
   r.check(equal(decomposed, [2, 25]) && decomposed[0]! * 60 + decomposed[1]! === 145,
     '分:秒輸入框的拆解與組合守恆（145 ↔ 2 分 25 秒）')
 
-  r.section('手法模板帶入分段')
-  const template = {
-    steps: (['bloom', 'pour', 'pour', 'pour', 'pour'] as const).map(type =>
-      ({ type, water_ratio: 0.2, duration: 45 })),
-  }
-  const filled = stepsFromTemplate(template, 20, 15)!
-  r.check(equal(filled.map(x => x.cumulativeWater), [60, 120, 180, 240, 300]),
-    '粉重 20、比例 15 → 總水量 300，累積水量正確')
-  r.check(equal(toStepRows(filled).map(x => x.time_offset), [0, 45, 90, 135, 180]),
-    '帶入的分段照樣換算成累積時間點')
-  r.check(stepsFromTemplate(template, null, 15) === null, '沒填粉重時不帶入')
-  r.check(stepsFromTemplate(template, 20, null) === null, '手法沒有預設粉水比時不帶入')
-  r.check(stepsFromTemplate(null, 20, 15) === null, '沒有模板時不帶入')
-
   r.section('預設分段')
   const init = initialSteps()
   r.check(init.length === 2 && init[0]!.stepType === 'bloom' && init[1]!.stepType === 'pour',

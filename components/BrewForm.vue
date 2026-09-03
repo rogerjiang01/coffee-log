@@ -142,13 +142,17 @@ const grindSpec = computed<GrindScaleSpec>(() => {
 // 儲存時也不檢查實際分段是否符合模板。
 const methodTemplates = ref<Map<string, { template: MethodTemplate | null; ratio: number | null }>>(new Map())
 
+const methodNotice = ref('')
+
 function applyMethod() {
   const id = values.brew_method_id
   if (!id) return
   const method = methodTemplates.value.get(id)
   if (!method) return
-  const filled = stepsFromTemplate(method.template, values.dose, method.ratio)
-  if (filled) steps.value = filled
+  const result = stepsFromTemplate(method.template, values.dose, method.ratio)
+  if (!result) return
+  steps.value = result.steps
+  methodNotice.value = result.notice ?? ''
 }
 
 // 選了手法就套用；粉重還沒填時，等粉重填好再套用
@@ -309,6 +313,9 @@ const inputStyle = {
         </SelectField>
         <p v-if="!methods.length" class="mt-1 text-xs text-muted">手法的分段模板還沒建立</p>
         <p v-else class="mt-1 text-xs text-muted">選了手法會依粉重把分段填進下面</p>
+        <p v-if="methodNotice" class="mt-1 text-xs" :style="{ color: 'var(--danger)' }">
+          {{ methodNotice }}
+        </p>
       </FormRow>
       <FormRow divider>
         <PourStepsEditor v-model="steps" :dose="values.dose" />

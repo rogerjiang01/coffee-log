@@ -101,17 +101,52 @@ export function toStepInputs(rows: StepRow[], totalTime: number | null): StepInp
   })
 }
 
-/** 沖煮手法的分段模板（《01-資料庫規格》§3.7），比例制 */
-export interface MethodTemplate {
-  steps: { type: StepType; water_ratio: number; duration: number }[]
+/** 分段模板裡每一段的水量基準（《01-資料庫規格》§3.7） */
+export type StepBasis = 'dose' | 'total' | 'remaining'
+
+export interface MethodTemplateStep {
+  type: StepType
+  basis: StepBasis
+  factor: number
+  duration: number
+  note?: string
 }
+
+/** 沖煮手法的分段模板 */
+export interface MethodTemplate {
+  steps: MethodTemplateStep[]
+}
+
+export interface TemplateResult {
+  steps: StepInput[]
+  /** 觸發邊界保護時的提示，介面要顯示出來 */
+  notice: string | null
+}
+
+/** 悶蒸吃掉超過這個比例的水就不合理，觸發邊界保護 */
+const BLOOM_LIMIT = 0.5
 
 /**
  * 依手法模板換算成實際分段。
  *
- * water_ratio 是該段注水量佔總水量的比例，全部相加為 1。
- * 總水量由粉重與手法的 default_ratio 算出，再累加成累積水量。
- * duration 就是該段的停留秒數，直接對應。
+ * **基準由模板自己宣告，不由系統統一決定**，因為兩種需求本質不同：
+ *   dose       水量 = 粉重 × factor。悶蒸是物理需求——要讓粉床濕透、
+ *              排出二氧化碳，需求量由粉重決定，跟總水量無關。
+ *   total      水量 = 總水量 × factor。4:6 的第一注不是悶蒸，
+ *              它是「前 40% 分兩注」這個結構的一部分，綁粉重會破壞手法本身。
+ *   remaining  水量 = 該組基準 × factor。基準在**該組第一段時算一次**
+ *              （總水量 − 當時已分配），之後固定不變。
+ *
+ * remaining 的基準為什麼固定而不是每段重算：規格要求同一組 remaining 的
+ * factor 總和為 1。若每段都用「當下剩餘」重算，四個 0.25 會得到
+ * 60/45/34/101 這種遞減後暴增的分配，總和為 1 這條規則不產生任何保證，
+ * 而且五個手法的描述（等分四注、高頻補水小水量）全部對不上。
+ * 基準固定時四個 0.25 就是實實在在的四等分。
+ *
+ * 兩個計算規則：
+ *   一、每段四捨五入到整數 ml。
+ *   二、**最後一段用「總水量 − 前面所有段的累計」**而不是公式計算，
+ *       確保總和精確等於總水量，不讓小數誤差累積。
  *
  * 帶入之後使用者可以自由修改任何數值、增減段數，brew_method_id 保持不變。
  * 系統不得在儲存時檢查實際分段是否符合模板（§3.7）。
@@ -120,22 +155,60 @@ export function stepsFromTemplate(
   template: MethodTemplate | null,
   dose: number | null,
   defaultRatio: number | null,
-): StepInput[] | null {
+): TemplateResult | null {
   if (!template?.steps?.length || dose === null || defaultRatio === null) return null
+  if (dose <= 0 || defaultRatio <= 0) return null
 
   const total = dose * defaultRatio
-  let cumulative = 0
+  let notice: string | null = null
+  let allocated = 0
+  // 每一組連續的 remaining 共用一個基準，在該組第一段時決定
+  let remainingBase: number | null = null
 
-  return template.steps.map((step) => {
-    cumulative += total * step.water_ratio
+  const increments = template.steps.map((step, index) => {
+    // 最後一段一律用剩下的全部，不套公式——這樣總和才會精確等於總水量
+    if (index === template.steps.length - 1) {
+      return Math.max(0, Math.round(total - allocated))
+    }
+
+    let amount: number
+    if (step.basis === 'dose') {
+      amount = dose * step.factor
+      // 邊界保護：粉水比極端到悶蒸會吃掉一半的水時，不採用這個數值
+      if (amount > total * BLOOM_LIMIT) {
+        amount = total * BLOOM_LIMIT
+        notice = '粉水比偏低，悶蒸水量已改用總水量比例計算，請確認是否合理'
+      }
+    }
+    else if (step.basis === 'total') {
+      amount = total * step.factor
+    }
+    else {
+      if (remainingBase === null) remainingBase = total - allocated
+      amount = remainingBase * step.factor
+    }
+
+    // 離開 remaining 群組時把基準清掉，下一組會重新計算
+    if (step.basis !== 'remaining') remainingBase = null
+
+    const rounded = Math.max(0, Math.round(amount))
+    allocated += rounded
+    return rounded
+  })
+
+  let cumulative = 0
+  const steps = template.steps.map((step, index) => {
+    cumulative += increments[index]!
     return {
       stepType: step.type,
-      // 磅秤讀的是整數克，換算結果四捨五入到整數
-      cumulativeWater: Math.round(cumulative),
+      // 磅秤讀的是累積數字，這裡直接給累積值
+      cumulativeWater: cumulative,
       holdSeconds: step.duration,
-      note: '',
+      note: step.note ?? '',
     }
   })
+
+  return { steps, notice }
 }
 
 /** 每段增量水量。第一段即其本身（§8）。 */

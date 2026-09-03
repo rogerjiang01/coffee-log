@@ -75,6 +75,32 @@ export default async function run() {
   r.check((await pg.rows(`select 1 from information_schema.tables where table_name='regions'`)).length === 0,
     'regions 表已移除，產區改為自由文字')
 
+  r.section('沖煮手法的 seed')
+  const methods = await pg.rows(`select name, aliases, default_ratio, step_template
+    from brew_methods where user_id is null order by sort_order`)
+  r.check(methods.length === 5, `內建手法 5 個：${methods.map(m => m.name).join('、')}`)
+  for (const method of methods) {
+    const steps = method.step_template?.steps ?? []
+    const bases = new Set(steps.map(s => s.basis))
+    const validBasis = [...bases].every(b => ['dose', 'total', 'remaining'].includes(b))
+    const hasDuration = steps.every(s => typeof s.duration === 'number')
+    const lastIsZero = steps.at(-1)?.duration === 0
+    const remaining = steps.filter(s => s.basis === 'remaining').reduce((sum, s) => sum + s.factor, 0)
+    const total = steps.filter(s => s.basis === 'total').reduce((sum, s) => sum + s.factor, 0)
+    const remainingOk = !bases.has('remaining') || Math.abs(remaining - 1) < 1e-9
+    const totalOk = !bases.has('total') || Math.abs(total - 1) < 1e-9
+    r.check(steps.length > 0 && validBasis && hasDuration && lastIsZero && remainingOk && totalOk,
+      `${method.name}：${steps.length} 段、basis 合法、factor 總和為 1、最後一段 duration 為 0`)
+    r.check(Number(method.default_ratio) === 15 && (method.aliases?.length ?? 0) > 0,
+      `${method.name}：有預設粉水比與別名`)
+  }
+  const fourSix = methods.find(m => m.name === '四六沖法')
+  r.check(fourSix?.step_template.steps.every(s => s.basis === 'total'),
+    '四六沖法全部使用 total 基準——它的第一注不是悶蒸，是結構比例')
+  const threeStage = methods.find(m => m.name === '三段式沖法')
+  r.check(threeStage?.step_template.steps[0].basis === 'dose',
+    '三段式的悶蒸使用 dose 基準——悶蒸是物理需求，需求量由粉重決定')
+
   r.section('刻度四欄制的 seed 值')
   for (const [model, expected] of [
     ['EK43', { mn: '1', mx: '16', inc: '0.1' }],
