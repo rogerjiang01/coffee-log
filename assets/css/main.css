@@ -71,6 +71,25 @@
   .field:focus-visible {
     border-bottom-color: var(--accent);
   }
+
+  /* 原生 select 不重設 appearance 的話，瀏覽器會用作業系統的樣式畫它，
+     包括一圈深色外框——那個顏色不在 token 系統內也蓋不掉。
+     重設後原生箭頭會消失，由 SelectField 自己補一個。 */
+  select.field {
+    appearance: none;
+    padding-right: 1.25rem;
+  }
+
+  /* 段落備註：附屬於該段的次要資訊，上方已經有注水／停留兩格的底線在
+     分隔，不需要再一條。文字比 --text-muted 再淡一階。 */
+  .field--note {
+    border-bottom: 0;
+    color: var(--text-muted);
+  }
+
+  .field--note::placeholder {
+    color: var(--text-faint);
+  }
 }
 
 @layer base {

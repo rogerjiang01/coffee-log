@@ -164,7 +164,7 @@ const optionStyle = { minHeight: '44px' }
         :style="{ ...panelStyle, borderColor: 'var(--border)', background: 'var(--surface)', boxShadow: 'var(--overlay-shadow)' }"
         @keydown.esc="close"
       >
-        <div class="border-b p-2" :style="{ borderColor: 'var(--border)' }">
+        <div class="shrink-0 border-b p-2" :style="{ borderColor: 'var(--border)' }">
           <input
             ref="searchInput"
             v-model="query"
@@ -175,7 +175,7 @@ const optionStyle = { minHeight: '44px' }
           >
         </div>
 
-        <ul class="max-h-64 overflow-y-auto">
+        <ul class="min-h-0 flex-1 overflow-y-auto">
           <li v-if="modelValue">
             <button
               type="button"

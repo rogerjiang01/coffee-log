@@ -233,16 +233,18 @@ const inputStyle = {
             <span :style="{ color: 'var(--danger)' }" aria-hidden="true">*</span>
             <span class="sr-only">必填</span>
           </label>
-          <select
-            id="equipment-type"
-            v-model="form.type"
-            class="mt-1 block w-full field py-2.5"
-            :style="inputStyle"
-          >
-            <option v-for="type in equipmentTypes" :key="type" :value="type">
-              {{ equipmentLabels[type] }}
-            </option>
-          </select>
+          <SelectField>
+            <select
+              id="equipment-type"
+              v-model="form.type"
+              class="mt-1 block w-full field py-2.5"
+              :style="inputStyle"
+            >
+              <option v-for="type in equipmentTypes" :key="type" :value="type">
+                {{ equipmentLabels[type] }}
+              </option>
+            </select>
+          </SelectField>
         </FormRow>
 
         <FormRow>

@@ -147,34 +147,38 @@ function selectStyle(value: unknown) {
 
       <FormRow>
         <label class="block text-sm" for="bean-roast-level">烘焙度</label>
-        <select
-          id="bean-roast-level"
-          v-model="values.roast_level"
-          :data-filled="values.roast_level !== null"
-          class="mt-1 block w-full field py-2.5"
-          :style="selectStyle(values.roast_level)"
-        >
-          <option :value="null">選填</option>
-          <option v-for="option in roastOptions" :key="option.value" :value="option.value">
-            {{ option.label }}
-          </option>
-        </select>
+        <SelectField>
+          <select
+            id="bean-roast-level"
+            v-model="values.roast_level"
+            :data-filled="values.roast_level !== null"
+            class="mt-1 block w-full field py-2.5"
+            :style="selectStyle(values.roast_level)"
+          >
+            <option :value="null">選填</option>
+            <option v-for="option in roastOptions" :key="option.value" :value="option.value">
+              {{ option.label }}
+            </option>
+          </select>
+        </SelectField>
       </FormRow>
 
       <FormRow>
         <label class="block text-sm" for="bean-country">產國</label>
-        <select
-          id="bean-country"
-          v-model="values.country_id"
-          :data-filled="values.country_id !== null"
-          class="mt-1 block w-full field py-2.5"
-          :style="selectStyle(values.country_id)"
-        >
-          <option :value="null">選填</option>
-          <option v-for="country in countries" :key="country.id" :value="country.id">
-            {{ country.name_zh }}
-          </option>
-        </select>
+        <SelectField>
+          <select
+            id="bean-country"
+            v-model="values.country_id"
+            :data-filled="values.country_id !== null"
+            class="mt-1 block w-full field py-2.5"
+            :style="selectStyle(values.country_id)"
+          >
+            <option :value="null">選填</option>
+            <option v-for="country in countries" :key="country.id" :value="country.id">
+              {{ country.name_zh }}
+            </option>
+          </select>
+        </SelectField>
       </FormRow>
 
       <FormRow>

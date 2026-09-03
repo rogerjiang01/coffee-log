@@ -156,6 +156,13 @@ watch(() => values.dose, () => {
   if (values.brew_method_id && steps.value.every(step => step.cumulativeWater === null)) applyMethod()
 })
 
+// 養豆天數＝沖煮時間 − 烘焙日期。衍生值，不存資料庫；
+// 豆子沒有烘焙日期時不顯示，不阻擋也不報錯。
+const selectedBeanRoastDate = ref<string | null>(null)
+const restedDays = computed(() =>
+  restDays(selectedBeanRoastDate.value, new Date(values.brewed_at || Date.now())),
+)
+
 // 粉水比即時顯示。衍生值，不可編輯、不存資料庫。
 const water = computed(() => totalWater(steps.value))
 const ratio = computed(() => brewRatioLabel(water.value, values.dose))
@@ -200,7 +207,13 @@ const inputStyle = {
         </div>
       </FormRow>
       <FormRow>
-        <BeanSelect v-model="values.bean_id" />
+        <BeanSelect
+          v-model="values.bean_id"
+          @selected="selectedBeanRoastDate = $event?.roast_date ?? null"
+        />
+        <p v-if="restedDays !== null" class="mt-1 text-xs tabular-nums text-muted">
+          養豆 {{ restedDays }} 天
+        </p>
       </FormRow>
     </FormCard>
 
@@ -275,16 +288,18 @@ const inputStyle = {
       </FormRow>
       <FormRow>
         <label class="block text-sm" for="brew-method">沖煮手法</label>
-        <select
-          id="brew-method"
-          v-model="values.brew_method_id"
-          :data-filled="values.brew_method_id !== null"
-          class="mt-1 block w-full field py-2.5"
-          :style="{ ...inputStyle, color: values.brew_method_id ? 'var(--text)' : 'var(--text-muted)' }"
-        >
-          <option :value="null">選填</option>
-          <option v-for="method in methods" :key="method.id" :value="method.id">{{ method.name }}</option>
-        </select>
+        <SelectField>
+          <select
+            id="brew-method"
+            v-model="values.brew_method_id"
+            :data-filled="values.brew_method_id !== null"
+            class="mt-1 block w-full field py-2.5"
+            :style="{ ...inputStyle, color: values.brew_method_id ? 'var(--text)' : 'var(--text-muted)' }"
+          >
+            <option :value="null">選填</option>
+            <option v-for="method in methods" :key="method.id" :value="method.id">{{ method.name }}</option>
+          </select>
+        </SelectField>
         <p v-if="!methods.length" class="mt-1 text-xs text-muted">手法的分段模板還沒建立</p>
         <p v-else class="mt-1 text-xs text-muted">選了手法會依粉重把分段填進下面</p>
       </FormRow>

@@ -15,7 +15,10 @@ export function useAnchoredPanel(
 ) {
   const style = ref<Record<string, string>>({})
 
-  const MAX_HEIGHT = 320
+  const MAX_HEIGHT = 360
+  // 下限要放得下搜尋框、幾列選項與底部的新增動作；太小的話底部動作
+  // 會被 overflow hidden 裁掉，看起來像「點不到」
+  const MIN_HEIGHT = 240
   const GAP = 4
   const EDGE = 8
 
@@ -35,14 +38,14 @@ export function useAnchoredPanel(
           left: `${rect.left}px`,
           width: `${rect.width}px`,
           bottom: `${window.innerHeight - rect.top + GAP}px`,
-          maxHeight: `${Math.max(120, Math.min(MAX_HEIGHT, above - GAP - EDGE))}px`,
+          maxHeight: `${Math.max(MIN_HEIGHT, Math.min(MAX_HEIGHT, above - GAP - EDGE))}px`,
         }
       : {
           position: 'fixed',
           left: `${rect.left}px`,
           width: `${rect.width}px`,
           top: `${rect.bottom + GAP}px`,
-          maxHeight: `${Math.max(120, Math.min(MAX_HEIGHT, below - GAP - EDGE))}px`,
+          maxHeight: `${Math.max(MIN_HEIGHT, Math.min(MAX_HEIGHT, below - GAP - EDGE))}px`,
         }
   }
 

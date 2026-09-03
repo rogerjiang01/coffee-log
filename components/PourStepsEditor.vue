@@ -131,7 +131,7 @@ function setStir(index: number, stir: boolean) {
           :value="step.note"
           :data-filled="!!step.note"
           type="text"
-          class="mt-2 block w-full field py-1.5 text-sm"
+          class="mt-2 block w-full field field--note py-1.5 text-sm"
           placeholder="這段的備註"
           :aria-label="`第 ${index} 段的備註`"
           @input="patch(index, { note: ($event.target as HTMLInputElement).value })"

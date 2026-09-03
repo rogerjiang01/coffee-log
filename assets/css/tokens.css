@@ -16,55 +16,55 @@
    ============================================================ */
 
 :root {
-  /* ══ 第一層：色階 ═══════════════════════════════════════ */
+    /* ══ 第一層：色階 ═══════════════════════════════════════ */
 
-  /* 綠 — 主色。取自生豆，刻意避開「咖啡＝褐色」的預設聯想。 */
-  --green-50: #D7DED4;
-  --green-100: #CAD7C3;
-  --green-200: #ADBFA3;
-  --green-300: #8DA581;
-  --green-400: #708B62;
-  --green-500: #516E41;
-  --green-600: #405933;
-  --green-700: #334727;
-  --green-800: #25331C;
-  --green-900: #172112;
-  --green-950: #0E130C;
+    /* 綠 — 主色。取自生豆，刻意避開「咖啡＝褐色」的預設聯想。 */
+    --green-50: #d7ded4;
+    --green-100: #cad7c3;
+    --green-200: #adbfa3;
+    --green-300: #8da581;
+    --green-400: #708b62;
+    --green-500: #516e41;
+    --green-600: #405933;
+    --green-700: #334727;
+    --green-800: #25331c;
+    --green-900: #172112;
+    --green-950: #0e130c;
 
-  /* 紅 — 愛心與危險 */
-  --red-50: #FFE8E5;
-  --red-100: #FFDBD5;
-  --red-200: #FFB5AA;
-  --red-300: #F18F81;
-  --red-400: #DA6C5F;
-  --red-500: #C0453A;
-  --red-600: #9D352C;
-  --red-700: #7F2821;
-  --red-800: #5C1D18;
-  --red-900: #3B130F;
-  --red-950: #210D0A;
+    /* 紅 — 愛心與危險 */
+    --red-50: #ffe8e5;
+    --red-100: #ffdbd5;
+    --red-200: #ffb5aa;
+    --red-300: #f18f81;
+    --red-400: #da6c5f;
+    --red-500: #c0453a;
+    --red-600: #9d352c;
+    --red-700: #7f2821;
+    --red-800: #5c1d18;
+    --red-900: #3b130f;
+    --red-950: #210d0a;
 
-  /* 中性暖色 — 底色與邊界 */
-  --sand-50: #FFFAEF;
-  --sand-100: #F0E7D4;
-  --sand-200: #E1D3B3;
-  --sand-300: #CFBC91;
-  --sand-400: #BAA26C;
-  --sand-500: #A18545;
-  --sand-600: #846B2F;
-  --sand-700: #67521F;
-  --sand-800: #4B3B14;
-  --sand-900: #32270D;
-  --sand-950: #1E1708;
+    /* 中性暖色 — 底色與邊界 */
+    --sand-50: #fffaef;
+    --sand-100: #f0e7d4;
+    --sand-200: #e1d3b3;
+    --sand-300: #cfbc91;
+    --sand-400: #baa26c;
+    --sand-500: #a18545;
+    --sand-600: #846b2f;
+    --sand-700: #67521f;
+    --sand-800: #4b3b14;
+    --sand-900: #32270d;
+    --sand-950: #1e1708;
 
-  /* 色階之外的基礎色。刻意不放進上面三組，理由如下。 */
-  --white: #FFFFFF;
-  /* 帶綠調的極深暖灰。不在 sand 色階上是刻意的——sand 的深端偏土黃，
+    /* 色階之外的基礎色。刻意不放進上面三組，理由如下。 */
+    --white: #ffffff;
+    /* 帶綠調的極深暖灰。不在 sand 色階上是刻意的——sand 的深端偏土黃，
      用來當內文會讓整頁看起來髒。 */
-  --ink: #2A2E26;
-  --ink-muted: #6B6F63;
+    --ink: #2a2e26;
+    --ink-muted: #6b6f63;
 
-  /* ──────────────────────────────────────────────────────
+    /* ──────────────────────────────────────────────────────
      綠色色階的對比實況（配白字）：
        green-300  2.68:1    green-400  3.78:1    green-500  5.74:1
 
@@ -76,105 +76,102 @@
      使用者不會停在那裡讀字。但 300 連當 hover 都太淺，不碰。
      ────────────────────────────────────────────────────── */
 
-  /* ══ 第二層：語意 token ═════════════════════════════════ */
+    /* ══ 第二層：語意 token ═════════════════════════════════ */
 
-  /* 主色 */
-  --accent: var(--green-500);
-  --accent-hover: var(--green-400);
-  --accent-active: var(--green-600);
-  --accent-soft: var(--green-400);   /* 圖示、次要狀態 */
-  --accent-wash: var(--green-50);    /* 選取項目底色 */
-  --on-accent: var(--white);         /* 疊在 --accent 上的文字，5.74:1 */
-  /* 疊在 --accent-wash 上的文字。不能用 --accent——green-500 在 green-50 上
+    /* 主色 */
+    --accent: var(--green-500);
+    --accent-hover: var(--green-400);
+    --accent-active: var(--green-600);
+    --accent-soft: var(--green-400); /* 圖示、次要狀態 */
+    --accent-wash: var(--green-50); /* 選取項目底色 */
+    --on-accent: var(--white); /* 疊在 --accent 上的文字，5.74:1 */
+    /* 疊在 --accent-wash 上的文字。不能用 --accent——green-500 在 green-50 上
      只有 4.18:1，低於 AA。green-700 是 7.38:1。 */
-  --on-accent-wash: var(--green-700);
+    --on-accent-wash: var(--green-700);
 
-  /* 中性 */
-  --bg: var(--sand-50);              /* 頁面底色 */
-  --surface: var(--white);           /* 卡片、表單區塊，需與 bg 區分 */
-  --text: var(--ink);
-  --text-muted: var(--ink-muted);
-  --border: var(--sand-200);         /* 分隔線、邊界 */
+    /* 中性 */
+    --bg: var(--sand-50); /* 頁面底色 */
+    --surface: var(--white); /* 卡片、表單區塊，需與 bg 區分 */
+    --text: var(--ink);
+    --text-muted: var(--ink-muted);
+    --border: var(--sand-100); /* 分隔線、一般邊界 */
+    --border-strong: var(--sand-400); /* 需要更明顯的次要按鈕 */
+    --text-faint: var(--sand-400); /* 比 --text-muted 再淡一階的附屬文字 */
 
-  /* 狀態 */
-  --favorite: var(--red-500);        /* 愛心 */
-  --danger: var(--red-700);          /* 刪除、錯誤 */
-  --on-danger: var(--white);         /* 疊在 --danger 上的文字，9.43:1 */
-  --diff: var(--green-600);          /* 差異標記。主要靠字重，顏色為輔 */
+    /* 狀態 */
+    --favorite: var(--red-500); /* 愛心 */
+    --danger: var(--red-700); /* 刪除、錯誤 */
+    --on-danger: var(--white); /* 疊在 --danger 上的文字，9.43:1 */
+    --diff: var(--green-600); /* 差異標記。主要靠字重，顏色為輔 */
 
-  /* ══ 烘焙度色階 ═════════════════════════════════════════
+    /* ══ 烘焙度色階 ═════════════════════════════════════════
      獨立的語意色階，不併入上面三組——它表達的是被記錄的事物本身，
      不是介面狀態。無豆袋照片時的卡片填充，色塊上會疊豆名，
      因此每一級都配一個經對比驗算的文字色。 */
 
-  --roast-light: #F5E3B8;
-  --roast-light-text: var(--text);         /* 10.92:1 */
-  --roast-medium-light: #E0C089;
-  --roast-medium-light-text: var(--text);  /*  7.96:1 */
-  --roast-medium: #C09A5E;
-  --roast-medium-text: var(--text);        /*  5.29:1 */
-  --roast-medium-dark: #8A6136;
-  --roast-medium-dark-text: var(--white);  /*  5.46:1 */
-  --roast-dark: #4A3323;
-  --roast-dark-text: var(--white);         /* 11.74:1 */
+    --roast-light: #f5e3b8;
+    --roast-light-text: var(--text); /* 10.92:1 */
+    --roast-medium-light: #e0c089;
+    --roast-medium-light-text: var(--text); /*  7.96:1 */
+    --roast-medium: #c09a5e;
+    --roast-medium-text: var(--text); /*  5.29:1 */
+    --roast-medium-dark: #8a6136;
+    --roast-medium-dark-text: var(--white); /*  5.46:1 */
+    --roast-dark: #4a3323;
+    --roast-dark-text: var(--white); /* 11.74:1 */
 
-  /* ══ 表單欄位的外觀 ═════════════════════════════════════
-     欄位獨立使用時有自己的邊框；放進分組卡片時，卡片會把這兩個
-     變數覆寫成透明，避免框中框。欄位元件一律引用這兩個變數，
-     不要直接寫 --border / --surface。 */
+    /* ══ 表單欄位的外觀 ═════════════════════════════════════
+     欄位是底線制（見 main.css 的 .field）。底線比分隔線深一階：
+     它同時扮演該列的分隔線，但更重要的角色是讓使用者一眼看出
+     「這裡可以填、填到哪裡為止」，太淡就失去這個作用。 */
 
-  --field-border: var(--border);
-  --field-bg: var(--surface);
-  --field-padding-x: 0.75rem;
+    --field-border: var(--sand-200);
 
-  /* ══ 字體 ═══════════════════════════════════════════════ */
+    /* ══ 字體 ═══════════════════════════════════════════════ */
 
-  --font-heading: "Noto Serif TC", ui-serif, Georgia, "Songti TC", serif;
-  --font-body: "Noto Sans TC", ui-sans-serif, system-ui, -apple-system,
-    "PingFang TC", "Microsoft JhengHei", sans-serif;
+    --font-heading: "Noto Serif TC", ui-serif, Georgia, "Songti TC", serif;
+    --font-body: "Noto Sans TC", ui-sans-serif, system-ui, -apple-system, "PingFang TC", "Microsoft JhengHei", sans-serif;
 
-  /* 字級階層（六級，基準 16px）。
+    /* 字級階層（六級，基準 16px）。
      中文文字不得小於 0.75rem，--text-xs 即為下限。
      內文級距行高維持 ≥1.7；標題級距收緊，中文標題行高過大會散。 */
 
-  --text-2xl: 2rem;
-  --text-2xl--line-height: 1.3;
-  --text-xl: 1.5rem;
-  --text-xl--line-height: 1.35;
-  --text-lg: 1.125rem;
-  --text-lg--line-height: 1.5;
-  --text-base: 1rem;
-  --text-base--line-height: 1.75;
-  --text-sm: 0.875rem;
-  --text-sm--line-height: 1.7;
-  --text-xs: 0.75rem;
-  --text-xs--line-height: 1.7;
+    --text-2xl: 2rem;
+    --text-2xl--line-height: 1.3;
+    --text-xl: 1.5rem;
+    --text-xl--line-height: 1.35;
+    --text-lg: 1.125rem;
+    --text-lg--line-height: 1.5;
+    --text-base: 1rem;
+    --text-base--line-height: 1.75;
+    --text-sm: 0.875rem;
+    --text-sm--line-height: 1.7;
+    --text-xs: 0.75rem;
+    --text-xs--line-height: 1.7;
 
-  --leading-body: 1.75;
+    --leading-body: 1.75;
 
-  /* ══ 圓角 ═══════════════════════════════════════════════
+    /* ══ 圓角 ═══════════════════════════════════════════════
      不同層級的元件用不同級距，不得全站共用同一個值。 */
 
-  --radius-sm: 4px;   /* 輸入框、標籤、徽章 */
-  --radius-md: 8px;   /* 卡片、表單區塊 */
-  --radius-lg: 12px;  /* 對話框、浮出層 */
+    --radius-sm: 4px; /* 輸入框、標籤、徽章 */
+    --radius-md: 8px; /* 卡片、表單區塊 */
+    --radius-lg: 12px; /* 對話框、浮出層 */
 
-  /* ══ 陰影（只有一級）════════════════════════════════════
+    /* ══ 陰影（只有一級）════════════════════════════════════
      僅供浮出層：對話框、浮動按鈕、下拉面板。
      卡片與表單區塊一律不用陰影，改以邊界或底色差異分層。
      色相取自 --ink 而非中性灰，避免在暖底色上顯冷。 */
 
-  --overlay-shadow:
-    0 8px 24px -4px rgb(42 46 38 / 0.18),
-    0 2px 6px -1px rgb(42 46 38 / 0.10);
+    --overlay-shadow: 0 8px 24px -4px rgb(42 46 38 / 0.18), 0 2px 6px -1px rgb(42 46 38 / 0.1);
 
-  /* ══ 版面 ═══════════════════════════════════════════════ */
+    /* ══ 版面 ═══════════════════════════════════════════════ */
 
-  --content-max: 720px;
+    --content-max: 720px;
 
-  /* ══ 動態 ═══════════════════════════════════════════════
+    /* ══ 動態 ═══════════════════════════════════════════════
      只做回應操作的動態，時長 150–200ms。 */
 
-  --motion-duration: 175ms;
-  --motion-ease: cubic-bezier(0.2, 0, 0, 1);
+    --motion-duration: 175ms;
+    --motion-ease: cubic-bezier(0.2, 0, 0, 1);
 }

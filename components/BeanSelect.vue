@@ -9,10 +9,14 @@ interface BeanOption {
   id: string
   name: string
   is_finished: boolean
+  roast_date: string | null
 }
 
 const props = defineProps<{ modelValue: string | null }>()
-const emit = defineEmits<{ 'update:modelValue': [string | null] }>()
+const emit = defineEmits<{
+  'update:modelValue': [string | null]
+  'selected': [BeanOption | null]
+}>()
 
 const supabase = useSupabaseClient()
 const userId = useCurrentUserId()
@@ -47,11 +51,16 @@ async function load() {
   try {
     const { data } = await supabase
       .from('beans')
-      .select('id, name, is_finished')
+      .select('id, name, is_finished, roast_date')
       .order('is_finished', { ascending: true })
       .order('created_at', { ascending: false })
       .order('id', { ascending: false })
     beans.value = (data ?? []) as unknown as BeanOption[]
+    // 編輯既有紀錄時 modelValue 早就設好了，載完要補送一次，
+    // 否則父層拿不到烘焙日期，養豆天數不會顯示
+    if (props.modelValue) {
+      emit('selected', beans.value.find(bean => bean.id === props.modelValue) ?? null)
+    }
   }
   finally {
     loading.value = false
@@ -91,6 +100,7 @@ function close() {
 
 function pick(id: string | null) {
   emit('update:modelValue', id)
+  emit('selected', beans.value.find(bean => bean.id === id) ?? null)
   close()
 }
 
@@ -117,7 +127,7 @@ async function create() {
   const { data, error } = await supabase
     .from('beans')
     .insert({ user_id: userId.value, name } as never)
-    .select('id, name, is_finished')
+    .select('id, name, is_finished, roast_date')
     .single()
 
   if (error || !data) {
@@ -179,7 +189,7 @@ async function create() {
         @keydown.esc="close"
       >
         <template v-if="!creating">
-          <div class="border-b p-2" :style="{ borderColor: 'var(--border)' }">
+          <div class="shrink-0 border-b p-2" :style="{ borderColor: 'var(--border)' }">
             <input
               ref="searchInput"
               v-model="query"
@@ -190,7 +200,7 @@ async function create() {
             >
           </div>
 
-          <ul class="max-h-56 overflow-y-auto">
+          <ul class="min-h-0 flex-1 overflow-y-auto">
             <li v-for="bean in active" :key="bean.id">
               <button
                 type="button"
@@ -216,7 +226,7 @@ async function create() {
             </template>
           </ul>
 
-          <div class="border-t p-2" :style="{ borderColor: 'var(--border)' }">
+          <div class="shrink-0 border-t p-2" :style="{ borderColor: 'var(--border)' }">
             <button
               type="button"
               class="block w-full rounded-sm px-3 py-2 text-left"
@@ -229,7 +239,7 @@ async function create() {
         </template>
 
         <!-- 就地新增：只要豆名，照片可選，全程留在這一頁 -->
-        <div v-else class="p-3">
+        <div v-else class="min-h-0 flex-1 overflow-y-auto p-3">
           <label class="block text-sm" for="new-bean-name">
             豆名
             <span :style="{ color: 'var(--danger)' }" aria-hidden="true">*</span>

@@ -1,6 +1,12 @@
 <script setup lang="ts">
-// 新增沖煮紀錄。支援 ?bean={id} 帶入豆子。
-// ?copy={id} 的複製流程是階段 6，這裡先不做。
+// 新增沖煮紀錄。
+//
+// 三種進入方式共用同一個表單，差別只在初始值（《02-功能規格》§5）：
+//   /brews/new              從空白新增，帶入預設器材
+//   /brews/new?bean={id}    同上，豆子已選定
+//   /brews/new?copy={id}    複製既有紀錄
+//
+// 複製是本產品最高頻的路徑，優先做對。
 
 const route = useRoute()
 const supabase = useSupabaseClient()
@@ -9,9 +15,69 @@ const userId = useCurrentUserId()
 const saving = ref(false)
 const error = ref('')
 
-const initial = computed(() => {
-  const beanId = route.query.bean
-  return typeof beanId === 'string' && beanId ? { bean_id: beanId } : undefined
+const ready = ref(false)
+const initial = ref<Partial<BrewFormValues> | undefined>(undefined)
+const initialSteps = ref<StepInput[] | undefined>(undefined)
+const copiedFrom = ref<string | null>(null)
+
+onMounted(async () => {
+  const beanId = typeof route.query.bean === 'string' ? route.query.bean : null
+  const copyId = typeof route.query.copy === 'string' ? route.query.copy : null
+
+  if (!copyId) {
+    if (beanId) initial.value = { bean_id: beanId }
+    ready.value = true
+    return
+  }
+
+  try {
+    const { data } = await supabase
+      .from('brews')
+      .select('bean_id, brew_method_id, dose, water_temp, grinder_id, grind_setting, dripper_id, kettle_id, filter_id, server_id, total_time')
+      .eq('id', copyId)
+      .maybeSingle()
+
+    if (data) {
+      const source = data as unknown as Record<string, unknown>
+      // 帶入參數與器材；品飲欄位一律不繼承——那是這一次的新體驗。
+      // brewed_at 不帶入，用表單預設的當下。
+      initial.value = {
+        bean_id: (source.bean_id as string | null) ?? null,
+        brew_method_id: (source.brew_method_id as string | null) ?? null,
+        dose: (source.dose as number | null) ?? null,
+        water_temp: (source.water_temp as number | null) ?? null,
+        grinder_id: (source.grinder_id as string | null) ?? null,
+        grind_setting: (source.grind_setting as number | null) ?? null,
+        dripper_id: (source.dripper_id as string | null) ?? null,
+        kettle_id: (source.kettle_id as string | null) ?? null,
+        filter_id: (source.filter_id as string | null) ?? null,
+        server_id: (source.server_id as string | null) ?? null,
+        total_time: (source.total_time as number | null) ?? null,
+        brewed_at: toLocalInput(new Date()),
+      }
+      copiedFrom.value = copyId
+
+      const { data: steps } = await supabase
+        .from('brew_steps')
+        .select('step_index, time_offset, cumulative_water, step_type, note')
+        .eq('brew_id', copyId)
+        .order('step_index')
+      const rows = (steps ?? []) as unknown as StepRow[]
+      // 完整分段，含備註與攪拌標記
+      if (rows.length) {
+        initialSteps.value = toStepInputs(rows, (source.total_time as number | null) ?? null)
+      }
+    }
+    else {
+      error.value = '找不到要複製的那筆紀錄，這是一張空白表單'
+    }
+  }
+  catch (e) {
+    error.value = e instanceof Error ? `讀不到來源紀錄：${e.message}` : '讀不到來源紀錄'
+  }
+  finally {
+    ready.value = true
+  }
 })
 
 async function onSubmit(payload: {
@@ -47,6 +113,8 @@ async function onSubmit(payload: {
     tasting_notes: values.tasting_notes.trim() || null,
     intensity: Object.keys(values.intensity).length ? values.intensity : null,
     brewed_at: fromLocalInput(values.brewed_at) ?? new Date().toISOString(),
+    // 自動 diff 的唯一資料來源（§3.5）
+    copied_from_brew_id: copiedFrom.value,
     // 產品指標，使用者不可見（§9）
     form_duration_seconds: formDurationSeconds,
   }
@@ -92,12 +160,25 @@ async function onSubmit(payload: {
 <template>
   <main class="mx-auto px-5 pt-10 pb-16" :style="{ maxWidth: 'var(--content-max)' }">
     <div class="flex items-baseline justify-between">
-      <h1 class="font-serif text-xl font-bold">新增紀錄</h1>
+      <h1 class="font-serif text-xl font-bold">{{ copiedFrom ? '再沖一次' : '新增紀錄' }}</h1>
       <NuxtLink to="/" class="text-sm underline" :style="{ color: 'var(--accent)' }">取消</NuxtLink>
     </div>
 
-    <div class="mt-8">
-      <BrewForm :initial="initial" submit-label="儲存" :busy="saving" :error="error" @submit="onSubmit" />
+    <p v-if="copiedFrom" class="mt-1 text-sm text-muted">
+      參數與分段照上一次帶入，改幾個數字就好。品飲的部分是空的。
+    </p>
+
+    <p v-if="!ready" class="mt-8 text-muted">讀取中</p>
+
+    <div v-else class="mt-8">
+      <BrewForm
+        :initial="initial"
+        :initial-steps="initialSteps"
+        submit-label="儲存"
+        :busy="saving"
+        :error="error"
+        @submit="onSubmit"
+      />
     </div>
   </main>
 </template>

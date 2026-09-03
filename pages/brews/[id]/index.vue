@@ -11,6 +11,11 @@ const id = computed(() => String(route.params.id))
 
 interface BrewDetail {
   id: string
+  copied_from_brew_id: string | null
+  brew_method_id: string | null
+  grinder_id: string | null
+  dripper_id: string | null
+  kettle_id: string | null
   dose: number | null
   water_temp: number | null
   grind_setting: number | null
@@ -46,7 +51,8 @@ async function load() {
     const { data } = await supabase
       .from('brews')
       .select(`
-        id, dose, water_temp, grind_setting, total_time, brewed_at,
+        id, copied_from_brew_id, brew_method_id, grinder_id, dripper_id, kettle_id,
+        dose, water_temp, grind_setting, total_time, brewed_at,
         rating, is_favorite, tasting_notes, intensity,
         beans ( id, name, roast_date ),
         brew_methods ( name ),
@@ -78,7 +84,7 @@ async function load() {
       .map(row => row.flavor_tags?.name)
       .filter((name): name is string => !!name)
 
-    loading.value = false
+    await loadDiff()
   }
   catch (e) {
     loadError.value = e instanceof Error ? `讀不到資料：${e.message}` : '讀不到資料'
@@ -89,6 +95,70 @@ async function load() {
   }
 }
 onMounted(load)
+
+// ── 相對上一版的差異（§8）────────────────────────────────
+// 即時計算，不存資料庫——存下來會在來源紀錄被編輯時失準。
+const diffs = ref<BrewDiff[]>([])
+
+const DIFF_SELECT = `
+  brew_method_id, grinder_id, dripper_id, kettle_id,
+  dose, water_temp, grind_setting, total_time,
+  brew_methods ( name ),
+  grinder:grinder_id ( custom_name, equipment_catalog ( brand, model, variant ) ),
+  dripper:dripper_id ( custom_name, equipment_catalog ( brand, model, variant ) ),
+  kettle:kettle_id ( custom_name, equipment_catalog ( brand, model, variant ) )
+`
+
+function toSubject(row: Record<string, unknown>, rows: StepRow[]): DiffSubject {
+  const equipmentName = (value: unknown) =>
+    value ? equipmentOptionName(value as EquipmentNameRow) : null
+  return {
+    dose: (row.dose as number | null) ?? null,
+    water_temp: (row.water_temp as number | null) ?? null,
+    grind_setting: (row.grind_setting as number | null) ?? null,
+    total_time: (row.total_time as number | null) ?? null,
+    grinder_id: (row.grinder_id as string | null) ?? null,
+    dripper_id: (row.dripper_id as string | null) ?? null,
+    kettle_id: (row.kettle_id as string | null) ?? null,
+    brew_method_id: (row.brew_method_id as string | null) ?? null,
+    grinderName: equipmentName(row.grinder),
+    dripperName: equipmentName(row.dripper),
+    kettleName: equipmentName(row.kettle),
+    methodName: (row.brew_methods as { name: string } | null)?.name ?? null,
+    steps: rows,
+  }
+}
+
+async function fetchSteps(brewId: string) {
+  const { data } = await supabase
+    .from('brew_steps')
+    .select('step_index, time_offset, cumulative_water, step_type, note')
+    .eq('brew_id', brewId)
+    .order('step_index')
+  return (data ?? []) as unknown as StepRow[]
+}
+
+async function loadDiff() {
+  const sourceId = brew.value?.copied_from_brew_id
+  // 來源被刪除時外鍵會被設成 null，此區塊自然不顯示
+  if (!sourceId) return
+
+  const [currentRow, sourceRow] = await Promise.all([
+    supabase.from('brews').select(DIFF_SELECT).eq('id', id.value).maybeSingle(),
+    supabase.from('brews').select(DIFF_SELECT).eq('id', sourceId).maybeSingle(),
+  ])
+  if (!currentRow.data || !sourceRow.data) return
+
+  const [currentSteps, sourceSteps] = await Promise.all([
+    fetchSteps(id.value),
+    fetchSteps(sourceId),
+  ])
+
+  diffs.value = computeBrewDiff(
+    toSubject(currentRow.data as unknown as Record<string, unknown>, currentSteps),
+    toSubject(sourceRow.data as unknown as Record<string, unknown>, sourceSteps),
+  )
+}
 
 const water = computed(() => totalWater(steps.value))
 const ratio = computed(() => brewRatioLabel(water.value, brew.value?.dose ?? null))
@@ -265,13 +335,44 @@ async function destroy() {
         <p class="mt-2 whitespace-pre-line">{{ brew.tasting_notes }}</p>
       </section>
 
+      <!-- 相對上一次。差異為空或來源已刪除時整個區塊不顯示。 -->
+      <section v-if="diffs.length" class="mt-8">
+        <h2 class="font-serif text-lg font-bold">相對上一次</h2>
+        <dl class="mt-3">
+          <div
+            v-for="diff in diffs"
+            :key="diff.field"
+            class="flex items-baseline justify-between gap-3 border-t py-3"
+            :style="{ borderColor: 'var(--border)' }"
+          >
+            <dt class="shrink-0 text-sm text-muted">{{ diff.label }}</dt>
+            <dd class="min-w-0 text-right tabular-nums">
+              <!-- 舊值次要、新值主要。此處的箭頭是資料的一部分，不是裝飾。 -->
+              <span class="text-sm" :style="{ color: 'var(--text-muted)' }">{{ diff.before }}</span>
+              <span class="mx-2 text-sm" :style="{ color: 'var(--text-muted)' }">→</span>
+              <span class="font-medium" :style="{ color: 'var(--diff)' }">{{ diff.after }}</span>
+            </dd>
+          </div>
+        </dl>
+      </section>
+
       <p v-if="actionError" role="alert" class="mt-6 text-sm" :style="{ color: 'var(--danger)' }">
         {{ actionError }}
       </p>
 
+      <!-- 本產品最高頻的操作是複製而非從空白新增，
+           所以這是此頁權重最高的按鈕，編輯與刪除退居次要。 -->
+      <NuxtLink
+        :to="`/brews/new?copy=${brew.id}`"
+        class="mt-8 block w-full rounded-sm px-4 py-3 text-center font-medium"
+        :style="{ background: 'var(--accent)', color: 'var(--on-accent)', minHeight: '44px' }"
+      >
+        照這次再沖一次
+      </NuxtLink>
+
       <button
         type="button"
-        class="mt-8 w-full rounded-sm px-4 py-3"
+        class="mt-3 w-full rounded-sm px-4 py-3"
         :style="{ color: 'var(--danger)', minHeight: '44px' }"
         @click="confirmOpen = true"
       >
