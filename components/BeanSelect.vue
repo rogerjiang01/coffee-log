@@ -12,7 +12,10 @@ interface BeanOption {
   roast_date: string | null
 }
 
-const props = defineProps<{ modelValue: string | null }>()
+const props = defineProps<{
+  modelValue: string | null
+  error?: string
+}>()
 const emit = defineEmits<{
   'update:modelValue': [string | null]
   'selected': [BeanOption | null]
@@ -155,7 +158,11 @@ async function create() {
 
 <template>
   <div ref="root" class="relative">
-    <label class="block text-sm" for="brew-bean">豆子</label>
+    <label class="block text-sm" for="brew-bean">
+      豆子
+      <span :style="{ color: 'var(--danger)' }" aria-hidden="true">*</span>
+      <span class="sr-only">必填</span>
+    </label>
 
     <button
       id="brew-bean"
@@ -180,12 +187,15 @@ async function create() {
       </svg>
     </button>
 
+    <p v-if="error" class="mt-2 text-sm" :style="{ color: 'var(--danger)' }">{{ error }}</p>
+
     <Teleport to="body">
       <div
         v-if="open"
         ref="panel"
         class="z-40 flex flex-col overflow-hidden rounded-sm border"
         :style="{ ...panelStyle, borderColor: 'var(--border)', background: 'var(--surface)', boxShadow: 'var(--overlay-shadow)' }"
+        @click.stop
         @keydown.esc="close"
       >
         <template v-if="!creating">

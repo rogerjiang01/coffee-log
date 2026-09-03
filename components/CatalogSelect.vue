@@ -129,6 +129,7 @@ function pick(row: CatalogRow | null) {
         ref="panel"
         class="z-40 flex flex-col overflow-hidden rounded-sm border"
         :style="{ ...panelStyle, borderColor: 'var(--border)', background: 'var(--surface)', boxShadow: 'var(--overlay-shadow)' }"
+        @click.stop
         @keydown.esc="close"
       >
         <div class="shrink-0 border-b p-2" :style="{ borderColor: 'var(--border)' }">

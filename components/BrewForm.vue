@@ -77,6 +77,7 @@ const pickerValue = computed<string | null>({
   },
 })
 const flavorTagIds = ref<string[]>(props.initialFlavorTagIds ?? [])
+const beanError = ref('')
 const doseError = ref('')
 const summaryError = ref('')
 
@@ -168,9 +169,14 @@ const water = computed(() => totalWater(steps.value))
 const ratio = computed(() => brewRatioLabel(water.value, values.dose))
 
 function submit() {
+  // bean_id 在資料庫是 not null——一筆沖煮紀錄不掛在任何豆子上沒有意義。
+  // 前端要先擋下來，不能讓它跑到資料庫才失敗。
+  beanError.value = values.bean_id === null ? '選一支豆子，這筆紀錄要記在它底下' : ''
   doseError.value = values.dose === null ? '粉重要填，其他都可以之後再說' : ''
-  if (doseError.value) {
-    summaryError.value = '還沒存起來：上面的粉重還沒填。'
+
+  const missing = [beanError.value && '豆子', doseError.value && '粉重'].filter(Boolean)
+  if (missing.length) {
+    summaryError.value = `還沒存起來：上面的${missing.join('與')}還沒填。`
     return
   }
   summaryError.value = ''
@@ -209,6 +215,7 @@ const inputStyle = {
       <FormRow>
         <BeanSelect
           v-model="values.bean_id"
+          :error="beanError"
           @selected="selectedBeanRoastDate = $event?.roast_date ?? null"
         />
         <p v-if="restedDays !== null" class="mt-1 text-xs tabular-nums text-muted">

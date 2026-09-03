@@ -8,6 +8,48 @@
  * 大小時重算。用 position: fixed 搭配 getBoundingClientRect，兩者都是
  * 相對於視窗，不必再處理捲動位移。
  */
+export interface AnchorRect {
+  top: number
+  bottom: number
+  left: number
+  width: number
+}
+
+const MAX_HEIGHT = 360
+// 下方空間小於這個值時才考慮往上開，避免只差幾像素就翻面
+const PREFERRED = 280
+const GAP = 4
+const EDGE = 8
+
+/**
+ * 浮層的位置與高度。抽成純函式是為了能單獨測試——
+ * 這裡曾經有個高度下限的錯誤，讓浮層在空間不足時伸出視窗外，
+ * 而 position: fixed 使頁面捲不到它，底部的動作因此永遠點不到，
+ * 且不會有任何錯誤訊息。
+ */
+export function computePanelPlacement(rect: AnchorRect, viewportHeight: number) {
+  const spaceBelow = viewportHeight - rect.bottom - GAP - EDGE
+  const spaceAbove = rect.top - GAP - EDGE
+
+  // 優先往下開；只有下方明顯不夠而上方比較寬時才翻面
+  const openUp = spaceBelow < PREFERRED && spaceAbove > spaceBelow
+  const available = Math.max(0, openUp ? spaceAbove : spaceBelow)
+
+  // **高度絕不超過該側的可用空間。** 沒有下限——寧可矮，不可伸出視窗。
+  const height = Math.min(MAX_HEIGHT, available)
+
+  const common = {
+    position: 'fixed',
+    left: `${rect.left}px`,
+    width: `${rect.width}px`,
+    maxHeight: `${height}px`,
+  }
+
+  return openUp
+    ? { ...common, bottom: `${viewportHeight - rect.top + GAP}px` }
+    : { ...common, top: `${rect.bottom + GAP}px` }
+}
+
 export function useAnchoredPanel(
   trigger: Ref<HTMLElement | null>,
   panel: Ref<HTMLElement | null>,
@@ -15,38 +57,14 @@ export function useAnchoredPanel(
 ) {
   const style = ref<Record<string, string>>({})
 
-  const MAX_HEIGHT = 360
-  // 下限要放得下搜尋框、幾列選項與底部的新增動作；太小的話底部動作
-  // 會被 overflow hidden 裁掉，看起來像「點不到」
-  const MIN_HEIGHT = 240
-  const GAP = 4
-  const EDGE = 8
-
   function update() {
     const el = trigger.value
     if (!el) return
     const rect = el.getBoundingClientRect()
-    const below = window.innerHeight - rect.bottom
-    const above = rect.top
-
-    // 下方空間不足且上方比較寬敞時往上開
-    const openUp = below < 200 && above > below
-
-    style.value = openUp
-      ? {
-          position: 'fixed',
-          left: `${rect.left}px`,
-          width: `${rect.width}px`,
-          bottom: `${window.innerHeight - rect.top + GAP}px`,
-          maxHeight: `${Math.max(MIN_HEIGHT, Math.min(MAX_HEIGHT, above - GAP - EDGE))}px`,
-        }
-      : {
-          position: 'fixed',
-          left: `${rect.left}px`,
-          width: `${rect.width}px`,
-          top: `${rect.bottom + GAP}px`,
-          maxHeight: `${Math.max(MIN_HEIGHT, Math.min(MAX_HEIGHT, below - GAP - EDGE))}px`,
-        }
+    style.value = computePanelPlacement(
+      { top: rect.top, bottom: rect.bottom, left: rect.left, width: rect.width },
+      window.innerHeight,
+    )
   }
 
   watch(open, async (value) => {
