@@ -18,6 +18,7 @@ const props = defineProps<{
 const emit = defineEmits<{ 'update:modelValue': [StepInput[]] }>()
 
 const increments = computed(() => incrementalWater(props.modelValue))
+const orderHints = computed(() => waterOrderHints(props.modelValue))
 const water = computed(() => totalWater(props.modelValue))
 const ratio = computed(() => brewRatioLabel(water.value, props.dose))
 
@@ -124,6 +125,12 @@ function setStir(index: number, stir: boolean) {
             />
           </div>
         </div>
+
+        <!-- 累積水量遞減的提示。只提示不阻擋儲存，用 --text-muted 而非
+             --danger：這不是錯誤，是「看起來不太對」。 -->
+        <p v-if="orderHints[index]" class="mt-2 text-xs text-muted">
+          {{ orderHints[index] }}
+        </p>
 
         <!-- 段落備註。單行輸入，沒填時只有一條底線的高度，不佔額外空間。
              與攪拌標記是兩個不同需求：那個是結構化標記，這個是自由文字。 -->

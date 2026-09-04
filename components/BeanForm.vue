@@ -29,7 +29,8 @@ const emit = defineEmits<{
 
 const supabase = useSupabaseClient()
 
-const values = reactive<BeanFormValues>({
+function initialValues(): BeanFormValues {
+  return {
   name: props.initial?.name ?? '',
   roaster: props.initial?.roaster ?? '',
   roast_date: props.initial?.roast_date ?? '',
@@ -39,7 +40,10 @@ const values = reactive<BeanFormValues>({
   processing_method_id: props.initial?.processing_method_id ?? null,
   variety_id: props.initial?.variety_id ?? null,
   official_notes: props.initial?.official_notes ?? '',
-})
+  }
+}
+
+const values = reactive<BeanFormValues>(initialValues())
 
 const photo = ref<CompressedImage | null>(null)
 const photoCleared = ref(false)
@@ -125,6 +129,10 @@ const draft = props.draftKey
   ? useFormDraft<BeanFormValues>(props.draftKey, {
       read: () => ({ ...values }),
       restore: data => Object.assign(values, data),
+      reset: () => {
+        Object.assign(values, initialValues())
+        draftNote.value = ''
+      },
       sanitize: sanitizeDraft,
     })
   : null
@@ -144,12 +152,11 @@ function selectStyle(value: unknown) {
 
 <template>
   <form novalidate @submit.prevent="submit">
-    <DraftPrompt
-      v-if="draft?.pending.value"
+    <DraftBanner
+      v-if="draft?.recovered.value"
       :note="draftNote || '照片沒辦法暫存，要的話重新選一次'"
       class="mb-6"
-      @accept="draft.accept()"
-      @discard="draft.discard()"
+      @clear-all="draft.clearAll()"
     />
 
     <p
@@ -159,6 +166,14 @@ function selectStyle(value: unknown) {
     >
       {{ draftNote }}
     </p>
+
+    <DraftOverlay
+      v-if="draft"
+      :open="draft.pending.value !== null"
+      note="照片沒辦法暫存，要的話重新選一次"
+      @accept="draft.accept()"
+      @discard="draft.discard()"
+    />
     <!-- 逃生路徑：放在最上方，且不進卡片——它是媒體區塊不是欄位列，
          塞進卡片會變成框中框。 -->
     <PhotoField :preview-url="photoUrl ?? null" @picked="onPhotoPicked" />

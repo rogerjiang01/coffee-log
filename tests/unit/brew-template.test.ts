@@ -3,7 +3,8 @@
 // 這是使用者第一次能實際測試「選手法自動填分段」，所以案例對著
 // seed 進去的五個手法寫，數值錯了會直接影響他沖出來的東西。
 
-import { stepsFromTemplate, toStepRows } from '../../utils/brewSteps.ts'
+import { mergeTemplateSteps, stepsFromTemplate, toStepRows } from '../../utils/brewSteps.ts'
+import { emptyStep } from '../../utils/brewSteps.ts'
 import type { MethodTemplate } from '../../utils/brewSteps.ts'
 import { createReport, equal } from '../helpers/report.mjs'
 
@@ -135,6 +136,45 @@ export default function run() {
   r.check(stepsFromTemplate(templates.三段式!, 20, null) === null, '手法沒有預設粉水比時不帶入')
   r.check(stepsFromTemplate(null, 20, 15) === null, '沒有模板時不帶入')
   r.check(stepsFromTemplate(templates.三段式!, 0, 15) === null, '粉重為 0 時不帶入，不會產生一堆 0')
+
+  r.section('粉重變動時逐段重算')
+  // 四六法 20g → 50/120/180/240/300
+  const at20 = stepsFromTemplate(templates.四六!, 20, 15)!
+  const snapshot20 = at20.steps.map(s => JSON.stringify(s))
+  const at18 = stepsFromTemplate(templates.四六!, 18, 15)!
+
+  const untouched = mergeTemplateSteps(at20.steps, snapshot20, at18.steps)!
+  r.check(equal(untouched.steps.map(s => s.cumulativeWater), at18.steps.map(s => s.cumulativeWater)),
+    `完全沒動過時整組重算：${JSON.stringify(untouched.steps.map(s => s.cumulativeWater))}`)
+
+  // 使用者把第三段從 180 微調成 175，再把粉重改成 18g
+  const edited = at20.steps.map((step, i) => (i === 2 ? { ...step, cumulativeWater: 175 } : step))
+  const partial = mergeTemplateSteps(edited, snapshot20, at18.steps)!
+  r.check(partial.steps[2]!.cumulativeWater === 175, '手動改過的第三段保留 175，沒有被覆蓋')
+  r.check(partial.steps[0]!.cumulativeWater === at18.steps[0]!.cumulativeWater
+    && partial.steps[1]!.cumulativeWater === at18.steps[1]!.cumulativeWater
+    && partial.steps[3]!.cumulativeWater === at18.steps[3]!.cumulativeWater
+    && partial.steps[4]!.cumulativeWater === at18.steps[4]!.cumulativeWater,
+    `其餘四段跟著重算：${JSON.stringify(partial.steps.map(s => s.cumulativeWater))}`)
+
+  r.section('改過的段落之後仍然受保護')
+  const at16 = stepsFromTemplate(templates.四六!, 16, 15)!
+  const again = mergeTemplateSteps(partial.steps, partial.snapshot, at16.steps)!
+  r.check(again.steps[2]!.cumulativeWater === 175, '再改一次粉重，那一段還是 175')
+  r.check(again.steps[0]!.cumulativeWater === at16.steps[0]!.cumulativeWater, '其餘段落仍持續重算')
+
+  r.section('段數對不上就整組不重算')
+  const withExtra = [...at20.steps, emptyStep('pour')]
+  r.check(mergeTemplateSteps(withExtra, snapshot20, at18.steps) === null,
+    '使用者自己加了一段，回 null——結構已與模板無關')
+  const withFewer = at20.steps.slice(0, 3)
+  r.check(mergeTemplateSteps(withFewer, snapshot20, at18.steps) === null, '刪掉幾段也一樣')
+  r.check(mergeTemplateSteps(at20.steps, null, at18.steps) === null, '沒有快照時不重算')
+
+  r.section('不修改傳入的資料')
+  const before = JSON.stringify(at20.steps)
+  mergeTemplateSteps(at20.steps, snapshot20, at18.steps)
+  r.check(JSON.stringify(at20.steps) === before, '合併不會動到原本的陣列')
 
   return r.finish()
 }

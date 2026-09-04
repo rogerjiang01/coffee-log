@@ -14,6 +14,7 @@ const photoUrl = ref<string | null>(null)
 const loading = ref(true)
 const loadError = ref('')
 const notFound = ref(false)
+const form = ref<{ clearDraft: () => void } | null>(null)
 const saving = ref(false)
 const error = ref('')
 
@@ -102,6 +103,7 @@ async function onSubmit(
     error.value = `沒有存起來：${updateError.message}`
     return
   }
+  form.value?.clearDraft()
   await navigateTo(`/beans/${id.value}`)
 }
 </script>
@@ -126,6 +128,8 @@ async function onSubmit(
 
       <div class="mt-8">
         <BeanForm
+          ref="form"
+          :draft-key="`draft:bean:${id}`"
           :initial="initial ?? undefined"
           :photo-url="photoUrl"
           submit-label="儲存"

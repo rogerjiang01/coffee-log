@@ -3,8 +3,10 @@
 // 背景：競品最大的缺陷是填到一半按返回會全部消失。那是使用者只會遇到
 // 一次然後再也不回來的錯誤，所以這組測試守的是「不會弄丟使用者填的東西」。
 
-import { packDraft, unpackDraft, pruneMissingIds, collectIds, draftKey, DRAFT_TTL_MS }
-  from '../../utils/draft.ts'
+import {
+  packDraft, unpackDraft, unpackDraftEnvelope, pruneMissingIds, collectIds, draftKey,
+  draftAge, DRAFT_TTL_MS, DRAFT_AUTO_RESTORE_MS,
+} from '../../utils/draft.ts'
 import { createReport, equal } from '../helpers/report.mjs'
 
 export default function run() {
@@ -15,6 +17,7 @@ export default function run() {
   r.check(draftKey('brew', null) === 'draft:brew:new', '新增沖煮紀錄')
   r.check(draftKey('brew', 'abc') === 'draft:brew:abc', '編輯沖煮紀錄')
   r.check(draftKey('bean', null) === 'draft:bean:new', '新增豆子')
+  r.check(draftKey('bean', 'xyz') === 'draft:bean:xyz', '編輯豆子')
 
   r.section('存取與還原')
   const data = { name: '耶加雪菲', dose: 15, tags: ['a', 'b'] }
@@ -25,6 +28,21 @@ export default function run() {
   r.section('七天失效')
   r.check(unpackDraft(packed, NOW + DRAFT_TTL_MS - 1) !== null, '第七天之內仍然有效')
   r.check(unpackDraft(packed, NOW + DRAFT_TTL_MS + 1) === null, '超過七天回 null')
+
+  r.section('依離開多久決定還原方式')
+  r.check(draftAge(NOW, NOW) === 'recent', '剛存完就回來，直接填入')
+  r.check(draftAge(NOW, NOW + 60_000) === 'recent', '一分鐘後，直接填入')
+  r.check(draftAge(NOW, NOW + DRAFT_AUTO_RESTORE_MS - 1) === 'recent', '29 分 59 秒仍算剛離開')
+  r.check(draftAge(NOW, NOW + DRAFT_AUTO_RESTORE_MS) === 'recent', '剛好 30 分鐘仍算剛離開')
+  r.check(draftAge(NOW, NOW + DRAFT_AUTO_RESTORE_MS + 1) === 'stale', '超過 30 分鐘改成開口問')
+  r.check(draftAge(NOW, NOW + 6 * 24 * 3600_000) === 'stale', '六天後仍在有效期內，但要問')
+  r.check(DRAFT_AUTO_RESTORE_MS < DRAFT_TTL_MS, '自動填入的分界必然小於失效期限')
+
+  r.section('信封同時帶回時間戳')
+  const envelope = unpackDraftEnvelope<typeof data>(packed, NOW)
+  r.check(envelope?.savedAt === NOW, '讀得到 savedAt，才能判斷離開多久')
+  r.check(equal(envelope?.data, data), '內容一併帶回')
+  r.check(unpackDraftEnvelope('壞掉的', NOW) === null, '壞掉的暫存回 null')
 
   r.section('壞掉的暫存不能讓表單開不起來')
   r.check(unpackDraft(null, NOW) === null, '沒有暫存')

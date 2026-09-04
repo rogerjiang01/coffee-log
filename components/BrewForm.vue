@@ -31,7 +31,8 @@ const supabase = useSupabaseClient()
 // 產品指標（§9）：表單開啟到成功送出的秒數，使用者不可見
 const openedAt = Date.now()
 
-const values = reactive<BrewFormValues>({
+function initialValues(): BrewFormValues {
+  return {
   bean_id: props.initial?.bean_id ?? null,
   brew_method_id: props.initial?.brew_method_id ?? null,
   dose: props.initial?.dose ?? null,
@@ -48,7 +49,10 @@ const values = reactive<BrewFormValues>({
   is_favorite: props.initial?.is_favorite ?? false,
   tasting_notes: props.initial?.tasting_notes ?? '',
   intensity: props.initial?.intensity ?? {},
-})
+  }
+}
+
+const values = reactive<BrewFormValues>(initialValues())
 
 const steps = ref<StepInput[]>(props.initialSteps ?? initialSteps())
 
@@ -146,26 +150,45 @@ const methodTemplates = ref<Map<string, { template: MethodTemplate | null; ratio
 
 const methodNotice = ref('')
 
-// 上一次由模板產生的分段。用來判斷使用者有沒有手動改過——
-// 改過就不再自動覆蓋，沒改過才跟著粉重重算。
-const templateSnapshot = ref<string | null>(null)
+// 上一次由模板產生的分段，**逐段**記錄。用來判斷每一段有沒有被手動改過。
+const templateSnapshot = ref<string[] | null>(null)
 
-function applyMethod() {
+function templateResult() {
   const id = values.brew_method_id
-  if (!id) return
+  if (!id) return null
   const method = methodTemplates.value.get(id)
-  if (!method) return
-  const result = stepsFromTemplate(method.template, values.dose, method.ratio)
+  if (!method) return null
+  return stepsFromTemplate(method.template, values.dose, method.ratio)
+}
+
+/** 選了手法：整組帶入 */
+function applyMethod() {
+  const result = templateResult()
   if (!result) return
   steps.value = result.steps
-  templateSnapshot.value = JSON.stringify(result.steps)
+  templateSnapshot.value = result.steps.map(step => JSON.stringify(step))
   methodNotice.value = result.notice ?? ''
 }
 
-/** 分段還是模板原樣（或整組空白）時才可以重算，避免蓋掉手動修改 */
-function canRegenerate() {
-  if (steps.value.every(step => step.cumulativeWater === null)) return true
-  return templateSnapshot.value !== null && JSON.stringify(steps.value) === templateSnapshot.value
+/** 粉重變動：逐段合併，只重算使用者沒動過的那幾段 */
+function regenerateUntouched() {
+  const result = templateResult()
+  if (!result) return
+
+  // 整組還是空白的，直接帶入
+  if (steps.value.every(step => step.cumulativeWater === null)) {
+    steps.value = result.steps
+    templateSnapshot.value = result.steps.map(step => JSON.stringify(step))
+    methodNotice.value = result.notice ?? ''
+    return
+  }
+
+  const merged = mergeTemplateSteps(steps.value, templateSnapshot.value, result.steps)
+  // 段數對不上代表使用者增減過段落，結構已與模板無關，整組不再重算
+  if (!merged) return
+  steps.value = merged.steps
+  templateSnapshot.value = merged.snapshot
+  methodNotice.value = result.notice ?? ''
 }
 
 // 選了手法就套用；粉重還沒填時，等粉重填好再套用
@@ -173,7 +196,7 @@ watch(() => values.brew_method_id, applyMethod)
 // 粉重變動時跟著重算——總水量由粉重決定，不重算等於留著舊粉重的分段。
 // 但只在使用者沒有手動改過分段時才動它。
 watch(() => values.dose, () => {
-  if (values.brew_method_id && canRegenerate()) applyMethod()
+  if (values.brew_method_id) regenerateUntouched()
 })
 
 // 養豆天數＝沖煮時間 − 烘焙日期。衍生值，不存資料庫；
@@ -280,6 +303,13 @@ const draft = props.draftKey
         // 還原的分段是使用者當時的狀態，不要再被模板蓋掉
         templateSnapshot.value = null
       },
+      reset: () => {
+        Object.assign(values, initialValues())
+        steps.value = props.initialSteps ?? initialSteps()
+        flavorTagIds.value = props.initialFlavorTagIds ?? []
+        templateSnapshot.value = null
+        draftNote.value = ''
+      },
       sanitize: sanitizeDraft,
     })
   : null
@@ -294,11 +324,11 @@ const inputStyle = {
 
 <template>
   <form novalidate class="space-y-6" @submit.prevent="submit">
-    <DraftPrompt
-      v-if="draft?.pending.value"
+    <!-- 短時間離開：已經填入，只是告知 -->
+    <DraftBanner
+      v-if="draft?.recovered.value"
       :note="draftNote"
-      @accept="draft.accept()"
-      @discard="draft.discard()"
+      @clear-all="draft.clearAll()"
     />
 
     <p
@@ -308,6 +338,14 @@ const inputStyle = {
     >
       {{ draftNote }}
     </p>
+
+    <!-- 隔了一段時間：意圖不明，開口問 -->
+    <DraftOverlay
+      v-if="draft"
+      :open="draft.pending.value !== null"
+      @accept="draft.accept()"
+      @discard="draft.discard()"
+    />
     <!-- 時間戳最前面：事後補記時可能要先改日期，越早改完，
          後面的填寫都在正確的時間脈絡下。 -->
     <FormCard title="這一杯">

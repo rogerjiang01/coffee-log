@@ -7,6 +7,17 @@
 
 export const DRAFT_TTL_MS = 7 * 24 * 60 * 60 * 1000
 
+/**
+ * 自動填入的分界。
+ *
+ * 技術上無法區分「重整」與「隔天回來」——兩者對頁面都只是重新載入。
+ * 但可以用**離開多久**當作意圖的代理指標：剛離開幾乎必然是意外中斷
+ * （重整、螢幕熄滅、切 app、接電話），隔很久才可能是「上次沒填完的舊東西」。
+ *
+ * 30 分鐘涵蓋通勤、開會、小睡這類典型中斷。要調整改這裡就好。
+ */
+export const DRAFT_AUTO_RESTORE_MS = 30 * 60 * 1000
+
 export interface DraftEnvelope<T> {
   savedAt: number
   data: T
@@ -24,7 +35,10 @@ export function packDraft<T>(data: T, now: number = Date.now()) {
  * 讀回暫存。超過 7 天、格式不對、或根本不是 JSON 都回 null——
  * 壞掉的暫存不該讓表單開不起來。
  */
-export function unpackDraft<T>(raw: string | null, now: number = Date.now()): T | null {
+export function unpackDraftEnvelope<T>(
+  raw: string | null,
+  now: number = Date.now(),
+): DraftEnvelope<T> | null {
   if (!raw) return null
   let parsed: unknown
   try {
@@ -37,7 +51,21 @@ export function unpackDraft<T>(raw: string | null, now: number = Date.now()): T 
   const envelope = parsed as Partial<DraftEnvelope<T>>
   if (typeof envelope.savedAt !== 'number' || !('data' in envelope)) return null
   if (now - envelope.savedAt > DRAFT_TTL_MS) return null
-  return envelope.data as T
+  return { savedAt: envelope.savedAt, data: envelope.data as T }
+}
+
+/** 只要內容不要時間戳 */
+export function unpackDraft<T>(raw: string | null, now: number = Date.now()): T | null {
+  return unpackDraftEnvelope<T>(raw, now)?.data ?? null
+}
+
+/**
+ * 離開多久了？決定是直接填入還是開口問。
+ *   'recent'  剛離開，幾乎必然是意外中斷 → 直接填入，用橫幅告知
+ *   'stale'   隔很久，可能是要記新的一杯 → 用 overlay 問
+ */
+export function draftAge(savedAt: number, now: number = Date.now()): 'recent' | 'stale' {
+  return now - savedAt <= DRAFT_AUTO_RESTORE_MS ? 'recent' : 'stale'
 }
 
 /**

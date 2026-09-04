@@ -222,6 +222,70 @@ export function incrementalWater(steps: StepInput[]): (number | null)[] {
   })
 }
 
+/**
+ * 手法重算時的逐段合併。
+ *
+ * 粉重或粉水比變動時總水量跟著變，模板產生的分段應該重算。但使用者
+ * 可能已經手動微調過其中幾段——那幾段是他的，不能覆蓋。
+ *
+ * 判斷粒度是**每一段**而不是整組：選了四六法填 20g、把第三段從 180
+ * 改成 175，接著發現粉重應該是 18g 時，他期待其餘四段跟著重算，
+ * 因為那四段本來就是模板產生的、他沒動過。
+ *
+ * 段數對不上時回 null，呼叫端應整組不重算——使用者手動增減過段落，
+ * 結構已經與模板無關，逐段比對沒有意義。
+ *
+ * 可接受的後果：手動改過的那段留在原值，前後段重算後可能不再等距。
+ * 這是誠實的——使用者本來就刻意要那個值——而 waterOrderHints 會在
+ * 真的變成遞減時提醒他。
+ */
+export function mergeTemplateSteps(
+  current: StepInput[],
+  snapshot: string[] | null,
+  next: StepInput[],
+): { steps: StepInput[], snapshot: string[] } | null {
+  if (!snapshot) return null
+  if (current.length !== snapshot.length || next.length !== snapshot.length) return null
+
+  const steps = current.map((step, index) => {
+    const untouched = JSON.stringify(step) === snapshot[index]
+    return untouched ? next[index]! : step
+  })
+
+  // 快照一律更新成最新的模板輸出：使用者改過的那幾段本來就與它不同，
+  // 下次比對時仍然受保護。
+  return { steps, snapshot: next.map(step => JSON.stringify(step)) }
+}
+
+/**
+ * 累積水量遞減的提示。
+ *
+ * 磅秤上的數字只會往上加，後段小於前段代表填錯了。
+ * **只提示不阻擋儲存**，與刻度驗證同一個原則——使用者可能有我們想不到的
+ * 記法，擋住輸入的代價高於容忍異常值。
+ *
+ * 只比對注水段：stir 不注水，它的累積水量與前一段相同是合法的，
+ * 不參與比對也不會被標記。相等不提示，只有嚴格遞減才提示。
+ *
+ * （step_type 的 wait 目前介面不露出；之後若露出，它同樣不注水，
+ * 需要比照 stir 排除。）
+ */
+export function waterOrderHints(steps: StepInput[]): (string | null)[] {
+  let previous: number | null = null
+
+  return steps.map((step) => {
+    if (step.stepType === 'stir') return null
+    if (step.cumulativeWater === null) return null
+
+    const hint = previous !== null && step.cumulativeWater < previous
+      ? `比上一段的 ${previous}g 少，累積水量是磅秤上的數字，應該往上加`
+      : null
+
+    previous = step.cumulativeWater
+    return hint
+  })
+}
+
 /** 總水量＝最後一段的累積水量。衍生值，不設輸入欄位、不存資料庫。 */
 export function totalWater(steps: StepInput[]): number | null {
   const values = steps.map(step => step.cumulativeWater).filter((v): v is number => v !== null)

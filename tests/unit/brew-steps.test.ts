@@ -6,7 +6,7 @@
 
 import {
   toStepRows, toStepInputs, incrementalWater, totalWater, brewRatioLabel,
-  secondsToClock, clockToSeconds, initialSteps, stepsFromTemplate,
+  secondsToClock, clockToSeconds, initialSteps, waterOrderHints,
 } from '../../utils/brewSteps.ts'
 import { createReport, equal } from '../helpers/report.mjs'
 
@@ -57,6 +57,27 @@ export default function run() {
   const noteBack = toStepInputs(noteRows, 145)
   r.check(noteBack[1]!.note === '', 'null 還原成空字串，介面不會顯示 null')
   r.check(equal(toStepRows(noteBack), noteRows), '含備註與攪拌時來回轉換仍守恆')
+
+  r.section('累積水量遞減的提示')
+  const ok = [step('bloom', 40, 45), step('pour', 160, 30), step('pour', 290, 0)]
+  r.check(waterOrderHints(ok).every(h => h === null), '遞增時完全沒有提示')
+  const down = [step('bloom', 200, 45), step('pour', 100, 30)]
+  const downHints = waterOrderHints(down)
+  r.check(downHints[0] === null && downHints[1] !== null, '第二段從 200 掉到 100，只有第二段被標記')
+  r.check(downHints[1]!.includes('200'), `提示帶出上一段的值：${downHints[1]}`)
+  const flat = [step('pour', 160, 30), step('pour', 160, 30)]
+  r.check(waterOrderHints(flat).every(h => h === null), '相等不提示')
+  const stir = [step('pour', 160, 30), step('stir', 160, 10), step('pour', 240, 0)]
+  r.check(waterOrderHints(stir).every(h => h === null), '攪拌段的水量與前一段相同是合法的')
+  const stirLower = [step('pour', 160, 30), step('stir', 100, 10), step('pour', 240, 0)]
+  const stirHints = waterOrderHints(stirLower)
+  r.check(stirHints[1] === null, '攪拌段本身不參與比對，不會被標記')
+  r.check(stirHints[2] === null, '攪拌段不更新基準，後面的 240 仍與 160 比對而非 100')
+  const sparse = [step('pour', 200, 30), step('pour', null, 30), step('pour', 100, 0)]
+  const sparseHints = waterOrderHints(sparse)
+  r.check(sparseHints[1] === null, '沒填水量的段落不提示')
+  r.check(sparseHints[2] !== null, '跳過空白段後仍與前一個有值的段比對')
+  r.check(waterOrderHints([]).length === 0, '空清單回空陣列')
 
   r.section('衍生值')
   r.check(equal(incrementalWater(ui), [40, 120, 60, 70]), '每段增量水量，第一段即其本身')
