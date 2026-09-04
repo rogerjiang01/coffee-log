@@ -6,6 +6,14 @@ export default defineNuxtConfig({
 
   modules: ['@nuxtjs/supabase'],
 
+  experimental: {
+    // dev 啟動時每次噴五筆 #app-manifest 的 pre-transform error。
+    // appManifest 是給 payload 快取與 route rules 用的，本專案兩者都沒用到
+    // （沒有 routeRules、沒有 prerender、資料一律在 onMounted 現查），
+    // 關掉沒有損失。
+    appManifest: false,
+  },
+
   css: ['~/assets/css/main.css'],
 
   vite: {

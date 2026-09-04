@@ -72,6 +72,8 @@ watch(() => props.type, () => {
   load()
 })
 
+const trigger = ref<HTMLButtonElement | null>(null)
+
 const { style: panelStyle, isOutside } = useAnchoredPanel(root, panel, open)
 
 function onDocumentClick(event: MouseEvent) {
@@ -92,6 +94,10 @@ async function toggle() {
 function close() {
   open.value = false
   query.value = ''
+  // 焦點還給觸發按鈕。不還的話焦點會掉到 <body>：
+  // 使用者按 Tab 會從整份文件的最上面重來，而焦點停在 body 時
+  // 按 Enter 什麼都不會發生——看起來就像「鍵盤失效」。
+  trigger.value?.focus()
 }
 
 function pick(row: CatalogRow | null) {
@@ -106,6 +112,7 @@ function pick(row: CatalogRow | null) {
     <label class="block text-sm" for="catalog-select">型號</label>
 
     <button
+      ref="trigger"
       id="catalog-select"
       type="button"
       role="combobox"
