@@ -255,12 +255,14 @@ const inputStyle = {
           />
           <!-- 型錄存在的唯一目的是讓刻度這個數字可以被正確解讀（§3.2） -->
           <div
-            v-if="form.type === 'grinder' && selectedCatalog"
+            v-if="form.type === 'grinder' && selectedCatalog
+              && (!isFreeformScale(scaleSpec) || scaleSpec.note)"
             class="mt-3 rounded-sm px-3 py-3 text-sm"
             :style="{ background: 'var(--accent-wash)', color: 'var(--on-accent-wash)' }"
           >
-            <p v-if="isFreeformScale(scaleSpec)">這台面板沒有刻度標示</p>
-            <template v-else>
+            <!-- 無刻度的機型不說「這台面板沒有刻度標示」：
+                 不顯示範圍提示本身就已經表達了 -->
+            <template v-if="!isFreeformScale(scaleSpec)">
               <p class="tabular-nums">
                 刻度範圍 {{ grindScaleRangeLabel(scaleSpec) }}
                 <span v-if="scaleSpec.increment !== null" class="ml-3">最小間隔 {{ scaleSpec.increment }}</span>
@@ -302,7 +304,7 @@ const inputStyle = {
             class="mt-1 block w-full field py-2.5"
             :style="inputStyle"
           >
-          <p class="mt-1 text-xs text-muted">換刀盤、加裝配件這類個體差異</p>
+          <p class="mt-1 text-xs text-muted">例如換刀盤、加裝配件</p>
         </FormRow>
 
         <FormRow>

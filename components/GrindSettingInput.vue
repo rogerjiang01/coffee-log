@@ -28,10 +28,9 @@ const freeform = computed(() => isFreeformScale(props.spec))
       @update:model-value="emit('update:modelValue', $event)"
     />
 
-    <!-- 型錄沒有資料、或面板本來就沒刻度時，自由輸入不做任何範圍提示 -->
-    <p v-if="!hasCatalog" class="mt-1 text-xs text-muted">自訂器材沒有刻度資料</p>
-    <p v-else-if="freeform" class="mt-1 text-xs text-muted">這台面板沒有刻度標示</p>
-    <p v-else class="mt-1 text-xs tabular-nums text-muted">
+    <!-- 型錄沒有資料、或面板本來就沒刻度時完全不提示，
+         連「這台沒有刻度」都不說：畫面上沒有提示本身就是那個資訊 -->
+    <p v-if="hasCatalog && !freeform" class="mt-1 text-xs tabular-nums text-muted">
       <span v-if="range">刻度 {{ range }}</span>
       <span v-if="spec.increment !== null" class="ml-3">最小間隔 {{ spec.increment }}</span>
       <span v-else class="ml-3">連續無段</span>

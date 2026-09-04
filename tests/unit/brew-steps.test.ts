@@ -64,7 +64,7 @@ export default function run() {
   const down = [step('bloom', 200, 45), step('pour', 100, 30)]
   const downHints = waterOrderHints(down)
   r.check(downHints[0] === null && downHints[1] !== null, '第二段從 200 掉到 100，只有第二段被標記')
-  r.check(downHints[1]!.includes('200'), `提示帶出上一段的值：${downHints[1]}`)
+  r.check(downHints[1] === '累積水量應增加', `提示只說該怎麼做，不解釋磅秤原理：${downHints[1]}`)
   const flat = [step('pour', 160, 30), step('pour', 160, 30)]
   r.check(waterOrderHints(flat).every(h => h === null), '相等不提示')
   const stir = [step('pour', 160, 30), step('stir', 160, 10), step('pour', 240, 0)]

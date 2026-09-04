@@ -71,7 +71,9 @@ export default async function run() {
   r.check((await pg.rows(`select 1 from varieties where user_id is null`)).length === 27, '品種 27 筆')
   r.check((await pg.rows(`select 1 from countries`)).length === 42, '產國 42 筆')
   r.check((await pg.rows(`select 1 from equipment_catalog where type='grinder'`)).length === 25, '磨豆機型錄 25 台')
-  r.check((await pg.rows(`select 1 from equipment_catalog`)).length === 51, '型錄共 51 筆')
+  r.check((await pg.rows(`select 1 from equipment_catalog`)).length === 53, '型錄共 53 筆')
+  r.check((await pg.rows(`select 1 from equipment_catalog where model like 'V60 Switch%'`)).length === 2,
+    'V60 Switch 收 01／03 兩個尺寸——浸泡式結構屬於「影響沖煮行為」的層級')
   // 收錄粒度見《01》§3.2：只收到影響沖煮行為的層級，材質與聯名不收
   r.check((await pg.rows(`select 1 from equipment_catalog where brand='星芒濾杯'`)).length === 3,
     '星芒收三個代目——肋骨結構不同')

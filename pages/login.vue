@@ -15,8 +15,8 @@ watchEffect(() => {
 async function submit() {
   error.value = ''
 
-  if (!email.value.trim()) return (error.value = '電子郵件還沒填')
-  if (!password.value) return (error.value = '密碼還沒填')
+  if (!email.value.trim()) return (error.value = '電子郵件尚未填寫')
+  if (!password.value) return (error.value = '密碼尚未填寫')
 
   sending.value = true
   const { error: err } = await supabase.auth.signInWithPassword({

@@ -194,12 +194,12 @@ const ratio = computed(() => brewRatioLabel(water.value, values.dose))
 function submit() {
   // bean_id 在資料庫是 not null——一筆沖煮紀錄不掛在任何豆子上沒有意義。
   // 前端要先擋下來，不能讓它跑到資料庫才失敗。
-  beanError.value = values.bean_id === null ? '豆子還沒選' : ''
-  doseError.value = values.dose === null ? '粉重還沒填' : ''
+  beanError.value = values.bean_id === null ? '豆子尚未填寫' : ''
+  doseError.value = values.dose === null ? '粉重尚未填寫' : ''
 
   const missing = [beanError.value && '豆子', doseError.value && '粉重'].filter(Boolean)
   if (missing.length) {
-    summaryError.value = `沒有儲存：${missing.join('與')}還沒填`
+    summaryError.value = `沒有儲存：${missing.join('與')}尚未填寫`
     return
   }
   summaryError.value = ''
@@ -437,7 +437,7 @@ const inputStyle = {
           </select>
         </SelectField>
         <p v-if="!methods.length" class="mt-1 text-xs text-muted">手法的分段模板還沒建立</p>
-        <p v-else class="mt-1 text-xs text-muted">選了手法會依粉重帶入分段</p>
+        <p v-else class="mt-1 text-xs text-muted">選擇手法會依粉重帶入分段</p>
         <p v-if="methodNotice" class="mt-1 text-xs" :style="{ color: 'var(--danger)' }">
           {{ methodNotice }}
         </p>

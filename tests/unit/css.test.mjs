@@ -15,8 +15,17 @@ export default function run() {
   const at = css.indexOf('dialog:modal')
   r.check(at !== -1, 'main.css 裡有 dialog:modal 規則')
   const rule = at === -1 ? '' : css.slice(at, css.indexOf('}', at))
+
+  // 這四項必須同時存在才會四邊置中。少了 inset 或 height 的話，
+  // 在只補 inset-inline 的瀏覽器上會變成「左右置中、上緣貼齊」——
+  // 而且在補了四邊 inset 的瀏覽器上看起來完全正常，所以本機測不出來。
+  r.check(/position:\s*fixed/.test(rule), 'position: fixed 自己寫，不依賴瀏覽器預設')
+  r.check(/inset:\s*0/.test(rule), 'inset: 0 四邊都寫——只有左右的話垂直沒有餘量可以分配')
   r.check(/margin:\s*auto/.test(rule),
-    'margin: auto 還在——Tailwind preflight 的 margin: 0 會蓋掉瀏覽器預設的置中，浮層會跑到左上角')
+    'margin: auto 還在——Tailwind preflight 的 margin: 0 會蓋掉瀏覽器預設的置中')
+  r.check(/height:\s*fit-content/.test(rule),
+    'height: fit-content 還在——height 為 auto 時盒子會被拉滿，margin 分不到餘量')
+
   r.check(/overflow:\s*auto/.test(rule),
     'overflow: auto 還在——沒有它，超長內容會被裁掉而不是可以捲')
   r.check(/max-height/.test(rule), 'max-height 還在——沒有它，超長內容會頂出視窗')

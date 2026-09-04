@@ -83,9 +83,9 @@ const roastOptions: { value: RoastLevel; label: string }[] = (
 
 function submit() {
   // 錯誤訊息只在送出時顯示，不在輸入過程中即時跳出（《03》§4.1）
-  nameError.value = values.name.trim() ? '' : '豆名還沒填'
+  nameError.value = values.name.trim() ? '' : '豆名尚未填寫'
   if (nameError.value) {
-    summaryError.value = '沒有儲存：豆名還沒填'
+    summaryError.value = '沒有儲存：豆名尚未填寫'
     return
   }
   summaryError.value = ''
@@ -160,7 +160,7 @@ function selectStyle(value: unknown) {
   <form novalidate @submit.prevent="submit">
     <DraftBanner
       v-if="draft?.recovered.value"
-      :note="draftNote || '照片不會暫存，重新選一次'"
+      :note="draftNote"
       class="mb-6"
       @clear-all="draft.clearAll()"
     />
@@ -176,7 +176,6 @@ function selectStyle(value: unknown) {
     <DraftOverlay
       v-if="draft"
       :open="draft.pending.value !== null"
-      note="照片不會暫存，重新選一次"
       @accept="draft.accept()"
       @discard="draft.discard()"
     />

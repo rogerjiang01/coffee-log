@@ -262,7 +262,7 @@ export function waterOrderHints(steps: StepInput[]): (string | null)[] {
     if (step.cumulativeWater === null) return null
 
     const hint = previous !== null && step.cumulativeWater < previous
-      ? `比上一段的 ${previous}g 少`
+      ? '累積水量應增加'
       : null
 
     previous = step.cumulativeWater

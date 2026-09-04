@@ -131,13 +131,30 @@
      `position: fixed; inset: 0; margin: auto`——是 margin: auto 在做置中。
      但 Tailwind 的 preflight 對 `*` 下了 `margin: 0`，而作者樣式一律
      勝過瀏覽器預設樣式（跟選擇器權重無關），於是 margin 被歸零，
-     `inset: 0` 只剩左上角生效，所有浮層都被釘在畫面左上角。
+     浮層被釘在畫面角落。
 
-     max-height 與 overflow 一起補：瀏覽器預設有 max-height 但沒有
-     overflow: auto，內容過長時會直接被裁掉而不是可以捲。
-     overscroll-behavior 擋住捲到底後把底下的頁面一起帶著捲。 */
+     **四個定位屬性全部自己寫，不依賴瀏覽器預設。** 只補 margin: auto
+     的話會出現「左右置中、上下貼齊上緣」——因為各家瀏覽器對
+     dialog:modal 補的 inset 不一致：有的四邊都補 0，有的只補
+     inset-inline（左右），垂直方向就沒有可以對稱分配的餘量。
+     margin: auto 要做到垂直置中，需要三件事同時成立：
+       inset-block 兩端都是 0、height 是確定值、margin 可自由分配。
+     height: fit-content 是其中最容易被忽略的一項——height 為 auto 時
+     盒子會被拉滿高度，margin 分不到任何餘量。
+
+     max-height 與 overflow: auto 一起補：瀏覽器預設有 max-height 但
+     沒有 overflow: auto，內容過長時會直接被裁掉而不是可以捲。
+     overscroll-behavior 擋住捲到底後把底下的頁面一起帶著捲。
+
+     寬高的 fit-content 與 max-* 都在 @layer base，元件上的 Tailwind
+     寬度工具類（w-[...]、max-w-sm）在 utilities 層，仍然蓋得過這裡。 */
   dialog:modal {
+    position: fixed;
+    inset: 0;
     margin: auto;
+    width: fit-content;
+    height: fit-content;
+    max-width: calc(100% - 2rem);
     max-height: calc(100% - 2rem);
     overflow: auto;
     overscroll-behavior: contain;

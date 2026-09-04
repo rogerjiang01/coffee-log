@@ -117,7 +117,7 @@ function startCreate() {
 async function create() {
   const name = draftName.value.trim()
   if (!name) {
-    createError.value = '豆名還沒填'
+    createError.value = '豆名尚未填寫'
     return
   }
   if (!userId.value) {

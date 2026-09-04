@@ -85,7 +85,6 @@ onBeforeUnmount(() => {
         @click="openPicker"
       >
         <span :style="{ color: 'var(--accent)' }">{{ working ? '處理中' : '拍照或選一張' }}</span>
-        <span class="mt-1 text-xs text-muted">上傳前會自動壓縮</span>
       </button>
     </div>
 
