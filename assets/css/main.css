@@ -67,6 +67,27 @@
     box-shadow: 0 1px 0 0 var(--accent);
   }
 
+  /* 《03-介面規範》§7：所有互動元素可鍵盤操作，focus 狀態明確可見。
+     不依賴瀏覽器預設的 focus ring——各家畫法不同，在暖底色上有的
+     幾乎看不出來，而且不同元素粗細不一致。統一用強調色畫一圈。
+
+     用 :focus-visible 而不是 :focus：滑鼠點按鈕不該留下焦點框，
+     只有鍵盤操作才需要。
+
+     outline-offset 讓框與元件之間留一道頁面底色的縫——沒有這道縫，
+     疊在 --accent 底色上的按鈕（主要行動、浮動按鈕）焦點框會融進去。
+     outline 不佔版面空間，不會像 border 那樣把版面推開。
+
+     .field 有自己的焦點樣式（底線變色），排除在外。 */
+  :focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+
+  .field:focus-visible {
+    outline: none;
+  }
+
   /* 觸發用的按鈕（下拉、器材選擇）行為與輸入框一致 */
   .field:focus-visible {
     border-bottom-color: var(--accent);
@@ -127,35 +148,55 @@
   /* 全站浮層的定位機制。所有用 showModal() 開的 <dialog> 都吃這一條，
      不需要各自加樣式，之後新增的浮層也自動正確。
 
-     為什麼需要這條：原生 <dialog> 的置中來自瀏覽器預設樣式的
-     `position: fixed; inset: 0; margin: auto`——是 margin: auto 在做置中。
-     但 Tailwind 的 preflight 對 `*` 下了 `margin: 0`，而作者樣式一律
-     勝過瀏覽器預設樣式（跟選擇器權重無關），於是 margin 被歸零，
-     浮層被釘在畫面角落。
+     **不用 margin: auto 置中。** 原生 <dialog> 的預設置中確實靠
+     `inset: 0` ＋ `margin: auto`，但那個機制有三個前提：瀏覽器要補齊
+     四邊的 inset、height 要是確定值、margin 不能被蓋掉。
+     Tailwind preflight 的 `* { margin: 0 }` 打掉第三項；各家瀏覽器
+     對 dialog:modal 補的 inset 與對 height: fit-content 的支援又不一致，
+     打掉前兩項。結果就是「左右置中、上下貼齊上緣」——垂直方向的
+     margin 算出來是 0。
 
-     **四個定位屬性全部自己寫，不依賴瀏覽器預設。** 只補 margin: auto
-     的話會出現「左右置中、上下貼齊上緣」——因為各家瀏覽器對
-     dialog:modal 補的 inset 不一致：有的四邊都補 0，有的只補
-     inset-inline（左右），垂直方向就沒有可以對稱分配的餘量。
-     margin: auto 要做到垂直置中，需要三件事同時成立：
-       inset-block 兩端都是 0、height 是確定值、margin 可自由分配。
-     height: fit-content 是其中最容易被忽略的一項——height 為 auto 時
-     盒子會被拉滿高度，margin 分不到任何餘量。
+     改成不依賴任何一項前提：dialog 自己撐滿視窗當置中容器，
+     卡片樣式移到內層。height: 100% 對 position: fixed 而言是相對視窗，
+     就算瀏覽器完全不補 inset 也一樣成立；flex 置中不需要確定高度，
+     也跟 margin 無關。
 
-     max-height 與 overflow: auto 一起補：瀏覽器預設有 max-height 但
-     沒有 overflow: auto，內容過長時會直接被裁掉而不是可以捲。
-     overscroll-behavior 擋住捲到底後把底下的頁面一起帶著捲。
-
-     寬高的 fit-content 與 max-* 都在 @layer base，元件上的 Tailwind
-     寬度工具類（w-[...]、max-w-sm）在 utilities 層，仍然蓋得過這裡。 */
+     padding 是浮層與螢幕邊緣的間距，取 20px 與頁面內距一致。
+     內層自己捲，不讓超長內容把卡片頂出視窗——而且捲軸出現在卡片內，
+     不是在透明的容器上。 */
   dialog:modal {
     position: fixed;
     inset: 0;
-    margin: auto;
-    width: fit-content;
-    height: fit-content;
-    max-width: calc(100% - 2rem);
-    max-height: calc(100% - 2rem);
+    width: 100%;
+    height: 100%;
+    max-width: none;
+    max-height: none;
+    margin: 0;
+    padding: 1.25rem;
+    border: 0;
+    background: transparent;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+  }
+
+  /* 全螢幕面板（器材選擇器）。與置中的對話框共用 <dialog> 的
+     焦點鎖定、Esc 關閉與背景 inert，只是不置中、鋪滿整個視窗。
+     這些行為交給瀏覽器，比自己用 div ＋ keydown 手刻可靠。 */
+  dialog:modal.sheet {
+    padding: 0;
+  }
+
+  dialog:modal.sheet > * {
+    width: 100%;
+    height: 100%;
+    max-height: none;
+    overflow: visible;
+  }
+
+  dialog:modal > * {
+    max-height: 100%;
     overflow: auto;
     overscroll-behavior: contain;
   }

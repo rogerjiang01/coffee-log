@@ -173,7 +173,7 @@ async function onSubmit(payload: {
     </div>
 
     <p v-if="copiedFrom" class="mt-1 text-sm text-muted">
-      參數與分段照上一次帶入，改幾個數字就好。品飲的部分是空的。
+      代入上一次沖煮參數與沖煮流程
     </p>
 
     <!-- 骨架：表單的分組卡片先佔位，等資料回來換成真的表單。

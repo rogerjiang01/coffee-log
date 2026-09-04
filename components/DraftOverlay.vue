@@ -30,13 +30,16 @@
 </script>
 
 <template>
-    <dialog ref="dialog" class="w-[calc(100vw-2.5rem)] max-w-sm rounded-lg p-6 backdrop:bg-[var(--overlay-scrim)]" :style="{ background: 'var(--surface)', color: 'var(--text)', boxShadow: 'var(--overlay-shadow)' }" @cancel.prevent>
-        <h2 class="font-serif text-lg font-bold">上次有一筆沒存完，要繼續填寫嗎？</h2>
-        <p v-if="note" class="mt-3 text-sm text-muted">{{ note }}</p>
+    <!-- dialog 本身是滿版的置中容器（樣式在 main.css），卡片是內層這一個 -->
+    <dialog ref="dialog" class="backdrop:bg-[var(--overlay-scrim)]" @cancel.prevent>
+        <div class="w-full max-w-sm rounded-lg p-6" :style="{ background: 'var(--surface)', color: 'var(--text)', boxShadow: 'var(--overlay-shadow)' }">
+            <h2 class="font-serif text-lg font-bold">上次有一筆沒存完，要繼續填寫嗎？</h2>
+            <p v-if="note" class="mt-3 text-sm text-muted">{{ note }}</p>
 
-        <div class="mt-6 flex gap-3">
-            <button type="button" class="flex-1 rounded-sm border px-4 py-3" :style="{ borderColor: 'var(--border-strong)', minHeight: 'var(--touch-min)' }" @click="$emit('discard')">重新開始</button>
-            <button type="button" class="flex-1 rounded-sm px-4 py-3 font-medium" :style="{ background: 'var(--accent)', color: 'var(--on-accent)', minHeight: 'var(--touch-min)' }" @click="$emit('accept')">繼續填寫</button>
+            <div class="mt-6 flex gap-3">
+                <button type="button" class="flex-1 rounded-sm border px-4 py-3" :style="{ borderColor: 'var(--border-strong)', minHeight: 'var(--touch-min)' }" @click="$emit('discard')">重新開始</button>
+                <button type="button" class="flex-1 rounded-sm px-4 py-3 font-medium" :style="{ background: 'var(--accent)', color: 'var(--on-accent)', minHeight: 'var(--touch-min)' }" @click="$emit('accept')">繼續填寫</button>
+            </div>
         </div>
     </dialog>
 </template>

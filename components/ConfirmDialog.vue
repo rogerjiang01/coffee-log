@@ -23,33 +23,38 @@ watch(() => props.open, (value) => {
 </script>
 
 <template>
+  <!-- dialog 本身是滿版的置中容器（樣式在 main.css），卡片是內層這一個 -->
   <dialog
     ref="dialog"
-    class="w-[calc(100vw-2.5rem)] max-w-sm rounded-lg p-6 backdrop:bg-[var(--overlay-scrim)]"
-    :style="{ background: 'var(--surface)', color: 'var(--text)', boxShadow: 'var(--overlay-shadow)' }"
+    class="backdrop:bg-[var(--overlay-scrim)]"
     @cancel.prevent="emit('cancel')"
   >
-    <h2 class="font-serif text-lg font-bold">{{ title }}</h2>
-    <p class="mt-3 text-sm">{{ body }}</p>
+    <div
+      class="w-full max-w-sm rounded-lg p-6"
+      :style="{ background: 'var(--surface)', color: 'var(--text)', boxShadow: 'var(--overlay-shadow)' }"
+    >
+      <h2 class="font-serif text-lg font-bold">{{ title }}</h2>
+      <p class="mt-3 text-sm">{{ body }}</p>
 
-    <div class="mt-6 flex gap-3">
-      <button
-        type="button"
-        class="flex-1 rounded-sm border px-4 py-3"
-        :style="{ borderColor: 'var(--border)', minHeight: 'var(--touch-min)' }"
-        @click="emit('cancel')"
-      >
-        取消
-      </button>
-      <button
-        type="button"
-        :disabled="busy"
-        class="flex-1 rounded-sm px-4 py-3 font-medium disabled:opacity-60"
-        :style="{ background: 'var(--danger)', color: 'var(--on-danger)', minHeight: 'var(--touch-min)' }"
-        @click="emit('confirm')"
-      >
-        {{ busy ? '刪除中' : confirmLabel }}
-      </button>
+      <div class="mt-6 flex gap-3">
+        <button
+          type="button"
+          class="flex-1 rounded-sm border px-4 py-3"
+          :style="{ borderColor: 'var(--border)', minHeight: 'var(--touch-min)' }"
+          @click="emit('cancel')"
+        >
+          取消
+        </button>
+        <button
+          type="button"
+          :disabled="busy"
+          class="flex-1 rounded-sm px-4 py-3 font-medium disabled:opacity-60"
+          :style="{ background: 'var(--danger)', color: 'var(--on-danger)', minHeight: 'var(--touch-min)' }"
+          @click="emit('confirm')"
+        >
+          {{ busy ? '刪除中' : confirmLabel }}
+        </button>
+      </div>
     </div>
   </dialog>
 </template>

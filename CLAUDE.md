@@ -24,7 +24,7 @@ Supabase（Auth / Postgres / Storage）
 4. 所有使用者資料表必須有 RLS policy，沒有 policy 的表視為未完成
 5. `brew_steps` 必須是獨立資料表，不得改用 JSONB 或文字欄位
 6. 分段注水：介面輸入「停留秒數」，資料庫存「累積時間點」，不得混用
-7. 必填欄位只有兩個：`beans.name` 與 `brews.dose`，不得對其他欄位加必填驗證
+7. 必填欄位只有三個：`beans.name`、`brews.bean_id`、`brews.dose`，不得對其他欄位加必填驗證
 8. 不得使用 UI 框架的預設外觀直接交付
 9. 不得使用瀏覽器原生的 `alert`、`confirm`、`prompt`
 10. 遇到規格沒寫的情況，**停下來詢問，不要自行決定**

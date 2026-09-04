@@ -126,7 +126,7 @@ async function sanitizeDraft(incoming: BeanFormValues): Promise<BeanFormValues> 
     id => alive.has(id),
   )
   if (pruned.dropped.length) {
-    draftNote.value = '有幾個選項已經被刪掉，那幾格留空'
+    draftNote.value = droppedFieldsMessage(pruned.dropped)
   }
   return pruned.data as unknown as BeanFormValues
 }

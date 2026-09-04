@@ -5,7 +5,7 @@
 
 import {
   packDraft, unpackDraft, unpackDraftEnvelope, pruneMissingIds, collectIds, draftKey,
-  draftAge, DRAFT_TTL_MS, DRAFT_AUTO_RESTORE_MS,
+  draftAge, droppedFieldsMessage, DRAFT_TTL_MS, DRAFT_AUTO_RESTORE_MS,
 } from '../../utils/draft.ts'
 import { createReport, equal } from '../helpers/report.mjs'
 
@@ -83,6 +83,22 @@ export default function run() {
     ['bean-1', 'grinder-gone', 'tag-1', 'tag-gone']), '字串與陣列欄位都收，null 略過')
   r.check(collectIds({ a: null, b: [] }, ['a', 'b']).length === 0, '全空時回空陣列')
   r.check(equal(collectIds({ a: 'x', b: ['x'] }, ['a', 'b']), ['x']), '重複的 id 只留一個')
+
+  r.section('被清空的欄位要講出是哪幾格')
+  // 只說「有幾個選項被刪掉了」等於沒說：使用者不知道要重填哪一格，
+  // 而 bean_id 是必填，按下儲存會再撞一次驗證。
+  r.check(droppedFieldsMessage(['bean_id']) === '豆子已被刪除，請重新選擇', '單一欄位')
+  r.check(droppedFieldsMessage(['bean_id', 'processing_method_id'])
+    === '豆子、處理法已被刪除，請重新選擇', '多個欄位用頓號串起來')
+  r.check(droppedFieldsMessage(['grinder_id', 'dripper_id', 'kettle_id'])
+    === '磨豆機、濾杯、手沖壺已被刪除，請重新選擇', '器材三件')
+  r.check(droppedFieldsMessage(['flavorTagIds']) === '風味標籤已被刪除，請重新選擇',
+    '陣列型欄位也有標籤')
+  r.check(droppedFieldsMessage([]) === '', '沒有東西被刪就不出訊息')
+  r.check(droppedFieldsMessage(['unknown_field']) === '',
+    '對不上標籤的欄位跳過——寧可少講一項，也不要把資料庫欄位名吐到畫面上')
+  r.check(droppedFieldsMessage(['bean_id', 'unknown_field']) === '豆子已被刪除，請重新選擇',
+    '混著也只講認得的那些')
 
   return r.finish()
 }

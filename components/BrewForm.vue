@@ -264,7 +264,7 @@ async function sanitizeDraft(incoming: BrewDraft): Promise<BrewDraft> {
 
   // 指向已刪除資料的欄位留空而不是整個表單壞掉，並讓使用者知道
   if (pruned.dropped.length || keptTags.length !== tagIds.length) {
-    draftNote.value = '有幾個選項已經被刪掉，那幾格留空'
+    draftNote.value = droppedFieldsMessage(pruned.dropped)
   }
 
   return {

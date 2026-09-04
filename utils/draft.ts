@@ -117,3 +117,38 @@ export function collectIds(data: Record<string, unknown>, fields: string[]) {
   }
   return [...ids]
 }
+
+/**
+ * 暫存欄位名 → 使用者看得懂的欄位標籤。
+ *
+ * 給「還原時發現對象已被刪掉」的提示用。只說「有幾個選項被刪掉了」
+ * 對使用者沒有幫助——他不知道要重填哪幾格，而 bean_id 是必填，
+ * 按下儲存還會再撞一次驗證。
+ *
+ * 標籤跟表單上的欄位標籤一致，不用資料庫欄位名。
+ */
+const DRAFT_FIELD_LABELS: Record<string, string> = {
+  // 豆子
+  country_id: '產國',
+  processing_method_id: '處理法',
+  variety_id: '品種',
+  // 沖煮
+  bean_id: '豆子',
+  brew_method_id: '沖煮手法',
+  grinder_id: '磨豆機',
+  dripper_id: '濾杯',
+  kettle_id: '手沖壺',
+  filter_id: '濾紙',
+  server_id: '分享壺',
+  flavorTagIds: '風味標籤',
+}
+
+/**
+ * 被清空的欄位講成一句話：「豆子、處理法已被刪除，請重新選擇」。
+ * 對不上標籤的欄位直接跳過，寧可少講一項也不要吐出資料庫欄位名。
+ */
+export function droppedFieldsMessage(dropped: string[]): string {
+  const labels = dropped.map(field => DRAFT_FIELD_LABELS[field]).filter((v): v is string => !!v)
+  if (!labels.length) return ''
+  return `${labels.join('、')}已被刪除，請重新選擇`
+}
