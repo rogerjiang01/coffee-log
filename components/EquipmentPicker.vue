@@ -74,7 +74,7 @@ async function load() {
         .not(column, 'is', null)
         .order('brewed_at', { ascending: false }),
     ])
-    if (listResult.error) throw new Error(listResult.error.message)
+    if (listResult.error) throw toError(listResult.error)
     items.value = (listResult.data ?? []) as unknown as EquipmentOption[]
 
     // 最後使用日期取不到不該讓整個選擇器失敗
@@ -91,7 +91,7 @@ async function load() {
     }
   }
   catch (e) {
-    loadError.value = e instanceof Error ? `讀不到器材：${e.message}` : '讀不到器材'
+    loadError.value = `讀不到器材：${errorText(e)}`
   }
   finally {
     loading.value = false
@@ -137,7 +137,7 @@ async function create() {
         .eq('user_id', userId.value)
         .eq('type', props.type)
         .eq('is_default', true)
-      if (error) throw new Error(error.message)
+      if (error) throw toError(error)
     }
 
     const { data, error } = await supabase
@@ -152,7 +152,8 @@ async function create() {
       } as never)
       .select('id')
       .single()
-    if (error || !data) throw new Error(error?.message ?? '未知狀況')
+    if (error) throw toError(error)
+    if (!data) throw new Error('沒有拿到新建立的器材')
 
     const created = (data as unknown as { id: string }).id
     await load()
@@ -162,7 +163,7 @@ async function create() {
     emit('created')
   }
   catch (e) {
-    formError.value = e instanceof Error ? `沒有存起來：${e.message}` : '沒有存起來'
+    formError.value = `沒有存起來：${errorText(e)}`
   }
   finally {
     saving.value = false

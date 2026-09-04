@@ -66,7 +66,7 @@ async function create() {
     .single()
   saving.value = false
   if (insertError || !data) {
-    error.value = `沒有新增成功：${insertError?.message ?? '未知狀況'}`
+    error.value = `沒有新增成功：${errorText(insertError)}`
     return
   }
   const created = data as unknown as (typeof tags.value)[number]

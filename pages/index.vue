@@ -159,8 +159,8 @@ async function load() {
         .order('id', { ascending: false })
         .range(0, PAGE_SIZE - 1),
     ])
-    if (beanResult.error) throw new Error(beanResult.error.message)
-    if (brewResult.error) throw new Error(brewResult.error.message)
+    if (beanResult.error) throw toError(beanResult.error)
+    if (brewResult.error) throw toError(brewResult.error)
 
     beans.value = (beanResult.data ?? []) as unknown as ActiveBean[]
 
@@ -190,7 +190,7 @@ async function load() {
     ])
   }
   catch (e) {
-    loadError.value = e instanceof Error ? `讀不到資料：${e.message}` : '讀不到資料'
+    loadError.value = `讀不到資料：${errorText(e)}`
   }
   finally {
     // finally：任何失敗都不能讓頁面停在「讀取中」而看不到新增入口
@@ -208,7 +208,7 @@ async function loadMore() {
       .order('brewed_at', { ascending: false })
       .order('id', { ascending: false })
       .range(from, from + PAGE_SIZE - 1)
-    if (error) throw new Error(error.message)
+    if (error) throw toError(error)
     const rows = (data ?? []) as unknown as BrewRow[]
     timeline.value = [...timeline.value, ...toEntries(rows)]
     hasMore.value = rows.length === PAGE_SIZE
@@ -216,7 +216,7 @@ async function loadMore() {
     await enrichEntries(rows)
   }
   catch (e) {
-    loadError.value = e instanceof Error ? `讀不到更多紀錄：${e.message}` : '讀不到更多紀錄'
+    loadError.value = `讀不到更多紀錄：${errorText(e)}`
   }
   finally {
     loadingMore.value = false

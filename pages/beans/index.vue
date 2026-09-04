@@ -31,7 +31,7 @@ async function load() {
       .order('is_finished', { ascending: true })
       .order('created_at', { ascending: false })
       .order('id', { ascending: false })
-    if (error) throw new Error(error.message)
+    if (error) throw toError(error)
 
     beans.value = (data ?? []) as unknown as BeanRow[]
 
@@ -48,7 +48,7 @@ async function load() {
     }
   }
   catch (e) {
-    loadError.value = e instanceof Error ? `讀不到豆子：${e.message}` : '讀不到豆子'
+    loadError.value = `讀不到豆子：${errorText(e)}`
   }
   finally {
     loading.value = false

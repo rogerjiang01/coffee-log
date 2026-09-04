@@ -76,11 +76,11 @@ async function load() {
       .order('is_default', { ascending: false })
       .order('created_at', { ascending: true })
       .order('id', { ascending: true })
-    if (error) throw new Error(error.message)
+    if (error) throw toError(error)
     items.value = (data ?? []) as unknown as EquipmentRow[]
   }
   catch (e) {
-    loadError.value = e instanceof Error ? `讀不到器材：${e.message}` : '讀不到器材'
+    loadError.value = `讀不到器材：${errorText(e)}`
   }
   finally {
     // 放在 finally，任何失敗都不會讓頁面停在讀取中而看不到新增入口
@@ -130,7 +130,7 @@ async function clearDefault(type: EquipmentType, exceptId?: string) {
     .eq('is_default', true)
   if (exceptId) request = request.neq('id', exceptId)
   const { error } = await request
-  if (error) throw new Error(error.message)
+  if (error) throw toError(error)
 }
 
 async function save() {
@@ -162,13 +162,13 @@ async function save() {
     const { error } = editing.value === 'new'
       ? await supabase.from('user_equipment').insert(row as never)
       : await supabase.from('user_equipment').update(row as never).eq('id', editing.value!)
-    if (error) throw new Error(error.message)
+    if (error) throw toError(error)
 
     editing.value = null
     await load()
   }
   catch (e) {
-    formError.value = e instanceof Error ? `沒有存起來：${e.message}` : '沒有存起來'
+    formError.value = `沒有存起來：${errorText(e)}`
   }
   finally {
     saving.value = false
@@ -184,11 +184,11 @@ async function toggleDefault(row: EquipmentRow, next: boolean) {
       .from('user_equipment')
       .update({ is_default: next } as never)
       .eq('id', row.id)
-    if (error) throw new Error(error.message)
+    if (error) throw toError(error)
     await load()
   }
   catch (e) {
-    actionError.value = e instanceof Error ? `沒有改成功：${e.message}` : '沒有改成功'
+    actionError.value = `沒有改成功：${errorText(e)}`
   }
 }
 
@@ -199,7 +199,7 @@ async function destroy() {
   deleting.value = false
   confirmId.value = null
   if (error) {
-    actionError.value = `沒有刪成功：${error.message}`
+    actionError.value = `沒有刪成功：${errorText(error)}`
     return
   }
   await load()

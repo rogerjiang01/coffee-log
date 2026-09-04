@@ -13,6 +13,13 @@ export default defineNuxtConfig({
   },
 
   supabase: {
+    // 專案沒有產 database.types.ts，模組每次啟動都會警告一次。
+    // 明講關掉，而不是留著警告——目前型別本來就是 unknown，
+    // 關掉沒有少掉任何保護，只是把「還沒做」寫清楚。
+    // 之後若要真的補上：supabase gen types typescript > types/database.types.ts，
+    // 那會一併解決各處 `as unknown as` 與 `as never` 的轉型。
+    types: false,
+
     // 階段 2 起恢復模組預設的自動導向：未登入者一律導向 /login。
     // exclude 需自行加上 /signup，否則還沒有帳號的人會被導走、無法註冊。
     redirectOptions: {
@@ -45,6 +52,10 @@ export default defineNuxtConfig({
       htmlAttrs: { lang: 'zh-Hant-TW' },
       title: '手沖咖啡紀錄',
       link: [
+        // iOS 加到主畫面時會去要 apple-touch-icon.png。沒有這個檔的話
+        // 請求會落到 SPA 路由上，dev console 每次都跟著噴 Vue Router 警告。
+        { rel: 'icon', type: 'image/png', sizes: '32x32', href: '/favicon-32.png' },
+        { rel: 'apple-touch-icon', sizes: '180x180', href: '/apple-touch-icon.png' },
         { rel: 'preconnect', href: 'https://fonts.googleapis.com' },
         { rel: 'preconnect', href: 'https://fonts.gstatic.com', crossorigin: '' },
         {

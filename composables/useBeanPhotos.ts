@@ -13,7 +13,7 @@ export function useBeanPhotos() {
     const { error } = await supabase.storage
       .from(BUCKET)
       .upload(path, image.blob, { contentType: image.blob.type, upsert: true })
-    if (error) throw new Error(`照片沒有上傳成功：${error.message}`)
+    if (error) throw new Error(`照片沒有上傳成功：${errorText(error)}`)
     return path
   }
 

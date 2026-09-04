@@ -42,7 +42,7 @@ async function onSubmit({ values, photo }: { values: BeanFormValues; photo: Comp
 
   if (insertError || !data) {
     saving.value = false
-    error.value = `沒有存起來：${insertError?.message ?? '未知狀況'}`
+    error.value = `沒有存起來：${errorText(insertError)}`
     return
   }
 
@@ -59,7 +59,7 @@ async function onSubmit({ values, photo }: { values: BeanFormValues; photo: Comp
       // 豆子已經建立成功，暫存留著只會在下次進來時問一次舊資料
       form.value?.clearDraft()
       error.value = e instanceof Error
-        ? `${e.message}。豆子已經存好了，可以到編輯頁再上傳一次。`
+        ? `${errorText(e)}。豆子已經存好了，可以到編輯頁再上傳一次。`
         : '照片沒有上傳成功，豆子已經存好了。'
       return
     }

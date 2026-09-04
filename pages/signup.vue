@@ -13,15 +13,6 @@ watchEffect(() => {
   if (user.value) navigateTo('/')
 })
 
-function translate(message: string) {
-  if (message.includes('already registered')) return '這個信箱已經註冊過了，直接登入就好'
-  if (message.includes('Password should be at least')) return '密碼至少 6 個字元'
-  if (message.includes('invalid format') || message.includes('Unable to validate email'))
-    return '這個信箱格式看起來不對'
-  if (message.includes('Signups not allowed')) return '這個專案目前關閉註冊'
-  return message
-}
-
 async function submit() {
   error.value = ''
 
@@ -36,7 +27,7 @@ async function submit() {
   })
   sending.value = false
 
-  if (err) return (error.value = translate(err.message))
+  if (err) return (error.value = errorText(err))
 
   // 有 session 代表信箱確認是關的，直接進站；否則等使用者去收信
   if (data.session) await navigateTo('/')

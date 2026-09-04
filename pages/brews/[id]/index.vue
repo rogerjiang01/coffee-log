@@ -93,7 +93,7 @@ async function load() {
       .filter((name): name is string => !!name)
   }
   catch (e) {
-    loadError.value = e instanceof Error ? `讀不到資料：${e.message}` : '讀不到資料'
+    loadError.value = `讀不到資料：${errorText(e)}`
   }
   finally {
     // finally：任何失敗都不能讓頁面停在「讀取中」
@@ -207,7 +207,7 @@ async function destroy() {
   deleting.value = false
   confirmOpen.value = false
   if (error) {
-    actionError.value = `沒有刪成功：${error.message}`
+    actionError.value = `沒有刪成功：${errorText(error)}`
     return
   }
   await navigateTo('/')

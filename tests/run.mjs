@@ -14,6 +14,8 @@ const suites = [
   ['unit/grind-scale.test.ts', '刻度四欄制'],
   ['unit/panel.test.ts', '浮層定位'],
   ['unit/draft.test.ts', '表單自動暫存'],
+  ['unit/error-message.test.ts', '錯誤訊息中文化'],
+  ['unit/css.test.mjs', '全域 CSS 的關鍵規則'],
   ['db/schema.test.mjs', 'Schema、RLS 與 seed'],
   ['db/brews.test.mjs', '分段與複製（資料庫）'],
 ]

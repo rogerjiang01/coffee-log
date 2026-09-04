@@ -124,6 +124,25 @@
     color: var(--text-muted);
   }
 
+  /* 全站浮層的定位機制。所有用 showModal() 開的 <dialog> 都吃這一條，
+     不需要各自加樣式，之後新增的浮層也自動正確。
+
+     為什麼需要這條：原生 <dialog> 的置中來自瀏覽器預設樣式的
+     `position: fixed; inset: 0; margin: auto`——是 margin: auto 在做置中。
+     但 Tailwind 的 preflight 對 `*` 下了 `margin: 0`，而作者樣式一律
+     勝過瀏覽器預設樣式（跟選擇器權重無關），於是 margin 被歸零，
+     `inset: 0` 只剩左上角生效，所有浮層都被釘在畫面左上角。
+
+     max-height 與 overflow 一起補：瀏覽器預設有 max-height 但沒有
+     overflow: auto，內容過長時會直接被裁掉而不是可以捲。
+     overscroll-behavior 擋住捲到底後把底下的頁面一起帶著捲。 */
+  dialog:modal {
+    margin: auto;
+    max-height: calc(100% - 2rem);
+    overflow: auto;
+    overscroll-behavior: contain;
+  }
+
   /* 規範第 6 節：必須遵守 prefers-reduced-motion */
   @media (prefers-reduced-motion: reduce) {
     *,

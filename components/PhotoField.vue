@@ -37,7 +37,7 @@ async function onPick(event: Event) {
     emit('picked', compressed)
   }
   catch (e) {
-    error.value = e instanceof Error ? e.message : '這張照片讀不進來'
+    error.value = errorText(e)
     emit('picked', null)
   }
   working.value = false

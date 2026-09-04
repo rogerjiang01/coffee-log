@@ -66,7 +66,7 @@ async function load() {
     const detail = beanResult.data as unknown as BeanDetail
     bean.value = detail
 
-    if (brewResult.error) throw new Error(brewResult.error.message)
+    if (brewResult.error) throw toError(brewResult.error)
     const brewRows = (brewResult.data ?? []) as unknown as Omit<CompareBrew, 'totalWater'>[]
     brewCount.value = brewRows.length
     favoriteCount.value = brewRows.filter(row => row.is_favorite).length
@@ -97,7 +97,7 @@ async function load() {
     )
   }
   catch (e) {
-    loadError.value = e instanceof Error ? `讀不到資料：${e.message}` : '讀不到資料'
+    loadError.value = `讀不到資料：${errorText(e)}`
   }
   finally {
     // finally：任何失敗都不能讓頁面停在「讀取中」
@@ -128,7 +128,7 @@ async function toggleFinished(next: boolean) {
   if (!bean.value) return
   const { error } = await supabase.from('beans').update({ is_finished: next } as never).eq('id', id.value)
   if (error) {
-    actionError.value = `沒有改成功：${error.message}`
+    actionError.value = `沒有改成功：${errorText(error)}`
     return
   }
   bean.value.is_finished = next
@@ -142,7 +142,7 @@ async function destroy() {
   if (error) {
     deleting.value = false
     confirmOpen.value = false
-    actionError.value = `沒有刪成功：${error.message}`
+    actionError.value = `沒有刪成功：${errorText(error)}`
     return
   }
   if (path) await remove(path)

@@ -12,15 +12,6 @@ watchEffect(() => {
   if (user.value) navigateTo('/')
 })
 
-// Supabase 回的是英文訊息，這裡轉成規格要求的語氣：
-// 說明發生什麼事、怎麼處理，不道歉也不含糊。
-function translate(message: string) {
-  if (message.includes('Invalid login credentials')) return '電子郵件或密碼不對，再確認一次'
-  if (message.includes('Email not confirmed')) return '這個帳號還沒完成信箱確認，收一下註冊時寄出的信'
-  if (message.includes('Too many requests')) return '嘗試次數太多，等一下再試'
-  return message
-}
-
 async function submit() {
   error.value = ''
 
@@ -34,7 +25,7 @@ async function submit() {
   })
   sending.value = false
 
-  if (err) return (error.value = translate(err.message))
+  if (err) return (error.value = errorText(err))
   await navigateTo('/')
 }
 </script>

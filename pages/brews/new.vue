@@ -79,7 +79,7 @@ onMounted(async () => {
     }
   }
   catch (e) {
-    error.value = e instanceof Error ? `讀不到來源紀錄：${e.message}` : '讀不到來源紀錄'
+    error.value = `讀不到來源紀錄：${errorText(e)}`
   }
   finally {
     ready.value = true
@@ -133,7 +133,7 @@ async function onSubmit(payload: {
 
   if (insertError || !data) {
     saving.value = false
-    error.value = `沒有存起來：${insertError?.message ?? '未知狀況'}`
+    error.value = `沒有存起來：${errorText(insertError)}`
     return
   }
   const brewId = (data as unknown as { id: string }).id
@@ -148,7 +148,7 @@ async function onSubmit(payload: {
     const { error: stepError } = await supabase.from('brew_steps').insert(stepRows as never)
     if (stepError) {
       saving.value = false
-      error.value = `紀錄存好了，但分段沒存進去：${stepError.message}`
+      error.value = `紀錄存好了，但分段沒存進去：${errorText(stepError)}`
       return
     }
   }

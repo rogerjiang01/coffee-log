@@ -135,7 +135,7 @@ async function create() {
 
   if (error || !data) {
     saving.value = false
-    createError.value = `沒有存起來：${error?.message ?? '未知狀況'}`
+    createError.value = `沒有存起來：${errorText(error)}`
     return
   }
   const created = data as unknown as BeanOption

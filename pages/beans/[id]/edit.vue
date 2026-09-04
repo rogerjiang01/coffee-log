@@ -47,7 +47,7 @@ onMounted(async () => {
     loading.value = false
   }
   catch (e) {
-    loadError.value = e instanceof Error ? `讀不到資料：${e.message}` : '讀不到資料'
+    loadError.value = `讀不到資料：${errorText(e)}`
   }
   finally {
     // finally：任何失敗都不能讓頁面停在「讀取中」
@@ -73,7 +73,7 @@ async function onSubmit(
     }
     catch (e) {
       saving.value = false
-      error.value = e instanceof Error ? e.message : '照片沒有上傳成功'
+      error.value = errorText(e)
       return
     }
   }
@@ -100,7 +100,7 @@ async function onSubmit(
 
   saving.value = false
   if (updateError) {
-    error.value = `沒有存起來：${updateError.message}`
+    error.value = `沒有存起來：${errorText(updateError)}`
     return
   }
   form.value?.clearDraft()

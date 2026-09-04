@@ -75,7 +75,7 @@ onMounted(async () => {
     loading.value = false
   }
   catch (e) {
-    loadError.value = e instanceof Error ? `讀不到資料：${e.message}` : '讀不到資料'
+    loadError.value = `讀不到資料：${errorText(e)}`
   }
   finally {
     // finally：任何失敗都不能讓頁面停在「讀取中」
@@ -121,7 +121,7 @@ async function onSubmit(payload: {
 
   if (updateError) {
     saving.value = false
-    error.value = `沒有存起來：${updateError.message}`
+    error.value = `沒有存起來：${errorText(updateError)}`
     return
   }
 
@@ -131,7 +131,7 @@ async function onSubmit(payload: {
     const { error: stepError } = await supabase.from('brew_steps').insert(stepRows as never)
     if (stepError) {
       saving.value = false
-      error.value = `紀錄存好了，但分段沒存進去：${stepError.message}`
+      error.value = `紀錄存好了，但分段沒存進去：${errorText(stepError)}`
       return
     }
   }

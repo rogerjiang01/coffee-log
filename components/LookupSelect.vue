@@ -111,7 +111,7 @@ async function create() {
   saving.value = false
 
   if (error) {
-    saveError.value = `沒有新增成功：${error.message}`
+    saveError.value = `沒有新增成功：${errorText(error)}`
     return
   }
   const created = data as unknown as LookupItem
