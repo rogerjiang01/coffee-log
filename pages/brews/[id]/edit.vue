@@ -89,7 +89,7 @@ async function onSubmit(payload: {
   flavorTagIds: string[]
 }) {
   if (!userId.value) {
-    error.value = '登入狀態好像過期了，重新登入一次再試'
+    error.value = SESSION_EXPIRED
     return
   }
   const { values, steps, flavorTagIds } = payload
@@ -121,7 +121,7 @@ async function onSubmit(payload: {
 
   if (updateError) {
     saving.value = false
-    error.value = `沒有存起來：${errorText(updateError)}`
+    error.value = `儲存失敗：${errorText(updateError)}`
     return
   }
 

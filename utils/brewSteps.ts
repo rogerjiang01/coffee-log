@@ -177,7 +177,7 @@ export function stepsFromTemplate(
       // 邊界保護：粉水比極端到悶蒸會吃掉一半的水時，不採用這個數值
       if (amount > total * BLOOM_LIMIT) {
         amount = total * BLOOM_LIMIT
-        notice = '粉水比偏低，悶蒸水量已改用總水量比例計算，請確認是否合理'
+        notice = '粉水比偏低，請確認悶蒸水量是否合理'
       }
     }
     else if (step.basis === 'total') {
@@ -262,7 +262,7 @@ export function waterOrderHints(steps: StepInput[]): (string | null)[] {
     if (step.cumulativeWater === null) return null
 
     const hint = previous !== null && step.cumulativeWater < previous
-      ? `比上一段的 ${previous}g 少，累積水量是磅秤上的數字，應該往上加`
+      ? `比上一段的 ${previous}g 少`
       : null
 
     previous = step.cumulativeWater

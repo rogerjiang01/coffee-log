@@ -52,7 +52,7 @@ function onInput(event: Event) {
       :aria-label="ariaLabel"
       class="block w-full field px-3 py-2.5 tabular-nums"
       :style="{
-        minHeight: '44px',
+        minHeight: 'var(--touch-min)',
         paddingRight: unit ? '2.75rem' : undefined,
       }"
       @input="onInput"

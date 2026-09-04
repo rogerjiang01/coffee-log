@@ -25,7 +25,7 @@ async function signOut() {
       type="button"
       :disabled="signingOut"
       class="mt-8 rounded-sm border px-4 py-3 font-medium disabled:opacity-60"
-      :style="{ borderColor: 'var(--border)', background: 'var(--surface)', minHeight: '44px' }"
+      :style="{ borderColor: 'var(--border)', background: 'var(--surface)', minHeight: 'var(--touch-min)' }"
       @click="signOut"
     >
       {{ signingOut ? '登出中' : '登出' }}

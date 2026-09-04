@@ -28,7 +28,7 @@ function pick(level: number) {
         :aria-checked="modelValue === level"
         :aria-label="`${level} 顆星`"
         class="flex items-center justify-center"
-        :style="{ minWidth: '44px', minHeight: '44px' }"
+        :style="{ minWidth: 'var(--touch-min)', minHeight: 'var(--touch-min)' }"
         @click="pick(level)"
       >
         <svg width="24" height="24" viewBox="0 0 24 24" aria-hidden="true">
@@ -42,6 +42,5 @@ function pick(level: number) {
         </svg>
       </button>
     </div>
-    <p class="text-xs text-muted">留空也可以</p>
   </div>
 </template>

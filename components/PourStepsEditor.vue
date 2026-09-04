@@ -52,7 +52,7 @@ function setStir(index: number, stir: boolean) {
       >
         <div class="flex items-center justify-between gap-3">
           <p class="text-sm font-medium">
-            {{ step.stepType === 'bloom' ? '悶蒸' : `第 ${index} 段` }}<template v-if="step.stepType === 'stir'">・攪拌</template>
+            {{ step.stepType === 'bloom' ? '悶蒸' : `第 ${index} 段` }}
           </p>
 
           <div class="flex items-center gap-1">
@@ -73,24 +73,19 @@ function setStir(index: number, stir: boolean) {
               type="button"
               class="flex shrink-0 items-center justify-center rounded-sm"
               :style="step.stepType === 'stir'
-                ? { color: 'var(--on-accent-wash)', background: 'var(--accent-wash)', minHeight: '44px', minWidth: '44px' }
-                : { color: 'var(--text-muted)', minHeight: '44px', minWidth: '44px' }"
+                ? { color: 'var(--on-accent-wash)', background: 'var(--accent-wash)', minHeight: 'var(--touch-min)', minWidth: 'var(--touch-min)' }
+                : { color: 'var(--text-muted)', minHeight: 'var(--touch-min)', minWidth: 'var(--touch-min)' }"
               :aria-pressed="step.stepType === 'stir'"
               :aria-label="`把第 ${index} 段標成攪拌`"
               @click="setStir(index, step.stepType !== 'stir')"
             >
-              <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"
-                   fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round">
-                <path d="M12 3a6 6 0 016 6c0 3.5-3 5-6 5s-6-1.5-6-5" />
-                <path d="M12 14v7" />
-                <path d="M9 21h6" />
-              </svg>
+              <StirIcon />
             </button>
             <button
               v-if="step.stepType !== 'bloom'"
               type="button"
               class="shrink-0"
-              :style="{ color: 'var(--text-muted)', minHeight: '44px', minWidth: '44px' }"
+              :style="{ color: 'var(--text-muted)', minHeight: 'var(--touch-min)', minWidth: 'var(--touch-min)' }"
               :aria-label="`刪除第 ${index} 段`"
               @click="removeStep(index)"
             >
@@ -149,7 +144,7 @@ function setStir(index: number, stir: boolean) {
     <button
       type="button"
       class="mt-3 w-full rounded-sm border px-4 py-3"
-      :style="{ borderColor: 'var(--border)', color: 'var(--accent)', minHeight: '44px' }"
+      :style="{ borderColor: 'var(--border)', color: 'var(--accent)', minHeight: 'var(--touch-min)' }"
       @click="addStep"
     >
       新增一段

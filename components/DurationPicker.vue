@@ -53,7 +53,7 @@
     }
 
     const boxStyle = {
-        minHeight: "44px",
+        minHeight: 'var(--touch-min)',
     };
 </script>
 

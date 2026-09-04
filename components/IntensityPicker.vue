@@ -34,7 +34,7 @@ function pick(key: keyof Intensity, level: number) {
 <template>
   <section>
     <p class="text-sm">強度</p>
-    <p class="text-xs text-muted">描述強弱，不是好壞。留空也可以。</p>
+    <p class="text-xs text-muted">描述強弱，不是好壞</p>
 
     <div
       v-for="dimension in dimensions"
@@ -53,12 +53,12 @@ function pick(key: keyof Intensity, level: number) {
           :aria-checked="modelValue[dimension.key] === level"
           :aria-label="`${dimension.label} ${level}`"
           class="flex items-center justify-center"
-          :style="{ minWidth: '44px', minHeight: '44px' }"
+          :style="{ minWidth: 'var(--touch-min)', minHeight: 'var(--touch-min)' }"
           @click="pick(dimension.key, level)"
         >
-          <!-- 觸控區 44px，圓點視覺可以小 -->
+          <!-- 觸控區 --touch-min，圓點視覺可以小 -->
           <span
-            class="block size-4 rounded-lg border"
+            class="block size-4 rounded-full border"
             :style="{
               borderColor: (modelValue[dimension.key] ?? 0) >= level ? 'var(--accent)' : 'var(--border)',
               background: (modelValue[dimension.key] ?? 0) >= level ? 'var(--accent)' : 'transparent',

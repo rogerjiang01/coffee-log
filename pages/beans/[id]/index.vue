@@ -128,7 +128,7 @@ async function toggleFinished(next: boolean) {
   if (!bean.value) return
   const { error } = await supabase.from('beans').update({ is_finished: next } as never).eq('id', id.value)
   if (error) {
-    actionError.value = `沒有改成功：${errorText(error)}`
+    actionError.value = `更新失敗：${errorText(error)}`
     return
   }
   bean.value.is_finished = next
@@ -142,7 +142,7 @@ async function destroy() {
   if (error) {
     deleting.value = false
     confirmOpen.value = false
-    actionError.value = `沒有刪成功：${errorText(error)}`
+    actionError.value = `刪除失敗：${errorText(error)}`
     return
   }
   if (path) await remove(path)
@@ -248,7 +248,7 @@ async function destroy() {
       <NuxtLink
         :to="`/brews/new?bean=${bean.id}`"
         class="mt-8 block w-full rounded-sm px-4 py-3 text-center font-medium"
-        :style="{ background: 'var(--accent)', color: 'var(--on-accent)', minHeight: '44px' }"
+        :style="{ background: 'var(--accent)', color: 'var(--on-accent)', minHeight: 'var(--touch-min)' }"
       >
         用這支豆子沖一杯
       </NuxtLink>
@@ -267,7 +267,7 @@ async function destroy() {
       <button
         type="button"
         class="mt-4 w-full rounded-sm px-4 py-3"
-        :style="{ color: 'var(--danger)', minHeight: '44px' }"
+        :style="{ color: 'var(--danger)', minHeight: 'var(--touch-min)' }"
         @click="confirmOpen = true"
       >
         刪除

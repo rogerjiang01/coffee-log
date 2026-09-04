@@ -15,8 +15,8 @@ watchEffect(() => {
 async function submit() {
   error.value = ''
 
-  if (!email.value.trim()) return (error.value = '填一下電子郵件')
-  if (!password.value) return (error.value = '填一下密碼')
+  if (!email.value.trim()) return (error.value = '電子郵件還沒填')
+  if (!password.value) return (error.value = '密碼還沒填')
 
   sending.value = true
   const { error: err } = await supabase.auth.signInWithPassword({
@@ -31,7 +31,7 @@ async function submit() {
 </script>
 
 <template>
-  <main class="mx-auto px-5 py-12" :style="{ maxWidth: '26rem' }">
+  <main class="mx-auto px-5 py-12" :style="{ maxWidth: 'var(--content-max-narrow)' }">
     <h1 class="font-serif text-xl font-bold">登入</h1>
 
     <form class="mt-8" novalidate @submit.prevent="submit">
@@ -42,7 +42,7 @@ async function submit() {
         type="email"
         autocomplete="email"
         class="mt-1 block w-full field px-3 py-2.5"
-        :style="{ minHeight: '44px' }"
+        :style="{ minHeight: 'var(--touch-min)' }"
       >
 
       <label class="mt-5 block text-sm" for="password">密碼</label>
@@ -52,7 +52,7 @@ async function submit() {
         type="password"
         autocomplete="current-password"
         class="mt-1 block w-full field px-3 py-2.5"
-        :style="{ minHeight: '44px' }"
+        :style="{ minHeight: 'var(--touch-min)' }"
       >
 
       <p v-if="error" class="mt-4 text-sm" :style="{ color: 'var(--danger)' }">
@@ -63,7 +63,7 @@ async function submit() {
         type="submit"
         :disabled="sending"
         class="mt-7 w-full rounded-sm px-4 py-3 font-medium disabled:opacity-60"
-        :style="{ background: 'var(--accent)', color: 'var(--on-accent)', minHeight: '44px' }"
+        :style="{ background: 'var(--accent)', color: 'var(--on-accent)', minHeight: 'var(--touch-min)' }"
       >
         {{ sending ? '登入中' : '登入' }}
       </button>

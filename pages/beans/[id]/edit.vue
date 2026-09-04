@@ -59,7 +59,7 @@ async function onSubmit(
   { values, photo, photoCleared }: { values: BeanFormValues; photo: CompressedImage | null; photoCleared: boolean },
 ) {
   if (!userId.value) {
-    error.value = '登入狀態好像過期了，重新登入一次再試'
+    error.value = SESSION_EXPIRED
     return
   }
   saving.value = true
@@ -100,7 +100,7 @@ async function onSubmit(
 
   saving.value = false
   if (updateError) {
-    error.value = `沒有存起來：${errorText(updateError)}`
+    error.value = `儲存失敗：${errorText(updateError)}`
     return
   }
   form.value?.clearDraft()

@@ -29,8 +29,8 @@ const freeform = computed(() => isFreeformScale(props.spec))
     />
 
     <!-- 型錄沒有資料、或面板本來就沒刻度時，自由輸入不做任何範圍提示 -->
-    <p v-if="!hasCatalog" class="mt-1 text-xs text-muted">自訂器材沒有刻度資料，填什麼都可以</p>
-    <p v-else-if="freeform" class="mt-1 text-xs text-muted">這台面板沒有刻度標示，填什麼都可以</p>
+    <p v-if="!hasCatalog" class="mt-1 text-xs text-muted">自訂器材沒有刻度資料</p>
+    <p v-else-if="freeform" class="mt-1 text-xs text-muted">這台面板沒有刻度標示</p>
     <p v-else class="mt-1 text-xs tabular-nums text-muted">
       <span v-if="range">刻度 {{ range }}</span>
       <span v-if="spec.increment !== null" class="ml-3">最小間隔 {{ spec.increment }}</span>

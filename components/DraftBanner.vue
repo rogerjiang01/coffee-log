@@ -57,7 +57,7 @@ onBeforeUnmount(() => {
     <button
       type="button"
       class="shrink-0 rounded-sm border px-3 py-2 text-sm"
-      :style="{ borderColor: 'var(--border-strong)', background: 'var(--surface)', minHeight: '44px' }"
+      :style="{ borderColor: 'var(--border-strong)', background: 'var(--surface)', minHeight: 'var(--touch-min)' }"
       @click="$emit('clearAll')"
     >
       全部清除

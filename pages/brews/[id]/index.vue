@@ -207,7 +207,7 @@ async function destroy() {
   deleting.value = false
   confirmOpen.value = false
   if (error) {
-    actionError.value = `沒有刪成功：${errorText(error)}`
+    actionError.value = `刪除失敗：${errorText(error)}`
     return
   }
   await navigateTo('/')
@@ -296,8 +296,15 @@ async function destroy() {
             :style="{ borderColor: 'var(--border)' }"
           >
             <span class="min-w-0 flex-1 text-sm">
-              <span class="block">
-                {{ step.stepType === 'bloom' ? '悶蒸' : `第 ${index} 段` }}<template v-if="step.stepType === 'stir'">・攪拌</template>
+              <span class="flex items-center gap-1.5">
+                {{ step.stepType === 'bloom' ? '悶蒸' : `第 ${index} 段` }}
+                <!-- 唯讀頁沒有按鈕可以變色，改成掛一個強調色圖示，
+                     形狀與編輯器的切換鈕相同 -->
+                <StirIcon
+                  v-if="step.stepType === 'stir'"
+                  label="這一段有攪拌"
+                  :style="{ color: 'var(--accent)' }"
+                />
               </span>
               <span v-if="step.note" class="block text-xs text-muted">{{ step.note }}</span>
             </span>
@@ -378,7 +385,7 @@ async function destroy() {
       <NuxtLink
         :to="`/brews/new?copy=${brew.id}`"
         class="mt-8 block w-full rounded-sm px-4 py-3 text-center font-medium"
-        :style="{ background: 'var(--accent)', color: 'var(--on-accent)', minHeight: '44px' }"
+        :style="{ background: 'var(--accent)', color: 'var(--on-accent)', minHeight: 'var(--touch-min)' }"
       >
         照這次再沖一次
       </NuxtLink>
@@ -386,7 +393,7 @@ async function destroy() {
       <button
         type="button"
         class="mt-3 w-full rounded-sm px-4 py-3"
-        :style="{ color: 'var(--danger)', minHeight: '44px' }"
+        :style="{ color: 'var(--danger)', minHeight: 'var(--touch-min)' }"
         @click="confirmOpen = true"
       >
         刪除

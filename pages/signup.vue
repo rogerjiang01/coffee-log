@@ -16,8 +16,8 @@ watchEffect(() => {
 async function submit() {
   error.value = ''
 
-  if (!email.value.trim()) return (error.value = '填一下電子郵件')
-  if (!password.value) return (error.value = '填一下密碼')
+  if (!email.value.trim()) return (error.value = '電子郵件還沒填')
+  if (!password.value) return (error.value = '密碼還沒填')
   if (password.value.length < 6) return (error.value = '密碼至少 6 個字元')
 
   sending.value = true
@@ -36,7 +36,7 @@ async function submit() {
 </script>
 
 <template>
-  <main class="mx-auto px-5 py-12" :style="{ maxWidth: '26rem' }">
+  <main class="mx-auto px-5 py-12" :style="{ maxWidth: 'var(--content-max-narrow)' }">
     <template v-if="mailSent">
       <h1 class="font-serif text-xl font-bold">確認信寄出了</h1>
       <p class="mt-4">
@@ -48,7 +48,7 @@ async function submit() {
       <NuxtLink
         to="/login"
         class="mt-7 block w-full rounded-sm px-4 py-3 text-center font-medium"
-        :style="{ background: 'var(--accent)', color: 'var(--on-accent)', minHeight: '44px' }"
+        :style="{ background: 'var(--accent)', color: 'var(--on-accent)', minHeight: 'var(--touch-min)' }"
       >
         去登入
       </NuxtLink>
@@ -65,7 +65,7 @@ async function submit() {
           type="email"
           autocomplete="email"
           class="mt-1 block w-full field px-3 py-2.5"
-          :style="{ minHeight: '44px' }"
+          :style="{ minHeight: 'var(--touch-min)' }"
         >
 
         <label class="mt-5 block text-sm" for="password">密碼</label>
@@ -75,7 +75,7 @@ async function submit() {
           type="password"
           autocomplete="new-password"
           class="mt-1 block w-full field px-3 py-2.5"
-          :style="{ minHeight: '44px' }"
+          :style="{ minHeight: 'var(--touch-min)' }"
         >
         <p class="mt-1 text-xs text-muted">至少 6 個字元</p>
 
@@ -87,7 +87,7 @@ async function submit() {
           type="submit"
           :disabled="sending"
           class="mt-7 w-full rounded-sm px-4 py-3 font-medium disabled:opacity-60"
-          :style="{ background: 'var(--accent)', color: 'var(--on-accent)', minHeight: '44px' }"
+          :style="{ background: 'var(--accent)', color: 'var(--on-accent)', minHeight: 'var(--touch-min)' }"
         >
           {{ sending ? '註冊中' : '註冊' }}
         </button>

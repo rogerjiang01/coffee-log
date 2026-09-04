@@ -75,7 +75,7 @@ onMounted(async () => {
       }
     }
     else {
-      error.value = '找不到要複製的那筆紀錄，這是一張空白表單'
+      error.value = '找不到要複製的那筆紀錄'
     }
   }
   catch (e) {
@@ -93,7 +93,7 @@ async function onSubmit(payload: {
   formDurationSeconds: number
 }) {
   if (!userId.value) {
-    error.value = '登入狀態好像過期了，重新登入一次再試'
+    error.value = SESSION_EXPIRED
     return
   }
   const { values, steps, flavorTagIds, formDurationSeconds } = payload
@@ -133,7 +133,7 @@ async function onSubmit(payload: {
 
   if (insertError || !data) {
     saving.value = false
-    error.value = `沒有存起來：${errorText(insertError)}`
+    error.value = `儲存失敗：${errorText(insertError)}`
     return
   }
   const brewId = (data as unknown as { id: string }).id

@@ -38,7 +38,7 @@ function toggle() {
     <button
       type="button"
       class="flex w-full items-center justify-between text-left"
-      :style="{ minHeight: '44px' }"
+      :style="{ minHeight: 'var(--touch-min)' }"
       :aria-expanded="open"
       @click="toggle"
     >

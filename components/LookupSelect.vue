@@ -94,7 +94,7 @@ async function create() {
   const name = query.value.trim()
   if (!name || saving.value) return
   if (!userId.value) {
-    saveError.value = '登入狀態好像過期了，重新登入一次再試'
+    saveError.value = SESSION_EXPIRED
     return
   }
 
@@ -111,7 +111,7 @@ async function create() {
   saving.value = false
 
   if (error) {
-    saveError.value = `沒有新增成功：${errorText(error)}`
+    saveError.value = `新增失敗：${errorText(error)}`
     return
   }
   const created = data as unknown as LookupItem
@@ -119,7 +119,7 @@ async function create() {
   pick(created.id)
 }
 
-const optionStyle = { minHeight: '44px' }
+const optionStyle = { minHeight: 'var(--touch-min)' }
 </script>
 
 <template>
@@ -135,7 +135,7 @@ const optionStyle = { minHeight: '44px' }
       class="mt-1 flex w-full items-center justify-between field px-3 py-2.5 text-left"
       data-field
       :data-filled="!!selected"
-      :style="{ minHeight: '44px' }"
+      :style="{ minHeight: 'var(--touch-min)' }"
       @click="toggle"
     >
       <!-- 未選取時用 --text-muted，避免看起來像已經填好的值 -->
@@ -170,9 +170,9 @@ const optionStyle = { minHeight: '44px' }
             ref="searchInput"
             v-model="query"
             type="text"
-            placeholder="打字找找看"
+            placeholder="搜尋"
             class="block w-full field px-3 py-2"
-            :style="{ minHeight: '44px' }"
+            :style="{ minHeight: 'var(--touch-min)' }"
           >
         </div>
 

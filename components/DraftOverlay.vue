@@ -30,13 +30,13 @@
 </script>
 
 <template>
-    <dialog ref="dialog" class="w-[calc(100vw-2.5rem)] max-w-sm rounded-lg p-6 backdrop:bg-black/40" :style="{ background: 'var(--surface)', color: 'var(--text)', boxShadow: 'var(--overlay-shadow)' }" @cancel.prevent>
+    <dialog ref="dialog" class="w-[calc(100vw-2.5rem)] max-w-sm rounded-lg p-6 backdrop:bg-[var(--overlay-scrim)]" :style="{ background: 'var(--surface)', color: 'var(--text)', boxShadow: 'var(--overlay-shadow)' }" @cancel.prevent>
         <h2 class="font-serif text-lg font-bold">上次有一筆沒存完，要繼續填寫嗎？</h2>
         <p v-if="note" class="mt-3 text-sm text-muted">{{ note }}</p>
 
         <div class="mt-6 flex gap-3">
-            <button type="button" class="flex-1 rounded-sm border px-4 py-3" :style="{ borderColor: 'var(--border-strong)', minHeight: '44px' }" @click="$emit('discard')">重新開始</button>
-            <button type="button" class="flex-1 rounded-sm px-4 py-3 font-medium" :style="{ background: 'var(--accent)', color: 'var(--on-accent)', minHeight: '44px' }" @click="$emit('accept')">繼續填寫</button>
+            <button type="button" class="flex-1 rounded-sm border px-4 py-3" :style="{ borderColor: 'var(--border-strong)', minHeight: 'var(--touch-min)' }" @click="$emit('discard')">重新開始</button>
+            <button type="button" class="flex-1 rounded-sm px-4 py-3 font-medium" :style="{ background: 'var(--accent)', color: 'var(--on-accent)', minHeight: 'var(--touch-min)' }" @click="$emit('accept')">繼續填寫</button>
         </div>
     </dialog>
 </template>

@@ -83,9 +83,9 @@ const roastOptions: { value: RoastLevel; label: string }[] = (
 
 function submit() {
   // 錯誤訊息只在送出時顯示，不在輸入過程中即時跳出（《03》§4.1）
-  nameError.value = values.name.trim() ? '' : '豆子總得有個名字，其他都可以之後再說'
+  nameError.value = values.name.trim() ? '' : '豆名還沒填'
   if (nameError.value) {
-    summaryError.value = '還沒存起來：上面的豆名還沒填。'
+    summaryError.value = '沒有儲存：豆名還沒填'
     return
   }
   summaryError.value = ''
@@ -126,7 +126,7 @@ async function sanitizeDraft(incoming: BeanFormValues): Promise<BeanFormValues> 
     id => alive.has(id),
   )
   if (pruned.dropped.length) {
-    draftNote.value = '有幾個選項已經被刪掉了，那幾格留空，其他都還在'
+    draftNote.value = '有幾個選項已經被刪掉，那幾格留空'
   }
   return pruned.data as unknown as BeanFormValues
 }
@@ -147,7 +147,7 @@ const draft = props.draftKey
 defineExpose({ clearDraft: () => draft?.clear() })
 
 const inputStyle = {
-  minHeight: '44px',
+  minHeight: 'var(--touch-min)',
 }
 
 // 未選取的下拉要用 --text-muted，否則黑字看起來像已經填好的值
@@ -160,7 +160,7 @@ function selectStyle(value: unknown) {
   <form novalidate @submit.prevent="submit">
     <DraftBanner
       v-if="draft?.recovered.value"
-      :note="draftNote || '照片沒辦法暫存，要的話重新選一次'"
+      :note="draftNote || '照片不會暫存，重新選一次'"
       class="mb-6"
       @clear-all="draft.clearAll()"
     />
@@ -176,7 +176,7 @@ function selectStyle(value: unknown) {
     <DraftOverlay
       v-if="draft"
       :open="draft.pending.value !== null"
-      note="照片沒辦法暫存，要的話重新選一次"
+      note="照片不會暫存，重新選一次"
       @accept="draft.accept()"
       @discard="draft.discard()"
     />
@@ -306,7 +306,7 @@ function selectStyle(value: unknown) {
       type="submit"
       :disabled="busy"
       class="mt-6 w-full rounded-sm px-4 py-3 font-medium disabled:opacity-60"
-      :style="{ background: 'var(--accent)', color: 'var(--on-accent)', minHeight: '44px' }"
+      :style="{ background: 'var(--accent)', color: 'var(--on-accent)', minHeight: 'var(--touch-min)' }"
     >
       {{ busy ? '儲存中' : submitLabel }}
     </button>

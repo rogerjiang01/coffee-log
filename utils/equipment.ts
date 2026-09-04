@@ -96,19 +96,27 @@ export interface CatalogRow {
   grind_scale_note: string | null
 }
 
-/** 型錄列的顯示名稱：品牌 型號 版本 */
+/**
+ * 型錄列的顯示名稱：`Hario · V60 02`。
+ *
+ * 中點把品牌與型號分開，讓品牌看得見但不必為它多開一層分組——
+ * 型錄只有數十筆，分組的瀏覽成本高於它省下的辨識成本。
+ * 中點兩側留空格：`Hario·V60` 在中文字型裡會黏在一起。
+ */
 export function catalogDisplayName(row: CatalogRow) {
-  return `${row.brand} ${row.model}${row.variant ? ` ${row.variant}` : ''}`
+  return `${row.brand} · ${row.model}${row.variant ? ` ${row.variant}` : ''}`
 }
 
-/** 使用者器材的顯示名稱：有型錄就用型錄的名字，否則用自訂名稱 */
+/**
+ * 使用者器材的顯示名稱：有型錄就用型錄的名字，否則用自訂名稱。
+ * 刻意共用 catalogDisplayName，兩處各寫一份格式會慢慢分岔。
+ */
 export function equipmentOptionName(item: {
   custom_name: string | null
   equipment_catalog: { brand: string, model: string, variant: string | null } | null
 }) {
   if (item.equipment_catalog) {
-    const c = item.equipment_catalog
-    return `${c.brand} ${c.model}${c.variant ? ` ${c.variant}` : ''}`
+    return catalogDisplayName(item.equipment_catalog as CatalogRow)
   }
   return item.custom_name ?? '未命名器材'
 }

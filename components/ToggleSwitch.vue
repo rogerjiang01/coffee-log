@@ -21,14 +21,14 @@ const emit = defineEmits<{ 'update:modelValue': [boolean] }>()
     :aria-checked="modelValue"
     :disabled="busy"
     class="flex w-full items-center justify-between rounded-sm border px-4 py-3 disabled:opacity-60"
-    :style="{ borderColor: 'var(--border)', background: 'var(--surface)', minHeight: '44px' }"
+    :style="{ borderColor: 'var(--border)', background: 'var(--surface)', minHeight: 'var(--touch-min)' }"
     @click="emit('update:modelValue', !modelValue)"
   >
     <span>{{ label }}</span>
 
     <!-- 軌道與滑鈕。開啟時軌道填 --accent，滑鈕移到右側。 -->
     <span
-      class="relative inline-block h-6 w-11 shrink-0 rounded-lg"
+      class="relative inline-block h-6 w-11 shrink-0 rounded-full"
       :style="{
         background: modelValue ? 'var(--accent)' : 'var(--border)',
         transition: 'background var(--motion-duration) var(--motion-ease)',
@@ -36,7 +36,7 @@ const emit = defineEmits<{ 'update:modelValue': [boolean] }>()
       aria-hidden="true"
     >
       <span
-        class="absolute top-0.5 size-5 rounded-lg"
+        class="absolute top-0.5 size-5 rounded-full"
         :style="{
           background: 'var(--surface)',
           left: modelValue ? 'calc(100% - 1.375rem)' : '0.125rem',

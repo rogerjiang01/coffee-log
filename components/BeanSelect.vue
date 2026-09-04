@@ -117,11 +117,11 @@ function startCreate() {
 async function create() {
   const name = draftName.value.trim()
   if (!name) {
-    createError.value = '豆子總得有個名字'
+    createError.value = '豆名還沒填'
     return
   }
   if (!userId.value) {
-    createError.value = '登入狀態好像過期了，重新登入一次再試'
+    createError.value = SESSION_EXPIRED
     return
   }
 
@@ -135,7 +135,7 @@ async function create() {
 
   if (error || !data) {
     saving.value = false
-    createError.value = `沒有存起來：${errorText(error)}`
+    createError.value = `儲存失敗：${errorText(error)}`
     return
   }
   const created = data as unknown as BeanOption
@@ -173,7 +173,7 @@ async function create() {
       class="mt-1 flex w-full items-center justify-between field px-3 py-2.5 text-left"
       data-field
       :data-filled="!!selected"
-      :style="{ minHeight: '44px' }"
+      :style="{ minHeight: 'var(--touch-min)' }"
       @click="toggle"
     >
       <span :style="{ color: selected ? 'var(--text)' : 'var(--text-muted)' }">
@@ -204,9 +204,9 @@ async function create() {
               ref="searchInput"
               v-model="query"
               type="text"
-              placeholder="打字找找看"
+              placeholder="搜尋"
               class="block w-full field px-3 py-2"
-              :style="{ minHeight: '44px' }"
+              :style="{ minHeight: 'var(--touch-min)' }"
             >
           </div>
 
@@ -215,7 +215,7 @@ async function create() {
               <button
                 type="button"
                 class="block w-full truncate px-3 py-2 text-left"
-                :style="{ minHeight: '44px', background: bean.id === modelValue ? 'var(--accent-wash)' : undefined }"
+                :style="{ minHeight: 'var(--touch-min)', background: bean.id === modelValue ? 'var(--accent-wash)' : undefined }"
                 @click="pick(bean.id)"
               >
                 {{ bean.name }}
@@ -227,7 +227,7 @@ async function create() {
                 <button
                   type="button"
                   class="block w-full truncate px-3 py-2 text-left"
-                  :style="{ minHeight: '44px', background: bean.id === modelValue ? 'var(--accent-wash)' : undefined }"
+                  :style="{ minHeight: 'var(--touch-min)', background: bean.id === modelValue ? 'var(--accent-wash)' : undefined }"
                   @click="pick(bean.id)"
                 >
                   {{ bean.name }}
@@ -240,7 +240,7 @@ async function create() {
             <button
               type="button"
               class="block w-full rounded-sm px-3 py-2 text-left"
-              :style="{ minHeight: '44px', color: 'var(--accent)' }"
+              :style="{ minHeight: 'var(--touch-min)', color: 'var(--accent)' }"
               @click="startCreate"
             >
               {{ query.trim() ? `新增「${query.trim()}」` : '新增豆子' }}
@@ -260,7 +260,7 @@ async function create() {
             v-model="draftName"
             type="text"
             class="mt-1 block w-full field px-3 py-2.5"
-            :style="{ minHeight: '44px' }"
+            :style="{ minHeight: 'var(--touch-min)' }"
           >
 
           <div class="mt-3">
@@ -276,7 +276,7 @@ async function create() {
               type="button"
               :disabled="saving"
               class="flex-1 rounded-sm px-3 py-2 font-medium disabled:opacity-60"
-              :style="{ background: 'var(--accent)', color: 'var(--on-accent)', minHeight: '44px' }"
+              :style="{ background: 'var(--accent)', color: 'var(--on-accent)', minHeight: 'var(--touch-min)' }"
               @click="create"
             >
               {{ saving ? '儲存中' : '儲存' }}
@@ -284,7 +284,7 @@ async function create() {
             <button
               type="button"
               class="rounded-sm border px-3 py-2"
-              :style="{ borderColor: 'var(--border)', minHeight: '44px' }"
+              :style="{ borderColor: 'var(--border)', minHeight: 'var(--touch-min)' }"
               @click="creating = false"
             >
               取消

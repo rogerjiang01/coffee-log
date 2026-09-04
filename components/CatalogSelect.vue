@@ -114,7 +114,7 @@ function pick(row: CatalogRow | null) {
       class="mt-1 flex w-full items-center justify-between field px-3 py-2.5 text-left"
       data-field
       :data-filled="!!selected"
-      :style="{ minHeight: '44px' }"
+      :style="{ minHeight: 'var(--touch-min)' }"
       @click="toggle"
     >
       <span :style="{ color: selected ? 'var(--text)' : 'var(--text-muted)' }">
@@ -146,9 +146,9 @@ function pick(row: CatalogRow | null) {
             ref="searchInput"
             v-model="query"
             type="text"
-            placeholder="打字找找看"
+            placeholder="搜尋"
             class="block w-full field px-3 py-2"
-            :style="{ minHeight: '44px' }"
+            :style="{ minHeight: 'var(--touch-min)' }"
           >
         </div>
 
@@ -157,7 +157,7 @@ function pick(row: CatalogRow | null) {
             <button
               type="button"
               class="block w-full px-3 py-2 text-left text-sm"
-              :style="{ minHeight: '44px', color: 'var(--text-muted)' }"
+              :style="{ minHeight: 'var(--touch-min)', color: 'var(--text-muted)' }"
               @click="pick(null)"
             >
               清除
@@ -167,7 +167,7 @@ function pick(row: CatalogRow | null) {
             <button
               type="button"
               class="block w-full px-3 py-2 text-left"
-              :style="{ minHeight: '44px', background: row.id === modelValue ? 'var(--accent-wash)' : undefined }"
+              :style="{ minHeight: 'var(--touch-min)', background: row.id === modelValue ? 'var(--accent-wash)' : undefined }"
               @click="pick(row)"
             >
               {{ catalogDisplayName(row) }}

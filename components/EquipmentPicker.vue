@@ -119,11 +119,11 @@ function startCreate() {
 
 async function create() {
   if (!userId.value) {
-    formError.value = '登入狀態好像過期了，重新登入一次再試'
+    formError.value = SESSION_EXPIRED
     return
   }
   if (!form.catalog_id && !form.custom_name.trim()) {
-    formError.value = '選一個型號，或自己打一個名字'
+    formError.value = '選一個型號，或直接填名稱'
     return
   }
   saving.value = true
@@ -163,14 +163,14 @@ async function create() {
     emit('created')
   }
   catch (e) {
-    formError.value = `沒有存起來：${errorText(e)}`
+    formError.value = `儲存失敗：${errorText(e)}`
   }
   finally {
     saving.value = false
   }
 }
 
-const inputStyle = { minHeight: '44px' }
+const inputStyle = { minHeight: 'var(--touch-min)' }
 </script>
 
 <template>
@@ -188,7 +188,7 @@ const inputStyle = { minHeight: '44px' }
     >
       <button
         type="button"
-        :style="{ minHeight: '44px', minWidth: '44px' }"
+        :style="{ minHeight: 'var(--touch-min)', minWidth: 'var(--touch-min)' }"
         :aria-label="mode === 'create' ? '回到清單' : '返回'"
         @click="mode === 'create' ? (mode = 'list') : emit('close')"
       >
@@ -204,7 +204,7 @@ const inputStyle = { minHeight: '44px' }
       <button
         v-if="mode === 'list'"
         type="button"
-        :style="{ minHeight: '44px', minWidth: '44px', color: 'var(--accent)' }"
+        :style="{ minHeight: 'var(--touch-min)', minWidth: 'var(--touch-min)', color: 'var(--accent)' }"
         :aria-label="`新增${equipmentLabels[type]}`"
         @click="startCreate"
       >
@@ -228,7 +228,7 @@ const inputStyle = { minHeight: '44px' }
         <li v-for="item in items" :key="item.id">
           <label
             class="flex items-center gap-3 rounded-md px-2 py-3"
-            :style="{ minHeight: '44px', background: draftId === item.id ? 'var(--accent-wash)' : undefined }"
+            :style="{ minHeight: 'var(--touch-min)', background: draftId === item.id ? 'var(--accent-wash)' : undefined }"
           >
             <EquipmentIcon :type="item.type" />
 
@@ -276,7 +276,7 @@ const inputStyle = { minHeight: '44px' }
           :style="inputStyle"
         >
         <p class="mt-1 text-xs text-muted">
-          {{ form.catalog_id ? '已選型號，用型錄的名稱' : '型錄裡沒有的就打在這裡' }}
+          {{ form.catalog_id ? '已選型號，用型錄的名稱' : '型錄裡沒有的直接填名稱' }}
         </p>
       </div>
 
@@ -305,7 +305,7 @@ const inputStyle = { minHeight: '44px' }
       <button
         type="button"
         class="flex-1 rounded-sm border px-4 py-3"
-        :style="{ borderColor: 'var(--border)', minHeight: '44px' }"
+        :style="{ borderColor: 'var(--border)', minHeight: 'var(--touch-min)' }"
         @click="mode === 'create' ? (mode = 'list') : emit('close')"
       >
         取消
@@ -314,7 +314,7 @@ const inputStyle = { minHeight: '44px' }
         v-if="mode === 'list'"
         type="button"
         class="flex-1 rounded-sm px-4 py-3 font-medium"
-        :style="{ background: 'var(--accent)', color: 'var(--on-accent)', minHeight: '44px' }"
+        :style="{ background: 'var(--accent)', color: 'var(--on-accent)', minHeight: 'var(--touch-min)' }"
         @click="confirmChoice"
       >
         選好了
@@ -324,7 +324,7 @@ const inputStyle = { minHeight: '44px' }
         type="button"
         :disabled="saving"
         class="flex-1 rounded-sm px-4 py-3 font-medium disabled:opacity-60"
-        :style="{ background: 'var(--accent)', color: 'var(--on-accent)', minHeight: '44px' }"
+        :style="{ background: 'var(--accent)', color: 'var(--on-accent)', minHeight: 'var(--touch-min)' }"
         @click="create"
       >
         {{ saving ? '儲存中' : '儲存' }}

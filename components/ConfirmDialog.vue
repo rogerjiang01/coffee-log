@@ -25,7 +25,7 @@ watch(() => props.open, (value) => {
 <template>
   <dialog
     ref="dialog"
-    class="w-[calc(100vw-2.5rem)] max-w-sm rounded-lg p-6 backdrop:bg-black/40"
+    class="w-[calc(100vw-2.5rem)] max-w-sm rounded-lg p-6 backdrop:bg-[var(--overlay-scrim)]"
     :style="{ background: 'var(--surface)', color: 'var(--text)', boxShadow: 'var(--overlay-shadow)' }"
     @cancel.prevent="emit('cancel')"
   >
@@ -36,7 +36,7 @@ watch(() => props.open, (value) => {
       <button
         type="button"
         class="flex-1 rounded-sm border px-4 py-3"
-        :style="{ borderColor: 'var(--border)', minHeight: '44px' }"
+        :style="{ borderColor: 'var(--border)', minHeight: 'var(--touch-min)' }"
         @click="emit('cancel')"
       >
         取消
@@ -45,7 +45,7 @@ watch(() => props.open, (value) => {
         type="button"
         :disabled="busy"
         class="flex-1 rounded-sm px-4 py-3 font-medium disabled:opacity-60"
-        :style="{ background: 'var(--danger)', color: 'var(--on-danger)', minHeight: '44px' }"
+        :style="{ background: 'var(--danger)', color: 'var(--on-danger)', minHeight: 'var(--touch-min)' }"
         @click="emit('confirm')"
       >
         {{ busy ? '刪除中' : confirmLabel }}

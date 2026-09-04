@@ -54,7 +54,7 @@ async function create() {
   const name = draft.value.trim()
   if (!name || saving.value) return
   if (!userId.value) {
-    error.value = '登入狀態好像過期了，重新登入一次再試'
+    error.value = SESSION_EXPIRED
     return
   }
   saving.value = true
@@ -66,7 +66,7 @@ async function create() {
     .single()
   saving.value = false
   if (insertError || !data) {
-    error.value = `沒有新增成功：${errorText(insertError)}`
+    error.value = `新增失敗：${errorText(insertError)}`
     return
   }
   const created = data as unknown as (typeof tags.value)[number]
@@ -88,8 +88,8 @@ async function create() {
           :aria-pressed="modelValue.includes(tag.id)"
           class="rounded-sm border px-3 py-2 text-sm"
           :style="modelValue.includes(tag.id)
-            ? { borderColor: 'var(--accent)', background: 'var(--accent-wash)', color: 'var(--on-accent-wash)', minHeight: '44px' }
-            : { minHeight: '44px' }"
+            ? { borderColor: 'var(--accent)', background: 'var(--accent-wash)', color: 'var(--on-accent-wash)', minHeight: 'var(--touch-min)' }
+            : { minHeight: 'var(--touch-min)' }"
           @click="toggle(tag.id)"
         >
           {{ tag.name }}
@@ -101,16 +101,16 @@ async function create() {
       <input
         v-model="draft"
         type="text"
-        placeholder="想到別的詞就打在這裡"
+        placeholder="新增風味詞"
         class="block flex-1 field px-3 py-2.5"
-        :style="{ minHeight: '44px' }"
+        :style="{ minHeight: 'var(--touch-min)' }"
       >
       <button
         v-if="canCreate"
         type="button"
         :disabled="saving"
         class="shrink-0 rounded-sm px-4 py-2 text-sm font-medium disabled:opacity-60"
-        :style="{ background: 'var(--accent)', color: 'var(--on-accent)', minHeight: '44px' }"
+        :style="{ background: 'var(--accent)', color: 'var(--on-accent)', minHeight: 'var(--touch-min)' }"
         @click="create"
       >
         {{ saving ? '新增中' : '新增' }}

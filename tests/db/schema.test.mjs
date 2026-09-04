@@ -71,7 +71,15 @@ export default async function run() {
   r.check((await pg.rows(`select 1 from varieties where user_id is null`)).length === 27, '品種 27 筆')
   r.check((await pg.rows(`select 1 from countries`)).length === 42, '產國 42 筆')
   r.check((await pg.rows(`select 1 from equipment_catalog where type='grinder'`)).length === 25, '磨豆機型錄 25 台')
-  r.check((await pg.rows(`select 1 from equipment_catalog`)).length === 46, '型錄共 46 筆')
+  r.check((await pg.rows(`select 1 from equipment_catalog`)).length === 51, '型錄共 51 筆')
+  // 收錄粒度見《01》§3.2：只收到影響沖煮行為的層級，材質與聯名不收
+  r.check((await pg.rows(`select 1 from equipment_catalog where brand='星芒濾杯'`)).length === 3,
+    '星芒收三個代目——肋骨結構不同')
+  r.check((await pg.rows(`select 1 from equipment_catalog where brand='川流濾杯'`)).length === 2,
+    '川流收 01／02 兩個尺寸')
+  r.check((await pg.rows(
+    `select 1 from equipment_catalog where model ilike '%不鏽鋼%' or model ilike '%玻璃%' or model ilike '%陶瓷%'`)).length === 0,
+    '型錄裡沒有任何材質條目——材質記在 user_equipment.note')
   r.check((await pg.rows(`select 1 from information_schema.tables where table_name='regions'`)).length === 0,
     'regions 表已移除，產區改為自由文字')
 

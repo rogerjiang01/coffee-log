@@ -82,9 +82,8 @@ onMounted(load)
       </li>
     </ul>
 
-    <p v-else-if="!beans.length && !loadError" class="mt-6 text-muted">
-      拍一張豆袋、打個豆名就能存。
-    </p>
+    <!-- 空狀態不放文案：新增入口（右下浮動按鈕）已經在畫面上，
+         §5.6 明講這種情況不顯示任何文字 -->
 
     <template v-else>
       <ul class="mt-6 space-y-3">
@@ -127,7 +126,7 @@ onMounted(load)
     <NuxtLink
       to="/beans/new"
       aria-label="新增豆子"
-      class="fixed right-5 bottom-20 z-30 flex size-14 items-center justify-center rounded-lg"
+      class="fixed right-5 bottom-20 z-30 flex size-14 items-center justify-center rounded-full"
       :style="{ background: 'var(--accent)', color: 'var(--on-accent)', boxShadow: 'var(--overlay-shadow)' }"
     >
       <svg width="24" height="24" viewBox="0 0 24 24" aria-hidden="true">

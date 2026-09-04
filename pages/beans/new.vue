@@ -14,7 +14,7 @@ const error = ref('')
 
 async function onSubmit({ values, photo }: { values: BeanFormValues; photo: CompressedImage | null }) {
   if (!userId.value) {
-    error.value = '登入狀態好像過期了，重新登入一次再試'
+    error.value = SESSION_EXPIRED
     return
   }
   saving.value = true
@@ -42,7 +42,7 @@ async function onSubmit({ values, photo }: { values: BeanFormValues; photo: Comp
 
   if (insertError || !data) {
     saving.value = false
-    error.value = `沒有存起來：${errorText(insertError)}`
+    error.value = `儲存失敗：${errorText(insertError)}`
     return
   }
 
@@ -58,9 +58,9 @@ async function onSubmit({ values, photo }: { values: BeanFormValues; photo: Comp
       saving.value = false
       // 豆子已經建立成功，暫存留著只會在下次進來時問一次舊資料
       form.value?.clearDraft()
-      error.value = e instanceof Error
-        ? `${errorText(e)}。豆子已經存好了，可以到編輯頁再上傳一次。`
-        : '照片沒有上傳成功，豆子已經存好了。'
+      // 豆子已經建立，只有照片失敗。兩個分支講同一件事，
+      // 差別只在錯誤原因取不取得到。
+      error.value = `照片上傳失敗：${errorText(e)}。豆子已儲存，可以到編輯頁再上傳一次`
       return
     }
   }

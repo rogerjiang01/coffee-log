@@ -17,6 +17,13 @@ interface ErrorLike {
   statusCode?: string | number
 }
 
+/**
+ * 「還沒登入」不是從 Supabase 回來的錯誤物件，是我們自己檢查出來的，
+ * 所以需要一個可以直接引用的常數——原本 9 個檔案各自硬寫，
+ * 寫出來的句子還跟這裡的對應表不一樣。
+ */
+export const SESSION_EXPIRED = '登入已經過期，重新登入一次'
+
 /** 錯誤碼 → 中文。auth 用字串碼，Postgres 用 SQLSTATE。 */
 const BY_CODE: Record<string, string> = {
   // ── Auth ────────────────────────────────────────────────
@@ -30,11 +37,11 @@ const BY_CODE: Record<string, string> = {
   validation_failed: '電子郵件格式不對',
   over_request_rate_limit: '嘗試次數太多，等一下再試',
   over_email_send_rate_limit: '寄信次數太多，等幾分鐘再試',
-  session_expired: '登入已經過期，重新登入一次',
-  refresh_token_not_found: '登入已經過期，重新登入一次',
+  session_expired: SESSION_EXPIRED,
+  refresh_token_not_found: SESSION_EXPIRED,
 
   // ── PostgREST ───────────────────────────────────────────
-  PGRST301: '登入已經過期，重新登入一次',
+  PGRST301: SESSION_EXPIRED,
   PGRST116: '找不到這筆資料，可能已經被刪掉了',
 
   // ── Postgres（SQLSTATE）─────────────────────────────────
@@ -62,7 +69,7 @@ const BY_TEXT: [RegExp, string][] = [
   [/row-level security policy/i, '沒有權限存取這筆資料，確認是不是登入的帳號不對'],
   [/violates foreign key constraint/i, '這筆資料連到的對象已經不在了，重新選一次'],
   [/duplicate key value/i, '這筆資料已經存在，不用重複新增'],
-  [/JWT expired|token is expired/i, '登入已經過期，重新登入一次'],
+  [/JWT expired|token is expired/i, SESSION_EXPIRED],
   // 網路中斷各家瀏覽器的說法都不同：Chrome 是 Failed to fetch、
   // Safari 是 Load failed、Firefox 是 NetworkError
   [/Failed to fetch|NetworkError|Load failed|ERR_INTERNET_DISCONNECTED/i,

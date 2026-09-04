@@ -194,12 +194,12 @@ const ratio = computed(() => brewRatioLabel(water.value, values.dose))
 function submit() {
   // bean_id 在資料庫是 not null——一筆沖煮紀錄不掛在任何豆子上沒有意義。
   // 前端要先擋下來，不能讓它跑到資料庫才失敗。
-  beanError.value = values.bean_id === null ? '選一支豆子，這筆紀錄要記在它底下' : ''
-  doseError.value = values.dose === null ? '粉重要填，其他都可以之後再說' : ''
+  beanError.value = values.bean_id === null ? '豆子還沒選' : ''
+  doseError.value = values.dose === null ? '粉重還沒填' : ''
 
   const missing = [beanError.value && '豆子', doseError.value && '粉重'].filter(Boolean)
   if (missing.length) {
-    summaryError.value = `還沒存起來：上面的${missing.join('與')}還沒填。`
+    summaryError.value = `沒有儲存：${missing.join('與')}還沒填`
     return
   }
   summaryError.value = ''
@@ -264,7 +264,7 @@ async function sanitizeDraft(incoming: BrewDraft): Promise<BrewDraft> {
 
   // 指向已刪除資料的欄位留空而不是整個表單壞掉，並讓使用者知道
   if (pruned.dropped.length || keptTags.length !== tagIds.length) {
-    draftNote.value = '有幾個選項已經被刪掉了，那幾格留空，其他都還在'
+    draftNote.value = '有幾個選項已經被刪掉，那幾格留空'
   }
 
   return {
@@ -296,7 +296,7 @@ const draft = props.draftKey
 defineExpose({ clearDraft: () => draft?.clear() })
 
 const inputStyle = {
-  minHeight: '44px',
+  minHeight: 'var(--touch-min)',
 }
 </script>
 
@@ -437,7 +437,7 @@ const inputStyle = {
           </select>
         </SelectField>
         <p v-if="!methods.length" class="mt-1 text-xs text-muted">手法的分段模板還沒建立</p>
-        <p v-else class="mt-1 text-xs text-muted">選了手法會依粉重把分段填進下面</p>
+        <p v-else class="mt-1 text-xs text-muted">選了手法會依粉重帶入分段</p>
         <p v-if="methodNotice" class="mt-1 text-xs" :style="{ color: 'var(--danger)' }">
           {{ methodNotice }}
         </p>
@@ -483,7 +483,7 @@ const inputStyle = {
         role="switch"
         :aria-checked="values.is_favorite"
         class="flex w-full items-center justify-between rounded-sm border px-4 py-3"
-        :style="{ borderColor: 'var(--border)', background: 'var(--surface)', minHeight: '44px' }"
+        :style="{ borderColor: 'var(--border)', background: 'var(--surface)', minHeight: 'var(--touch-min)' }"
         @click="values.is_favorite = !values.is_favorite"
       >
         <span>
@@ -505,7 +505,7 @@ const inputStyle = {
         type="submit"
         :disabled="busy"
         class="mt-3 w-full rounded-sm px-4 py-3 font-medium disabled:opacity-60"
-        :style="{ background: 'var(--accent)', color: 'var(--on-accent)', minHeight: '44px' }"
+        :style="{ background: 'var(--accent)', color: 'var(--on-accent)', minHeight: 'var(--touch-min)' }"
       >
         {{ busy ? '儲存中' : submitLabel }}
       </button>

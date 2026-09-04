@@ -2,7 +2,6 @@
 // 豆袋照片（《02-功能規格》§9）。
 //
 // 放在新增表單的最上方，是「不想打字的人」的逃生路徑：
-// 拍下豆袋就好，其他之後想填再填。
 // 壓縮在這裡完成，上傳時機由父層決定（新增時要先有 bean id）。
 
 const props = defineProps<{
@@ -58,7 +57,6 @@ onBeforeUnmount(() => {
 <template>
   <div>
     <p class="text-sm">豆袋照片</p>
-    <p class="mt-1 text-sm text-muted">拍下豆袋就好，其他之後想填再填。</p>
 
     <!-- 單一檔案輸入，兩個按鈕都觸發它 -->
     <input
@@ -87,7 +85,7 @@ onBeforeUnmount(() => {
         @click="openPicker"
       >
         <span :style="{ color: 'var(--accent)' }">{{ working ? '處理中' : '拍照或選一張' }}</span>
-        <span class="mt-1 text-xs text-muted">會自動縮到長邊 1600px 再上傳</span>
+        <span class="mt-1 text-xs text-muted">上傳前會自動壓縮</span>
       </button>
     </div>
 
@@ -97,7 +95,7 @@ onBeforeUnmount(() => {
       <button
         type="button"
         class="rounded-sm border px-3 py-2 text-sm"
-        :style="{ borderColor: 'var(--border)', minHeight: '44px' }"
+        :style="{ borderColor: 'var(--border)', minHeight: 'var(--touch-min)' }"
         @click="openPicker"
       >
         換一張
@@ -105,7 +103,7 @@ onBeforeUnmount(() => {
       <button
         type="button"
         class="rounded-sm border px-3 py-2 text-sm"
-        :style="{ borderColor: 'var(--border)', color: 'var(--text-muted)', minHeight: '44px' }"
+        :style="{ borderColor: 'var(--border)', color: 'var(--text-muted)', minHeight: 'var(--touch-min)' }"
         @click="clear"
       >
         移除

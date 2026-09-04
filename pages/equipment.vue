@@ -135,13 +135,13 @@ async function clearDefault(type: EquipmentType, exceptId?: string) {
 
 async function save() {
   if (!userId.value) {
-    formError.value = '登入狀態好像過期了，重新登入一次再試'
+    formError.value = SESSION_EXPIRED
     return
   }
   // 型錄與自訂名稱至少要有一個（DB 的 name_or_catalog check 也擋，
   // 但不該讓使用者看到資料庫的錯誤訊息）
   if (!form.catalog_id && !form.custom_name.trim()) {
-    formError.value = '選一個型號，或自己打一個名字'
+    formError.value = '選一個型號，或直接填名稱'
     return
   }
 
@@ -168,7 +168,7 @@ async function save() {
     await load()
   }
   catch (e) {
-    formError.value = `沒有存起來：${errorText(e)}`
+    formError.value = `儲存失敗：${errorText(e)}`
   }
   finally {
     saving.value = false
@@ -188,7 +188,7 @@ async function toggleDefault(row: EquipmentRow, next: boolean) {
     await load()
   }
   catch (e) {
-    actionError.value = `沒有改成功：${errorText(e)}`
+    actionError.value = `更新失敗：${errorText(e)}`
   }
 }
 
@@ -199,14 +199,14 @@ async function destroy() {
   deleting.value = false
   confirmId.value = null
   if (error) {
-    actionError.value = `沒有刪成功：${errorText(error)}`
+    actionError.value = `刪除失敗：${errorText(error)}`
     return
   }
   await load()
 }
 
 const inputStyle = {
-  minHeight: '44px',
+  minHeight: 'var(--touch-min)',
 }
 </script>
 
@@ -259,7 +259,7 @@ const inputStyle = {
             class="mt-3 rounded-sm px-3 py-3 text-sm"
             :style="{ background: 'var(--accent-wash)', color: 'var(--on-accent-wash)' }"
           >
-            <p v-if="isFreeformScale(scaleSpec)">這台面板沒有刻度標示，刻度可自由填寫。</p>
+            <p v-if="isFreeformScale(scaleSpec)">這台面板沒有刻度標示</p>
             <template v-else>
               <p class="tabular-nums">
                 刻度範圍 {{ grindScaleRangeLabel(scaleSpec) }}
@@ -289,7 +289,7 @@ const inputStyle = {
             :style="inputStyle"
           >
           <p class="mt-1 text-xs text-muted">
-            {{ form.catalog_id ? '已選型號，用型錄的名稱' : '型錄裡沒有的機器就打在這裡' }}
+            {{ form.catalog_id ? '已選型號，用型錄的名稱' : '型錄裡沒有的直接填名稱' }}
           </p>
         </FormRow>
 
@@ -302,7 +302,7 @@ const inputStyle = {
             class="mt-1 block w-full field py-2.5"
             :style="inputStyle"
           >
-          <p class="mt-1 text-xs text-muted">換刀盤、加裝配件這類個體差異記在這裡</p>
+          <p class="mt-1 text-xs text-muted">換刀盤、加裝配件這類個體差異</p>
         </FormRow>
 
         <FormRow>
@@ -314,7 +314,7 @@ const inputStyle = {
         type="button"
         :disabled="saving"
         class="mt-4 w-full rounded-sm px-4 py-3 font-medium disabled:opacity-60"
-        :style="{ background: 'var(--accent)', color: 'var(--on-accent)', minHeight: '44px' }"
+        :style="{ background: 'var(--accent)', color: 'var(--on-accent)', minHeight: 'var(--touch-min)' }"
         @click="save"
       >
         {{ saving ? '儲存中' : '儲存' }}
@@ -327,7 +327,7 @@ const inputStyle = {
       <button
         type="button"
         class="mt-3 w-full rounded-sm border px-4 py-3"
-        :style="{ borderColor: 'var(--border)', minHeight: '44px' }"
+        :style="{ borderColor: 'var(--border)', minHeight: 'var(--touch-min)' }"
         @click="cancel"
       >
         取消
@@ -395,7 +395,7 @@ const inputStyle = {
     <NuxtLink
       to="#"
       aria-label="新增器材"
-      class="fixed right-5 bottom-20 z-30 flex size-14 items-center justify-center rounded-lg"
+      class="fixed right-5 bottom-20 z-30 flex size-14 items-center justify-center rounded-full"
       :style="{ background: 'var(--accent)', color: 'var(--on-accent)', boxShadow: 'var(--overlay-shadow)' }"
       @click.prevent="startCreate"
     >

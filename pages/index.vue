@@ -273,13 +273,10 @@ const newBrewLink = computed(() =>
     <!-- 空狀態是邀請行動的時機，不是說明現況的時機 -->
     <section v-else-if="isEmpty" class="mt-10">
       <h2 class="font-serif text-lg font-bold">從一支豆子開始</h2>
-      <p class="mt-2 text-muted">
-        先建一支豆子，再記下這次怎麼沖的。豆子只要拍一張豆袋、打個豆名就能存。
-      </p>
       <NuxtLink
         to="/beans/new"
         class="mt-6 block w-full rounded-sm px-4 py-3 text-center font-medium"
-        :style="{ background: 'var(--accent)', color: 'var(--on-accent)', minHeight: '44px' }"
+        :style="{ background: 'var(--accent)', color: 'var(--on-accent)', minHeight: 'var(--touch-min)' }"
       >
         新增豆子
       </NuxtLink>
@@ -346,7 +343,7 @@ const newBrewLink = computed(() =>
           type="button"
           :disabled="loadingMore"
           class="mt-4 w-full rounded-sm border px-4 py-3 disabled:opacity-60"
-          :style="{ borderColor: 'var(--border)', color: 'var(--accent)', minHeight: '44px' }"
+          :style="{ borderColor: 'var(--border)', color: 'var(--accent)', minHeight: 'var(--touch-min)' }"
           @click="loadMore"
         >
           {{ loadingMore ? '讀取中' : '載入更多' }}
@@ -358,7 +355,7 @@ const newBrewLink = computed(() =>
     <NuxtLink
       :to="newBrewLink"
       aria-label="新增紀錄"
-      class="fixed right-5 bottom-20 z-30 flex size-14 items-center justify-center rounded-lg"
+      class="fixed right-5 bottom-20 z-30 flex size-14 items-center justify-center rounded-full"
       :style="{ background: 'var(--accent)', color: 'var(--on-accent)', boxShadow: 'var(--overlay-shadow)' }"
     >
       <svg width="24" height="24" viewBox="0 0 24 24" aria-hidden="true">

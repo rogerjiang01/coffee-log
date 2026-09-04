@@ -13,7 +13,7 @@ defineEmits<{ open: [] }>()
       class="mt-1 flex w-full items-center justify-between field px-3 py-2.5 text-left"
       data-field
       :data-filled="!!name"
-      :style="{ minHeight: '44px' }"
+      :style="{ minHeight: 'var(--touch-min)' }"
       @click="$emit('open')"
     >
       <span class="min-w-0 truncate" :style="{ color: name ? 'var(--text)' : 'var(--text-muted)' }">
