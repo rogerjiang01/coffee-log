@@ -22,11 +22,22 @@ const error = ref('')
 
 onMounted(async () => {
   try {
-    const { data } = await supabase
-      .from('brews')
-      .select('bean_id, brew_method_id, dose, water_temp, grinder_id, grind_setting, dripper_id, kettle_id, filter_id, server_id, total_time, brewed_at, rating, is_favorite, tasting_notes, intensity')
-      .eq('id', id.value)
-      .maybeSingle()
+    // 三個查詢都只靠網址上的 id，一起發。原本是一個接一個 await，
+    // 三趟來回全部疊在使用者按下「編輯」到看見表單之間。
+    const [brewResult, stepResult, tagResult] = await Promise.all([
+      supabase
+        .from('brews')
+        .select('bean_id, brew_method_id, dose, water_temp, grinder_id, grind_setting, dripper_id, kettle_id, filter_id, server_id, total_time, brewed_at, rating, is_favorite, tasting_notes, intensity')
+        .eq('id', id.value)
+        .maybeSingle(),
+      supabase
+        .from('brew_steps')
+        .select('step_index, time_offset, cumulative_water, step_type, note')
+        .eq('brew_id', id.value)
+        .order('step_index'),
+      supabase.from('brew_flavor_tags').select('flavor_tag_id').eq('brew_id', id.value),
+    ])
+    const data = brewResult.data
 
     if (!data) {
       notFound.value = true
@@ -54,20 +65,12 @@ onMounted(async () => {
       intensity: (brew.intensity as Intensity | null) ?? {},
     }
 
-    const { data: steps } = await supabase
-      .from('brew_steps')
-      .select('step_index, time_offset, cumulative_water, step_type, note')
-      .eq('brew_id', id.value)
-      .order('step_index')
     // 資料庫的累積時間點在這裡換算回介面的停留秒數
-    const rows = (steps ?? []) as unknown as StepRow[]
+    const rows = (stepResult.data ?? []) as unknown as StepRow[]
     stepInputs.value = rows.length ? toStepInputs(rows, totalTime) : initialSteps()
 
-    const { data: tags } = await supabase
-      .from('brew_flavor_tags')
-      .select('flavor_tag_id')
-      .eq('brew_id', id.value)
-    tagIds.value = ((tags ?? []) as unknown as { flavor_tag_id: string }[]).map(t => t.flavor_tag_id)
+    tagIds.value = ((tagResult.data ?? []) as unknown as { flavor_tag_id: string }[])
+      .map(t => t.flavor_tag_id)
 
     loading.value = false
   }
@@ -149,7 +152,20 @@ async function onSubmit(payload: {
 <template>
   <main class="mx-auto px-5 pt-10 pb-16" :style="{ maxWidth: 'var(--content-max)' }">
     <p v-if="loadError" role="alert" class="text-sm" :style="{ color: 'var(--danger)' }">{{ loadError }}</p>
-    <p v-if="loading" class="text-muted">讀取中</p>
+    <!-- 骨架：表單的分組卡片先佔位，等資料回來換成真的表單。
+         §6 不做進場動畫，所以是靜態色塊。 -->
+    <div v-if="loading" aria-busy="true" aria-label="讀取中" class="mt-8 space-y-4">
+      <div
+        v-for="card in 3" :key="card"
+        class="rounded-sm border p-5"
+        :style="{ borderColor: 'var(--border)', background: 'var(--surface)' }"
+      >
+        <SkeletonBlock width="5rem" height="0.875rem" />
+        <div class="mt-4 space-y-4">
+          <SkeletonBlock v-for="row in 3" :key="row" height="1.5rem" />
+        </div>
+      </div>
+    </div>
 
     <template v-else-if="notFound">
       <h1 class="font-serif text-xl font-bold">找不到這筆紀錄</h1>

@@ -35,16 +35,25 @@ const matches = computed(() =>
   ).map(match => items.value.find(row => row.id === match.id)!).filter(Boolean),
 )
 
+// 型錄是純系統表，一個工作階段內不會變，讀過就留著——
+// 反覆開關器材選擇器時不必每次都等一趟來回。
+async function fetchCatalog(type: string) {
+  const { data } = await supabase
+    .from('equipment_catalog')
+    .select('id, brand, model, variant, grind_scale_min, grind_scale_max, grind_scale_increment, grind_scale_suggested_min, grind_scale_suggested_max, grind_scale_note')
+    .eq('type', type)
+    .order('sort_order')
+    .order('model')
+  return (data ?? []) as unknown as CatalogRow[]
+}
+
+const systemTable = useSystemTable()
+
 async function load() {
   loading.value = true
   try {
-    const { data } = await supabase
-      .from('equipment_catalog')
-      .select('id, brand, model, variant, grind_scale_min, grind_scale_max, grind_scale_increment, grind_scale_suggested_min, grind_scale_suggested_max, grind_scale_note')
-      .eq('type', props.type)
-      .order('sort_order')
-      .order('model')
-    items.value = (data ?? []) as unknown as CatalogRow[]
+    const type = props.type
+    items.value = await systemTable.read<CatalogRow>(`equipment_catalog:${type}`, () => fetchCatalog(type))
   }
   finally {
     // finally：任何失敗都不能讓元件停在「讀取中」

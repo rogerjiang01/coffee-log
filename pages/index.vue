@@ -73,8 +73,30 @@ function toSubject(row: BrewRow, steps: StepRow[]): DiffSubject {
   }
 }
 
-/** 把一頁紀錄變成時間軸項目，順便把差異算出來 */
-async function buildEntries(rows: BrewRow[]): Promise<TimelineEntry[]> {
+/**
+ * 先把一頁紀錄變成時間軸項目。
+ *
+ * 差異與總水量都還沒有——它們需要來源紀錄與分段，那是另一趟來回。
+ * 列表先畫出來，那兩樣稍後補上：使用者要看的「哪天沖了哪支豆子」
+ * 在第一趟就已經到手，沒有理由陪著差異一起等。
+ */
+function toEntries(rows: BrewRow[]): TimelineEntry[] {
+  return rows.map(row => ({
+    id: row.id as string,
+    brewedAt: row.brewed_at as string,
+    beanName: (row.beans as { name: string } | null)?.name ?? null,
+    dose: (row.dose as number | null) ?? null,
+    waterTemp: (row.water_temp as number | null) ?? null,
+    grindSetting: (row.grind_setting as number | null) ?? null,
+    isFavorite: (row.is_favorite as boolean | null) ?? false,
+    totalWater: null,
+    diffs: [],
+  }))
+}
+
+/** 補上總水量與差異。就地改寫已經在畫面上的項目，不重排列表。 */
+async function enrichEntries(rows: BrewRow[]) {
+  if (!rows.length) return
   const sourceIds = [...new Set(
     rows.map(row => row.copied_from_brew_id as string | null).filter((id): id is string => !!id),
   )]
@@ -100,28 +122,22 @@ async function buildEntries(rows: BrewRow[]): Promise<TimelineEntry[]> {
     stepsByBrew.get(row.brew_id)!.push(row)
   }
 
-  return rows.map((row) => {
+  const byId = new Map(timeline.value.map(entry => [entry.id, entry]))
+  for (const row of rows) {
     const id = row.id as string
+    const entry = byId.get(id)
+    if (!entry) continue
     const ownSteps = stepsByBrew.get(id) ?? []
     const sourceId = row.copied_from_brew_id as string | null
     const source = sourceId ? sources.get(sourceId) : undefined
 
-    return {
-      id,
-      brewedAt: row.brewed_at as string,
-      beanName: (row.beans as { name: string } | null)?.name ?? null,
-      dose: (row.dose as number | null) ?? null,
-      waterTemp: (row.water_temp as number | null) ?? null,
-      grindSetting: (row.grind_setting as number | null) ?? null,
-      isFavorite: (row.is_favorite as boolean | null) ?? false,
-      totalWater: ownSteps.length
-        ? Math.max(...ownSteps.map(step => Number(step.cumulative_water)))
-        : null,
-      diffs: source
-        ? computeBrewDiff(toSubject(row, ownSteps), toSubject(source, stepsByBrew.get(sourceId!) ?? []))
-        : [],
-    }
-  })
+    entry.totalWater = ownSteps.length
+      ? Math.max(...ownSteps.map(step => Number(step.cumulative_water)))
+      : null
+    entry.diffs = source
+      ? computeBrewDiff(toSubject(row, ownSteps), toSubject(source, stepsByBrew.get(sourceId!) ?? []))
+      : []
+  }
 }
 
 async function load() {
@@ -158,16 +174,20 @@ async function load() {
     favoriteCounts.value = favorites
 
     const rows = (brewResult.data ?? []) as unknown as BrewRow[]
-    timeline.value = await buildEntries(rows)
+    timeline.value = toEntries(rows)
     hasMore.value = rows.length === PAGE_SIZE
 
-    // 照片取不到不該拖垮整頁
-    try {
-      photoUrls.value = await signedUrls(beans.value.map(bean => bean.photo_path))
-    }
-    catch {
-      photoUrls.value = new Map()
-    }
+    // 第一趟到此為止，畫面可以出來了。
+    loading.value = false
+
+    // 第二趟：照片簽名網址與差異彼此不相依，一起發，也不再擋著畫面。
+    // 照片取不到不該拖垮整頁。
+    await Promise.all([
+      signedUrls(beans.value.map(bean => bean.photo_path))
+        .then((map) => { photoUrls.value = map })
+        .catch(() => { photoUrls.value = new Map() }),
+      enrichEntries(rows),
+    ])
   }
   catch (e) {
     loadError.value = e instanceof Error ? `讀不到資料：${e.message}` : '讀不到資料'
@@ -190,8 +210,10 @@ async function loadMore() {
       .range(from, from + PAGE_SIZE - 1)
     if (error) throw new Error(error.message)
     const rows = (data ?? []) as unknown as BrewRow[]
-    timeline.value = [...timeline.value, ...await buildEntries(rows)]
+    timeline.value = [...timeline.value, ...toEntries(rows)]
     hasMore.value = rows.length === PAGE_SIZE
+    loadingMore.value = false
+    await enrichEntries(rows)
   }
   catch (e) {
     loadError.value = e instanceof Error ? `讀不到更多紀錄：${e.message}` : '讀不到更多紀錄'
@@ -223,7 +245,30 @@ const newBrewLink = computed(() =>
       {{ loadError }}
     </p>
 
-    <p v-if="loading" class="mt-8 text-muted">讀取中</p>
+    <!-- 骨架：先把版面結構畫出來，資料回來再填。
+         §6 不做進場動畫，所以這裡是靜態色塊，沒有閃爍效果。 -->
+    <div v-if="loading" aria-busy="true" aria-label="讀取中">
+      <section class="mt-8">
+        <SkeletonBlock width="6rem" height="0.875rem" />
+        <div class="-mx-5 mt-2 overflow-hidden">
+          <ul class="flex gap-3 px-5">
+            <li v-for="n in 2" :key="n">
+              <SkeletonBlock width="9.5rem" height="12rem" radius="4px" />
+            </li>
+          </ul>
+        </div>
+      </section>
+      <section class="mt-10">
+        <SkeletonBlock width="4rem" height="0.875rem" />
+        <ul class="mt-4 space-y-6">
+          <li v-for="n in 4" :key="n">
+            <SkeletonBlock width="7rem" height="0.75rem" />
+            <SkeletonBlock width="65%" height="1.125rem" class="mt-2" />
+            <SkeletonBlock width="45%" height="0.875rem" class="mt-2" />
+          </li>
+        </ul>
+      </section>
+    </div>
 
     <!-- 空狀態是邀請行動的時機，不是說明現況的時機 -->
     <section v-else-if="isEmpty" class="mt-10">

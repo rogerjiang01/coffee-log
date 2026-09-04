@@ -334,7 +334,14 @@ const inputStyle = {
       </button>
     </div>
 
-    <p v-if="loading" class="mt-6 text-muted">讀取中</p>
+    <div v-if="loading" aria-busy="true" aria-label="讀取中" class="mt-6 space-y-6">
+      <section v-for="n in 2" :key="n">
+        <SkeletonBlock width="4rem" height="0.875rem" />
+        <div class="mt-3 space-y-3">
+          <SkeletonBlock v-for="row in 2" :key="row" height="3.5rem" radius="4px" />
+        </div>
+      </section>
+    </div>
 
     <p v-else-if="!items.length && !loadError" class="mt-6 text-muted">
       設定常用器材，之後新增紀錄時會自動帶入。

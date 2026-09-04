@@ -56,12 +56,18 @@ const countries = ref<{ id: string; name_zh: string }[]>([])
 // 產區是自由文字，建議來源是使用者自己填過的值，沒有歷史就沒有建議
 const regionSuggestions = ref<string[]>([])
 
+const systemTable = useSystemTable()
+
 onMounted(async () => {
-  const [countryResult, regionResult] = await Promise.all([
-    supabase.from('countries').select('id, name_zh').order('sort_order').order('name_zh'),
+  const [countryRows, regionResult] = await Promise.all([
+    // countries 是純系統表（《01》§4.4），讀過就留著，換頁不必重抓
+    systemTable.read<{ id: string; name_zh: string }>('countries', async () => {
+      const { data } = await supabase.from('countries').select('id, name_zh').order('sort_order').order('name_zh')
+      return (data ?? []) as unknown as { id: string; name_zh: string }[]
+    }),
     supabase.from('beans').select('region').not('region', 'is', null).order('region'),
   ])
-  countries.value = (countryResult.data ?? []) as unknown as { id: string; name_zh: string }[]
+  countries.value = countryRows
   const seen = (regionResult.data ?? []) as unknown as { region: string | null }[]
   regionSuggestions.value = [...new Set(seen.map(row => row.region).filter((v): v is string => !!v))]
 })

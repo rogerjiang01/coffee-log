@@ -35,6 +35,10 @@ async function load() {
 
     beans.value = (data ?? []) as unknown as BeanRow[]
 
+    // 清單可以出來了。簽名網址得等 photo_path，避不掉第二趟，
+    // 但豆名與烘焙資訊不必陪著等——照片欄先留白，回來再填。
+    loading.value = false
+
     // 照片取不到不該拖垮清單
     try {
       photoUrls.value = await signedUrls(beans.value.map(bean => bean.photo_path))
@@ -72,7 +76,11 @@ onMounted(load)
       {{ loadError }}
     </p>
 
-    <p v-if="loading" class="mt-6 text-muted">讀取中</p>
+    <ul v-if="loading" aria-busy="true" aria-label="讀取中" class="mt-6 space-y-3">
+      <li v-for="n in 4" :key="n">
+        <SkeletonBlock height="5.5rem" radius="4px" />
+      </li>
+    </ul>
 
     <p v-else-if="!beans.length && !loadError" class="mt-6 text-muted">
       拍一張豆袋、打個豆名就能存。

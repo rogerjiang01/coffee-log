@@ -38,6 +38,8 @@ interface EquipmentNameRow {
 
 const brew = ref<BrewDetail | null>(null)
 const steps = ref<StepInput[]>([])
+// 差異計算吃的是原始列（累積時間點），不是介面用的停留秒數，兩者要分開留著
+const rawSteps = ref<StepRow[]>([])
 const tags = ref<string[]>([])
 const loading = ref(true)
 const loadError = ref('')
@@ -46,45 +48,49 @@ const confirmOpen = ref(false)
 const deleting = ref(false)
 const actionError = ref('')
 
+function stepSelect(brewId: string) {
+  return supabase
+    .from('brew_steps')
+    .select('step_index, time_offset, cumulative_water, step_type, note')
+    .eq('brew_id', brewId)
+    .order('step_index')
+}
+
 async function load() {
   try {
-    const { data } = await supabase
-      .from('brews')
-      .select(`
-        id, copied_from_brew_id, brew_method_id, grinder_id, dripper_id, kettle_id,
-        dose, water_temp, grind_setting, total_time, brewed_at,
-        rating, is_favorite, tasting_notes, intensity,
-        beans ( id, name, roast_date ),
-        brew_methods ( name ),
-        grinder:grinder_id ( custom_name, equipment_catalog ( brand, model, variant ) ),
-        dripper:dripper_id ( custom_name, equipment_catalog ( brand, model, variant ) ),
-        kettle:kettle_id ( custom_name, equipment_catalog ( brand, model, variant ) )
-      `)
-      .eq('id', id.value)
-      .maybeSingle()
+    // 三個查詢都只靠網址上的 id，彼此不相依，一起發。
+    // 原本是一個接一個 await，三趟來回疊起來就是使用者感覺到的那一秒。
+    const [brewResult, stepResult, tagResult] = await Promise.all([
+      supabase
+        .from('brews')
+        .select(`
+          id, copied_from_brew_id, brew_method_id, grinder_id, dripper_id, kettle_id,
+          dose, water_temp, grind_setting, total_time, brewed_at,
+          rating, is_favorite, tasting_notes, intensity,
+          beans ( id, name, roast_date ),
+          brew_methods ( name ),
+          grinder:grinder_id ( custom_name, equipment_catalog ( brand, model, variant ) ),
+          dripper:dripper_id ( custom_name, equipment_catalog ( brand, model, variant ) ),
+          kettle:kettle_id ( custom_name, equipment_catalog ( brand, model, variant ) )
+        `)
+        .eq('id', id.value)
+        .maybeSingle(),
+      stepSelect(id.value),
+      supabase.from('brew_flavor_tags').select('flavor_tags ( name )').eq('brew_id', id.value),
+    ])
 
-    if (!data) {
+    if (!brewResult.data) {
       notFound.value = true
       return
     }
-    brew.value = data as unknown as BrewDetail
+    brew.value = brewResult.data as unknown as BrewDetail
 
-    const { data: stepRows } = await supabase
-      .from('brew_steps')
-      .select('step_index, time_offset, cumulative_water, step_type, note')
-      .eq('brew_id', id.value)
-      .order('step_index')
-    steps.value = toStepInputs((stepRows ?? []) as unknown as StepRow[], brew.value.total_time)
+    rawSteps.value = (stepResult.data ?? []) as unknown as StepRow[]
+    steps.value = toStepInputs(rawSteps.value, brew.value.total_time)
 
-    const { data: tagRows } = await supabase
-      .from('brew_flavor_tags')
-      .select('flavor_tags ( name )')
-      .eq('brew_id', id.value)
-    tags.value = ((tagRows ?? []) as unknown as { flavor_tags: { name: string } | null }[])
+    tags.value = ((tagResult.data ?? []) as unknown as { flavor_tags: { name: string } | null }[])
       .map(row => row.flavor_tags?.name)
       .filter((name): name is string => !!name)
-
-    await loadDiff()
   }
   catch (e) {
     loadError.value = e instanceof Error ? `讀不到資料：${e.message}` : '讀不到資料'
@@ -93,6 +99,9 @@ async function load() {
     // finally：任何失敗都不能讓頁面停在「讀取中」
     loading.value = false
   }
+  // 差異不擋主要內容：頁面先顯示出來，差異區塊等來源紀錄回來再出現。
+  // 差異拿不到就不顯示那一區，不要用它蓋掉已經看得到的內容。
+  loadDiff().catch(() => {})
 }
 onMounted(load)
 
@@ -129,34 +138,26 @@ function toSubject(row: Record<string, unknown>, rows: StepRow[]): DiffSubject {
   }
 }
 
-async function fetchSteps(brewId: string) {
-  const { data } = await supabase
-    .from('brew_steps')
-    .select('step_index, time_offset, cumulative_water, step_type, note')
-    .eq('brew_id', brewId)
-    .order('step_index')
-  return (data ?? []) as unknown as StepRow[]
-}
-
 async function loadDiff() {
-  const sourceId = brew.value?.copied_from_brew_id
+  const current = brew.value
+  const sourceId = current?.copied_from_brew_id
   // 來源被刪除時外鍵會被設成 null，此區塊自然不顯示
-  if (!sourceId) return
+  if (!current || !sourceId) return
 
-  const [currentRow, sourceRow] = await Promise.all([
-    supabase.from('brews').select(DIFF_SELECT).eq('id', id.value).maybeSingle(),
+  // 本筆的參數與分段在 load() 已經拿到了，不再重抓——
+  // 主查詢的欄位是 DIFF_SELECT 的超集合。只有來源那一邊需要去問。
+  const [sourceRow, sourceStepRows] = await Promise.all([
     supabase.from('brews').select(DIFF_SELECT).eq('id', sourceId).maybeSingle(),
+    stepSelect(sourceId),
   ])
-  if (!currentRow.data || !sourceRow.data) return
-
-  const [currentSteps, sourceSteps] = await Promise.all([
-    fetchSteps(id.value),
-    fetchSteps(sourceId),
-  ])
+  if (!sourceRow.data) return
 
   diffs.value = computeBrewDiff(
-    toSubject(currentRow.data as unknown as Record<string, unknown>, currentSteps),
-    toSubject(sourceRow.data as unknown as Record<string, unknown>, sourceSteps),
+    toSubject(current as unknown as Record<string, unknown>, rawSteps.value),
+    toSubject(
+      sourceRow.data as unknown as Record<string, unknown>,
+      (sourceStepRows.data ?? []) as unknown as StepRow[],
+    ),
   )
 }
 
@@ -216,7 +217,19 @@ async function destroy() {
 <template>
   <main class="mx-auto px-5 pt-10 pb-16" :style="{ maxWidth: 'var(--content-max)' }">
     <p v-if="loadError" role="alert" class="text-sm" :style="{ color: 'var(--danger)' }">{{ loadError }}</p>
-    <p v-if="loading" class="text-muted">讀取中</p>
+    <!-- 骨架：版面結構立刻畫出來，資料回來再填。
+         這不會讓資料變快，但空白加「讀取中」與有形狀的頁面，感受差很多。 -->
+    <div v-if="loading" aria-busy="true" aria-label="讀取中">
+      <div class="flex items-baseline justify-between">
+        <SkeletonBlock width="3rem" height="0.875rem" />
+        <SkeletonBlock width="2rem" height="0.875rem" />
+      </div>
+      <SkeletonBlock width="60%" height="1.75rem" class="mt-4" />
+      <SkeletonBlock width="9rem" height="0.875rem" class="mt-2" />
+      <div class="mt-8 space-y-3">
+        <SkeletonBlock v-for="n in 6" :key="n" height="1.25rem" />
+      </div>
+    </div>
 
     <template v-else-if="notFound">
       <h1 class="font-serif text-xl font-bold">找不到這筆紀錄</h1>

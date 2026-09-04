@@ -32,11 +32,21 @@ onMounted(async () => {
   }
 
   try {
-    const { data } = await supabase
-      .from('brews')
-      .select('bean_id, brew_method_id, dose, water_temp, grinder_id, grind_setting, dripper_id, kettle_id, filter_id, server_id, total_time')
-      .eq('id', copyId)
-      .maybeSingle()
+    // 分段查的是 brew_id = copyId，而 copyId 從網址就拿到了，
+    // 不必等上一筆查詢回來才發，兩個一起送。
+    const [brewResult, stepResult] = await Promise.all([
+      supabase
+        .from('brews')
+        .select('bean_id, brew_method_id, dose, water_temp, grinder_id, grind_setting, dripper_id, kettle_id, filter_id, server_id, total_time')
+        .eq('id', copyId)
+        .maybeSingle(),
+      supabase
+        .from('brew_steps')
+        .select('step_index, time_offset, cumulative_water, step_type, note')
+        .eq('brew_id', copyId)
+        .order('step_index'),
+    ])
+    const data = brewResult.data
 
     if (data) {
       const source = data as unknown as Record<string, unknown>
@@ -58,12 +68,7 @@ onMounted(async () => {
       }
       copiedFrom.value = copyId
 
-      const { data: steps } = await supabase
-        .from('brew_steps')
-        .select('step_index, time_offset, cumulative_water, step_type, note')
-        .eq('brew_id', copyId)
-        .order('step_index')
-      const rows = (steps ?? []) as unknown as StepRow[]
+      const rows = (stepResult.data ?? []) as unknown as StepRow[]
       // 完整分段，含備註與攪拌標記
       if (rows.length) {
         initialSteps.value = toStepInputs(rows, (source.total_time as number | null) ?? null)
@@ -171,7 +176,20 @@ async function onSubmit(payload: {
       參數與分段照上一次帶入，改幾個數字就好。品飲的部分是空的。
     </p>
 
-    <p v-if="!ready" class="mt-8 text-muted">讀取中</p>
+    <!-- 骨架：表單的分組卡片先佔位，等資料回來換成真的表單。
+         §6 不做進場動畫，所以是靜態色塊。 -->
+    <div v-if="!ready" aria-busy="true" aria-label="讀取中" class="mt-8 space-y-4">
+      <div
+        v-for="card in 3" :key="card"
+        class="rounded-sm border p-5"
+        :style="{ borderColor: 'var(--border)', background: 'var(--surface)' }"
+      >
+        <SkeletonBlock width="5rem" height="0.875rem" />
+        <div class="mt-4 space-y-4">
+          <SkeletonBlock v-for="row in 3" :key="row" height="1.5rem" />
+        </div>
+      </div>
+    </div>
 
     <div v-else class="mt-8">
       <BrewForm

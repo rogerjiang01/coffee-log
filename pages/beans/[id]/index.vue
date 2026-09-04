@@ -39,53 +39,61 @@ const id = computed(() => String(route.params.id))
 
 async function load() {
   try {
-    const { data } = await supabase
-      .from('beans')
-      .select(`
-        id, name, photo_path, roaster, roast_date, roast_level, region, official_notes, is_finished,
-        countries ( name_zh ),
-        processing_methods ( name ), varieties ( name )
-      `)
-      .eq('id', id.value)
-      .maybeSingle()
+    // 豆子與沖煮紀錄都只靠網址上的 id，互不相依，一起發。
+    // 原本是 豆子 → 簽名網址 → 紀錄 → 分段 四趟串行，那正是切換頁面時的延遲來源。
+    const [beanResult, brewResult] = await Promise.all([
+      supabase
+        .from('beans')
+        .select(`
+          id, name, photo_path, roaster, roast_date, roast_level, region, official_notes, is_finished,
+          countries ( name_zh ),
+          processing_methods ( name ), varieties ( name )
+        `)
+        .eq('id', id.value)
+        .maybeSingle(),
+      supabase
+        .from('brews')
+        .select('id, brewed_at, dose, water_temp, grind_setting, total_time, is_favorite')
+        .eq('bean_id', id.value)
+        .order('brewed_at', { ascending: true })
+        .order('id', { ascending: true }),
+    ])
 
-    if (!data) {
+    if (!beanResult.data) {
       notFound.value = true
       return
     }
-    bean.value = data as unknown as BeanDetail
-    photoUrl.value = await signedUrl(bean.value.photo_path)
+    const detail = beanResult.data as unknown as BeanDetail
+    bean.value = detail
 
-    // 比較表需要每一筆的參數與總水量，順便算次數，不另外發 count 查詢
-    const { data: brews, error: brewError } = await supabase
-      .from('brews')
-      .select('id, brewed_at, dose, water_temp, grind_setting, total_time, is_favorite')
-      .eq('bean_id', id.value)
-      .order('brewed_at', { ascending: true })
-      .order('id', { ascending: true })
-    if (brewError) throw new Error(brewError.message)
-
-    const brewRows = (brews ?? []) as unknown as Omit<CompareBrew, 'totalWater'>[]
+    if (brewResult.error) throw new Error(brewResult.error.message)
+    const brewRows = (brewResult.data ?? []) as unknown as Omit<CompareBrew, 'totalWater'>[]
     brewCount.value = brewRows.length
     favoriteCount.value = brewRows.filter(row => row.is_favorite).length
 
-    // 總水量要靠分段算出來。一次把所有分段取回，不每筆各查一次。
+    // 第二趟同樣兩件事一起做：簽名網址要等 photo_path，分段要等紀錄 id，
+    // 但它們彼此不相依。總水量要靠分段算出來，一次全部取回，不每筆各查一次。
+    const [signed, steps] = await Promise.all([
+      signedUrl(detail.photo_path).catch(() => null),
+      brewRows.length
+        ? supabase
+            .from('brew_steps')
+            .select('brew_id, cumulative_water')
+            .in('brew_id', brewRows.map(row => row.id))
+        : Promise.resolve({ data: [] }),
+    ])
+    photoUrl.value = signed
+
     const waterByBrew = new Map<string, number>()
-    if (brewRows.length) {
-      const { data: steps } = await supabase
-        .from('brew_steps')
-        .select('brew_id, cumulative_water')
-        .in('brew_id', brewRows.map(row => row.id))
-      for (const step of (steps ?? []) as unknown as { brew_id: string, cumulative_water: number }[]) {
-        const water = Number(step.cumulative_water)
-        const current = waterByBrew.get(step.brew_id)
-        if (current === undefined || water > current) waterByBrew.set(step.brew_id, water)
-      }
+    for (const step of (steps.data ?? []) as unknown as { brew_id: string, cumulative_water: number }[]) {
+      const water = Number(step.cumulative_water)
+      const current = waterByBrew.get(step.brew_id)
+      if (current === undefined || water > current) waterByBrew.set(step.brew_id, water)
     }
 
     compareRows.value = buildCompareRows(
       brewRows.map(row => ({ ...row, totalWater: waterByBrew.get(row.id) ?? null })),
-      (data as unknown as BeanDetail).roast_date,
+      detail.roast_date,
     )
   }
   catch (e) {
@@ -145,7 +153,15 @@ async function destroy() {
 <template>
   <main class="mx-auto px-5 py-10" :style="{ maxWidth: 'var(--content-max)' }">
     <p v-if="loadError" role="alert" class="text-sm" :style="{ color: 'var(--danger)' }">{{ loadError }}</p>
-    <p v-if="loading" class="text-muted">讀取中</p>
+    <div v-if="loading" aria-busy="true" aria-label="讀取中">
+      <SkeletonBlock width="3rem" height="0.875rem" />
+      <SkeletonBlock height="10rem" radius="4px" class="mt-4" />
+      <SkeletonBlock width="55%" height="1.75rem" class="mt-4" />
+      <SkeletonBlock width="8rem" height="0.875rem" class="mt-2" />
+      <div class="mt-8 space-y-3">
+        <SkeletonBlock v-for="n in 5" :key="n" height="1.25rem" />
+      </div>
+    </div>
 
     <template v-else-if="notFound">
       <h1 class="font-serif text-xl font-bold">找不到這支豆子</h1>

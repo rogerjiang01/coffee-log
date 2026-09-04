@@ -150,9 +150,6 @@ const methodTemplates = ref<Map<string, { template: MethodTemplate | null; ratio
 
 const methodNotice = ref('')
 
-// 上一次由模板產生的分段，**逐段**記錄。用來判斷每一段有沒有被手動改過。
-const templateSnapshot = ref<string[] | null>(null)
-
 function templateResult() {
   const id = values.brew_method_id
   if (!id) return null
@@ -161,42 +158,26 @@ function templateResult() {
   return stepsFromTemplate(method.template, values.dose, method.ratio)
 }
 
-/** 選了手法：整組帶入 */
-function applyMethod() {
+function applyTemplate() {
   const result = templateResult()
   if (!result) return
   steps.value = result.steps
-  templateSnapshot.value = result.steps.map(step => JSON.stringify(step))
   methodNotice.value = result.notice ?? ''
 }
 
-/** 粉重變動：逐段合併，只重算使用者沒動過的那幾段 */
-function regenerateUntouched() {
+// 選了手法就整組帶入；粉重還沒填時 templateResult 回 null，等粉重填好再套用
+watch(() => values.brew_method_id, applyTemplate)
+
+// 粉重變動時整組重算——總水量由粉重決定，不重算等於留著舊粉重的分段。
+// 這會蓋掉使用者手動改過的值，是刻意的取捨：規則要能被預測。
+// 理由與被撤掉的逐段機制寫在 shouldRegenerateSteps 的註解裡。
+watch(() => values.dose, () => {
+  if (!values.brew_method_id) return
   const result = templateResult()
   if (!result) return
-
-  // 整組還是空白的，直接帶入
-  if (steps.value.every(step => step.cumulativeWater === null)) {
-    steps.value = result.steps
-    templateSnapshot.value = result.steps.map(step => JSON.stringify(step))
-    methodNotice.value = result.notice ?? ''
-    return
-  }
-
-  const merged = mergeTemplateSteps(steps.value, templateSnapshot.value, result.steps)
-  // 段數對不上代表使用者增減過段落，結構已與模板無關，整組不再重算
-  if (!merged) return
-  steps.value = merged.steps
-  templateSnapshot.value = merged.snapshot
+  if (!shouldRegenerateSteps(steps.value, result.steps.length)) return
+  steps.value = result.steps
   methodNotice.value = result.notice ?? ''
-}
-
-// 選了手法就套用；粉重還沒填時，等粉重填好再套用
-watch(() => values.brew_method_id, applyMethod)
-// 粉重變動時跟著重算——總水量由粉重決定，不重算等於留著舊粉重的分段。
-// 但只在使用者沒有手動改過分段時才動它。
-watch(() => values.dose, () => {
-  if (values.brew_method_id) regenerateUntouched()
 })
 
 // 養豆天數＝沖煮時間 − 烘焙日期。衍生值，不存資料庫；
@@ -300,14 +281,11 @@ const draft = props.draftKey
         Object.assign(values, data.values)
         if (data.steps?.length) steps.value = data.steps
         flavorTagIds.value = data.flavorTagIds ?? []
-        // 還原的分段是使用者當時的狀態，不要再被模板蓋掉
-        templateSnapshot.value = null
       },
       reset: () => {
         Object.assign(values, initialValues())
         steps.value = props.initialSteps ?? initialSteps()
         flavorTagIds.value = props.initialFlavorTagIds ?? []
-        templateSnapshot.value = null
         draftNote.value = ''
       },
       sanitize: sanitizeDraft,

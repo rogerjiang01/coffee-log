@@ -58,26 +58,29 @@ async function load() {
   loading.value = true
   loadError.value = ''
   try {
-    const { data, error } = await supabase
-      .from('user_equipment')
-      .select('id, type, custom_name, is_default, catalog_id, equipment_catalog ( brand, model, variant, grind_scale_min, grind_scale_max, grind_scale_increment, grind_scale_suggested_min, grind_scale_suggested_max, grind_scale_note )')
-      .eq('type', props.type)
-      .order('is_default', { ascending: false })
-      .order('created_at', { ascending: true })
-      .order('id', { ascending: true })
-    if (error) throw new Error(error.message)
-    items.value = (data ?? []) as unknown as EquipmentOption[]
-
-    // 最後使用日期：查這個類型對應的欄位上最近一次的沖煮時間
-    try {
-      const column = `${props.type}_id`
-      const { data: brews } = await supabase
+    // 器材清單與「最後使用日期」都只靠 props.type，互不相依，一起發
+    const column = `${props.type}_id`
+    const [listResult, brewResult] = await Promise.all([
+      supabase
+        .from('user_equipment')
+        .select('id, type, custom_name, is_default, catalog_id, equipment_catalog ( brand, model, variant, grind_scale_min, grind_scale_max, grind_scale_increment, grind_scale_suggested_min, grind_scale_suggested_max, grind_scale_note )')
+        .eq('type', props.type)
+        .order('is_default', { ascending: false })
+        .order('created_at', { ascending: true })
+        .order('id', { ascending: true }),
+      supabase
         .from('brews')
         .select(`${column}, brewed_at`)
         .not(column, 'is', null)
-        .order('brewed_at', { ascending: false })
+        .order('brewed_at', { ascending: false }),
+    ])
+    if (listResult.error) throw new Error(listResult.error.message)
+    items.value = (listResult.data ?? []) as unknown as EquipmentOption[]
+
+    // 最後使用日期取不到不該讓整個選擇器失敗
+    try {
       const map = new Map<string, string>()
-      for (const row of (brews ?? []) as unknown as Record<string, string>[]) {
+      for (const row of (brewResult.data ?? []) as unknown as Record<string, string>[]) {
         const id = row[column]
         if (id && !map.has(id)) map.set(id, row.brewed_at!)
       }

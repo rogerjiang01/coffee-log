@@ -111,7 +111,18 @@ async function onSubmit(
 <template>
   <main class="mx-auto px-5 py-10" :style="{ maxWidth: 'var(--content-max)' }">
     <p v-if="loadError" role="alert" class="text-sm" :style="{ color: 'var(--danger)' }">{{ loadError }}</p>
-    <p v-if="loading" class="text-muted">讀取中</p>
+    <div v-if="loading" aria-busy="true" aria-label="讀取中" class="mt-8 space-y-4">
+      <div
+        v-for="card in 2" :key="card"
+        class="rounded-sm border p-5"
+        :style="{ borderColor: 'var(--border)', background: 'var(--surface)' }"
+      >
+        <SkeletonBlock width="5rem" height="0.875rem" />
+        <div class="mt-4 space-y-4">
+          <SkeletonBlock v-for="row in 3" :key="row" height="1.5rem" />
+        </div>
+      </div>
+    </div>
 
     <template v-else-if="notFound">
       <h1 class="font-serif text-xl font-bold">找不到這支豆子</h1>

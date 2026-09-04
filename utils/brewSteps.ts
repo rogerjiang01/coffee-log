@@ -223,38 +223,22 @@ export function incrementalWater(steps: StepInput[]): (number | null)[] {
 }
 
 /**
- * 手法重算時的逐段合併。
+ * 手法模板要不要重算這一組分段。
  *
- * 粉重或粉水比變動時總水量跟著變，模板產生的分段應該重算。但使用者
- * 可能已經手動微調過其中幾段——那幾段是他的，不能覆蓋。
+ * 只有一條規則：**段數與模板一致就重算，不一致就不動。**
+ * 不一致代表使用者自己增減過段落，結構已經與模板無關。
  *
- * 判斷粒度是**每一段**而不是整組：選了四六法填 20g、把第三段從 180
- * 改成 175，接著發現粉重應該是 18g 時，他期待其餘四段跟著重算，
- * 因為那四段本來就是模板產生的、他沒動過。
+ * 曾經做過逐段快照、只重算「沒被手動改過」的那幾段。撤掉了：
+ * 使用者不記得自己改過哪幾格，也看不到系統記著什麼，
+ * 所以每次改粉重的結果他都無法預測，實測起來時有時無。
+ * 整組重算偶爾會蓋掉他的修改，但那是他能在腦中模擬的規則。
  *
- * 段數對不上時回 null，呼叫端應整組不重算——使用者手動增減過段落，
- * 結構已經與模板無關，逐段比對沒有意義。
- *
- * 可接受的後果：手動改過的那段留在原值，前後段重算後可能不再等距。
- * 這是誠實的——使用者本來就刻意要那個值——而 waterOrderHints 會在
- * 真的變成遞減時提醒他。
+ * 整組還空白時一律重算——那是「選了手法但粉重晚點才填」的情況，
+ * 此時段數本來就還停在預設的兩段。
  */
-export function mergeTemplateSteps(
-  current: StepInput[],
-  snapshot: string[] | null,
-  next: StepInput[],
-): { steps: StepInput[], snapshot: string[] } | null {
-  if (!snapshot) return null
-  if (current.length !== snapshot.length || next.length !== snapshot.length) return null
-
-  const steps = current.map((step, index) => {
-    const untouched = JSON.stringify(step) === snapshot[index]
-    return untouched ? next[index]! : step
-  })
-
-  // 快照一律更新成最新的模板輸出：使用者改過的那幾段本來就與它不同，
-  // 下次比對時仍然受保護。
-  return { steps, snapshot: next.map(step => JSON.stringify(step)) }
+export function shouldRegenerateSteps(current: StepInput[], templateLength: number): boolean {
+  if (current.every(step => step.cumulativeWater === null)) return true
+  return current.length === templateLength
 }
 
 /**
