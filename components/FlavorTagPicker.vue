@@ -32,14 +32,24 @@ const canCreate = computed(() =>
   draft.value.trim().length > 0 && !hasExactMatch(draft.value, tags.value),
 )
 
+// 讀不到標籤時要講出來。原本無聲失敗，畫面只會是一片空白的標籤區，
+// 使用者不知道是「還沒有標籤」還是「讀取失敗」。
+const loadError = ref('')
+
 async function load() {
-  const { data } = await supabase
-    .from('flavor_tags')
-    .select('id, name, aliases, user_id, category')
-    .order('user_id', { nullsFirst: true })
-    .order('sort_order')
-    .order('name')
-  tags.value = (data ?? []) as unknown as typeof tags.value
+  try {
+    const { data, error: err } = await supabase
+      .from('flavor_tags')
+      .select('id, name, aliases, user_id, category')
+      .order('user_id', { nullsFirst: true })
+      .order('sort_order')
+      .order('name')
+    if (err) throw toError(err)
+    tags.value = (data ?? []) as unknown as typeof tags.value
+  }
+  catch (e) {
+    loadError.value = `讀不到風味標籤：${errorText(e)}`
+  }
 }
 onMounted(load)
 
@@ -96,6 +106,10 @@ async function create() {
         </button>
       </div>
     </div>
+
+    <p v-if="loadError" role="alert" class="mt-2 text-sm" :style="{ color: 'var(--danger)' }">
+      {{ loadError }}
+    </p>
 
     <div class="mt-4 flex gap-2">
       <input

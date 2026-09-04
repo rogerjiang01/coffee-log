@@ -1,0 +1,31 @@
+{
+  "name": "手沖咖啡紀錄",
+  "short_name": "咖啡紀錄",
+  "description": "記錄每一次手沖的參數與風味，回頭看得出哪一次好喝。",
+  "lang": "zh-Hant-TW",
+  "dir": "ltr",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "theme_color": "#516e41",
+  "background_color": "#fffaef",
+  "icons": [
+    {
+      "src": "/favicon-32.png",
+      "sizes": "32x32",
+      "type": "image/png"
+    },
+    {
+      "src": "/apple-touch-icon.png",
+      "sizes": "180x180",
+      "type": "image/png"
+    },
+    {
+      "src": "/apple-touch-icon.png",
+      "sizes": "180x180",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}

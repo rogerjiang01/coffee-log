@@ -3,7 +3,7 @@
 // 這裡的關鍵不是「有沒有翻譯」，而是**對不上的時候要保留原文**。
 // 把未知錯誤換成「發生錯誤」這種萬用句，使用者回報時就什麼線索都沒有了。
 
-import { errorText, toError } from '../../utils/errorMessage.ts'
+import { errorText, toError, errorReportCode } from '../../utils/errorMessage.ts'
 import { createReport } from '../helpers/report.mjs'
 
 export default function run() {
@@ -61,6 +61,24 @@ export default function run() {
   const thrown = toError({ code: '42501', message: 'new row violates row-level security policy' })
   r.check(thrown instanceof Error, '回傳的是 Error，catch 端的 instanceof 判斷仍然成立')
   r.check(thrown.message.includes('沒有權限'), 'message 已經是中文，catch 端直接用就對了')
+
+  r.section('可回報的錯誤代碼')
+  // error.vue 用它取代 stack trace。關鍵是「同一個錯誤永遠同一組」——
+  // 每次都變的話使用者回報的代碼就對不起來，這個欄位等於白做。
+  const boom = { statusCode: 500, statusMessage: 'Internal', message: 'boom' }
+  r.check(errorReportCode(boom) === errorReportCode({ ...boom }), '同一個錯誤兩次算出同一組代碼')
+  r.check(errorReportCode(boom) !== errorReportCode({ ...boom, message: 'other' }),
+    '訊息不同就是不同代碼')
+  r.check(errorReportCode(boom) !== errorReportCode({ ...boom, statusCode: 502 }),
+    '狀態碼不同就是不同代碼')
+  r.check(/^E500-[0-9A-F]{6}$/.test(errorReportCode(boom)),
+    `格式是 E<狀態碼>-<六碼>：${errorReportCode(boom)}`)
+  r.check(/^E404-[0-9A-F]{6}$/.test(errorReportCode({ statusCode: 404, message: 'x' })), '404 也一樣')
+  r.check(/^E0-[0-9A-F]{6}$/.test(errorReportCode(null)), 'null 不會炸掉，狀態碼當 0')
+  r.check(/^E0-[0-9A-F]{6}$/.test(errorReportCode({})), '空物件不會炸掉')
+  r.check(!errorReportCode(boom).includes('boom'), '代碼不含原始訊息——不洩漏內部細節')
+  r.check(!errorReportCode({ statusCode: 500, message: '/Users/someone/app/pages/x.vue:12' })
+    .includes('/'), '就算訊息裡有檔案路徑，代碼裡也不會出現')
 
   return r.finish()
 }

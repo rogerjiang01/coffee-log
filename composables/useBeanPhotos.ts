@@ -17,8 +17,24 @@ export function useBeanPhotos() {
     return path
   }
 
+  /**
+   * 刪除照片。**永遠不丟例外。**
+   *
+   * 呼叫端都是「資料列已經刪掉了，順手清一下 Storage」的情境。
+   * 這一步失敗只會留下一個孤兒檔案，而讓它中斷刪除流程的代價是
+   * 使用者以為豆子沒刪掉——照片留著比刪不掉整筆資料糟糕得多。
+   *
+   * 不做重試。失敗寫進 console 就好，孤兒檔案之後靠後台清理，
+   * 不值得為它在使用者面前加一層錯誤處理。
+   */
   async function remove(path: string) {
-    await supabase.storage.from(BUCKET).remove([path])
+    try {
+      const { error } = await supabase.storage.from(BUCKET).remove([path])
+      if (error) console.warn(`[bean-photos] 照片沒有刪成功，留下孤兒檔案：${path}`, error)
+    }
+    catch (e) {
+      console.warn(`[bean-photos] 照片沒有刪成功，留下孤兒檔案：${path}`, e)
+    }
   }
 
   async function signedUrl(path: string | null) {

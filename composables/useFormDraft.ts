@@ -50,7 +50,16 @@ export function useFormDraft<T>(key: string, options: {
   }
 
   async function applyDraft(data: T) {
-    const cleaned = options.sanitize ? await options.sanitize(data) : data
+    // sanitize 會去資料庫確認暫存裡的對象還在不在，那是網路操作。
+    // 失敗時退回「照原樣填入」而不是整個放棄——內容是使用者自己打的，
+    // 比起因為連不上就丟掉，寧可填進去讓他自己看。
+    let cleaned = data
+    try {
+      cleaned = options.sanitize ? await options.sanitize(data) : data
+    }
+    catch (e) {
+      console.warn('[draft] 暫存內容的參照檢查失敗，直接填入未檢查的內容', e)
+    }
     options.restore(cleaned)
   }
 

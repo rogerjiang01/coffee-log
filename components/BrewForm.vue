@@ -101,7 +101,20 @@ async function loadEquipment() {
   equipment.value = (data ?? []) as unknown as EquipmentOption[]
 }
 
+// 查表載入失敗時要講出來。原本是無聲失敗——下拉變成空的，
+// 使用者只會覺得「怎麼沒有選項」，不知道是網路斷了。
+const lookupError = ref('')
+
 onMounted(async () => {
+  try {
+    await loadLookups()
+  }
+  catch (e) {
+    lookupError.value = `器材與手法讀不到：${errorText(e)}`
+  }
+})
+
+async function loadLookups() {
   const [, methodResult] = await Promise.all([
     loadEquipment(),
     supabase.from('brew_methods').select('id, name, default_ratio, step_template').order('sort_order').order('name'),
@@ -125,7 +138,7 @@ onMounted(async () => {
       if (item.type === 'server' && !values.server_id) values.server_id = item.id
     }
   }
-})
+}
 
 const selectedGrinder = computed(() =>
   equipment.value.find(item => item.id === values.grinder_id) ?? null,
@@ -438,6 +451,11 @@ const inputStyle = {
         </SelectField>
         <p v-if="!methods.length" class="mt-1 text-xs text-muted">手法的分段模板還沒建立</p>
         <p v-else class="mt-1 text-xs text-muted">選擇手法會依粉重帶入分段</p>
+        <!-- 內建手法的分段模板數值尚未經實機核實（見 CLAUDE.md 階段備註）。
+             在核實之前先講清楚它是參考值，避免使用者當成標準答案照做。 -->
+        <p v-if="methods.length" class="mt-1 text-xs text-muted">
+          內建手法為參考框架，實際水量請依自己的器材與豆子調整
+        </p>
         <p v-if="methodNotice" class="mt-1 text-xs" :style="{ color: 'var(--danger)' }">
           {{ methodNotice }}
         </p>
@@ -511,12 +529,12 @@ const inputStyle = {
       </button>
 
       <p
-        v-if="error || summaryError"
+        v-if="error || summaryError || lookupError"
         role="alert"
         class="mt-3 rounded-sm border px-3 py-3 text-sm"
         :style="{ color: 'var(--danger)', borderColor: 'var(--danger)' }"
       >
-        {{ error || summaryError }}
+        {{ error || summaryError || lookupError }}
       </p>
     </div>
 

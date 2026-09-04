@@ -58,7 +58,19 @@ const regionSuggestions = ref<string[]>([])
 
 const systemTable = useSystemTable()
 
+// 查表載入失敗時要講出來，不要讓下拉默默變成空的
+const lookupError = ref('')
+
 onMounted(async () => {
+  try {
+    await loadLookups()
+  }
+  catch (e) {
+    lookupError.value = `產國與產區讀不到：${errorText(e)}`
+  }
+})
+
+async function loadLookups() {
   const [countryRows, regionResult] = await Promise.all([
     // countries 是純系統表（《01》§4.4），讀過就留著，換頁不必重抓
     systemTable.read<{ id: string; name_zh: string }>('countries', async () => {
@@ -70,7 +82,7 @@ onMounted(async () => {
   countries.value = countryRows
   const seen = (regionResult.data ?? []) as unknown as { region: string | null }[]
   regionSuggestions.value = [...new Set(seen.map(row => row.region).filter((v): v is string => !!v))]
-})
+}
 
 function onPhotoPicked(picked: CompressedImage | null) {
   photo.value = picked
@@ -313,12 +325,12 @@ function selectStyle(value: unknown) {
     <!-- 錯誤訊息在按鈕正下方。放上方時長表單一捲動就看不到，
          使用者會以為「按了沒反應」。 -->
     <p
-      v-if="error || summaryError"
+      v-if="error || summaryError || lookupError"
       role="alert"
       class="mt-3 rounded-sm border px-3 py-3 text-sm"
       :style="{ color: 'var(--danger)', borderColor: 'var(--danger)' }"
     >
-      {{ error || summaryError }}
+      {{ error || summaryError || lookupError }}
     </p>
   </form>
 </template>

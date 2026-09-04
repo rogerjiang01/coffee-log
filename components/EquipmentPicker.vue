@@ -228,7 +228,17 @@ const inputStyle = { minHeight: 'var(--touch-min)' }
         <p v-if="loadError" role="alert" class="px-5 py-4 text-sm" :style="{ color: 'var(--danger)' }">
           {{ loadError }}
         </p>
-        <p v-else-if="loading" class="px-5 py-4 text-muted">讀取中</p>
+        <!-- 骨架而不是「讀取中」文字，與全站其他清單一致。
+             §6 不做進場動畫，所以是靜態色塊。 -->
+        <ul v-else-if="loading" aria-busy="true" aria-label="讀取中" class="px-5 py-3">
+          <li v-for="n in 4" :key="n" class="flex items-center gap-3 py-3">
+            <SkeletonBlock width="1.25rem" height="1.25rem" radius="999px" />
+            <div class="min-w-0 flex-1">
+              <SkeletonBlock width="55%" height="1rem" />
+              <SkeletonBlock width="30%" height="0.75rem" class="mt-2" />
+            </div>
+          </li>
+        </ul>
         <p v-else-if="!items.length" class="px-5 py-4 text-muted">
           還沒有{{ equipmentLabels[type] }}，按右上角的加號建一個。
         </p>

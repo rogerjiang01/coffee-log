@@ -346,7 +346,7 @@ const newBrewLink = computed(() =>
           :style="{ borderColor: 'var(--border)', color: 'var(--accent)', minHeight: 'var(--touch-min)' }"
           @click="loadMore"
         >
-          {{ loadingMore ? '讀取中' : '載入更多' }}
+          {{ loadingMore ? '載入中' : '載入更多' }}
         </button>
       </section>
     </template>

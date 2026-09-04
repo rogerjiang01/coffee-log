@@ -117,3 +117,22 @@ export function errorText(error: unknown): string {
 export function toError(error: unknown): Error {
   return new Error(errorText(error))
 }
+
+/**
+ * 可回報的錯誤代碼，給 error.vue 用。
+ *
+ * 取自狀態碼與錯誤訊息的雜湊：**同一個錯誤永遠算出同一組代碼**，
+ * 使用者截圖回報時對得起來，但畫面上不會出現 stack trace 或內部路徑。
+ * 這不是加密，只是縮短——用途是比對，不是保護。
+ */
+export function errorReportCode(error: unknown): string {
+  const { statusCode, statusMessage, message } = (error ?? {}) as {
+    statusCode?: number, statusMessage?: string, message?: string
+  }
+  const source = `${statusCode ?? 0}:${statusMessage ?? ''}:${message ?? ''}`
+  let hash = 0
+  for (let i = 0; i < source.length; i++) {
+    hash = (hash * 31 + source.charCodeAt(i)) | 0
+  }
+  return `E${statusCode ?? 0}-${Math.abs(hash).toString(16).toUpperCase().padStart(6, '0').slice(0, 6)}`
+}
