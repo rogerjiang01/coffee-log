@@ -13,6 +13,8 @@ const props = defineProps<{
   submitLabel: string
   busy?: boolean
   error?: string
+  /** 自動暫存的 key。沒給就不做暫存。 */
+  draftKey?: string
 }>()
 
 const emit = defineEmits<{
@@ -144,6 +146,10 @@ const methodTemplates = ref<Map<string, { template: MethodTemplate | null; ratio
 
 const methodNotice = ref('')
 
+// 上一次由模板產生的分段。用來判斷使用者有沒有手動改過——
+// 改過就不再自動覆蓋，沒改過才跟著粉重重算。
+const templateSnapshot = ref<string | null>(null)
+
 function applyMethod() {
   const id = values.brew_method_id
   if (!id) return
@@ -152,13 +158,22 @@ function applyMethod() {
   const result = stepsFromTemplate(method.template, values.dose, method.ratio)
   if (!result) return
   steps.value = result.steps
+  templateSnapshot.value = JSON.stringify(result.steps)
   methodNotice.value = result.notice ?? ''
+}
+
+/** 分段還是模板原樣（或整組空白）時才可以重算，避免蓋掉手動修改 */
+function canRegenerate() {
+  if (steps.value.every(step => step.cumulativeWater === null)) return true
+  return templateSnapshot.value !== null && JSON.stringify(steps.value) === templateSnapshot.value
 }
 
 // 選了手法就套用；粉重還沒填時，等粉重填好再套用
 watch(() => values.brew_method_id, applyMethod)
+// 粉重變動時跟著重算——總水量由粉重決定，不重算等於留著舊粉重的分段。
+// 但只在使用者沒有手動改過分段時才動它。
 watch(() => values.dose, () => {
-  if (values.brew_method_id && steps.value.every(step => step.cumulativeWater === null)) applyMethod()
+  if (values.brew_method_id && canRegenerate()) applyMethod()
 })
 
 // 養豆天數＝沖煮時間 − 烘焙日期。衍生值，不存資料庫；
@@ -192,6 +207,86 @@ function submit() {
   })
 }
 
+// ── 自動暫存（§6）────────────────────────────────────────
+// 暫存整份表單狀態，包含分段與風味標籤。照片不在裡面——
+// 壓縮後的 Blob 沒辦法放進 localStorage。
+
+interface BrewDraft {
+  values: BrewFormValues
+  steps: StepInput[]
+  flavorTagIds: string[]
+}
+
+// 這些欄位存的是別筆資料的 id，還原前要確認對象還在
+const REFERENCE_FIELDS = [
+  'bean_id', 'brew_method_id', 'grinder_id', 'dripper_id', 'kettle_id', 'filter_id', 'server_id',
+]
+
+const draftNote = ref('')
+
+async function sanitizeDraft(incoming: BrewDraft): Promise<BrewDraft> {
+  const tagIds = incoming.flavorTagIds ?? []
+  const equipmentIds = [
+    incoming.values.grinder_id, incoming.values.dripper_id, incoming.values.kettle_id,
+    incoming.values.filter_id, incoming.values.server_id,
+  ].filter((id): id is string => !!id)
+
+  const [beanRes, methodRes, equipmentRes, tagRes] = await Promise.all([
+    incoming.values.bean_id
+      ? supabase.from('beans').select('id').in('id', [incoming.values.bean_id])
+      : Promise.resolve({ data: [] }),
+    incoming.values.brew_method_id
+      ? supabase.from('brew_methods').select('id').in('id', [incoming.values.brew_method_id])
+      : Promise.resolve({ data: [] }),
+    equipmentIds.length
+      ? supabase.from('user_equipment').select('id').in('id', equipmentIds)
+      : Promise.resolve({ data: [] }),
+    tagIds.length
+      ? supabase.from('flavor_tags').select('id').in('id', tagIds)
+      : Promise.resolve({ data: [] }),
+  ])
+
+  const alive = new Set<string>()
+  for (const result of [beanRes, methodRes, equipmentRes, tagRes]) {
+    for (const row of (result.data ?? []) as unknown as { id: string }[]) alive.add(row.id)
+  }
+
+  const pruned = pruneMissingIds(
+    incoming.values as unknown as Record<string, unknown>,
+    REFERENCE_FIELDS,
+    id => alive.has(id),
+  )
+  const keptTags = tagIds.filter(id => alive.has(id))
+
+  // 指向已刪除資料的欄位留空而不是整個表單壞掉，並讓使用者知道
+  if (pruned.dropped.length || keptTags.length !== tagIds.length) {
+    draftNote.value = '有幾個選項已經被刪掉了，那幾格留空，其他都還在'
+  }
+
+  return {
+    values: pruned.data as unknown as BrewFormValues,
+    steps: incoming.steps ?? [],
+    flavorTagIds: keptTags,
+  }
+}
+
+const draft = props.draftKey
+  ? useFormDraft<BrewDraft>(props.draftKey, {
+      read: () => ({ values: { ...values }, steps: steps.value, flavorTagIds: flavorTagIds.value }),
+      restore: (data) => {
+        Object.assign(values, data.values)
+        if (data.steps?.length) steps.value = data.steps
+        flavorTagIds.value = data.flavorTagIds ?? []
+        // 還原的分段是使用者當時的狀態，不要再被模板蓋掉
+        templateSnapshot.value = null
+      },
+      sanitize: sanitizeDraft,
+    })
+  : null
+
+// 儲存成功後由頁面呼叫，清掉這份暫存
+defineExpose({ clearDraft: () => draft?.clear() })
+
 const inputStyle = {
   minHeight: '44px',
 }
@@ -199,6 +294,20 @@ const inputStyle = {
 
 <template>
   <form novalidate class="space-y-6" @submit.prevent="submit">
+    <DraftPrompt
+      v-if="draft?.pending.value"
+      :note="draftNote"
+      @accept="draft.accept()"
+      @discard="draft.discard()"
+    />
+
+    <p
+      v-else-if="draftNote"
+      class="rounded-sm px-3 py-2 text-sm"
+      :style="{ background: 'var(--accent-wash)', color: 'var(--on-accent-wash)' }"
+    >
+      {{ draftNote }}
+    </p>
     <!-- 時間戳最前面：事後補記時可能要先改日期，越早改完，
          後面的填寫都在正確的時間脈絡下。 -->
     <FormCard title="這一杯">

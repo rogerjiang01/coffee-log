@@ -12,6 +12,7 @@ const route = useRoute()
 const supabase = useSupabaseClient()
 const userId = useCurrentUserId()
 
+const form = ref<{ clearDraft: () => void } | null>(null)
 const saving = ref(false)
 const error = ref('')
 
@@ -153,6 +154,8 @@ async function onSubmit(payload: {
     )
   }
 
+  // 存成功了，這份暫存沒有用了
+  form.value?.clearDraft()
   await navigateTo(`/brews/${brewId}`)
 }
 </script>
@@ -172,6 +175,8 @@ async function onSubmit(payload: {
 
     <div v-else class="mt-8">
       <BrewForm
+        ref="form"
+        draft-key="draft:brew:new"
         :initial="initial"
         :initial-steps="initialSteps"
         submit-label="儲存"

@@ -19,6 +19,8 @@ const props = defineProps<{
   submitLabel: string
   busy?: boolean
   error?: string
+  /** 自動暫存的 key。沒給就不做暫存。 */
+  draftKey?: string
 }>()
 
 const emit = defineEmits<{
@@ -84,6 +86,52 @@ function submit() {
   })
 }
 
+// ── 自動暫存（§6）────────────────────────────────────────
+// 只暫存文字欄位。豆袋照片是壓縮後的 Blob，放不進 localStorage，
+// 還原後要重新選一次。
+
+const BEAN_REFERENCE_FIELDS = ['country_id', 'processing_method_id', 'variety_id']
+const draftNote = ref('')
+
+async function sanitizeDraft(incoming: BeanFormValues): Promise<BeanFormValues> {
+  const alive = new Set<string>()
+  const [countryRes, processingRes, varietyRes] = await Promise.all([
+    incoming.country_id
+      ? supabase.from('countries').select('id').in('id', [incoming.country_id])
+      : Promise.resolve({ data: [] }),
+    incoming.processing_method_id
+      ? supabase.from('processing_methods').select('id').in('id', [incoming.processing_method_id])
+      : Promise.resolve({ data: [] }),
+    incoming.variety_id
+      ? supabase.from('varieties').select('id').in('id', [incoming.variety_id])
+      : Promise.resolve({ data: [] }),
+  ])
+  for (const result of [countryRes, processingRes, varietyRes]) {
+    for (const row of (result.data ?? []) as unknown as { id: string }[]) alive.add(row.id)
+  }
+
+  const pruned = pruneMissingIds(
+    incoming as unknown as Record<string, unknown>,
+    BEAN_REFERENCE_FIELDS,
+    id => alive.has(id),
+  )
+  if (pruned.dropped.length) {
+    draftNote.value = '有幾個選項已經被刪掉了，那幾格留空，其他都還在'
+  }
+  return pruned.data as unknown as BeanFormValues
+}
+
+const draft = props.draftKey
+  ? useFormDraft<BeanFormValues>(props.draftKey, {
+      read: () => ({ ...values }),
+      restore: data => Object.assign(values, data),
+      sanitize: sanitizeDraft,
+    })
+  : null
+
+// 儲存成功後由頁面呼叫
+defineExpose({ clearDraft: () => draft?.clear() })
+
 const inputStyle = {
   minHeight: '44px',
 }
@@ -96,6 +144,21 @@ function selectStyle(value: unknown) {
 
 <template>
   <form novalidate @submit.prevent="submit">
+    <DraftPrompt
+      v-if="draft?.pending.value"
+      :note="draftNote || '照片沒辦法暫存，要的話重新選一次'"
+      class="mb-6"
+      @accept="draft.accept()"
+      @discard="draft.discard()"
+    />
+
+    <p
+      v-else-if="draftNote"
+      class="mb-6 rounded-sm px-3 py-2 text-sm"
+      :style="{ background: 'var(--accent-wash)', color: 'var(--on-accent-wash)' }"
+    >
+      {{ draftNote }}
+    </p>
     <!-- 逃生路徑：放在最上方，且不進卡片——它是媒體區塊不是欄位列，
          塞進卡片會變成框中框。 -->
     <PhotoField :preview-url="photoUrl ?? null" @picked="onPhotoPicked" />

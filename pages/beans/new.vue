@@ -8,6 +8,7 @@ const supabase = useSupabaseClient()
 const userId = useCurrentUserId()
 const { upload } = useBeanPhotos()
 
+const form = ref<{ clearDraft: () => void } | null>(null)
 const saving = ref(false)
 const error = ref('')
 
@@ -55,6 +56,8 @@ async function onSubmit({ values, photo }: { values: BeanFormValues; photo: Comp
     catch (e) {
       // 豆子已經建立成功，照片失敗不該把整筆丟掉
       saving.value = false
+      // 豆子已經建立成功，暫存留著只會在下次進來時問一次舊資料
+      form.value?.clearDraft()
       error.value = e instanceof Error
         ? `${e.message}。豆子已經存好了，可以到編輯頁再上傳一次。`
         : '照片沒有上傳成功，豆子已經存好了。'
@@ -62,6 +65,7 @@ async function onSubmit({ values, photo }: { values: BeanFormValues; photo: Comp
     }
   }
 
+  form.value?.clearDraft()
   await navigateTo(`/beans/${beanId}`)
 }
 </script>
@@ -74,7 +78,7 @@ async function onSubmit({ values, photo }: { values: BeanFormValues; photo: Comp
     </div>
 
     <div class="mt-8">
-      <BeanForm submit-label="儲存" :busy="saving" :error="error" @submit="onSubmit" />
+      <BeanForm ref="form" draft-key="draft:bean:new" submit-label="儲存" :busy="saving" :error="error" @submit="onSubmit" />
     </div>
   </main>
 </template>

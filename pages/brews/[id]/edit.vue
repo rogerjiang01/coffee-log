@@ -16,6 +16,7 @@ const tagIds = ref<string[]>([])
 const loading = ref(true)
 const loadError = ref('')
 const notFound = ref(false)
+const form = ref<{ clearDraft: () => void } | null>(null)
 const saving = ref(false)
 const error = ref('')
 
@@ -140,6 +141,7 @@ async function onSubmit(payload: {
   }
 
   saving.value = false
+  form.value?.clearDraft()
   await navigateTo(`/brews/${id.value}`)
 }
 </script>
@@ -162,6 +164,8 @@ async function onSubmit(payload: {
 
       <div class="mt-8">
         <BrewForm
+          ref="form"
+          :draft-key="`draft:brew:${id}`"
           :initial="initial ?? undefined"
           :initial-steps="stepInputs"
           :initial-flavor-tag-ids="tagIds"

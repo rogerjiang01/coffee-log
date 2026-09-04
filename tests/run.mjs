@@ -13,6 +13,7 @@ const suites = [
   ['unit/lookup.test.ts', '查表欄位的比對'],
   ['unit/grind-scale.test.ts', '刻度四欄制'],
   ['unit/panel.test.ts', '浮層定位'],
+  ['unit/draft.test.ts', '表單自動暫存'],
   ['db/schema.test.mjs', 'Schema、RLS 與 seed'],
   ['db/brews.test.mjs', '分段與複製（資料庫）'],
 ]
