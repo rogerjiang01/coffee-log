@@ -67,6 +67,21 @@ export function useAnchoredPanel(
     )
   }
 
+  // **flush: 'sync' 不可改成預設值。** 預設的 pre 會等到算繪之後才跑，
+  // 浮層的第一幀因此拿到空的 style——沒有 position: fixed，它就變成
+  // teleport 目標的一般子元素：掛在 body 上會撐成整個視窗寬，
+  // 掛在 dialog 上（我們的 dialog 是 flex 置中容器）會縮成內容寬度。
+  // 後者就是「打開瞬間寬度只有欄位的一部分」的來源。
+  //
+  // sync 讓 update() 在 open 被設成 true 的當下就跑完，第一幀就有正確
+  // 的寬度與位置。觸發元素早就在 DOM 裡，這時量它的 rect 完全有效。
+  watch(open, (value) => {
+    if (!value) return
+    update()
+  }, { flush: 'sync' })
+
+  // 算繪之後再量一次：開啟的動作若讓觸發元素本身移動了（例如它在
+  // 捲動容器裡，或上方有東西同時出現），sync 那次量到的會是舊位置。
   watch(open, async (value) => {
     if (!value) return
     await nextTick()

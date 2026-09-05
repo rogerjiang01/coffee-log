@@ -178,7 +178,7 @@ const optionStyle = { minHeight: 'var(--touch-min)' }
       <div
         v-if="open"
         ref="panel"
-        class="z-40 flex flex-col overflow-hidden rounded-sm border"
+        class="fixed z-40 flex flex-col overflow-hidden rounded-sm border"
         :style="{ ...panelStyle, borderColor: 'var(--border)', background: 'var(--surface)', boxShadow: 'var(--overlay-shadow)' }"
         @click.stop
         @keydown.esc="close"

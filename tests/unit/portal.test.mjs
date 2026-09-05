@@ -38,5 +38,21 @@ export default function run() {
   r.check(picker.includes('<dialog'), 'EquipmentPicker 是原生 dialog')
   r.check(picker.includes('<CatalogSelect'), 'EquipmentPicker 裡面有 CatalogSelect——這個組合要保持被覆蓋')
 
+  r.section('浮層第一幀就要有正確的寬度')
+  // 位置與寬度是 update() 算出來的。若那次計算等到算繪之後才跑，
+  // 第一幀的 style 是空的，浮層就變成 teleport 目標的一般子元素：
+  // 掛在 body 上撐成整個視窗寬，掛在 dialog 上（flex 置中容器）
+  // 縮成內容寬度——實測 375px 下欄位 335px、浮層只剩 188px。
+  // 沒有錯誤訊息，只是閃一下就被修正，回歸時很難察覺。
+  const panel = readFileSync(new URL('../../composables/useAnchoredPanel.ts', import.meta.url), 'utf8')
+  r.check(/flush:\s*'sync'/.test(panel),
+    "watch 用 flush: 'sync' 先算一次——預設的 pre 會等到算繪之後才跑")
+
+  const sources2 = sources.filter(([, src]) => src.includes('<Teleport'))
+  for (const [name, src] of sources2) {
+    r.check(/class="fixed z-40/.test(src),
+      `${name} 的浮層 class 直接帶 fixed——style 因故沒套上時也不會變成一般子元素`)
+  }
+
   return r.finish()
 }

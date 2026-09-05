@@ -31,8 +31,30 @@ const loading = ref(true)
 const open = ref(false)
 const query = ref('')
 const creating = ref(false)
-const draftName = ref('')
-const draftPhoto = ref<CompressedImage | null>(null)
+// 就地新增的內容關掉不清空——使用者以為那只是「填一格」，
+// 不會想到還要按儲存。詳見 useInlineDraft。
+interface BeanInlineDraft { name: string, photo: CompressedImage | null }
+const inlineDraft = useInlineDraft<BeanInlineDraft>('bean', () => ({ name: '', photo: null }))
+const restored = inlineDraft.read()
+
+const draftName = ref(restored.name)
+const draftPhoto = ref<CompressedImage | null>(restored.photo)
+
+// 每次改動都寫回去，而不是只在關閉時寫：關閉的路徑不只一條
+//（按返回、點外面、Esc、整個元件被卸載），漏掉任何一條都會掉資料
+watch([draftName, draftPhoto], () => {
+  inlineDraft.save({ name: draftName.value, photo: draftPhoto.value })
+})
+
+// 已經留著內容時，照片要看得見才知道它還在。Blob 換成可以放進 <img> 的網址
+const draftPhotoUrl = ref<string | null>(null)
+watch(draftPhoto, (value) => {
+  if (draftPhotoUrl.value) URL.revokeObjectURL(draftPhotoUrl.value)
+  draftPhotoUrl.value = value ? URL.createObjectURL(value.blob) : null
+}, { immediate: true })
+onBeforeUnmount(() => {
+  if (draftPhotoUrl.value) URL.revokeObjectURL(draftPhotoUrl.value)
+})
 const saving = ref(false)
 const createError = ref('')
 
@@ -126,9 +148,10 @@ function pick(id: string | null) {
 
 function startCreate() {
   creating.value = true
-  draftName.value = query.value.trim()
-  draftPhoto.value = null
   createError.value = ''
+  // 上次留下的內容優先。完全空白時才拿搜尋字串當豆名——
+  // 否則使用者打字搜尋一次就會把他上次填到一半的豆名蓋掉
+  if (!draftName.value && !draftPhoto.value) draftName.value = query.value.trim()
 }
 
 async function create() {
@@ -168,6 +191,10 @@ async function create() {
   }
 
   saving.value = false
+  // 存成功了，留著的內容要清掉，否則下次開會看到已經建好的那一筆
+  inlineDraft.clear()
+  draftName.value = ''
+  draftPhoto.value = null
   beans.value = [created, ...beans.value]
   // 就地新增的豆子要出現在豆子列表與首頁上區
   cache.invalidateAfter({ kind: 'bean' })
@@ -213,7 +240,7 @@ async function create() {
       <div
         v-if="open"
         ref="panel"
-        class="z-40 flex flex-col overflow-hidden rounded-sm border"
+        class="fixed z-40 flex flex-col overflow-hidden rounded-sm border"
         :style="{ ...panelStyle, borderColor: 'var(--border)', background: 'var(--surface)', boxShadow: 'var(--overlay-shadow)' }"
         @click.stop
         @keydown.esc="close"
@@ -284,7 +311,7 @@ async function create() {
           >
 
           <div class="mt-3">
-            <PhotoField :preview-url="null" @picked="draftPhoto = $event" />
+            <PhotoField :preview-url="draftPhotoUrl" @picked="draftPhoto = $event" />
           </div>
 
           <p v-if="createError" role="alert" class="mt-2 text-sm" :style="{ color: 'var(--danger)' }">

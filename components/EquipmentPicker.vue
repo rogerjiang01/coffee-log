@@ -32,7 +32,23 @@ const loadError = ref('')
 const draftId = ref<string | null>(null)
 
 const mode = ref<'list' | 'create'>('list')
-const form = reactive({ catalog_id: null as string | null, custom_name: '', note: '', is_default: false })
+
+// 就地新增的內容關掉不清空，與豆子的就地新增同一個理由（見 useInlineDraft）。
+// 依器材類型分開存：磨豆機填到一半跑去改濾杯，兩邊不該互相蓋掉。
+interface EquipmentInlineDraft {
+  catalog_id: string | null
+  custom_name: string
+  note: string
+  is_default: boolean
+}
+const emptyDraft = (): EquipmentInlineDraft =>
+  ({ catalog_id: null, custom_name: '', note: '', is_default: false })
+const inlineDraft = computed(() => useInlineDraft<EquipmentInlineDraft>(`equipment:${props.type}`, emptyDraft))
+
+const form = reactive<EquipmentInlineDraft>(emptyDraft())
+
+// 每次改動都寫回去：關閉的路徑不只一條（返回鍵、Esc、父層收掉 pickerType）
+watch(form, () => inlineDraft.value.save({ ...form }), { deep: true })
 const saving = ref(false)
 const formError = ref('')
 
@@ -129,7 +145,8 @@ function confirmChoice() {
 function startCreate() {
   mode.value = 'create'
   formError.value = ''
-  Object.assign(form, { catalog_id: null, custom_name: '', note: '', is_default: false })
+  // 不清空，改成把上次留下的內容放回來
+  Object.assign(form, inlineDraft.value.read())
 }
 
 async function create() {
@@ -175,6 +192,9 @@ async function create() {
     // 新增完直接選起來，不要求使用者再點一次
     draftId.value = created
     mode.value = 'list'
+    // 存成功了才清，否則下次開會看到已經建好的那一台
+    inlineDraft.value.clear()
+    Object.assign(form, emptyDraft())
     cache.invalidateAfter({ kind: 'equipment' })
     emit('created')
   }

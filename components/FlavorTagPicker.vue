@@ -117,11 +117,16 @@ async function create() {
     </p>
 
     <div class="mt-4 flex gap-2">
+      <!-- min-w-0 不可省略：flex 項目預設 min-width: auto，而輸入框的
+           內在最小寬度來自它預設的 size="20"（實測約 233px）。
+           沒有這一項時輸入框拒絕縮小，把 shrink-0 的按鈕擠出容器——
+           320px 下溢出 17px，儲存中（按鈕變「新增中」）時 31px。
+           卡片是 overflow-hidden，所以按鈕不是換行而是被裁掉。 -->
       <input
         v-model="draft"
         type="text"
         placeholder="新增風味詞"
-        class="block flex-1 field px-3 py-2.5"
+        class="block min-w-0 flex-1 field px-3 py-2.5"
         :style="{ minHeight: 'var(--touch-min)' }"
       >
       <button

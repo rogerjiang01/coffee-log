@@ -14,6 +14,7 @@ const suites = [
   ['unit/grind-scale.test.ts', '刻度四欄制'],
   ['unit/panel.test.ts', '浮層定位'],
   ['unit/draft.test.ts', '表單自動暫存'],
+  ['unit/inline-draft.test.ts', '就地新增的暫存'],
   ['unit/cache.test.ts', '客戶端快取'],
   ['unit/query-cache.test.ts', 'SWR 快取'],
   ['unit/error-message.test.ts', '錯誤訊息中文化'],
