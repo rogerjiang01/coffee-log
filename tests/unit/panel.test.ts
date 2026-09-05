@@ -4,7 +4,7 @@
 // position: fixed 讓頁面捲不到它，底部的動作因此永遠點不到，
 // 而且不會有任何錯誤訊息——所以這組測試存在。
 
-import { computePanelPlacement } from '../../composables/useAnchoredPanel.ts'
+import { computePanelPlacement, resolvePortalTarget } from '../../composables/useAnchoredPanel.ts'
 import { createReport } from '../helpers/report.mjs'
 
 const rect = (top: number, height = 44) => ({ top, bottom: top + height, left: 20, width: 300 })
@@ -44,6 +44,24 @@ export default function run() {
   const atTop = computePanelPlacement(rect(0), 812)
   r.check(atTop.top !== undefined && Number.parseFloat(atTop.maxHeight!) > 0,
     '欄位貼在視窗頂端時往下開且有高度')
+
+  r.section('浮層要 teleport 到哪裡')
+  // 原生 <dialog> 用 showModal() 之後，dialog 以外的內容全部 inert。
+  // 浮層送 body 就落在那個「以外」——看得見、點下去沒反應、沒有 console 錯誤。
+  const fakeDialog = { tagName: 'DIALOG' } as unknown as HTMLElement
+  const inDialog = { closest: (sel: string) => (sel === 'dialog' ? fakeDialog : null) }
+  const inPage = { closest: () => null }
+
+  r.check(resolvePortalTarget(inDialog) === fakeDialog,
+    '在 dialog 裡面時送到那個 dialog——跟著進 top layer 才點得到')
+  r.check(resolvePortalTarget(inPage) === 'body', '不在 dialog 裡就照舊送 body')
+  r.check(resolvePortalTarget(null) === 'body', '還沒掛載時回 body，不會炸掉')
+
+  // 找的是 dialog 不是 dialog[open]：浮層存在時外層必然開著，
+  // 而 [open] 屬性在某些時序下還沒被瀏覽器設上去
+  let asked = ''
+  resolvePortalTarget({ closest: (sel: string) => { asked = sel; return null } })
+  r.check(asked === 'dialog', `查的是 ${asked}，不是 dialog[open]`)
 
   return r.finish()
 }

@@ -94,3 +94,37 @@ export function useAnchoredPanel(
 
   return { style, update, isOutside }
 }
+
+/**
+ * 浮層要 teleport 到哪裡。
+ *
+ * **不能一律送 body。** 原生 <dialog> 用 showModal() 打開之後會進入
+ * top layer，而 dialog 以外的所有內容都變成 inert——點不到、也收不到
+ * 滑鼠事件。teleport 到 body 的浮層就落在那個「以外」，於是視覺上看得見、
+ * 點下去卻毫無反應。
+ *
+ * 這個 bug 特別難抓：**沒有 console 錯誤、沒有例外**，而且程式呼叫
+ * element.click() 還是會觸發（那條路徑不做命中測試），
+ * 所以連測試都可能驗不出來。要驗得用 document.elementFromPoint。
+ *
+ * 解法是找出最近的 <dialog> 祖先當目標。有的話浮層跟著進 top layer；
+ * 沒有的話照舊送 body。
+ *
+ * 用 closest('dialog') 而不是 closest('dialog[open]')：浮層存在時
+ * 外層的 dialog 必然是開著的（關掉時整棵子樹不會被算繪），
+ * 而 [open] 在某些時序下還沒被瀏覽器設上去。
+ */
+export function resolvePortalTarget(
+  anchor: { closest: (selector: string) => HTMLElement | null } | null,
+): HTMLElement | string {
+  return anchor?.closest('dialog') ?? 'body'
+}
+
+/** 掛載後解析一次。浮層是使用者互動後才開的，那時 onMounted 早就跑完了 */
+export function usePortalTarget(anchor: Ref<HTMLElement | null>) {
+  const target = ref<HTMLElement | string>('body')
+  onMounted(() => {
+    target.value = resolvePortalTarget(anchor.value)
+  })
+  return target
+}

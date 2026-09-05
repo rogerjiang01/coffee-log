@@ -88,6 +88,9 @@ const trigger = ref<HTMLButtonElement | null>(null)
 
 const { style: panelStyle, isOutside } = useAnchoredPanel(root, panel, open)
 
+// 浮層開在 <dialog> 裡面時不能送 body：那裡是 inert，點了沒反應
+const portalTarget = usePortalTarget(root)
+
 function onDocumentClick(event: MouseEvent) {
   // 浮層已 teleport 到 body，不能只檢查觸發元素的父層
   if (open.value && isOutside(event.target as Node)) close()
@@ -206,7 +209,7 @@ async function create() {
 
     <p v-if="error" class="mt-2 text-sm" :style="{ color: 'var(--danger)' }">{{ error }}</p>
 
-    <Teleport to="body">
+    <Teleport :to="portalTarget">
       <div
         v-if="open"
         ref="panel"
