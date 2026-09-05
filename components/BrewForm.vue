@@ -27,6 +27,7 @@ const emit = defineEmits<{
 }>()
 
 const supabase = useSupabaseClient()
+const cache = useQueryCache()
 
 // 產品指標（§9）：表單開啟到成功送出的秒數，使用者不可見
 const openedAt = Date.now()
@@ -91,14 +92,21 @@ const summaryError = ref('')
 const equipment = ref<EquipmentOption[]>([])
 const methods = ref<{ id: string; name: string }[]>([])
 
-async function loadEquipment() {
-  const { data } = await supabase
+async function fetchEquipment() {
+  const { data, error } = await supabase
     .from('user_equipment')
     .select('id, type, custom_name, is_default, catalog_id, equipment_catalog ( brand, model, variant, grind_scale_min, grind_scale_max, grind_scale_increment, grind_scale_suggested_min, grind_scale_suggested_max, grind_scale_note )')
     .order('is_default', { ascending: false })
     .order('created_at', { ascending: true })
     .order('id', { ascending: true })
-  equipment.value = (data ?? []) as unknown as EquipmentOption[]
+  if (error) throw toError(error)
+  return (data ?? []) as unknown as EquipmentOption[]
+}
+
+async function loadEquipment() {
+  await cache.swr(cacheKeys.equipmentAll(), fetchEquipment, {
+    apply: (rows) => { equipment.value = rows },
+  }).settled
 }
 
 // 查表載入失敗時要講出來。原本是無聲失敗——下拉變成空的，
@@ -114,18 +122,31 @@ onMounted(async () => {
   }
 })
 
-async function loadLookups() {
-  const [, methodResult] = await Promise.all([
-    loadEquipment(),
-    supabase.from('brew_methods').select('id, name, default_ratio, step_template').order('sort_order').order('name'),
-  ])
-  const rows = (methodResult.data ?? []) as unknown as {
-    id: string; name: string; default_ratio: number | null; step_template: MethodTemplate | null
-  }[]
+type MethodRow = {
+  id: string, name: string, default_ratio: number | null, step_template: MethodTemplate | null
+}
+
+async function fetchMethods() {
+  const { data, error } = await supabase
+    .from('brew_methods')
+    .select('id, name, default_ratio, step_template')
+    .order('sort_order').order('name')
+  if (error) throw toError(error)
+  return (data ?? []) as unknown as MethodRow[]
+}
+
+function applyMethods(rows: MethodRow[]) {
   methods.value = rows.map(row => ({ id: row.id, name: row.name }))
   methodTemplates.value = new Map(
     rows.map(row => [row.id, { template: row.step_template, ratio: row.default_ratio }]),
   )
+}
+
+async function loadLookups() {
+  await Promise.all([
+    loadEquipment(),
+    cache.swr(cacheKeys.lookup('brew_methods'), fetchMethods, { apply: applyMethods }).settled,
+  ])
 
   // 只在新增（沒有初始值）時帶入預設，編輯既有紀錄不覆蓋使用者當初的選擇
   if (!props.initial) {

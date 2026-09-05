@@ -37,72 +37,105 @@ const actionError = ref('')
 
 const id = computed(() => String(route.params.id))
 
+const cache = useQueryCache()
+
+// 從列表帶進來的資料只有一半（沒有產區、處理法、品種、官方風味描述）。
+// 標題與照片可以先出來，其餘欄位等完整資料回來再補——
+// 顯示「沒有填」再跳出值，比等一趟來回還糟。
+const partial = ref(false)
+
+async function fetchBean() {
+  const { data, error } = await supabase
+    .from('beans')
+    .select(`
+      id, name, photo_path, roaster, roast_date, roast_level, region, official_notes, is_finished,
+      countries ( name_zh ),
+      processing_methods ( name ), varieties ( name )
+    `)
+    .eq('id', id.value)
+    .maybeSingle()
+  if (error) throw toError(error)
+  return data as unknown as BeanDetail | null
+}
+
+async function fetchBrews() {
+  const { data, error } = await supabase
+    .from('brews')
+    .select('id, brewed_at, dose, water_temp, grind_setting, total_time, is_favorite')
+    .eq('bean_id', id.value)
+    .order('brewed_at', { ascending: true })
+    .order('id', { ascending: true })
+  if (error) throw toError(error)
+  return (data ?? []) as unknown as Omit<CompareBrew, 'totalWater'>[]
+}
+
+/** 總水量要靠分段算出來。一次把所有分段取回，不每筆各查一次。 */
+async function fetchWater(brewRows: { id: string }[]) {
+  if (!brewRows.length) return new Map<string, number>()
+  const { data } = await supabase
+    .from('brew_steps')
+    .select('brew_id, cumulative_water')
+    .in('brew_id', brewRows.map(row => row.id))
+  const water = new Map<string, number>()
+  for (const step of (data ?? []) as unknown as { brew_id: string, cumulative_water: number }[]) {
+    const value = Number(step.cumulative_water)
+    const current = water.get(step.brew_id)
+    if (current === undefined || value > current) water.set(step.brew_id, value)
+  }
+  return water
+}
+
+function applyBean(detail: BeanDetail | null) {
+  if (!detail) {
+    notFound.value = true
+    return
+  }
+  bean.value = detail
+  // countries 只有完整查詢才有，用它判斷這份是不是列表帶進來的半成品
+  partial.value = !('countries' in detail)
+  loadPhoto(detail.photo_path)
+}
+
+// 簽名網址有時效，不快取；但它只依賴 photo_path，與主查詢並行
+async function loadPhoto(path: string | null) {
+  photoUrl.value = await signedUrl(path).catch(() => null)
+}
+
+function applyBrews(rows: Omit<CompareBrew, 'totalWater'>[], water: Map<string, number>) {
+  brewCount.value = rows.length
+  favoriteCount.value = rows.filter(row => row.is_favorite).length
+  compareRows.value = buildCompareRows(
+    rows.map(row => ({ ...row, totalWater: water.get(row.id) ?? null })),
+    bean.value?.roast_date ?? null,
+  )
+}
+
 async function load() {
-  try {
-    // 豆子與沖煮紀錄都只靠網址上的 id，互不相依，一起發。
-    // 原本是 豆子 → 簽名網址 → 紀錄 → 分段 四趟串行，那正是切換頁面時的延遲來源。
-    const [beanResult, brewResult] = await Promise.all([
-      supabase
-        .from('beans')
-        .select(`
-          id, name, photo_path, roaster, roast_date, roast_level, region, official_notes, is_finished,
-          countries ( name_zh ),
-          processing_methods ( name ), varieties ( name )
-        `)
-        .eq('id', id.value)
-        .maybeSingle(),
-      supabase
-        .from('brews')
-        .select('id, brewed_at, dose, water_temp, grind_setting, total_time, is_favorite')
-        .eq('bean_id', id.value)
-        .order('brewed_at', { ascending: true })
-        .order('id', { ascending: true }),
-    ])
+  loadError.value = ''
 
-    if (!beanResult.data) {
-      notFound.value = true
-      return
-    }
-    const detail = beanResult.data as unknown as BeanDetail
-    bean.value = detail
+  // 豆子與紀錄都只靠網址上的 id，互不相依，一起發。
+  const beanQuery = cache.swr(cacheKeys.bean(id.value), fetchBean, {
+    apply: applyBean,
+    onError: (e) => { loadError.value = `讀不到資料：${errorText(e)}` },
+  })
 
-    if (brewResult.error) throw toError(brewResult.error)
-    const brewRows = (brewResult.data ?? []) as unknown as Omit<CompareBrew, 'totalWater'>[]
-    brewCount.value = brewRows.length
-    favoriteCount.value = brewRows.filter(row => row.is_favorite).length
+  const brewsKey = cacheKeys.brewsByBean(id.value)
+  const brewsQuery = cache.swr(
+    brewsKey,
+    async () => {
+      const rows = await fetchBrews()
+      return { rows, water: [...(await fetchWater(rows))] as [string, number][] }
+    },
+    {
+      apply: ({ rows, water }) => applyBrews(rows, new Map(water)),
+      onError: (e) => { loadError.value = `讀不到資料：${errorText(e)}` },
+    },
+  )
 
-    // 第二趟同樣兩件事一起做：簽名網址要等 photo_path，分段要等紀錄 id，
-    // 但它們彼此不相依。總水量要靠分段算出來，一次全部取回，不每筆各查一次。
-    const [signed, steps] = await Promise.all([
-      signedUrl(detail.photo_path).catch(() => null),
-      brewRows.length
-        ? supabase
-            .from('brew_steps')
-            .select('brew_id, cumulative_water')
-            .in('brew_id', brewRows.map(row => row.id))
-        : Promise.resolve({ data: [] }),
-    ])
-    photoUrl.value = signed
-
-    const waterByBrew = new Map<string, number>()
-    for (const step of (steps.data ?? []) as unknown as { brew_id: string, cumulative_water: number }[]) {
-      const water = Number(step.cumulative_water)
-      const current = waterByBrew.get(step.brew_id)
-      if (current === undefined || water > current) waterByBrew.set(step.brew_id, water)
-    }
-
-    compareRows.value = buildCompareRows(
-      brewRows.map(row => ({ ...row, totalWater: waterByBrew.get(row.id) ?? null })),
-      detail.roast_date,
-    )
-  }
-  catch (e) {
-    loadError.value = `讀不到資料：${errorText(e)}`
-  }
-  finally {
-    // finally：任何失敗都不能讓頁面停在「讀取中」
-    loading.value = false
-  }
+  // 兩邊都命中才算完全命中：只要有一邊要等，就先給骨架
+  loading.value = !(beanQuery.hit && brewsQuery.hit)
+  await Promise.all([beanQuery.settled, brewsQuery.settled])
+  loading.value = false
 }
 
 onMounted(load)
@@ -132,6 +165,8 @@ async function toggleFinished(next: boolean) {
     return
   }
   bean.value.is_finished = next
+  // 影響列表的分組與首頁上區的收錄。不清的話回上一頁還看得到它在「沖煮中」
+  cache.invalidateAfter({ kind: 'bean-finished' })
 }
 
 async function destroy() {
@@ -145,6 +180,8 @@ async function destroy() {
     actionError.value = `刪除失敗：${errorText(error)}`
     return
   }
+  // 外鍵 cascade，紀錄跟著沒了——時間軸與次數統計都要重來
+  cache.invalidateAfter({ kind: 'bean' })
   if (path) await remove(path)
   await navigateTo('/beans')
 }
@@ -203,6 +240,17 @@ async function destroy() {
         >
           <dt class="text-sm text-muted">{{ row.label }}</dt>
           <dd class="tabular-nums">{{ row.value }}</dd>
+        </div>
+        <!-- 從列表帶進來的資料沒有產區、處理法、品種這幾格。
+             留一列骨架告訴使用者「還有東西在路上」，
+             不然那幾格會無預警地冒出來，看起來像畫面在跳。 -->
+        <div
+          v-if="partial"
+          class="flex justify-between border-t py-3"
+          :style="{ borderColor: 'var(--border)' }"
+        >
+          <SkeletonBlock width="4rem" height="0.875rem" />
+          <SkeletonBlock width="6rem" height="0.875rem" />
         </div>
         <div class="flex justify-between border-t py-3" :style="{ borderColor: 'var(--border)' }">
           <dt class="text-sm text-muted">沖煮次數</dt>

@@ -6,6 +6,7 @@
 
 const route = useRoute()
 const supabase = useSupabaseClient()
+const cache = useQueryCache()
 const userId = useCurrentUserId()
 
 const id = computed(() => String(route.params.id))
@@ -145,6 +146,7 @@ async function onSubmit(payload: {
 
   saving.value = false
   form.value?.clearDraft()
+  cache.invalidateAfter({ kind: 'brew' })
   await navigateTo(`/brews/${id.value}`)
 }
 </script>

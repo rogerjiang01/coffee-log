@@ -8,6 +8,7 @@ const props = defineProps<{ modelValue: string[] }>()
 const emit = defineEmits<{ 'update:modelValue': [string[]] }>()
 
 const supabase = useSupabaseClient()
+const cache = useQueryCache()
 const userId = useCurrentUserId()
 
 const tags = ref<(LookupItem & { category: string | null })[]>([])
@@ -36,20 +37,23 @@ const canCreate = computed(() =>
 // 使用者不知道是「還沒有標籤」還是「讀取失敗」。
 const loadError = ref('')
 
+async function fetchTags() {
+  const { data, error: err } = await supabase
+    .from('flavor_tags')
+    .select('id, name, aliases, user_id, category')
+    .order('user_id', { nullsFirst: true })
+    .order('sort_order')
+    .order('name')
+  if (err) throw toError(err)
+  return (data ?? []) as unknown as typeof tags.value
+}
+
 async function load() {
-  try {
-    const { data, error: err } = await supabase
-      .from('flavor_tags')
-      .select('id, name, aliases, user_id, category')
-      .order('user_id', { nullsFirst: true })
-      .order('sort_order')
-      .order('name')
-    if (err) throw toError(err)
-    tags.value = (data ?? []) as unknown as typeof tags.value
-  }
-  catch (e) {
-    loadError.value = `讀不到風味標籤：${errorText(e)}`
-  }
+  await cache.swr(cacheKeys.lookup('flavor_tags'), fetchTags, {
+    apply: (rows) => { tags.value = rows },
+    // 未命中且失敗才顯示——背景重新驗證失敗不該蓋掉畫面上已經正確的標籤
+    onError: (e) => { loadError.value = `讀不到風味標籤：${errorText(e)}` },
+  }).settled
 }
 onMounted(load)
 
@@ -81,6 +85,7 @@ async function create() {
   }
   const created = data as unknown as (typeof tags.value)[number]
   tags.value = [...tags.value, created]
+  cache.invalidateAfter({ kind: 'lookup', table: 'flavor_tags' })
   draft.value = ''
   toggle(created.id)
 }

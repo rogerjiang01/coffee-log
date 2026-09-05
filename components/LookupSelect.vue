@@ -18,6 +18,7 @@ const props = defineProps<{
 const emit = defineEmits<{ 'update:modelValue': [string | null] }>()
 
 const supabase = useSupabaseClient()
+const cache = useQueryCache()
 const userId = useCurrentUserId()
 
 const items = ref<LookupItem[]>([])
@@ -38,22 +39,27 @@ const canCreate = computed(() =>
   query.value.trim().length > 0 && !hasExactMatch(query.value, items.value),
 )
 
+async function fetchItems() {
+  // sort_order 在使用者自建項目上一律是預設值 0，會產生並列，
+  // 因此補 name 當決勝鍵，避免每次載入順序不同
+  const { data, error } = await supabase
+    .from(props.table)
+    .select('id, name, aliases, user_id')
+    .order('user_id', { nullsFirst: true })
+    .order('sort_order')
+    .order('name')
+  if (error) throw toError(error)
+  return (data ?? []) as unknown as LookupItem[]
+}
+
 async function load() {
-  loading.value = true
-  try {
-    // sort_order 在使用者自建項目上一律是預設值 0，會產生並列，
-    // 因此補 name 當決勝鍵，避免每次載入順序不同
-    const { data } = await supabase
-      .from(props.table)
-      .select('id, name, aliases, user_id')
-      .order('user_id', { nullsFirst: true })
-      .order('sort_order')
-      .order('name')
-    items.value = (data ?? []) as unknown as LookupItem[]
-  }
-  finally {
-    loading.value = false
-  }
+  const { hit, settled } = cache.swr(cacheKeys.lookup(props.table), fetchItems, {
+    apply: (rows) => { items.value = rows },
+    onError: (e) => { saveError.value = `讀不到選項：${errorText(e)}` },
+  })
+  loading.value = !hit
+  await settled
+  loading.value = false
 }
 
 onMounted(() => {
@@ -122,6 +128,8 @@ async function create() {
   }
   const created = data as unknown as LookupItem
   items.value = [...items.value, created]
+  // 別頁的同一個查表選單也要看得到剛建好的項目
+  cache.invalidateAfter({ kind: 'lookup', table: props.table })
   pick(created.id)
 }
 

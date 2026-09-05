@@ -19,40 +19,50 @@ const photoUrls = ref<Map<string, string>>(new Map())
 const loading = ref(true)
 const loadError = ref('')
 
-async function load() {
-  loading.value = true
-  loadError.value = ''
+const cache = useQueryCache()
+
+async function fetchBeans() {
+  // 排序全部寫死：未喝完在前，再依建立時間倒序，最後用 id 當決勝鍵。
+  // 少了決勝鍵時，created_at 相同的兩筆每次載入的順序可能不同。
+  const { data, error } = await supabase
+    .from('beans')
+    .select('id, name, photo_path, roaster, roast_date, roast_level, is_finished')
+    .order('is_finished', { ascending: true })
+    .order('created_at', { ascending: false })
+    .order('id', { ascending: false })
+  if (error) throw toError(error)
+  return (data ?? []) as unknown as BeanRow[]
+}
+
+function apply(rows: BeanRow[]) {
+  beans.value = rows
+  // 詳情頁需要的欄位這裡已經查到一半了，先放進去，
+  // 點進去時標題與照片可以立刻出現，不必等那一趟來回。
+  for (const row of rows) cache.prime(cacheKeys.bean(row.id), row)
+  loadPhotos(rows)
+}
+
+// 簽名網址有時效，不進快取。但它只依賴 photo_path，
+// 可以與主查詢並行，不必等資料回來才開始。
+async function loadPhotos(rows: BeanRow[]) {
   try {
-    // 排序全部寫死：未喝完在前，再依建立時間倒序，最後用 id 當決勝鍵。
-    // 少了決勝鍵時，created_at 相同的兩筆每次載入的順序可能不同。
-    const { data, error } = await supabase
-      .from('beans')
-      .select('id, name, photo_path, roaster, roast_date, roast_level, is_finished')
-      .order('is_finished', { ascending: true })
-      .order('created_at', { ascending: false })
-      .order('id', { ascending: false })
-    if (error) throw toError(error)
-
-    beans.value = (data ?? []) as unknown as BeanRow[]
-
-    // 清單可以出來了。簽名網址得等 photo_path，避不掉第二趟，
-    // 但豆名與烘焙資訊不必陪著等——照片欄先留白，回來再填。
-    loading.value = false
-
-    // 照片取不到不該拖垮清單
-    try {
-      photoUrls.value = await signedUrls(beans.value.map(bean => bean.photo_path))
-    }
-    catch {
-      photoUrls.value = new Map()
-    }
+    photoUrls.value = await signedUrls(rows.map(bean => bean.photo_path))
   }
-  catch (e) {
-    loadError.value = `讀不到豆子：${errorText(e)}`
+  catch {
+    photoUrls.value = new Map()
   }
-  finally {
-    loading.value = false
-  }
+}
+
+async function load() {
+  loadError.value = ''
+  const { hit, settled } = cache.swr(cacheKeys.beanList(), fetchBeans, {
+    apply,
+    onError: (e) => { loadError.value = `讀不到豆子：${errorText(e)}` },
+  })
+  // 命中時畫面同步就填好了，骨架連一幀都不該出現
+  loading.value = !hit
+  await settled
+  loading.value = false
 }
 
 // 已喝完用分組表達，不用透明度。

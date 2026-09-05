@@ -5,6 +5,7 @@
 // 最後回寫 photo_path。路徑格式由 §7 決定，而 bean_id 在建立前不存在。
 
 const supabase = useSupabaseClient()
+const cache = useQueryCache()
 const userId = useCurrentUserId()
 const { upload } = useBeanPhotos()
 
@@ -66,6 +67,8 @@ async function onSubmit({ values, photo }: { values: BeanFormValues; photo: Comp
   }
 
   form.value?.clearDraft()
+  // 新的豆子要出現在列表與首頁上區
+  cache.invalidateAfter({ kind: 'bean' })
   await navigateTo(`/beans/${beanId}`)
 }
 </script>

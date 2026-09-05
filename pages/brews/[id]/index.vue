@@ -6,6 +6,7 @@
 
 const route = useRoute()
 const supabase = useSupabaseClient()
+const cache = useQueryCache()
 
 const id = computed(() => String(route.params.id))
 
@@ -56,53 +57,77 @@ function stepSelect(brewId: string) {
     .order('step_index')
 }
 
+async function fetchBrew() {
+  const { data, error } = await supabase
+    .from('brews')
+    .select(`
+      id, copied_from_brew_id, brew_method_id, grinder_id, dripper_id, kettle_id,
+      dose, water_temp, grind_setting, total_time, brewed_at,
+      rating, is_favorite, tasting_notes, intensity,
+      beans ( id, name, roast_date ),
+      brew_methods ( name ),
+      grinder:grinder_id ( custom_name, equipment_catalog ( brand, model, variant ) ),
+      dripper:dripper_id ( custom_name, equipment_catalog ( brand, model, variant ) ),
+      kettle:kettle_id ( custom_name, equipment_catalog ( brand, model, variant ) )
+    `)
+    .eq('id', id.value)
+    .maybeSingle()
+  if (error) throw toError(error)
+  return data as unknown as BrewDetail | null
+}
+
+async function fetchSteps(brewId: string) {
+  const { data, error } = await stepSelect(brewId)
+  if (error) throw toError(error)
+  return (data ?? []) as unknown as StepRow[]
+}
+
+async function fetchTags() {
+  const { data, error } = await supabase
+    .from('brew_flavor_tags').select('flavor_tags ( name )').eq('brew_id', id.value)
+  if (error) throw toError(error)
+  return ((data ?? []) as unknown as { flavor_tags: { name: string } | null }[])
+    .map(row => row.flavor_tags?.name)
+    .filter((name): name is string => !!name)
+}
+
 async function load() {
-  try {
-    // 三個查詢都只靠網址上的 id，彼此不相依，一起發。
-    // 原本是一個接一個 await，三趟來回疊起來就是使用者感覺到的那一秒。
-    const [brewResult, stepResult, tagResult] = await Promise.all([
-      supabase
-        .from('brews')
-        .select(`
-          id, copied_from_brew_id, brew_method_id, grinder_id, dripper_id, kettle_id,
-          dose, water_temp, grind_setting, total_time, brewed_at,
-          rating, is_favorite, tasting_notes, intensity,
-          beans ( id, name, roast_date ),
-          brew_methods ( name ),
-          grinder:grinder_id ( custom_name, equipment_catalog ( brand, model, variant ) ),
-          dripper:dripper_id ( custom_name, equipment_catalog ( brand, model, variant ) ),
-          kettle:kettle_id ( custom_name, equipment_catalog ( brand, model, variant ) )
-        `)
-        .eq('id', id.value)
-        .maybeSingle(),
-      stepSelect(id.value),
-      supabase.from('brew_flavor_tags').select('flavor_tags ( name )').eq('brew_id', id.value),
-    ])
+  loadError.value = ''
+  const fail = (e: unknown) => { loadError.value = `讀不到資料：${errorText(e)}` }
 
-    if (!brewResult.data) {
-      notFound.value = true
-      return
-    }
-    brew.value = brewResult.data as unknown as BrewDetail
+  // 三個查詢都只靠網址上的 id，彼此不相依，一起發
+  const brewQuery = cache.swr(cacheKeys.brew(id.value), fetchBrew, {
+    apply: (data) => {
+      if (!data) {
+        notFound.value = true
+        return
+      }
+      brew.value = data
+      // 分段的停留秒數要靠 total_time 反推，所以它變了要重算
+      steps.value = toStepInputs(rawSteps.value, data.total_time)
+    },
+    onError: fail,
+  })
+  const stepQuery = cache.swr(cacheKeys.brewSteps(id.value), () => fetchSteps(id.value), {
+    apply: (rows) => {
+      rawSteps.value = rows
+      steps.value = toStepInputs(rows, brew.value?.total_time ?? null)
+    },
+    onError: fail,
+  })
+  const tagQuery = cache.swr(cacheKeys.brewTags(id.value), fetchTags, {
+    apply: (names) => { tags.value = names },
+  })
 
-    rawSteps.value = (stepResult.data ?? []) as unknown as StepRow[]
-    steps.value = toStepInputs(rawSteps.value, brew.value.total_time)
+  loading.value = !(brewQuery.hit && stepQuery.hit && tagQuery.hit)
+  await Promise.all([brewQuery.settled, stepQuery.settled, tagQuery.settled])
+  loading.value = false
 
-    tags.value = ((tagResult.data ?? []) as unknown as { flavor_tags: { name: string } | null }[])
-      .map(row => row.flavor_tags?.name)
-      .filter((name): name is string => !!name)
-  }
-  catch (e) {
-    loadError.value = `讀不到資料：${errorText(e)}`
-  }
-  finally {
-    // finally：任何失敗都不能讓頁面停在「讀取中」
-    loading.value = false
-  }
   // 差異不擋主要內容：頁面先顯示出來，差異區塊等來源紀錄回來再出現。
   // 差異拿不到就不顯示那一區，不要用它蓋掉已經看得到的內容。
   loadDiff().catch(() => {})
 }
+
 onMounted(load)
 
 // ── 相對上一版的差異（§8）────────────────────────────────
@@ -148,16 +173,13 @@ async function loadDiff() {
   // 主查詢的欄位是 DIFF_SELECT 的超集合。只有來源那一邊需要去問。
   const [sourceRow, sourceStepRows] = await Promise.all([
     supabase.from('brews').select(DIFF_SELECT).eq('id', sourceId).maybeSingle(),
-    stepSelect(sourceId),
+    fetchSteps(sourceId),
   ])
   if (!sourceRow.data) return
 
   diffs.value = computeBrewDiff(
     toSubject(current as unknown as Record<string, unknown>, rawSteps.value),
-    toSubject(
-      sourceRow.data as unknown as Record<string, unknown>,
-      (sourceStepRows.data ?? []) as unknown as StepRow[],
-    ),
+    toSubject(sourceRow.data as unknown as Record<string, unknown>, sourceStepRows),
   )
 }
 
@@ -210,6 +232,7 @@ async function destroy() {
     actionError.value = `刪除失敗：${errorText(error)}`
     return
   }
+  cache.invalidateAfter({ kind: 'brew' })
   await navigateTo('/')
 }
 </script>

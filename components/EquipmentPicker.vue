@@ -20,6 +20,7 @@ const emit = defineEmits<{
 }>()
 
 const supabase = useSupabaseClient()
+const cache = useQueryCache()
 const userId = useCurrentUserId()
 
 const items = ref<EquipmentOption[]>([])
@@ -61,48 +62,55 @@ watch([() => props.open, () => props.type], ([open]) => {
   })
 }, { immediate: true })
 
-async function load() {
-  loading.value = true
-  loadError.value = ''
-  try {
-    // 器材清單與「最後使用日期」都只靠 props.type，互不相依，一起發
-    const column = `${props.type}_id`
-    const [listResult, brewResult] = await Promise.all([
-      supabase
-        .from('user_equipment')
-        .select('id, type, custom_name, is_default, catalog_id, equipment_catalog ( brand, model, variant, grind_scale_min, grind_scale_max, grind_scale_increment, grind_scale_suggested_min, grind_scale_suggested_max, grind_scale_note )')
-        .eq('type', props.type)
-        .order('is_default', { ascending: false })
-        .order('created_at', { ascending: true })
-        .order('id', { ascending: true }),
-      supabase
-        .from('brews')
-        .select(`${column}, brewed_at`)
-        .not(column, 'is', null)
-        .order('brewed_at', { ascending: false }),
-    ])
-    if (listResult.error) throw toError(listResult.error)
-    items.value = (listResult.data ?? []) as unknown as EquipmentOption[]
+async function fetchPickerData(type: string) {
+  // 器材清單與「最後使用日期」都只靠 type，互不相依，一起發
+  const column = `${type}_id`
+  const [listResult, brewResult] = await Promise.all([
+    supabase
+      .from('user_equipment')
+      .select('id, type, custom_name, is_default, catalog_id, equipment_catalog ( brand, model, variant, grind_scale_min, grind_scale_max, grind_scale_increment, grind_scale_suggested_min, grind_scale_suggested_max, grind_scale_note )')
+      .eq('type', type)
+      .order('is_default', { ascending: false })
+      .order('created_at', { ascending: true })
+      .order('id', { ascending: true }),
+    supabase
+      .from('brews')
+      .select(`${column}, brewed_at`)
+      .not(column, 'is', null)
+      .order('brewed_at', { ascending: false }),
+  ])
+  if (listResult.error) throw toError(listResult.error)
 
-    // 最後使用日期取不到不該讓整個選擇器失敗
-    try {
-      const map = new Map<string, string>()
-      for (const row of (brewResult.data ?? []) as unknown as Record<string, string>[]) {
-        const id = row[column]
-        if (id && !map.has(id)) map.set(id, row.brewed_at!)
-      }
-      lastUsed.value = map
-    }
-    catch {
-      lastUsed.value = new Map()
+  // 最後使用日期取不到不該讓整個選擇器失敗
+  const lastUsedPairs: [string, string][] = []
+  const seen = new Set<string>()
+  for (const row of (brewResult.data ?? []) as unknown as Record<string, string>[]) {
+    const id = row[column]
+    if (id && !seen.has(id)) {
+      seen.add(id)
+      lastUsedPairs.push([id, row.brewed_at!])
     }
   }
-  catch (e) {
-    loadError.value = `讀不到器材：${errorText(e)}`
+
+  return {
+    items: (listResult.data ?? []) as unknown as EquipmentOption[],
+    lastUsed: lastUsedPairs,
   }
-  finally {
-    loading.value = false
-  }
+}
+
+async function load() {
+  loadError.value = ''
+  const type = props.type
+  const { hit, settled } = cache.swr(cacheKeys.equipment(type), () => fetchPickerData(type), {
+    apply: ({ items: rows, lastUsed: pairs }) => {
+      items.value = rows
+      lastUsed.value = new Map(pairs)
+    },
+    onError: (e) => { loadError.value = `讀不到器材：${errorText(e)}` },
+  })
+  loading.value = !hit
+  await settled
+  loading.value = false
 }
 
 function formatUsed(id: string) {
@@ -167,6 +175,7 @@ async function create() {
     // 新增完直接選起來，不要求使用者再點一次
     draftId.value = created
     mode.value = 'list'
+    cache.invalidateAfter({ kind: 'equipment' })
     emit('created')
   }
   catch (e) {

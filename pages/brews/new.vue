@@ -10,6 +10,7 @@
 
 const route = useRoute()
 const supabase = useSupabaseClient()
+const cache = useQueryCache()
 const userId = useCurrentUserId()
 
 const form = ref<{ clearDraft: () => void } | null>(null)
@@ -161,6 +162,7 @@ async function onSubmit(payload: {
 
   // 存成功了，這份暫存沒有用了
   form.value?.clearDraft()
+  cache.invalidateAfter({ kind: 'brew' })
   await navigateTo(`/brews/${brewId}`)
 }
 </script>

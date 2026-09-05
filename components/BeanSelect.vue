@@ -22,6 +22,7 @@ const emit = defineEmits<{
 }>()
 
 const supabase = useSupabaseClient()
+const cache = useQueryCache()
 const userId = useCurrentUserId()
 const { upload } = useBeanPhotos()
 
@@ -49,25 +50,32 @@ const matches = computed(() =>
 const active = computed(() => matches.value.filter(bean => !bean.is_finished))
 const finished = computed(() => matches.value.filter(bean => bean.is_finished))
 
+async function fetchBeans() {
+  const { data, error } = await supabase
+    .from('beans')
+    .select('id, name, is_finished, roast_date')
+    .order('is_finished', { ascending: true })
+    .order('created_at', { ascending: false })
+    .order('id', { ascending: false })
+  if (error) throw toError(error)
+  return (data ?? []) as unknown as BeanOption[]
+}
+
 async function load() {
-  loading.value = true
-  try {
-    const { data } = await supabase
-      .from('beans')
-      .select('id, name, is_finished, roast_date')
-      .order('is_finished', { ascending: true })
-      .order('created_at', { ascending: false })
-      .order('id', { ascending: false })
-    beans.value = (data ?? []) as unknown as BeanOption[]
-    // 編輯既有紀錄時 modelValue 早就設好了，載完要補送一次，
-    // 否則父層拿不到烘焙日期，養豆天數不會顯示
-    if (props.modelValue) {
-      emit('selected', beans.value.find(bean => bean.id === props.modelValue) ?? null)
-    }
-  }
-  finally {
-    loading.value = false
-  }
+  const { hit, settled } = cache.swr(cacheKeys.beanOptions(), fetchBeans, {
+    apply: (rows) => {
+      beans.value = rows
+      // 編輯既有紀錄時 modelValue 早就設好了，載完要補送一次，
+      // 否則父層拿不到烘焙日期，養豆天數不會顯示
+      if (props.modelValue) {
+        emit('selected', rows.find(bean => bean.id === props.modelValue) ?? null)
+      }
+    },
+    onError: (e) => { createError.value = `讀不到豆子：${errorText(e)}` },
+  })
+  loading.value = !hit
+  await settled
+  loading.value = false
 }
 
 onMounted(() => {
@@ -158,6 +166,8 @@ async function create() {
 
   saving.value = false
   beans.value = [created, ...beans.value]
+  // 就地新增的豆子要出現在豆子列表與首頁上區
+  cache.invalidateAfter({ kind: 'bean' })
   pick(created.id)
 }
 </script>

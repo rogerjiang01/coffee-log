@@ -140,87 +140,99 @@ async function enrichEntries(rows: BrewRow[]) {
   }
 }
 
-async function load() {
-  loading.value = true
-  loadError.value = ''
+const cache = useQueryCache()
+
+async function fetchActiveBeans() {
+  const { data, error } = await supabase
+    .from('beans')
+    .select('id, name, photo_path, roast_date, roast_level')
+    .eq('is_finished', false)
+    .order('created_at', { ascending: false })
+    .order('id', { ascending: false })
+  if (error) throw toError(error)
+  return (data ?? []) as unknown as ActiveBean[]
+}
+
+async function fetchCounts() {
+  const { data } = await supabase.from('brews').select('bean_id, is_favorite')
+  return (data ?? []) as unknown as { bean_id: string, is_favorite: boolean }[]
+}
+
+async function fetchBrewPage(from: number) {
+  const { data, error } = await supabase
+    .from('brews')
+    .select(BREW_SELECT)
+    .order('brewed_at', { ascending: false })
+    .order('id', { ascending: false })
+    .range(from, from + PAGE_SIZE - 1)
+  if (error) throw toError(error)
+  return (data ?? []) as unknown as BrewRow[]
+}
+
+function applyBeans(rows: ActiveBean[]) {
+  beans.value = rows
+  // 詳情頁的標題與照片這裡已經查到了，先放進去省下那一趟
+  for (const row of rows) cache.prime(cacheKeys.bean(row.id), row)
+  loadPhotos(rows)
+}
+
+// 簽名網址有時效，不快取。與主查詢並行，不串在後面
+async function loadPhotos(rows: ActiveBean[]) {
   try {
-    const [beanResult, countResult, brewResult] = await Promise.all([
-      supabase
-        .from('beans')
-        .select('id, name, photo_path, roast_date, roast_level')
-        .eq('is_finished', false)
-        .order('created_at', { ascending: false })
-        .order('id', { ascending: false }),
-      supabase.from('brews').select('bean_id, is_favorite'),
-      supabase
-        .from('brews')
-        .select(BREW_SELECT)
-        .order('brewed_at', { ascending: false })
-        .order('id', { ascending: false })
-        .range(0, PAGE_SIZE - 1),
-    ])
-    if (beanResult.error) throw toError(beanResult.error)
-    if (brewResult.error) throw toError(brewResult.error)
-
-    beans.value = (beanResult.data ?? []) as unknown as ActiveBean[]
-
-    const counts = new Map<string, number>()
-    const favorites = new Map<string, number>()
-    for (const row of (countResult.data ?? []) as unknown as { bean_id: string, is_favorite: boolean }[]) {
-      counts.set(row.bean_id, (counts.get(row.bean_id) ?? 0) + 1)
-      if (row.is_favorite) favorites.set(row.bean_id, (favorites.get(row.bean_id) ?? 0) + 1)
-    }
-    brewCounts.value = counts
-    favoriteCounts.value = favorites
-
-    const rows = (brewResult.data ?? []) as unknown as BrewRow[]
-    timeline.value = toEntries(rows)
-    hasMore.value = rows.length === PAGE_SIZE
-
-    // 第一趟到此為止，畫面可以出來了。
-    loading.value = false
-
-    // 第二趟：照片簽名網址與差異彼此不相依，一起發，也不再擋著畫面。
-    // 照片取不到不該拖垮整頁。
-    await Promise.all([
-      signedUrls(beans.value.map(bean => bean.photo_path))
-        .then((map) => { photoUrls.value = map })
-        .catch(() => { photoUrls.value = new Map() }),
-      enrichEntries(rows),
-    ])
+    photoUrls.value = await signedUrls(rows.map(bean => bean.photo_path))
   }
-  catch (e) {
-    loadError.value = `讀不到資料：${errorText(e)}`
+  catch {
+    photoUrls.value = new Map()
   }
-  finally {
-    // finally：任何失敗都不能讓頁面停在「讀取中」而看不到新增入口
-    loading.value = false
+}
+
+function applyCounts(rows: { bean_id: string, is_favorite: boolean }[]) {
+  const counts = new Map<string, number>()
+  const favorites = new Map<string, number>()
+  for (const row of rows) {
+    counts.set(row.bean_id, (counts.get(row.bean_id) ?? 0) + 1)
+    if (row.is_favorite) favorites.set(row.bean_id, (favorites.get(row.bean_id) ?? 0) + 1)
   }
+  brewCounts.value = counts
+  favoriteCounts.value = favorites
+}
+
+async function load() {
+  loadError.value = ''
+
+  const beanQuery = cache.swr(cacheKeys.beanActive(), fetchActiveBeans, {
+    apply: applyBeans,
+    onError: (e) => { loadError.value = `讀不到資料：${errorText(e)}` },
+  })
+  const countQuery = cache.swr(cacheKeys.brewCounts(), fetchCounts, { apply: applyCounts })
+  const pageQuery = cache.swr(cacheKeys.brewPage(0), () => fetchBrewPage(0), {
+    apply: (rows) => {
+      timeline.value = toEntries(rows)
+      hasMore.value = rows.length === PAGE_SIZE
+      // 差異與總水量需要另一趟來回，不擋這一頁
+      void enrichEntries(rows).catch(e => console.warn('[home] 差異算不出來', e))
+    },
+    onError: (e) => { loadError.value = `讀不到資料：${errorText(e)}` },
+  })
+
+  // 三個都命中才算完全命中：任何一個要等，就先給骨架
+  loading.value = !(beanQuery.hit && countQuery.hit && pageQuery.hit)
+  await Promise.all([beanQuery.settled, countQuery.settled, pageQuery.settled])
+  loading.value = false
 }
 
 async function loadMore() {
   loadingMore.value = true
-  try {
-    const from = timeline.value.length
-    const { data, error } = await supabase
-      .from('brews')
-      .select(BREW_SELECT)
-      .order('brewed_at', { ascending: false })
-      .order('id', { ascending: false })
-      .range(from, from + PAGE_SIZE - 1)
-    if (error) throw toError(error)
-    const rows = (data ?? []) as unknown as BrewRow[]
-    timeline.value = [...timeline.value, ...toEntries(rows)]
-    hasMore.value = rows.length === PAGE_SIZE
-    loadingMore.value = false
-    await enrichEntries(rows)
-  }
-  catch (e) {
-    loadError.value = `讀不到更多紀錄：${errorText(e)}`
-  }
-  finally {
-    loadingMore.value = false
-  }
+  const from = timeline.value.length
+  await cache.swr(cacheKeys.brewPage(from), () => fetchBrewPage(from), {
+    apply: (rows) => {
+      timeline.value = [...timeline.value, ...toEntries(rows)]
+      hasMore.value = rows.length === PAGE_SIZE
+      void enrichEntries(rows).catch(e => console.warn('[home] 差異算不出來', e))
+    },
+    onError: (e) => { loadError.value = `讀不到更多紀錄：${errorText(e)}` },
+  }).settled
+  loadingMore.value = false
 }
 
 onMounted(load)

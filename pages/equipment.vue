@@ -15,6 +15,7 @@ interface EquipmentRow {
 }
 
 const supabase = useSupabaseClient()
+const cache = useQueryCache()
 const userId = useCurrentUserId()
 
 const items = ref<EquipmentRow[]>([])
@@ -65,27 +66,28 @@ const grouped = computed(() =>
     .filter(group => group.rows.length > 0),
 )
 
+async function fetchEquipment() {
+  // 排序寫死：預設器材在前，再依建立時間，最後用 id 當決勝鍵
+  const { data, error } = await supabase
+    .from('user_equipment')
+    .select('id, catalog_id, type, custom_name, is_default, note, equipment_catalog ( brand, model, variant )')
+    .order('is_default', { ascending: false })
+    .order('created_at', { ascending: true })
+    .order('id', { ascending: true })
+  if (error) throw toError(error)
+  return (data ?? []) as unknown as EquipmentRow[]
+}
+
 async function load() {
-  loading.value = true
   loadError.value = ''
-  try {
-    // 排序寫死：預設器材在前，再依建立時間，最後用 id 當決勝鍵
-    const { data, error } = await supabase
-      .from('user_equipment')
-      .select('id, catalog_id, type, custom_name, is_default, note, equipment_catalog ( brand, model, variant )')
-      .order('is_default', { ascending: false })
-      .order('created_at', { ascending: true })
-      .order('id', { ascending: true })
-    if (error) throw toError(error)
-    items.value = (data ?? []) as unknown as EquipmentRow[]
-  }
-  catch (e) {
-    loadError.value = `讀不到器材：${errorText(e)}`
-  }
-  finally {
-    // 放在 finally，任何失敗都不會讓頁面停在讀取中而看不到新增入口
-    loading.value = false
-  }
+  const { hit, settled } = cache.swr(cacheKeys.equipmentAll(), fetchEquipment, {
+    apply: (rows) => { items.value = rows },
+    onError: (e) => { loadError.value = `讀不到器材：${errorText(e)}` },
+  })
+  loading.value = !hit
+  await settled
+  // 任何失敗都不會讓頁面停在讀取中而看不到新增入口
+  loading.value = false
 }
 
 onMounted(load)
@@ -165,6 +167,7 @@ async function save() {
     if (error) throw toError(error)
 
     editing.value = null
+    cache.invalidateAfter({ kind: 'equipment' })
     await load()
   }
   catch (e) {
@@ -185,6 +188,7 @@ async function toggleDefault(row: EquipmentRow, next: boolean) {
       .update({ is_default: next } as never)
       .eq('id', row.id)
     if (error) throw toError(error)
+    cache.invalidateAfter({ kind: 'equipment' })
     await load()
   }
   catch (e) {
@@ -202,6 +206,7 @@ async function destroy() {
     actionError.value = `刪除失敗：${errorText(error)}`
     return
   }
+  cache.invalidateAfter({ kind: 'equipment' })
   await load()
 }
 
