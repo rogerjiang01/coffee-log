@@ -142,6 +142,18 @@ function confirmChoice() {
   emit('close')
 }
 
+/**
+ * 「取消」是宣告「我不要建這個了」，與「關閉」不同——
+ * 標題列的返回鍵、Esc、父層收掉都只是離開，內容要留著。
+ * 只清當前類型：磨豆機按取消不該把濾杯填到一半的內容一起清掉。
+ */
+function cancelCreate() {
+  inlineDraft.value.clear()
+  Object.assign(form, emptyDraft())
+  formError.value = ''
+  mode.value = 'list'
+}
+
 function startCreate() {
   mode.value = 'create'
   formError.value = ''
@@ -354,7 +366,7 @@ const inputStyle = { minHeight: 'var(--touch-min)' }
           type="button"
           class="flex-1 rounded-sm border px-4 py-3"
           :style="{ borderColor: 'var(--border)', minHeight: 'var(--touch-min)' }"
-          @click="mode === 'create' ? (mode = 'list') : emit('close')"
+          @click="mode === 'create' ? cancelCreate() : emit('close')"
         >
           取消
         </button>

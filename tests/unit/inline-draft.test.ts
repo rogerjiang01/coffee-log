@@ -56,5 +56,46 @@ export default function run() {
   r.check(typeof draft.read === 'function' && typeof draft.clear === 'function',
     '介面只有 read／save／clear 三個，沒有有效期也沒有還原詢問')
 
+  r.section('取消與關閉是兩件事')
+  // 關閉（返回鍵、Esc、點外面、切走、卸載）＝「我先離開一下」→ 保留
+  // 取消（明確按下按鈕）＝「我不要建這個了」→ 清除
+  __resetInlineDrafts()
+  const d = useInlineDraft<BeanDraft>('bean', emptyBean)
+
+  d.save({ name: '填到一半', photo: { ext: 'webp' } })
+  // 關閉：什麼都不做，只是元件收起來。下次拿到的還是同一份
+  r.check(useInlineDraft<BeanDraft>('bean', emptyBean).read().name === '填到一半',
+    '關閉之後內容還在')
+
+  d.clear()
+  r.check(useInlineDraft<BeanDraft>('bean', emptyBean).read().name === '',
+    '取消之後內容沒了——這是使用者唯一能明確清空的入口')
+
+  r.section('取消只清當前那一份')
+  __resetInlineDrafts()
+  const g = useInlineDraft('equipment:grinder', () => ({ custom_name: '' }))
+  const dr = useInlineDraft('equipment:dripper', () => ({ custom_name: '' }))
+  g.save({ custom_name: '自組磨豆機' })
+  dr.save({ custom_name: '手工陶濾杯' })
+  g.clear()
+  r.check(g.read().custom_name === '', '磨豆機那份被清掉')
+  r.check(dr.read().custom_name === '手工陶濾杯',
+    '濾杯那份不受影響——磨豆機按取消不該把別的類型一起清掉')
+
+  r.section('欄位刪光等同取消')
+  // 使用者一格一格刪到空，不該留下一筆空紀錄
+  __resetInlineDrafts()
+  const e = useInlineDraft<BeanDraft>('bean', emptyBean)
+  e.save({ name: '打了幾個字', photo: null })
+  e.save({ name: '', photo: null })
+  r.check(useInlineDraft<BeanDraft>('bean', emptyBean).read().name === '',
+    '刪光之後與取消的結果相同')
+
+  r.section('只有部分欄位有值仍要保留')
+  __resetInlineDrafts()
+  const f = useInlineDraft<BeanDraft>('bean', emptyBean)
+  f.save({ name: '', photo: { ext: 'webp' } })
+  r.check(f.read().photo?.ext === 'webp', '只拍了照還沒打豆名，那張照片要留著')
+
   return r.finish()
 }

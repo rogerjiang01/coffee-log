@@ -54,5 +54,39 @@ export default function run() {
       `${name} 的浮層 class 直接帶 fixed——style 因故沒套上時也不會變成一般子元素`)
   }
 
+  r.section('取消與關閉的路徑分開接')
+  // 這一條是結構檢查。行為的失效方式很安靜：按了取消再打開，
+  // 內容還在——看起來像「暫存有效」，其實是違反了使用者剛表達的意圖。
+  const beanSrc = readFileSync(new URL('BeanSelect.vue', dir), 'utf8')
+
+  for (const [name, src] of [['BeanSelect', beanSrc], ['EquipmentPicker', picker]]) {
+    r.check(/function cancelCreate\(\)/.test(src), `${name} 有獨立的 cancelCreate()`)
+    r.check(/cancelCreate[\s\S]{0,200}inlineDraft(\.value)?\.clear\(\)/.test(src),
+      `${name} 的取消會清掉 inline draft`)
+    r.check(/@click="cancelCreate|cancelCreate\(\) :/.test(src), `${name} 的取消按鈕接的是 cancelCreate`)
+  }
+
+  // 返回鍵是「關閉」不是「取消」，不能也清掉
+  const backButton = picker.slice(picker.indexOf('回到清單') - 400, picker.indexOf('回到清單') + 200)
+  r.check(!backButton.includes('cancelCreate'),
+    '器材選擇器的返回鍵維持保留內容——它是離開，不是取消')
+
+  r.section('成對按鈕一律次要在左、主要在右')
+  // 只看 <button> 的內容：DraftOverlay 的標題就有「繼續填寫」四個字，
+  // 拿整份 template 比對會量到標題的位置而不是按鈕的位置。
+  const SECONDARY = ['取消', '重新開始']
+  const PRIMARY = ['confirmLabel', '繼續填寫', '選好了', "'儲存'"]
+
+  for (const name of ['ConfirmDialog.vue', 'DraftOverlay.vue', 'EquipmentPicker.vue', 'BeanSelect.vue']) {
+    const whole = readFileSync(new URL(name, dir), 'utf8')
+    const template = whole.slice(whole.indexOf('<template>'))
+    const buttons = [...template.matchAll(/<button[\s\S]*?<\/button>/g)].map(m => m[0])
+
+    const secondaryAt = buttons.findIndex(b => SECONDARY.some(w => b.includes(w)))
+    const primaryAt = buttons.findIndex(b => PRIMARY.some(w => b.includes(w)))
+    r.check(secondaryAt >= 0 && primaryAt >= 0 && secondaryAt < primaryAt,
+      `${name}：次要動作的按鈕排在主要動作前面（第 ${secondaryAt + 1} 顆 vs 第 ${primaryAt + 1} 顆）`)
+  }
+
   return r.finish()
 }

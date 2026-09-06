@@ -154,6 +154,19 @@ function startCreate() {
   if (!draftName.value && !draftPhoto.value) draftName.value = query.value.trim()
 }
 
+/**
+ * 「取消」是宣告「我不要建這個了」，與「關閉」不同——
+ * 點浮層外面、按 Esc、切到別的欄位都只是離開，內容要留著。
+ * 這裡是使用者唯一能明確清空的入口，所以它必須真的清空。
+ */
+function cancelCreate() {
+  inlineDraft.clear()
+  draftName.value = ''
+  draftPhoto.value = null
+  createError.value = ''
+  creating.value = false
+}
+
 async function create() {
   const name = draftName.value.trim()
   if (!name) {
@@ -318,7 +331,17 @@ async function create() {
             {{ createError }}
           </p>
 
+          <!-- 次要在左、主要在右，與 ConfirmDialog／DraftOverlay／
+               器材選擇器一致。這裡原本是反的。 -->
           <div class="mt-3 flex gap-2">
+            <button
+              type="button"
+              class="flex-1 rounded-sm border px-3 py-2"
+              :style="{ borderColor: 'var(--border)', minHeight: 'var(--touch-min)' }"
+              @click="cancelCreate"
+            >
+              取消
+            </button>
             <button
               type="button"
               :disabled="saving"
@@ -327,14 +350,6 @@ async function create() {
               @click="create"
             >
               {{ saving ? '儲存中' : '儲存' }}
-            </button>
-            <button
-              type="button"
-              class="rounded-sm border px-3 py-2"
-              :style="{ borderColor: 'var(--border)', minHeight: 'var(--touch-min)' }"
-              @click="creating = false"
-            >
-              取消
             </button>
           </div>
         </div>
