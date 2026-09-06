@@ -52,11 +52,9 @@ const nameError = ref('')
 // 長表單上使用者的視線在按鈕附近，只在上方顯示會讓人以為沒反應。
 const summaryError = ref('')
 
-const countries = ref<{ id: string; name_zh: string }[]>([])
 // 產區是自由文字，建議來源是使用者自己填過的值，沒有歷史就沒有建議
 const regionSuggestions = ref<string[]>([])
 
-const systemTable = useSystemTable()
 
 // 查表載入失敗時要講出來，不要讓下拉默默變成空的
 const lookupError = ref('')
@@ -66,20 +64,15 @@ onMounted(async () => {
     await loadLookups()
   }
   catch (e) {
-    lookupError.value = `產國與產區讀不到：${errorText(e)}`
+    lookupError.value = `產區建議讀不到：${errorText(e)}`
   }
 })
 
 async function loadLookups() {
-  const [countryRows, regionResult] = await Promise.all([
-    // countries 是純系統表（《01》§4.4），讀過就留著，換頁不必重抓
-    systemTable.read<{ id: string; name_zh: string }>('countries', async () => {
-      const { data } = await supabase.from('countries').select('id, name_zh').order('sort_order').order('name_zh')
-      return (data ?? []) as unknown as { id: string; name_zh: string }[]
-    }),
-    supabase.from('beans').select('region').not('region', 'is', null).order('region'),
-  ])
-  countries.value = countryRows
+  // 產國由 CountrySelect 自己查（它需要 continent 與英文名，欄位與這裡不同，
+  // 共用同一個快取 key 會讓後到的那份缺欄位）。這裡只剩產區建議。
+  const regionResult = await supabase
+    .from('beans').select('region').not('region', 'is', null).order('region')
   const seen = (regionResult.data ?? []) as unknown as { region: string | null }[]
   regionSuggestions.value = [...new Set(seen.map(row => row.region).filter((v): v is string => !!v))]
 }
@@ -259,21 +252,7 @@ function selectStyle(value: unknown) {
       </FormRow>
 
       <FormRow>
-        <label class="block text-sm" for="bean-country">產國</label>
-        <SelectField>
-          <select
-            id="bean-country"
-            v-model="values.country_id"
-            :data-filled="values.country_id !== null"
-            class="mt-1 block w-full field py-2.5"
-            :style="selectStyle(values.country_id)"
-          >
-            <option :value="null">選填</option>
-            <option v-for="country in countries" :key="country.id" :value="country.id">
-              {{ country.name_zh }}
-            </option>
-          </select>
-        </SelectField>
+        <CountrySelect v-model="values.country_id" />
       </FormRow>
 
       <FormRow>

@@ -11,6 +11,7 @@ const suites = [
   ['unit/brew-diff.test.ts', '差異計算'],
   ['unit/bean-compare.test.ts', '豆子比較表'],
   ['unit/lookup.test.ts', '查表欄位的比對'],
+  ['unit/countries.test.ts', '產國的洲別分組'],
   ['unit/grind-scale.test.ts', '刻度四欄制'],
   ['unit/panel.test.ts', '浮層定位'],
   ['unit/draft.test.ts', '表單自動暫存'],

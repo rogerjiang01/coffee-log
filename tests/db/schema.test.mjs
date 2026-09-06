@@ -70,6 +70,28 @@ export default async function run() {
   r.check((await pg.rows(`select 1 from processing_methods where user_id is null`)).length === 12, '處理法 12 筆')
   r.check((await pg.rows(`select 1 from varieties where user_id is null`)).length === 27, '品種 27 筆')
   r.check((await pg.rows(`select 1 from countries`)).length === 42, '產國 42 筆')
+  r.section('產國的洲別')
+  r.check((await pg.rows(`select 1 from countries where continent is null`)).length === 0,
+    '42 國全部歸了洲——NOT NULL 會擋住漏填，之後新增產國忘記填會直接失敗')
+  const byContinent = await pg.rows(
+    `select continent, count(*)::int as n from countries group by continent order by continent`)
+  r.check(byContinent.length === 3, `只有三洲：${byContinent.map(x => x.continent).join('、')}`)
+  r.check((await pg.rows(`select 1 from countries where iso_code='YE' and continent='africa'`)).length === 1,
+    '葉門在非洲組——咖啡產區慣例與非洲東岸一起討論，不要「修正」成亞洲')
+  r.check((await pg.rows(`select 1 from countries where iso_code='PG' and continent='asia'`)).length === 1,
+    '巴布亞紐幾內亞併入亞洲——42 國裡只有它屬大洋洲，不為單一項目開一組')
+
+  // 常見度排序：每一洲的第一名不能被之後的改動洗掉
+  const first = async (continent) => (await pg.rows(
+    `select name_zh from countries where continent='${continent}' order by sort_order limit 1`))[0].name_zh
+  r.check(await first('africa') === '衣索比亞', '非洲第一是衣索比亞')
+  r.check(await first('americas') === '巴拿馬', '美洲第一是巴拿馬')
+  r.check(await first('asia') === '臺灣', '亞洲第一是臺灣')
+
+  r.check((await pg.rows(
+    `select sort_order from countries group by sort_order having count(*) > 1`)).length === 0,
+    'sort_order 沒有並列——並列時每次載入的順序可能不同')
+
   r.check((await pg.rows(`select 1 from equipment_catalog where type='grinder'`)).length === 25, '磨豆機型錄 25 台')
   r.check((await pg.rows(`select 1 from equipment_catalog`)).length === 53, '型錄共 53 筆')
   r.check((await pg.rows(`select 1 from equipment_catalog where model like 'V60 Switch%'`)).length === 2,
