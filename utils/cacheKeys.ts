@@ -92,3 +92,63 @@ export function matchesPattern(key: string, pattern: string): boolean {
     ? key.startsWith(pattern.slice(0, -1))
     : key === pattern
 }
+
+// ══════════════════════════════════════════════════════════════
+// 同一個 key 的欄位集合必須一致
+// ══════════════════════════════════════════════════════════════
+//
+// **一個 key 只能對應一種查詢。** 兩個元件用同一個 key 但 select 的欄位
+// 不同時，誰先跑誰決定快取內容，後到的那個會拿到缺欄位的資料。
+//
+// 這件事實際發生過：BeanForm 用 'countries' 只查 id 與 name_zh，
+// CountrySelect 需要 continent 與英文名。若 BeanForm 先跑，
+// CountrySelect 拿到的每一筆都沒有 continent，洲別分組會把它們全部
+// 過濾掉，畫面顯示「找不到相符的」——**沒有例外、沒有 console 訊息，
+// 只是一份空清單**。那次是把查詢整個移進 CountrySelect 解決的。
+//
+// 兩條規則：
+//   1. 需要不同欄位就用不同的 key（例如 'countries:options'）
+//   2. 或者把查詢收斂到單一元件，讓那個 key 只有一個來源
+//
+// 下面的檢查只在開發模式跑：記住每個 key 第一次拿到的欄位集合，
+// 之後對不上就在 console 警告。比對的是**回傳的欄位**而不是 select
+// 字串——實際會壞掉的是欄位，而不是怎麼寫的。
+
+const shapes = new Map<string, string>()
+
+/** 取一筆代表列的欄位集合。陣列取第一筆；空陣列無從判斷，回 null */
+export function describeShape(data: unknown): string | null {
+  const row = Array.isArray(data) ? data[0] : data
+  if (!row || typeof row !== 'object') return null
+  const keys = Object.keys(row as Record<string, unknown>)
+  return keys.length ? keys.slice().sort().join(',') : null
+}
+
+/**
+ * 記錄並比對某個 key 的欄位集合。
+ * 對不上時回傳警告文字，相符或無從判斷時回 null。
+ *
+ * **不要拿去檢查 prime()。** 從列表帶進詳情頁的半成品本來就欄位比較少，
+ * 那是刻意的，不是錯誤。
+ */
+export function checkCacheShape(key: string, data: unknown): string | null {
+  const shape = describeShape(data)
+  if (!shape) return null
+
+  const known = shapes.get(key)
+  if (!known) {
+    shapes.set(key, shape)
+    return null
+  }
+  if (known === shape) return null
+
+  return `[cache] 「${key}」這個 key 被兩種不同欄位的查詢共用了。`
+    + `先前：${known}；這次：${shape}。`
+    + '誰先跑誰決定快取內容，後到的元件會拿到缺欄位的資料，而且不會有錯誤。'
+    + '請改用不同的 key，或把查詢收斂到單一元件。'
+}
+
+/** 測試用 */
+export function __resetCacheShapes() {
+  shapes.clear()
+}

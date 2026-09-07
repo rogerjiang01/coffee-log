@@ -6,7 +6,10 @@
 //
 // 所以下面每一條都對照《快取失效對應關係》逐項驗，而不是驗「有清東西」。
 
-import { cacheKeys, invalidationsFor, matchesPattern } from '../../utils/cacheKeys.ts'
+import {
+  cacheKeys, invalidationsFor, matchesPattern,
+  checkCacheShape, describeShape, __resetCacheShapes,
+} from '../../utils/cacheKeys.ts'
 import { createReport, equal } from '../helpers/report.mjs'
 
 /** 某個 key 會不會被這次寫入清掉 */
@@ -104,6 +107,48 @@ export default function run() {
   // 這裡驗的是「沒有幫它留 key」——沒有 key 就不可能被存進去。
   r.check(!Object.keys(cacheKeys).some(name => /photo|signed|url/i.test(name)),
     'cacheKeys 裡沒有任何照片網址的 key')
+
+  r.section('同一個 key 的欄位集合必須一致')
+  // 這件事實際發生過：BeanForm 用 'countries' 只查 id 與 name_zh，
+  // CountrySelect 需要 continent。誰先跑誰決定，後到的拿到缺欄位的資料，
+  // 洲別分組全部落空而畫面只顯示「找不到相符的」——沒有例外、沒有 console。
+  __resetCacheShapes()
+  const narrow = [{ id: '1', name_zh: '衣索比亞' }]
+  const wide = [{ id: '1', name_zh: '衣索比亞', continent: 'africa', name_en: 'Ethiopia' }]
+
+  r.check(checkCacheShape('countries', narrow) === null, '第一次只記錄，不警告')
+  const warning = checkCacheShape('countries', wide)
+  r.check(warning !== null, '第二次換了欄位就警告')
+  r.check(!!warning && warning.includes('countries'), '警告帶出是哪一個 key')
+  r.check(!!warning && warning.includes('continent'), '警告帶出這次的欄位，看得出差在哪')
+  r.check(!!warning && warning.includes('不會有錯誤'),
+    '警告說明為什麼要在意——它的症狀本來就不像錯誤')
+
+  // 基準是第一次記下的那份，不會被後來的覆蓋——所以出錯的那個呼叫端
+  // 每次都會警告，而不是只在第一次出現、之後就靜了
+  r.check(checkCacheShape('countries', wide) !== null, '不相符的查詢每次都警告，不是只警告一次')
+  r.check(checkCacheShape('countries', narrow) === null, '與基準相符的那一邊不警告')
+  r.check(checkCacheShape('beans:list', wide) === null, '不同 key 各自獨立')
+
+  r.section('欄位順序不影響判斷')
+  __resetCacheShapes()
+  checkCacheShape('k', [{ a: 1, b: 2 }])
+  r.check(checkCacheShape('k', [{ b: 2, a: 1 }]) === null,
+    'select 的欄位順序不同不算變更——會壞掉的是缺欄位，不是順序')
+
+  r.section('無從判斷時不亂警告')
+  __resetCacheShapes()
+  r.check(describeShape([]) === null, '空陣列取不到代表列')
+  r.check(describeShape(null) === null, 'null')
+  r.check(describeShape('字串') === null, '非物件')
+  r.check(checkCacheShape('k', []) === null, '空結果不記錄也不警告')
+  r.check(checkCacheShape('k', wide) === null, '空結果之後的第一筆才開始記錄')
+
+  r.section('單一物件也適用')
+  __resetCacheShapes()
+  checkCacheShape('beans:item:x', { id: '1', name: 'a', region: 'b' })
+  r.check(checkCacheShape('beans:item:x', { id: '1', name: 'a' }) !== null,
+    'maybeSingle 回傳的單一物件同樣比對得到')
 
   return r.finish()
 }

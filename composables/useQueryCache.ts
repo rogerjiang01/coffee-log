@@ -15,7 +15,7 @@
 
 // 明寫 import 而不是靠 Nuxt 自動匯入：測試要能直接載入這支檔案，
 // 量的才是真正跑在使用者機器上的那段程式，不是一份仿製品。
-import { invalidationsFor, matchesPattern, type Mutation } from '../utils/cacheKeys.ts'
+import { checkCacheShape, invalidationsFor, matchesPattern, type Mutation } from '../utils/cacheKeys.ts'
 
 interface Entry {
   data: unknown
@@ -51,6 +51,8 @@ export function useQueryCache() {
    * 別讓詳情頁再要一次」——例如豆子列表已有豆名、照片路徑、烘焙日期。
    *
    * 已經有完整資料時不覆蓋：部分蓋過完整是退步。
+   *
+   * 這裡刻意不做欄位集合檢查——半成品的欄位本來就比較少，那是設計而非錯誤。
    */
   function prime<T>(key: string, data: T) {
     const existing = store.get(key)
@@ -59,6 +61,12 @@ export function useQueryCache() {
   }
 
   function set<T>(key: string, data: T) {
+    // 開發模式才檢查：同一個 key 被不同欄位的查詢共用時會靜默壞掉，
+    // 說明見 utils/cacheKeys.ts 的「同一個 key 的欄位集合必須一致」
+    if (import.meta.dev) {
+      const warning = checkCacheShape(key, data)
+      if (warning) console.warn(warning)
+    }
     store.set(key, { data, partial: false })
   }
 

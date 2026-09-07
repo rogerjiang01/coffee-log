@@ -27,6 +27,13 @@ export function useSystemTable() {
 
     const promise = fetcher()
       .then((rows) => {
+        // 開發模式才檢查。'countries' 這個 key 就曾經被兩種欄位的查詢共用，
+        // 症狀是洲別分組全部落空而畫面只顯示「找不到相符的」——
+        // 說明見 utils/cacheKeys.ts 的「同一個 key 的欄位集合必須一致」
+        if (import.meta.dev) {
+          const warning = checkCacheShape(key, rows)
+          if (warning) console.warn(warning)
+        }
         cache.value[key] = rows as unknown[]
         return rows
       })
