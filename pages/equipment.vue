@@ -178,24 +178,6 @@ async function save() {
   }
 }
 
-/** 列表上直接切換預設 */
-async function toggleDefault(row: EquipmentRow, next: boolean) {
-  actionError.value = ''
-  try {
-    if (next) await clearDefault(row.type, row.id)
-    const { error } = await supabase
-      .from('user_equipment')
-      .update({ is_default: next } as never)
-      .eq('id', row.id)
-    if (error) throw toError(error)
-    cache.invalidateAfter({ kind: 'equipment' })
-    await load()
-  }
-  catch (e) {
-    actionError.value = `更新失敗：${errorText(e)}`
-  }
-}
-
 async function destroy() {
   if (!confirmId.value) return
   deleting.value = true
@@ -206,6 +188,8 @@ async function destroy() {
     actionError.value = `刪除失敗：${errorText(error)}`
     return
   }
+  // 刪掉的就是正在編輯的那一筆，表單要跟著收起來
+  editing.value = null
   cache.invalidateAfter({ kind: 'equipment' })
   await load()
 }
@@ -339,6 +323,19 @@ const inputStyle = {
       >
         取消
       </button>
+
+      <!-- 刪除從卡片收進這裡：低頻且不可復原的動作不該排在列表上，
+           與「編輯」並列時兩者的視覺權重也不對等。
+           放在儲存與取消之後，不帶邊框，是這一頁權重最低的動作。 -->
+      <button
+        v-if="editing !== 'new'"
+        type="button"
+        class="mt-3 w-full rounded-sm px-4 py-3 text-sm"
+        :style="{ color: 'var(--danger)', minHeight: 'var(--touch-min)' }"
+        @click="confirmId = editing"
+      >
+        刪除
+      </button>
     </div>
 
     <div v-if="loading" aria-busy="true" aria-label="讀取中" class="mt-6 space-y-6">
@@ -364,8 +361,21 @@ const inputStyle = {
             class="rounded-md border p-4"
             :style="{ borderColor: 'var(--border)', background: 'var(--surface)' }"
           >
-            <div class="flex items-baseline justify-between gap-3">
+            <div class="flex items-baseline justify-between gap-2">
               <h3 class="min-w-0 flex-1 truncate font-medium">{{ displayName(row) }}</h3>
+
+              <!-- 標籤不是按鈕。預設幾乎不換，它在列表上是狀態不是控制項——
+                   要改到編輯頁切換。原本這裡是一個 toggle，切換要打 DB 再重載
+                   清單，中間必然閃一次載入狀態；而且 toggle 看起來像可以同時
+                   開很多台，實際上同類型只能有一個（DB 有 partial unique index）。 -->
+              <span
+                v-if="row.is_default"
+                class="shrink-0 rounded-sm px-2 py-0.5 text-xs"
+                :style="{ background: 'var(--accent-wash)', color: 'var(--on-accent-wash)' }"
+              >
+                預設
+              </span>
+
               <button
                 type="button"
                 class="shrink-0 text-sm underline"
@@ -377,23 +387,6 @@ const inputStyle = {
             </div>
 
             <p v-if="row.note" class="mt-1 text-sm text-muted">{{ row.note }}</p>
-
-            <div class="mt-3">
-              <ToggleSwitch
-                :model-value="row.is_default"
-                label="預設"
-                @update:model-value="toggleDefault(row, $event)"
-              />
-            </div>
-
-            <button
-              type="button"
-              class="mt-3 text-sm"
-              :style="{ color: 'var(--danger)' }"
-              @click="confirmId = row.id"
-            >
-              刪除
-            </button>
           </li>
         </ul>
       </section>
