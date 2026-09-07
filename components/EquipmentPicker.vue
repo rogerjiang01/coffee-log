@@ -135,8 +135,25 @@ function formatUsed(id: string) {
   return relativeUsed(lastUsed.value.get(id))
 }
 
-/** 這個類型目前的常用器材。新增時用來說明單選的副作用 */
-const currentDefault = computed(() => items.value.find(item => item.is_default) ?? null)
+/**
+ * 這次有沒有按過「設為常用」。用來決定要不要顯示回饋——
+ * 不能拿 form.is_default 直接判斷，那分不出「剛剛按的」與「原本就是」。
+ */
+const pressedDefault = ref(false)
+
+function toggleDefault() {
+  form.is_default = !form.is_default
+  pressedDefault.value = true
+}
+
+/** 表單上這台的名稱，給回饋文案用 */
+const formName = computed(() => {
+  if (form.catalog_id) {
+    const row = items.value.find(item => item.catalog_id === form.catalog_id)
+    if (row) return equipmentOptionName(row)
+  }
+  return form.custom_name.trim() || null
+})
 
 function confirmChoice() {
   emit('update:modelValue', draftId.value)
@@ -158,6 +175,7 @@ function cancelCreate() {
 function startCreate() {
   mode.value = 'create'
   formError.value = ''
+  pressedDefault.value = false
   // 不清空，改成把上次留下的內容放回來
   Object.assign(form, inlineDraft.value.read())
 }
@@ -363,13 +381,14 @@ const inputStyle = { minHeight: 'var(--touch-min)' }
               color: form.is_default ? 'var(--text)' : 'var(--accent)',
               minHeight: 'var(--touch-min)',
             }"
-            @click="form.is_default = !form.is_default"
+            @click="toggleDefault"
           >
             {{ form.is_default ? '取消常用' : '設為常用' }}
           </button>
 
-          <p v-if="form.is_default && currentDefault" class="mt-2 text-xs text-muted">
-            目前常用的是 {{ equipmentOptionName(currentDefault) }}，設定後會換成這台
+          <!-- 事後回饋而非事前警告，理由同器材頁 -->
+          <p v-if="form.is_default && pressedDefault" class="mt-2 text-xs text-muted">
+            {{ formName ? `已將 ${formName} 設為常用` : '已設為常用' }}
           </p>
         </div>
 
