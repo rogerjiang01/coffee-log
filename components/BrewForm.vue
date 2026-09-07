@@ -88,7 +88,7 @@ const beanError = ref('')
 const doseError = ref('')
 const summaryError = ref('')
 
-// 器材：新增時各類型的預設器材自動帶入
+// 器材：新增時各類型的常用器材自動帶入
 const equipment = ref<EquipmentOption[]>([])
 const methods = ref<{ id: string; name: string }[]>([])
 
@@ -148,7 +148,7 @@ async function loadLookups() {
     cache.swr(cacheKeys.lookup('brew_methods'), fetchMethods, { apply: applyMethods }).settled,
   ])
 
-  // 只在新增（沒有初始值）時帶入預設，編輯既有紀錄不覆蓋使用者當初的選擇
+  // 只在新增（沒有初始值）時帶入常用器材，編輯既有紀錄不覆蓋使用者當初的選擇
   if (!props.initial) {
     for (const item of equipment.value) {
       if (!item.is_default) continue

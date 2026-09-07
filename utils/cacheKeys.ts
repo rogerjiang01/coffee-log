@@ -27,6 +27,11 @@ export const cacheKeys = {
   brewCounts: () => 'brews:counts',
 
   equipment: (type: string) => `equipment:${type}`,
+  /**
+   * 每台器材最後一次被用到的時間。從 brews 反查，所以放在 brews: 底下——
+   * 新增或刪除紀錄都會改變它，掛在 equipment: 底下就不會被清掉。
+   */
+  equipmentLastUsed: () => 'brews:equipment-last-used',
   equipmentAll: () => 'equipment:all',
 
   lookup: (table: string) => `lookup:${table}`,

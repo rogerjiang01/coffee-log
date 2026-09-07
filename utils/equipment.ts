@@ -140,3 +140,80 @@ export interface EquipmentOption {
     grind_scale_note: string | null
   } | null
 }
+
+// ══════════════════════════════════════════════════════════════
+// 上次使用時間
+// ══════════════════════════════════════════════════════════════
+
+const SMALL_NUMBERS = ['', '一', '兩', '三', '四', '五', '六', '七', '八', '九', '十', '十一']
+
+/** 二、三這種小數字用國字讀起來自然；超過十就用阿拉伯數字 */
+function count(n: number) {
+  return SMALL_NUMBERS[n] ?? String(n)
+}
+
+/**
+ * 上次使用時間，相對表示。
+ *
+ * **刻意不顯示絕對日期。** 使用者要的是「這台最近有在用嗎」，
+ * 「2026/07/14」得先在腦中減一次才回答得了這個問題。
+ *
+ * 從沒用過回 null，呼叫端留空即可——不要顯示「從未使用」，
+ * 那是解釋現況（《03》§5.6）。
+ *
+ * 尺度刻意粗：兩年前與兩年又三個月前的差別，對「要不要用這台」沒有影響。
+ */
+export function relativeUsed(iso: string | null | undefined, now: Date = new Date()): string | null {
+  if (!iso) return null
+  const then = new Date(iso)
+  if (Number.isNaN(then.getTime())) return null
+
+  // 以「日」為單位比較，不是以 24 小時為單位：
+  // 昨天 23:00 到今天 01:00 只差兩小時，但使用者說的是「昨天」。
+  const startOfDay = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime()
+  const days = Math.floor((startOfDay(now) - startOfDay(then)) / 86_400_000)
+
+  if (days < 0) return null // 未來的時間，資料有問題，不猜
+  if (days === 0) return '今天用過'
+  if (days === 1) return '昨天用過'
+  if (days < 7) return `${count(days)}天前用過`
+  if (days < 14) return '上週用過'
+  if (days < 30) return `${count(Math.floor(days / 7))}週前用過`
+  if (days < 60) return '上個月用過'
+
+  // 月份上限是十一：滿十二個月就該說「一年前」，
+  // 不是「12 個月前」——後者要讀的人自己換算一次。
+  const months = Math.floor(days / 30)
+  if (months < 12) return `${count(months)}個月前用過`
+
+  const years = Math.floor(days / 365)
+  return years <= 1 ? '一年前用過' : `${count(years)}年前用過`
+}
+
+/**
+ * 從沖煮紀錄反查每一台器材最後出現的時間。
+ *
+ * user_equipment 沒有這個欄位，也不該有——它是衍生值（《01》§8）。
+ *
+ * **一次抓回全部再在前端配對**，不要逐台查：五個類型、每個類型數台，
+ * 逐台查就是十幾趟來回。傳入的列必須已依 brewed_at 由新到舊排序，
+ * 每個 id 第一次出現的那筆就是最後一次使用。
+ */
+export function lastUsedFromBrews(
+  rows: Record<string, string | null>[],
+  columns: string[],
+): Map<string, string> {
+  const used = new Map<string, string>()
+  for (const row of rows) {
+    const brewedAt = row.brewed_at
+    if (!brewedAt) continue
+    for (const column of columns) {
+      const id = row[column]
+      if (id && !used.has(id)) used.set(id, brewedAt)
+    }
+  }
+  return used
+}
+
+/** 五個器材類型對應到 brews 上的欄位 */
+export const EQUIPMENT_COLUMNS = ['grinder_id', 'dripper_id', 'filter_id', 'kettle_id', 'server_id']

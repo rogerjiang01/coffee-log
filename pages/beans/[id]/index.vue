@@ -208,9 +208,21 @@ async function destroy() {
     </template>
 
     <template v-else-if="bean">
-      <div class="flex items-baseline justify-between">
-        <NuxtLink to="/beans" class="text-sm underline" :style="{ color: 'var(--accent)' }">豆子</NuxtLink>
-        <NuxtLink :to="`/beans/${bean.id}/edit`" class="text-sm underline" :style="{ color: 'var(--accent)' }">
+      <!-- 這一列給 44px 高度，兩個連結撐滿——它們是可點區塊不是行內文字連結，
+           《03》§7 的觸控目標下限適用 -->
+      <div class="flex items-center justify-between" :style="{ minHeight: 'var(--touch-min)' }">
+        <NuxtLink
+          to="/beans"
+          class="flex items-center pr-2 text-sm underline"
+          :style="{ color: 'var(--accent)', alignSelf: 'stretch' }"
+        >
+          豆子
+        </NuxtLink>
+        <NuxtLink
+          :to="`/beans/${bean.id}/edit`"
+          class="flex items-center pl-2 text-sm underline"
+          :style="{ color: 'var(--accent)', alignSelf: 'stretch', minWidth: 'var(--touch-min)', justifyContent: 'flex-end' }"
+        >
           編輯
         </NuxtLink>
       </div>

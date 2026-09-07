@@ -129,13 +129,14 @@ async function load() {
   loading.value = false
 }
 
+// 相對時間而非絕對日期：使用者要的是「這台最近有在用嗎」，
+// 「2026/07/14」得先在腦中減一次才回答得了
 function formatUsed(id: string) {
-  const iso = lastUsed.value.get(id)
-  if (!iso) return null
-  const d = new Date(iso)
-  const pad = (n: number) => String(n).padStart(2, '0')
-  return `最後使用 ${d.getFullYear()}/${pad(d.getMonth() + 1)}/${pad(d.getDate())}`
+  return relativeUsed(lastUsed.value.get(id))
 }
+
+/** 這個類型目前的常用器材。新增時用來說明單選的副作用 */
+const currentDefault = computed(() => items.value.find(item => item.is_default) ?? null)
 
 function confirmChoice() {
   emit('update:modelValue', draftId.value)
@@ -173,7 +174,7 @@ async function create() {
   saving.value = true
   formError.value = ''
   try {
-    // 同類型只能有一個預設，先清掉既有的再設，避免撞上唯一索引
+    // 同類型只能有一台常用，先清掉既有的再設，避免撞上唯一索引
     if (form.is_default) {
       const { error } = await supabase
         .from('user_equipment')
@@ -297,7 +298,7 @@ const inputStyle = { minHeight: 'var(--touch-min)' }
                 <span v-if="formatUsed(item.id)" class="block text-xs tabular-nums text-muted">
                   {{ formatUsed(item.id) }}
                 </span>
-                <span v-else-if="item.is_default" class="block text-xs text-muted">預設器材</span>
+                <span v-else-if="item.is_default" class="block text-xs text-muted">常用</span>
               </span>
 
               <input
@@ -351,8 +352,25 @@ const inputStyle = { minHeight: 'var(--touch-min)' }
           >
         </div>
 
+        <!-- 動作按鈕而非 toggle，理由同器材頁：同類型只能有一台常用，
+             toggle 表達的是獨立開關，會讓單選的副作用隱形 -->
         <div class="mt-5">
-          <ToggleSwitch v-model="form.is_default" label="設為預設" />
+          <button
+            type="button"
+            class="w-full rounded-sm border px-4 py-3"
+            :style="{
+              borderColor: form.is_default ? 'var(--border-strong)' : 'var(--accent)',
+              color: form.is_default ? 'var(--text)' : 'var(--accent)',
+              minHeight: 'var(--touch-min)',
+            }"
+            @click="form.is_default = !form.is_default"
+          >
+            {{ form.is_default ? '取消常用' : '設為常用' }}
+          </button>
+
+          <p v-if="form.is_default && currentDefault" class="mt-2 text-xs text-muted">
+            目前常用的是 {{ equipmentOptionName(currentDefault) }}，設定後會換成這台
+          </p>
         </div>
 
         <p v-if="formError" role="alert" class="mt-4 rounded-sm border px-3 py-3 text-sm" :style="{ color: 'var(--danger)', borderColor: 'var(--danger)' }">

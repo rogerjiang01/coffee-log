@@ -1,5 +1,5 @@
 <script setup lang="ts">
-// 器材管理（《02-功能規格》§3：列表、新增、設定預設）。
+// 器材管理（《02-功能規格》§3：列表、新增、設定常用）。
 //
 // 規格的頁面清單只有 /equipment 一條路由，因此新增與編輯都在這一頁內完成，
 // 不另開 /equipment/new 與 /equipment/[id]。
@@ -67,7 +67,7 @@ const grouped = computed(() =>
 )
 
 async function fetchEquipment() {
-  // 排序寫死：預設器材在前，再依建立時間，最後用 id 當決勝鍵
+  // 排序寫死：常用器材在前，再依建立時間，最後用 id 當決勝鍵
   const { data, error } = await supabase
     .from('user_equipment')
     .select('id, catalog_id, type, custom_name, is_default, note, equipment_catalog ( brand, model, variant )')
@@ -78,14 +78,41 @@ async function fetchEquipment() {
   return (data ?? []) as unknown as EquipmentRow[]
 }
 
+/**
+ * 每台器材最後一次被用到的時間。user_equipment 沒有這個欄位，
+ * 也不該有——它是衍生值（《01》§8）。
+ *
+ * 五個類型一次抓回來再在前端配對，不要逐台查：五個類型、每個數台，
+ * 逐台查就是十幾趟來回。只取這幾個欄位與時間，列數雖多但每列很小。
+ */
+async function fetchLastUsed() {
+  const { data, error } = await supabase
+    .from('brews')
+    .select(`brewed_at, ${EQUIPMENT_COLUMNS.join(', ')}`)
+    .order('brewed_at', { ascending: false })
+  if (error) throw toError(error)
+  return [...lastUsedFromBrews(
+    (data ?? []) as unknown as Record<string, string | null>[],
+    EQUIPMENT_COLUMNS,
+  )] as [string, string][]
+}
+
+const lastUsed = ref<Map<string, string>>(new Map())
+
 async function load() {
   loadError.value = ''
   const { hit, settled } = cache.swr(cacheKeys.equipmentAll(), fetchEquipment, {
     apply: (rows) => { items.value = rows },
     onError: (e) => { loadError.value = `讀不到器材：${errorText(e)}` },
   })
+
+  // 上次使用時間拿不到不該讓整頁失敗——它是輔助資訊，缺了就留空
+  const usedQuery = cache.swr(cacheKeys.equipmentLastUsed(), fetchLastUsed, {
+    apply: (pairs) => { lastUsed.value = new Map(pairs) },
+  })
+
   loading.value = !hit
-  await settled
+  await Promise.all([settled, usedQuery.settled])
   // 任何失敗都不會讓頁面停在讀取中而看不到新增入口
   loading.value = false
 }
@@ -112,14 +139,21 @@ function startEdit(row: EquipmentRow) {
   })
 }
 
+/** 這個類型目前的常用器材，排除正在編輯的這一台 */
+const currentDefault = computed(() => {
+  if (!editing.value) return null
+  return items.value.find(row =>
+    row.type === form.type && row.is_default && row.id !== editing.value) ?? null
+})
+
 function cancel() {
   editing.value = null
   formError.value = ''
 }
 
 /**
- * 每個類型只能有一個預設（DB 有 partial unique index）。
- * 先把同類型的既有預設清掉再設新的，否則會撞上唯一約束，
+ * 每個類型只能有一台常用（DB 有 partial unique index，欄位名仍是 is_default）。
+ * 先把同類型的既有常用清掉再設新的，否則會撞上唯一約束，
  * 把資料庫層的錯誤訊息丟到使用者面前。
  */
 async function clearDefault(type: EquipmentType, exceptId?: string) {
@@ -297,7 +331,32 @@ const inputStyle = {
         </FormRow>
 
         <FormRow>
-          <ToggleSwitch v-model="form.is_default" label="設為這個類型的預設" />
+          <!-- 動作按鈕而非 toggle。同類型只能有一台常用（DB 有 partial
+               unique index），toggle 表達的是獨立的開關，用它承載單選會讓
+               副作用隱形——使用者看不到「開啟這台會關掉另一台」。
+               改成兩個狀態的按鈕，並把副作用寫在下面那行。 -->
+          <button
+            type="button"
+            class="w-full rounded-sm border px-4 py-3"
+            :style="{
+              borderColor: form.is_default ? 'var(--border-strong)' : 'var(--accent)',
+              color: form.is_default ? 'var(--text)' : 'var(--accent)',
+              minHeight: 'var(--touch-min)',
+            }"
+            @click="form.is_default = !form.is_default"
+          >
+            {{ form.is_default ? '取消常用' : '設為常用' }}
+          </button>
+
+          <!-- 單選的副作用放到畫面上。只在真的會換掉別台時才出現。 -->
+          <p v-if="form.is_default && currentDefault" class="mt-2 text-xs text-muted">
+            目前常用的是 {{ displayName(currentDefault) }}，設定後會換成這台
+          </p>
+
+          <!-- 沒有任何常用是合法狀態，新使用者本來就沒有。不阻止取消。 -->
+          <p v-else-if="!form.is_default" class="mt-2 text-xs text-muted">
+            新增紀錄時會自動填入這個類型的常用器材
+          </p>
         </FormRow>
       </FormCard>
 
@@ -361,32 +420,46 @@ const inputStyle = {
             class="rounded-md border p-4"
             :style="{ borderColor: 'var(--border)', background: 'var(--surface)' }"
           >
-            <div class="flex items-baseline justify-between gap-2">
-              <h3 class="min-w-0 flex-1 truncate font-medium">{{ displayName(row) }}</h3>
+            <!-- 固定兩行，高度由結構決定不由內容決定。
+                 左邊回答「這是什麼」（名稱 ＋ 常用標籤），右邊回答「能做什麼」（編輯）。
+                 標籤緊跟名稱是因為它是名稱的修飾語，屬於身分而非動作；
+                 與「編輯」並列會讓人以為標籤可以點。 -->
+            <div class="flex items-center justify-between gap-2" :style="{ minHeight: 'var(--touch-min)' }">
+              <div class="flex min-w-0 flex-1 items-center gap-2">
+                <h3 class="min-w-0 truncate font-medium">{{ displayName(row) }}</h3>
+                <span
+                  v-if="row.is_default"
+                  class="shrink-0 rounded-sm px-2 py-0.5 text-xs"
+                  :style="{ background: 'var(--accent-wash)', color: 'var(--on-accent-wash)' }"
+                >
+                  常用
+                </span>
+              </div>
 
-              <!-- 標籤不是按鈕。預設幾乎不換，它在列表上是狀態不是控制項——
-                   要改到編輯頁切換。原本這裡是一個 toggle，切換要打 DB 再重載
-                   清單，中間必然閃一次載入狀態；而且 toggle 看起來像可以同時
-                   開很多台，實際上同類型只能有一個（DB 有 partial unique index）。 -->
-              <span
-                v-if="row.is_default"
-                class="shrink-0 rounded-sm px-2 py-0.5 text-xs"
-                :style="{ background: 'var(--accent-wash)', color: 'var(--on-accent-wash)' }"
-              >
-                預設
-              </span>
-
+              <!-- 撐滿整列高度，觸控目標才滿足《03》§7 的 44px。
+                   卡片本來就固定高度，所以這不會造成額外的視覺變化。 -->
               <button
                 type="button"
-                class="shrink-0 text-sm underline"
-                :style="{ color: 'var(--accent)' }"
+                class="flex shrink-0 items-center px-2 text-sm underline"
+                :style="{ color: 'var(--accent)', alignSelf: 'stretch', minWidth: 'var(--touch-min)' }"
                 @click="startEdit(row)"
               >
                 編輯
               </button>
             </div>
 
-            <p v-if="row.note" class="mt-1 text-sm text-muted">{{ row.note }}</p>
+            <!-- 第二行：兩項都可能為空，空的時候不顯示文字但保留行高，
+                 卡片高度才不會隨內容跳動。
+                 備註不是次要資訊——兩台同型號的器材（例如兩台 C40）
+                 名稱完全相同時，備註是唯一的辨識依據。
+                 兩項之間用間距分隔，不用中間點（《03》§1 禁止 meta 串接）。 -->
+            <p
+              class="flex items-baseline gap-4 text-sm text-muted"
+              :style="{ minHeight: 'calc(var(--text-sm) * var(--text-sm--line-height))' }"
+            >
+              <span class="min-w-0 flex-1 truncate">{{ row.note }}</span>
+              <span class="shrink-0 tabular-nums">{{ relativeUsed(lastUsed.get(row.id)) }}</span>
+            </p>
           </li>
         </ul>
       </section>

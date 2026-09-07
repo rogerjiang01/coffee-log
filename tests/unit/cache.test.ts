@@ -50,6 +50,8 @@ export default function run() {
   r.check(cleared(cacheKeys.brewsByBean(OTHER_BEAN), brew),
     '別支豆子的也清——編輯時可能把紀錄改掛到另一支豆子上')
   r.check(cleared(cacheKeys.brewCounts(), brew), '豆子卡片的沖煮次數與收藏次數')
+  r.check(cleared(cacheKeys.equipmentLastUsed(), brew),
+    '器材的上次使用時間——它從 brews 反查，所以掛在 brews: 底下')
   r.check(cleared(cacheKeys.brew(BREW), brew), '該筆紀錄本身')
   r.check(cleared(cacheKeys.brewSteps(BREW), brew), '該筆紀錄的分段')
   r.check(cleared(cacheKeys.brewTags(BREW), brew), '該筆紀錄的風味標籤')
@@ -94,6 +96,8 @@ export default function run() {
   r.check(cleared(cacheKeys.equipment('grinder'), equip), '表單的磨豆機選單')
   r.check(cleared(cacheKeys.equipment('dripper'), equip), '濾杯選單也清——預設器材可能改到別的類型')
   r.check(!cleared(cacheKeys.brewPage(0), equip), '不動時間軸')
+  r.check(!cleared(cacheKeys.equipmentLastUsed(), equip),
+    '不動上次使用時間——新增器材不會改變既有紀錄用過什麼')
 
   r.section('自建查表項目')
   const variety = { kind: 'lookup', table: 'varieties' } as const
