@@ -17,7 +17,12 @@ function toBlob(canvas: HTMLCanvasElement, type: string, quality: number) {
   return new Promise<Blob | null>(resolve => canvas.toBlob(resolve, type, quality))
 }
 
-export async function compressBeanPhoto(file: File): Promise<CompressedImage> {
+/**
+ * 接受 Blob 而不只是 File：裁切後拿到的是 canvas 轉出來的 Blob，
+ * 它要走完全相同的壓縮流程（長邊、品質、WebP、2MB 上限）。
+ * File 本來就是 Blob 的子型別，既有的呼叫端不受影響。
+ */
+export async function compressBeanPhoto(file: Blob): Promise<CompressedImage> {
   if (!file.type.startsWith('image/')) {
     throw new Error('這個檔案不是圖片')
   }

@@ -104,6 +104,19 @@ export function useAnchoredPanel(
     if (trigger.value?.contains(target)) return false
     // 浮層已經 teleport 出去，不能只檢查觸發元素的父層
     if (panel.value?.contains(target)) return false
+
+    // **疊在這個浮層上面的 modal 裡的點擊不算「外面」。**
+    // 例子：沖煮表單的豆子下拉 → 就地新增 → 拍照 → 裁切介面。裁切介面是
+    // teleport 到 body 的 <dialog>，不在浮層裡；少了這一條，使用者在裁切介面
+    // 上點任何一下都會被判成點到外面，豆子下拉跟著關掉，裁切介面連同
+    // 剛選的照片一起被卸載——沒有錯誤訊息，畫面直接不見。
+    //
+    // 條件是「那個 modal 不包含這個浮層」：浮層自己就開在某個 dialog 裡的
+    // 情況（器材選擇器裡的型號下拉），點那個 dialog 的其他地方仍然要關閉浮層。
+    const element = target instanceof Element ? target : target.parentElement
+    const modal = element?.closest('dialog[open]')
+    if (modal && panel.value && !modal.contains(panel.value)) return false
+
     return true
   }
 

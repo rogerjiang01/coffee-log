@@ -23,6 +23,7 @@ const suites = [
   ['unit/error-message.test.ts', '錯誤訊息中文化'],
   ['unit/css.test.mjs', '全域 CSS 的關鍵規則'],
   ['unit/portal.test.mjs', '浮層的 teleport 目標'],
+  ['unit/photo-cropper.test.mjs', '照片裁切'],
   ['db/schema.test.mjs', 'Schema、RLS 與 seed'],
   ['db/brews.test.mjs', '分段與複製（資料庫）'],
 ]

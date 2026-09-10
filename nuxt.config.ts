@@ -88,6 +88,16 @@ export default defineNuxtConfig({
     },
   },
 
+  vue: {
+    compilerOptions: {
+      // cropperjs v2 的元素是 Web Components（cropper-canvas、cropper-image、
+      // cropper-selection…），不是 Vue 元件。沒有這一行，Vue 會把它們當成
+      // 找不到的元件並在 console 警告，還會嘗試解析它們的屬性。
+      // 用前綴比對而不是逐一列名：cropperjs 升版新增元素時不必回來改這裡。
+      isCustomElement: tag => tag.startsWith('cropper-'),
+    },
+  },
+
   typescript: {
     strict: true,
     // tests/ 用 Node 內建的型別剝除直接跑 .ts，import 需要帶副檔名。

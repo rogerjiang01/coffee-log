@@ -48,8 +48,12 @@ export default function run() {
   r.check(/flush:\s*'sync'/.test(panel),
     "watch 用 flush: 'sync' 先算一次——預設的 pre 會等到算繪之後才跑")
 
-  const sources2 = sources.filter(([, src]) => src.includes('<Teleport'))
-  for (const [name, src] of sources2) {
+  // 只看錨定在觸發元素旁的下拉浮層（用 useAnchoredPanel 的那些）。
+  // PhotoCropper 也 teleport，但它送出去的是全螢幕的 <dialog class="sheet">，
+  // 由 main.css 的 dialog:modal 定位，不是算座標的浮層，不適用這一條。
+  const anchored = sources.filter(([, src]) => src.includes('<Teleport') && src.includes('useAnchoredPanel'))
+  r.check(anchored.length >= 3, `錨定浮層共 ${anchored.length} 個`)
+  for (const [name, src] of anchored) {
     r.check(/class="fixed z-40/.test(src),
       `${name} 的浮層 class 直接帶 fixed——style 因故沒套上時也不會變成一般子元素`)
   }
