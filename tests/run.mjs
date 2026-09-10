@@ -19,6 +19,7 @@ const suites = [
   ['unit/inline-draft.test.ts', '就地新增的暫存'],
   ['unit/cache.test.ts', '客戶端快取'],
   ['unit/query-cache.test.ts', 'SWR 快取'],
+  ['unit/photo-url-cache.test.ts', '照片簽名網址的快取'],
   ['unit/error-message.test.ts', '錯誤訊息中文化'],
   ['unit/css.test.mjs', '全域 CSS 的關鍵規則'],
   ['unit/portal.test.mjs', '浮層的 teleport 目標'],

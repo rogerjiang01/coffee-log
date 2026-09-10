@@ -35,6 +35,19 @@ export const cacheKeys = {
   equipmentAll: () => 'equipment:all',
 
   lookup: (table: string) => `lookup:${table}`,
+
+  /**
+   * 豆袋照片的簽名網址，掛在 photo_path 上。
+   *
+   * **刻意不放在 beans: 底下。** 豆子的任何寫入都會清掉 beans:*，
+   * 但那不影響照片網址是否有效——放進去的話每改一次豆名，
+   * 列表上所有照片的網址都要重新產生，瀏覽器快取又全部失效。
+   * 真正會讓網址失效的只有換照片與刪照片，由 useBeanPhotos 明確清掉。
+   *
+   * 這一格不走 useQueryCache 的 SWR：過期的網址不能先拿來用再背景換新，
+   * 那樣畫面會先出現一張裂圖。見 utils/photoUrlCache.ts。
+   */
+  photoUrl: (path: string) => `photo-url:${path}`,
 }
 
 /** 寫入事件。欄位只放「決定要失效什麼」需要的資訊 */

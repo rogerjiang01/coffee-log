@@ -106,11 +106,21 @@ export default function run() {
     '只清那一張表——新增品種不影響處理法的選單')
   r.check(!cleared(cacheKeys.beanList(), variety), '不動豆子列表')
 
-  r.section('照片的簽名網址永遠不進快取')
-  // 簽名網址有時效，快取起來過期之後圖會裂掉。
-  // 這裡驗的是「沒有幫它留 key」——沒有 key 就不可能被存進去。
-  r.check(!Object.keys(cacheKeys).some(name => /photo|signed|url/i.test(name)),
-    'cacheKeys 裡沒有任何照片網址的 key')
+  r.section('照片的簽名網址：快取，但不跟著豆子的寫入失效')
+  // 規則改過：原本是「一律不快取」，理由是網址有時效、過期後圖會裂。
+  // 那個顧慮是對的，但每次換新網址會讓瀏覽器的 HTTP 快取完全失效——
+  // 同一張圖 ?token=abc 與 ?token=xyz 被當成兩個資源，每次跳頁都重新下載。
+  // 現在連同過期時間一起存，快過期才換（見 utils/photoUrlCache.ts）。
+  const photoKey = cacheKeys.photoUrl('u1/bean-1.webp')
+  r.check(photoKey === 'photo-url:u1/bean-1.webp', '掛在 photo_path 上')
+
+  // 改豆名不該讓照片網址重新產生——那會讓整個列表的圖又全部重新下載。
+  // 真正讓網址失效的只有換照片與刪照片，由 useBeanPhotos 明確清掉。
+  r.check(!cleared(photoKey, { kind: 'bean' }), '豆子的寫入不清照片網址')
+  r.check(!cleared(photoKey, { kind: 'bean-finished' }), '標記已喝完不清')
+  r.check(!cleared(photoKey, { kind: 'brew' }), '紀錄的寫入不清')
+  r.check(!photoKey.startsWith('beans:') && !photoKey.startsWith('brews:'),
+    '不在 beans: 或 brews: 底下——否則會被那兩個前綴的失效一起帶走')
 
   r.section('同一個 key 的欄位集合必須一致')
   // 這件事實際發生過：BeanForm 用 'countries' 只查 id 與 name_zh，
