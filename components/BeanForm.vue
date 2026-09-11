@@ -80,6 +80,9 @@ async function loadLookups() {
 function onPhotoPicked(picked: CompressedImage | null) {
   photo.value = picked
   photoCleared.value = picked === null
+  // 使用者自己選了（或移除了）：還原來的那張與「沒能還原」的說明都不再適用
+  photoNotice.value = ''
+  setRestoredUrl(null)
 }
 
 const roastOptions: { value: RoastLevel; label: string }[] = (
@@ -102,13 +105,56 @@ function submit() {
 }
 
 // ── 自動暫存（§6）────────────────────────────────────────
-// 只暫存文字欄位。豆袋照片是壓縮後的 Blob，放不進 localStorage，
-// 還原後要重新選一次。
+// 文字欄位進 localStorage（useFormDraft），豆袋照片進 IndexedDB（draftPhotos），
+// 兩邊用同一個 key。手機瀏覽器會回收背景分頁，切去別的 app 再回來就等同
+// 重新整理——照片不暫存的話，最容易遺失資料的情境正好把它弄丟。
+//
+// 文字暫存裡的 photo 只是「本來有照片」的標記：
+//   - 照片讀不回來時靠它說明，其他欄位照常還原
+//   - 只選了照片、還沒打字的表單也會被暫存——照片是逃生路徑，
+//     不想打字的人第一個動作就是它
+
+type BeanDraft = BeanFormValues & { photo?: boolean }
 
 const BEAN_REFERENCE_FIELDS = ['country_id', 'processing_method_id', 'variety_id']
 const draftNote = ref('')
+const photoNotice = ref('')
+/** 從暫存還原的照片。預覽優先用它，其次才是已經上傳的那張 */
+const restoredPhotoUrl = ref<string | null>(null)
+/** 「全部清除」時換 key 讓 PhotoField 重建，連它自己的預覽一起清掉 */
+const photoFieldKey = ref(0)
+/** 已經寫進 IndexedDB 的那張——還原回來的不必再寫一次 */
+let persistedPhoto: CompressedImage | null = null
 
-async function sanitizeDraft(incoming: BeanFormValues): Promise<BeanFormValues> {
+function setRestoredUrl(url: string | null) {
+  if (restoredPhotoUrl.value) URL.revokeObjectURL(restoredPhotoUrl.value)
+  restoredPhotoUrl.value = url
+}
+onBeforeUnmount(() => setRestoredUrl(null))
+
+async function restorePhoto(storageKey: string) {
+  const image = await draftPhotos.load(storageKey)
+  // 等 IndexedDB 的這段時間使用者已經自己選了照片：以他選的為準
+  if (photo.value) return
+  if (!image) {
+    photoNotice.value = PHOTO_NOT_RESTORED
+    return
+  }
+  persistedPhoto = image
+  photo.value = image
+  photoCleared.value = false
+  setRestoredUrl(URL.createObjectURL(image.blob))
+}
+
+function resetPhoto() {
+  photo.value = null
+  photoCleared.value = false
+  photoNotice.value = ''
+  setRestoredUrl(null)
+  photoFieldKey.value++
+}
+
+async function sanitizeDraft(incoming: BeanDraft): Promise<BeanDraft> {
   const alive = new Set<string>()
   const [countryRes, processingRes, varietyRes] = await Promise.all([
     incoming.country_id
@@ -133,20 +179,41 @@ async function sanitizeDraft(incoming: BeanFormValues): Promise<BeanFormValues> 
   if (pruned.dropped.length) {
     draftNote.value = droppedFieldsMessage(pruned.dropped)
   }
-  return pruned.data as unknown as BeanFormValues
+  return pruned.data as unknown as BeanDraft
 }
 
-const draft = props.draftKey
-  ? useFormDraft<BeanFormValues>(props.draftKey, {
-      read: () => ({ ...values }),
-      restore: data => Object.assign(values, data),
+const storageKey = props.draftKey
+const draft = storageKey
+  ? useFormDraft<BeanDraft>(storageKey, {
+      read: () => ({ ...values, photo: photo.value !== null }),
+      restore: ({ photo: hadPhoto, ...data }) => {
+        Object.assign(values, data)
+        if (hadPhoto) void restorePhoto(storageKey)
+      },
       reset: () => {
         Object.assign(values, initialValues())
         draftNote.value = ''
+        resetPhoto()
+      },
+      // 儲存成功、重新開始、全部清除都走這裡：照片與文字一起刪
+      onClear: () => {
+        persistedPhoto = null
+        void draftPhotos.remove(storageKey)
       },
       sanitize: sanitizeDraft,
     })
   : null
+
+// 選照片、換照片、移除照片都立刻寫進 IndexedDB，不等 debounce：
+// 照片是整份表單裡最難重來的東西
+if (storageKey) {
+  watch(photo, (value) => {
+    if (value === persistedPhoto) return
+    persistedPhoto = value
+    if (value) void draftPhotos.save(storageKey, value)
+    else void draftPhotos.remove(storageKey)
+  })
+}
 
 // 儲存成功後由頁面呼叫
 defineExpose({ clearDraft: () => draft?.clear() })
@@ -186,7 +253,12 @@ function selectStyle(value: unknown) {
     />
     <!-- 逃生路徑：放在最上方，且不進卡片——它是媒體區塊不是欄位列，
          塞進卡片會變成框中框。 -->
-    <PhotoField :preview-url="photoUrl ?? null" @picked="onPhotoPicked" />
+    <PhotoField
+      :key="photoFieldKey"
+      :preview-url="restoredPhotoUrl ?? photoUrl ?? null"
+      :notice="photoNotice"
+      @picked="onPhotoPicked"
+    />
 
     <FormCard class="mt-6">
       <FormRow>

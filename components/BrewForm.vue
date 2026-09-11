@@ -246,8 +246,9 @@ function submit() {
 }
 
 // ── 自動暫存（§6）────────────────────────────────────────
-// 暫存整份表單狀態，包含分段與風味標籤。照片不在裡面——
-// 壓縮後的 Blob 沒辦法放進 localStorage。
+// 暫存整份表單狀態，包含分段與風味標籤。沖煮表單本身沒有照片欄位
+//（沖煮照片是 L2，第一版不露出）；就地新增的豆子由 BeanSelect 自己暫存
+//（draft:bean:inline，豆名進 localStorage、照片進 IndexedDB）。
 
 interface BrewDraft {
   values: BrewFormValues

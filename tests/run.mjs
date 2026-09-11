@@ -25,6 +25,8 @@ const suites = [
   ['unit/portal.test.mjs', '浮層的 teleport 目標'],
   ['unit/photo-cropper.test.mjs', '照片裁切'],
   ['unit/pinch.test.ts', '雙指縮放的比例換算'],
+  ['unit/draft-photos.test.ts', '暫存中的豆袋照片'],
+  ['unit/draft-photos-wiring.test.mjs', '照片暫存的接線'],
   ['db/schema.test.mjs', 'Schema、RLS 與 seed'],
   ['db/brews.test.mjs', '分段與複製（資料庫）'],
 ]

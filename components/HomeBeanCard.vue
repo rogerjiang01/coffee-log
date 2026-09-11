@@ -25,18 +25,20 @@ const days = computed(() => restDays(props.roastDate))
     class="w-40 shrink-0 overflow-hidden rounded-md border"
     :style="{ borderColor: 'var(--border)', background: 'var(--surface)' }"
   >
-    <div class="h-28 w-40">
+    <!-- 照片區是 160×160 正方形，與裁切比例一致：使用者裁的就是這裡看到的。
+         object-cover 只為了裁切上線前存的非正方形舊照片。 -->
+    <div class="size-40">
       <img
         v-if="photoUrl"
         :src="photoUrl"
         :alt="name"
         loading="lazy"
-        class="h-28 w-40 object-cover"
+        class="block size-40 object-cover"
       >
-      <!-- 無照片時用烘焙度色塊填同樣尺寸，疊上豆名 -->
+      <!-- 無照片時用烘焙度色塊填同樣尺寸，疊上豆名——等高 -->
       <div
         v-else
-        class="flex h-28 w-40 items-end p-3"
+        class="flex size-40 items-end p-3"
         :style="{ background: fill.background, color: fill.color }"
       >
         <span class="line-clamp-2 font-serif text-sm font-bold">{{ name }}</span>

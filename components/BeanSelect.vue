@@ -34,11 +34,33 @@ const creating = ref(false)
 // 就地新增的內容關掉不清空——使用者以為那只是「填一格」，
 // 不會想到還要按儲存。詳見 useInlineDraft。
 interface BeanInlineDraft { name: string, photo: CompressedImage | null }
-const inlineDraft = useInlineDraft<BeanInlineDraft>('bean', () => ({ name: '', photo: null }))
+// 豆名進 localStorage、照片進 IndexedDB：分頁被回收之後回來還在。
+// 沖煮表單本身會還原，這一格若消失，使用者只會看到豆子那格空了。
+const inlineDraft = useInlineDraft<BeanInlineDraft>('bean', () => ({ name: '', photo: null }), {
+  key: 'draft:bean:inline',
+  photoField: 'photo',
+})
 const restored = inlineDraft.read()
 
 const draftName = ref(restored.name)
 const draftPhoto = ref<CompressedImage | null>(restored.photo)
+/** 暫存說本來有照片、照片卻讀不回來時的說明 */
+const photoNotice = ref('')
+
+/** 分頁被回收、重新載入後，把建到一半的豆子拿回來 */
+async function restoreInlineDraft() {
+  const recovered = await inlineDraft.restore()
+  // 等 IndexedDB 的這段時間使用者已經開始填了：以他填的為準
+  if (!recovered || draftName.value || draftPhoto.value) return
+  draftName.value = recovered.data.name
+  draftPhoto.value = recovered.data.photo
+  photoNotice.value = recovered.photoLost ? PHOTO_NOT_RESTORED : ''
+}
+
+function onDraftPhotoPicked(picked: CompressedImage | null) {
+  draftPhoto.value = picked
+  photoNotice.value = ''
+}
 
 // 每次改動都寫回去，而不是只在關閉時寫：關閉的路徑不只一條
 //（按返回、點外面、Esc、整個元件被卸載），漏掉任何一條都會掉資料
@@ -103,6 +125,7 @@ async function load() {
 onMounted(() => {
   load()
   document.addEventListener('click', onDocumentClick)
+  void restoreInlineDraft()
 })
 onBeforeUnmount(() => document.removeEventListener('click', onDocumentClick))
 
@@ -163,6 +186,7 @@ function cancelCreate() {
   inlineDraft.clear()
   draftName.value = ''
   draftPhoto.value = null
+  photoNotice.value = ''
   createError.value = ''
   creating.value = false
 }
@@ -208,6 +232,7 @@ async function create() {
   inlineDraft.clear()
   draftName.value = ''
   draftPhoto.value = null
+  photoNotice.value = ''
   beans.value = [created, ...beans.value]
   // 就地新增的豆子要出現在豆子列表與首頁上區
   cache.invalidateAfter({ kind: 'bean' })
@@ -324,7 +349,7 @@ async function create() {
           >
 
           <div class="mt-3">
-            <PhotoField :preview-url="draftPhotoUrl" @picked="draftPhoto = $event" />
+            <PhotoField :preview-url="draftPhotoUrl" :notice="photoNotice" @picked="onDraftPhotoPicked" />
           </div>
 
           <p v-if="createError" role="alert" class="mt-2 text-sm" :style="{ color: 'var(--danger)' }">

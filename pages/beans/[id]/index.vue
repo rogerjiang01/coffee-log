@@ -227,11 +227,13 @@ async function destroy() {
         </NuxtLink>
       </div>
 
+      <!-- 正方形，與裁切比例一致：使用者在裁切畫面框的就是這裡看到的。
+           object-cover 只為了裁切上線前存的非正方形舊照片。 -->
       <img
         v-if="photoUrl"
         :src="photoUrl"
         :alt="bean.name"
-        class="mt-4 block max-h-80 w-full rounded-md object-cover"
+        class="mt-4 block aspect-square w-full rounded-md object-cover"
       >
       <div
         v-else

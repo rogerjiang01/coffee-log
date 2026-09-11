@@ -83,6 +83,40 @@ export default function run() {
   r.check(/\$move\(now\.midX - lastPinch\.midX, now\.midY - lastPinch\.midY\)/.test(onMove),
     '平移量是兩指中點的位移——照片跟著手指走')
 
+  r.section('照片永遠蓋滿裁切框')
+  r.check(!/initial-center-size/.test(image),
+    '不用 cropperjs 的 cover——那是蓋滿畫布，框與照片的邊界不會對齊')
+  r.check(/applyInitialCover\(loaded\)/.test(mounted)
+    && mounted.indexOf('applyInitialCover(loaded)') < mounted.indexOf('imageReady.value = true'),
+    '照片載入後先定位成「短邊等於框」，確認鈕才開放')
+  r.check(/initialCover\(natural, origin, frame\.getBoundingClientRect\(\)\)/.test(script), '初始定位用 initialCover')
+  const onTransform = (script.match(/function onImageTransform[\s\S]*?\n}/) || [''])[0]
+  r.check(/clampToCover\(/.test(onTransform) && /event\.preventDefault\(\)/.test(onTransform)
+    && /\$setTransform\(bounded\)/.test(onTransform),
+    '單指路徑：transform 事件裡擋下越界的一步，改套修正後的——停在邊界上，不是停在邊界前一步')
+  r.check(/image\.value\?\.addEventListener\('transform', onImageTransform\)/.test(script),
+    '監聽的是 cropper-image 的 transform 事件——單指與雙指之後的平移都會經過它')
+  r.check(/clampPinchRatio\(/.test(onMove) && /minCoverScale\(/.test(onMove),
+    '雙指路徑：比例先過縮放下限，下限與單指用同一個 minCoverScale')
+
+  r.section('顯示豆袋照片的容器都是正方形')
+  // 裁切輸出是正方形。容器不是正方形的話，使用者框的區域會被 object-fit 再裁一次
+  const photoSites = [
+    ['components/PhotoField.vue', '豆子表單與就地新增的預覽'],
+    ['components/BeanCard.vue', '豆子列表縮圖'],
+    ['components/HomeBeanCard.vue', '首頁的豆子卡片'],
+    ['pages/beans/[id]/index.vue', '豆子詳情'],
+  ]
+  for (const [path, label] of photoSites) {
+    const imgs = read(path).match(/<img[\s\S]*?>/g) || []
+    const square = imgs.length > 0 && imgs.every(tag => /\baspect-square\b|\bsize-\d+\b/.test(tag))
+    const uncapped = imgs.every(tag => !/\bmax-h-|\bh-\d+\b|\bw-\d+\b/.test(tag))
+    r.check(square && uncapped, `${label}：照片是正方形（aspect-square 或 size-*），沒有另外限制寬高`)
+  }
+  const home = read('components/HomeBeanCard.vue')
+  r.check((home.match(/\bsize-40\b/g) || []).length >= 3,
+    '首頁卡片：照片區、照片、無照片的色塊都是 160×160——有照片與無照片等高')
+
   r.section('層級：沿用 usePortalTarget')
   r.check(/usePortalTarget\(root\)/.test(cropper) && /<Teleport :to="portalTarget">/.test(cropper),
     '裁切介面用 usePortalTarget 決定 teleport 目標——開在 dialog 裡時不會落進 inert 區')

@@ -265,7 +265,8 @@ const newBrewLink = computed(() =>
         <div class="-mx-5 mt-2 overflow-hidden">
           <ul class="flex gap-3 px-5">
             <li v-for="n in 2" :key="n">
-              <SkeletonBlock width="9.5rem" height="12rem" radius="4px" />
+              <!-- 與 HomeBeanCard 同尺寸（實測 160×258）：照片 160 見方＋資訊 96＋上下框線各 1 -->
+              <SkeletonBlock width="10rem" height="16.125rem" radius="4px" />
             </li>
           </ul>
         </div>

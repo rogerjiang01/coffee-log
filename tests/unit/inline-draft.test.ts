@@ -5,12 +5,15 @@
 // 是兩套機制，容易被誤以為重複而拿掉其中一套。
 
 import { useInlineDraft, __resetInlineDrafts } from '../../composables/useInlineDraft.ts'
+import { createDraftPhotos } from '../../utils/draftPhotos.ts'
+import { packDraft, unpackDraft, DRAFT_TTL_MS } from '../../utils/draft.ts'
+import type { CompressedImage } from '../../utils/image.ts'
 import { createReport } from '../helpers/report.mjs'
 
 interface BeanDraft { name: string, photo: { ext: string } | null }
 const emptyBean = (): BeanDraft => ({ name: '', photo: null })
 
-export default function run() {
+export default async function run() {
   const r = createReport('就地新增的暫存')
   __resetInlineDrafts()
 
@@ -51,10 +54,10 @@ export default function run() {
 
   r.section('與 useFormDraft 是兩套東西')
   // 這一條是給讀程式碼的人看的：兩者都叫「暫存」但目的不同。
-  // useFormDraft 管跨天的整份表單（localStorage、有效期、還原詢問），
-  // 這裡管的是「剛才那幾秒」的連續性（記憶體、無聲、無提示）。
-  r.check(typeof draft.read === 'function' && typeof draft.clear === 'function',
-    '介面只有 read／save／clear 三個，沒有有效期也沒有還原詢問')
+  // useFormDraft 管整份表單（還原詢問、30 分鐘分界、橫幅）；這裡是就地新增，
+  // 無聲、無提示，打開新增介面時內容就在。豆子這一份另外持久化（見下方）。
+  r.check(typeof draft.read === 'function' && typeof draft.clear === 'function' && typeof draft.restore === 'function',
+    '介面是 read／save／clear／restore，沒有還原詢問')
 
   r.section('取消與關閉是兩件事')
   // 關閉（返回鍵、Esc、點外面、切走、卸載）＝「我先離開一下」→ 保留
@@ -96,6 +99,110 @@ export default function run() {
   const f = useInlineDraft<BeanDraft>('bean', emptyBean)
   f.save({ name: '', photo: { ext: 'webp' } })
   r.check(f.read().photo?.ext === 'webp', '只拍了照還沒打豆名，那張照片要留著')
+
+  // ── 豆子的就地新增：分頁被回收之後 ──
+  // 手機瀏覽器回收背景分頁，回來時頁面重新載入，記憶體那層跟著消失。
+  // 以 __resetInlineDrafts() 模擬重新載入：記憶體清空，localStorage 與 IndexedDB 還在。
+  const local = new Map<string, string>()
+  Object.defineProperty(globalThis, 'localStorage', {
+    configurable: true,
+    writable: true,
+    value: {
+      getItem: (k: string) => local.get(k) ?? null,
+      setItem: (k: string, v: string) => { local.set(k, String(v)) },
+      removeItem: (k: string) => { local.delete(k) },
+    },
+  })
+  const idb = new Map<string, unknown>()
+  let puts = 0
+  const photos = createDraftPhotos({
+    get: async k => idb.get(k),
+    put: async (k, v) => { puts++; idb.set(k, v) },
+    delete: async (k) => { idb.delete(k) },
+    entries: async () => [...idb.entries()],
+  })
+  interface RealBean { name: string, photo: CompressedImage | null }
+  const emptyReal = (): RealBean => ({ name: '', photo: null })
+  const KEY = 'draft:bean:inline'
+  const persist = { key: KEY, photoField: 'photo' as const, photos }
+  const image = (bytes: number[]): CompressedImage =>
+    ({ blob: new Blob([new Uint8Array(bytes)], { type: 'image/webp' }), ext: 'webp', width: 1600, height: 1600 })
+  const settle = () => new Promise(resolve => setTimeout(resolve, 20))
+
+  r.section('豆子的就地新增：分頁被回收後還在')
+  __resetInlineDrafts()
+  const before = useInlineDraft<RealBean>('bean', emptyReal, persist)
+  before.save({ name: '耶加雪菲 G1', photo: image([1, 2, 3]) })
+  await settle()
+  const stored = unpackDraft<{ name: string, photo: unknown }>(local.get(KEY) ?? null)
+  r.check(stored?.name === '耶加雪菲 G1', `豆名寫進 localStorage（${KEY}）`)
+  r.check(stored?.photo === true, '文字暫存裡只留「有照片」的標記，Blob 不進 localStorage')
+  r.check(idb.has(KEY), '照片寫進 IndexedDB，key 相同')
+
+  __resetInlineDrafts() // 分頁被回收、重新載入
+  const after = useInlineDraft<RealBean>('bean', emptyReal, persist)
+  r.check(after.read().name === '', '記憶體那層已經沒了——這正是原本會遺失的情況')
+  const back = await after.restore()
+  r.check(back?.data.name === '耶加雪菲 G1', '豆名拿回來了')
+  const backBytes = back?.data.photo ? [...new Uint8Array(await back.data.photo.blob.arrayBuffer())] : []
+  r.check(backBytes.join() === '1,2,3', '照片拿回來了，內容相同')
+  r.check(back?.photoLost === false, '沒有「照片沒能還原」的說明')
+  r.check(after.read().name === '耶加雪菲 G1', '還原後同一個工作階段裡照常走記憶體那層')
+  r.check(await after.restore() === null, '記憶體裡已經有了就不再從持久層覆蓋')
+
+  r.section('照片讀不回來：豆名照常還原，照片留空並說明')
+  __resetInlineDrafts()
+  idb.clear() // 例如系統清掉了 IndexedDB
+  const evicted = await useInlineDraft<RealBean>('bean', emptyReal, persist).restore()
+  r.check(evicted?.data.name === '耶加雪菲 G1', '豆名照常還原')
+  r.check(evicted?.data.photo === null, '照片欄位留空')
+  r.check(evicted?.photoLost === true, '回報照片沒能還原，由介面說明')
+
+  r.section('只改豆名不重寫照片')
+  __resetInlineDrafts()
+  local.clear()
+  idb.clear()
+  puts = 0
+  const typing = useInlineDraft<RealBean>('bean', emptyReal, persist)
+  const same = image([7])
+  typing.save({ name: '耶', photo: same })
+  typing.save({ name: '耶加', photo: same })
+  typing.save({ name: '耶加雪菲', photo: same })
+  await settle()
+  r.check(puts === 1, `打三個字只寫一次照片（實際 ${puts} 次）——每個字都重寫一張圖太浪費`)
+
+  r.section('取消與儲存成功：兩層一起刪')
+  typing.clear()
+  await settle()
+  r.check(!local.has(KEY) && !idb.has(KEY), 'localStorage 與 IndexedDB 都刪掉了')
+  __resetInlineDrafts()
+  r.check(await useInlineDraft<RealBean>('bean', emptyReal, persist).restore() === null, '重新載入後不會再冒出來')
+
+  r.section('欄位刪光：兩層一起刪')
+  const erase = useInlineDraft<RealBean>('bean', emptyReal, persist)
+  erase.save({ name: '打錯', photo: image([5]) })
+  await settle()
+  erase.save({ name: '', photo: null })
+  await settle()
+  r.check(!local.has(KEY) && !idb.has(KEY), '刪光等同取消')
+
+  r.section('7 天時效，與豆子表單一致')
+  __resetInlineDrafts()
+  local.clear()
+  idb.clear()
+  local.set(KEY, packDraft({ name: '上個月的豆子', photo: true }, Date.now() - DRAFT_TTL_MS - 1))
+  await photos.save(KEY, image([1]))
+  r.check(await useInlineDraft<RealBean>('bean', emptyReal, persist).restore() === null, '超過 7 天不還原')
+  await settle()
+  r.check(!idb.has(KEY), '文字暫存過期時照片一起清掉，不留孤兒')
+
+  r.section('器材的就地新增不持久')
+  __resetInlineDrafts()
+  local.clear()
+  const grinderOnly = useInlineDraft('equipment:grinder', () => ({ custom_name: '' }))
+  grinderOnly.save({ custom_name: '自組磨豆機' })
+  r.check(local.size === 0, '沒給持久設定就只留在記憶體——器材這條沒有要求')
+  r.check(await grinderOnly.restore() === null, '沒有持久層可以還原')
 
   return r.finish()
 }

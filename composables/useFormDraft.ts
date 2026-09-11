@@ -20,6 +20,8 @@ export function useFormDraft<T>(key: string, options: {
   reset?: () => void
   /** 還原前的處理，例如把指向已刪除資料的 id 清掉 */
   sanitize?: (data: T) => Promise<T> | T
+  /** 暫存被清掉時（儲存成功、重新開始、全部清除）。放在 localStorage 以外的東西（照片）跟著清 */
+  onClear?: () => void
 }) {
   /** overlay 模式：等使用者決定 */
   const pending = ref<T | null>(null)
@@ -47,6 +49,7 @@ export function useFormDraft<T>(key: string, options: {
       localStorage.removeItem(key)
     }
     catch {}
+    options.onClear?.()
   }
 
   async function applyDraft(data: T) {

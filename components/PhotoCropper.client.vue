@@ -22,6 +22,16 @@
 // 這個問題在隔離的測試 fixture 裡量不到（那裡的容器一開始就可見），
 // 是在暫時的公開路由上掛真實元件才找到的。
 //
+// **照片永遠蓋滿裁切框**（iOS 內建與 Instagram 的裁切行為）：
+//   初始  短邊剛好等於框的邊長、置中於框——不用 cropperjs 的 cover，
+//         那是蓋滿畫布，框與照片的邊界不會對齊
+//   縮放  縮到短邊等於框就停住，不回彈、不超過
+//   拖曳  照片邊緣碰到框就停住，框內不會出現空白
+// 雙指由這裡自己處理，下限在 clampPinchRatio；單指走 cropperjs 的 $move，
+// 在 cropper-image 的 transform 事件裡用 clampToCover 修正。兩者共用
+// utils/pinch.ts 的 minCoverScale，約束一致。框內因此不會露出黑底，
+// 也不需要另外處理背景色。
+//
 // 框內也要放一個 move 把手：選取框本身不可移動（沒有 movable），
 // 照片才會在「從框內開始拖」時平移而不是去拖框。沒有這個把手，
 // 在框內拖曳會因為指到的是選取框（沒有 action）而毫無反應。
@@ -51,7 +61,11 @@ const image = ref<HTMLElement & {
   $ready: () => Promise<HTMLImageElement>
   $move: (x: number, y: number) => unknown
   $zoom: (scale: number, x: number, y: number) => unknown
+  $getTransform: () => number[]
+  $setTransform: (matrix: number[]) => unknown
 } | null>(null)
+/** 照片的原始尺寸。有值才開始約束——cropperjs 載入時自己的置中不受限 */
+let natural: Size | null = null
 const canvasEl = ref<HTMLElement | null>(null)
 const ready = ref(false)
 /** 照片載入完成。確認鈕在這之前不可按——此時裁切必然是空的 */
@@ -80,11 +94,12 @@ onMounted(async () => {
   }
   ready.value = true
 
-  // 3. 等照片真的載入完成，確認鈕才開放
+  // 3. 等照片真的載入完成，定位成「短邊等於框」，確認鈕才開放
   await nextTick()
   bindGestures()
   try {
-    await image.value?.$ready()
+    const loaded = await image.value?.$ready()
+    if (loaded) applyInitialCover(loaded)
     imageReady.value = true
   }
   catch {
@@ -132,9 +147,15 @@ function onPointerMove(event: PointerEvent) {
   if (pointers.size !== 2 || !lastPinch || !image.value) return
   const now = measurePinch()
   if (!now || lastPinch.dist === 0) return
+  // 縮放下限：縮到短邊等於框就停在那裡，與單指路徑用同一個 minCoverScale
+  let ratio = now.dist / lastPinch.dist
+  if (natural && selection.value) {
+    const floor = minCoverScale(natural, selection.value.getBoundingClientRect())
+    ratio = clampPinchRatio(ratio, image.value.$getTransform()[0] ?? 1, floor)
+  }
   // 先以「上一刻的中點」為錨點縮放，再把照片移到「這一刻的中點」
   const rect = image.value.getBoundingClientRect()
-  image.value.$zoom(zoomArg(now.dist / lastPinch.dist), lastPinch.midX - rect.x, lastPinch.midY - rect.y)
+  image.value.$zoom(zoomArg(ratio), lastPinch.midX - rect.x, lastPinch.midY - rect.y)
   image.value.$move(now.midX - lastPinch.midX, now.midY - lastPinch.midY)
   lastPinch = now
 }
@@ -152,9 +173,44 @@ function onCanvasAction(event: Event) {
   }
 }
 
+// ── 照片永遠蓋滿裁切框 ───────────────────────────────────────
+
+/** 載入後的第一個位置：短邊等於框、置中於框 */
+function applyInitialCover(loaded: HTMLImageElement) {
+  const el = image.value
+  const frame = selection.value
+  if (!el || !frame) return
+  natural = { width: loaded.naturalWidth, height: loaded.naturalHeight }
+  const origin = untransformedCenter(el.getBoundingClientRect(), el.$getTransform() as Matrix)
+  el.$setTransform(initialCover(natural, origin, frame.getBoundingClientRect()))
+}
+
+let correcting = false
+
+/**
+ * cropper-image 每次變形前都會發 transform 事件（可取消）。單指拖曳、
+ * 雙指縮放後的平移都經過這裡。越界的那一步擋下來，改套修正後的矩陣——
+ * 照片停在邊界上，而不是停在邊界前一步（只擋不修的話，快速拖曳會差好幾 px）。
+ */
+function onImageTransform(event: Event) {
+  const el = image.value
+  const frame = selection.value
+  if (!natural || !el || !frame || correcting) return
+  const { matrix, oldMatrix } = (event as CustomEvent<{ matrix: Matrix, oldMatrix: Matrix }>).detail
+  // 事件發出時照片還套著舊矩陣，量到的是舊位置
+  const origin = untransformedCenter(el.getBoundingClientRect(), oldMatrix)
+  const bounded = clampToCover(matrix, natural, origin, frame.getBoundingClientRect())
+  if (sameMatrix(bounded, matrix)) return
+  event.preventDefault()
+  correcting = true
+  el.$setTransform(bounded)
+  correcting = false
+}
+
 function bindGestures() {
   const el = canvasEl.value
   if (!el) return
+  image.value?.addEventListener('transform', onImageTransform)
   el.addEventListener('pointerdown', onPointerDown, true)
   el.addEventListener('action', onCanvasAction, true)
   // 移動與放開聽 document：手指滑出畫布時仍要收到
@@ -164,6 +220,7 @@ function bindGestures() {
 }
 
 onBeforeUnmount(() => {
+  image.value?.removeEventListener('transform', onImageTransform)
   canvasEl.value?.removeEventListener('pointerdown', onPointerDown, true)
   canvasEl.value?.removeEventListener('action', onCanvasAction, true)
   document.removeEventListener('pointermove', onPointerMove, true)
@@ -225,17 +282,18 @@ async function confirm() {
       >
         <div class="flex h-full flex-col" :style="{ background: 'var(--media-bg)' }">
           <div class="relative min-h-0 flex-1">
+            <!-- 定位完成前不顯示：cropperjs 載入時會先自己置中一次，
+                 不藏起來的話會先閃一下那個位置。visibility 不影響版面，框照樣量得到尺寸 -->
             <cropper-canvas
               v-if="ready && src"
               ref="canvasEl"
               class="absolute inset-0"
-              style="width: 100%; height: 100%"
+              :style="{ width: '100%', height: '100%', visibility: imageReady ? 'visible' : 'hidden' }"
             >
               <cropper-image
                 ref="image"
                 :src="src"
                 alt="要裁切的豆袋照片"
-                initial-center-size="cover"
                 translatable
                 scalable
               />

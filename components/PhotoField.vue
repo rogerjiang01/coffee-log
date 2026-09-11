@@ -13,6 +13,8 @@
 
 const props = defineProps<{
   previewUrl: string | null
+  /** 照片欄位的說明，例如暫存裡的照片沒能還原 */
+  notice?: string
 }>()
 
 const emit = defineEmits<{
@@ -106,11 +108,14 @@ onBeforeUnmount(() => {
       class="mt-3 overflow-hidden rounded-md border"
       :style="{ borderColor: 'var(--border)', background: 'var(--surface)' }"
     >
+      <!-- 正方形，與裁切框、列表縮圖同一個比例：使用者在裁切畫面框的，
+           就是這裡與之後每一處看到的。object-cover 只為了裁切上線前存的
+           非正方形舊照片——正方形的圖放進正方形的容器，它不會再裁掉任何東西。 -->
       <img
         v-if="shown"
         :src="shown"
         alt="豆袋照片"
-        class="block max-h-72 w-full object-cover"
+        class="block aspect-square w-full object-cover"
       >
       <button
         v-else
@@ -124,6 +129,14 @@ onBeforeUnmount(() => {
     </div>
 
     <p v-if="error" class="mt-2 text-sm" :style="{ color: 'var(--danger)' }">{{ error }}</p>
+    <p
+      v-if="notice"
+      role="status"
+      class="mt-2 rounded-sm px-3 py-2 text-sm"
+      :style="{ background: 'var(--accent-wash)', color: 'var(--on-accent-wash)' }"
+    >
+      {{ notice }}
+    </p>
 
     <PhotoCropper
       v-if="pending"
