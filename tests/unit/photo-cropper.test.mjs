@@ -7,9 +7,12 @@
 //   rotatable 被打開            → 雙指縮放時照片會跟著轉
 //   取消時 emit picked(null)   → 換照片時按取消，原本那張照片被當成移除
 //   浮層外點擊判斷沒排除 modal  → 在就地新增裡裁切，點一下整個浮層就關掉
+//   關著的 dialog 裡算繪元素    → 框是 0×0：沒有框、沒有壓暗、確認永遠失敗
+//   雙指交回 cropperjs          → 兩指一起滑動時照片往反方向漂
 //
-// 觸控手勢本身在瀏覽器裡以 build 後的 chunk 實測過（375px：拖曳平移、
-// 雙指縮放、無旋轉、框不動、輸出 1600×1600），這裡不重做。
+// 觸控手勢在暫時的公開路由上、掛真實的 PhotoField 實測過（375px：單指拖曳、
+// 兩指一起滑動、雙指張開、確認輸出 1600×1600、取消），驗完路由已移除。
+// 這裡只守結構；縮放比例的換算在 pinch.test.ts 以純函式驗證。
 
 import { readFileSync, existsSync } from 'node:fs'
 import { createReport } from '../helpers/report.mjs'
@@ -47,6 +50,38 @@ export default function run() {
     '框內也有 move 把手——沒有它，在框內拖曳因為指到的是選取框（沒有 action）而毫無反應')
   r.check(/\$toCanvas\(\{\s*width:\s*OUTPUT_EDGE,\s*height:\s*OUTPUT_EDGE\s*\}\)/.test(cropper)
     && /OUTPUT_EDGE\s*=\s*1600/.test(cropper), '輸出正方形 1600×1600，與壓縮的長邊上限一致')
+
+  r.section('先打開 dialog，再算繪 cropper 元素')
+  // 實際發生過：cropper-selection 只在 connectedCallback 量一次畫布大小。
+  // 關著的 <dialog> 是 display: none，那時插入的話框是 0×0——
+  // 畫面上沒有框、沒有壓暗、確認永遠失敗，而且沒有任何錯誤訊息。
+  // 隔離的 fixture 量不到這件事（容器一開始就可見），是掛真實元件才找到的。
+  const mounted = (script.match(/onMounted\(async \(\) => \{[\s\S]*?\n\}\)/) || [''])[0]
+  const iOpen = mounted.indexOf('showModal()')
+  const iImport = mounted.indexOf("import('cropperjs')")
+  const iReady = mounted.indexOf('ready.value = true')
+  r.check(iOpen >= 0 && iImport >= 0 && iReady >= 0, 'onMounted 裡三步都在')
+  r.check(iOpen < iImport && iImport < iReady,
+    '順序是 showModal → import cropperjs → 算繪元素；顛倒的話框會是 0×0')
+
+  r.section('確認鈕與錯誤訊息')
+  r.check(/確認裁切/.test(template) && !/使用這張/.test(template), '按鈕是「確認裁切」')
+  r.check(/:disabled="!imageReady \|\| working"/.test(template), '照片載入完成前確認鈕不可按——那時裁切必然是空的')
+  r.check(/照片還沒載入完成/.test(script), '照片未載入：講出原因')
+  r.check(/裁切框的大小是 0/.test(script), '框是 0×0：講出原因（這正是這次的症狀）')
+  r.check(!/'裁切沒有成功'/.test(script), '不再只說「裁切沒有成功」——那句話沒有說為什麼')
+
+  r.section('雙指：以兩指中點為錨點，自己處理')
+  r.check(/addEventListener\('action', onCanvasAction, true\)/.test(script),
+    'action 事件在捕獲階段攔——cropper-image 的監聽器先註冊，非捕獲階段搶不到它前面')
+  const onAction = (script.match(/function onCanvasAction[\s\S]*?\n}/) || [''])[0]
+  r.check(/pointers\.size >= 2/.test(onAction) && /event\.preventDefault\(\)/.test(onAction),
+    '兩指按著時擋掉 cropperjs 自己的縮放——它以單根手指為錨點，兩指一起滑動時照片反向漂移')
+  const onMove = (script.match(/function onPointerMove[\s\S]*?\n}/) || [''])[0]
+  r.check(/\$zoom\(zoomArg\(/.test(onMove) && /lastPinch\.midX - rect\.x/.test(onMove),
+    '縮放以兩指中點為錨點，比例經 zoomArg 換算——直接傳「比例 - 1」縮放會一路飄')
+  r.check(/\$move\(now\.midX - lastPinch\.midX, now\.midY - lastPinch\.midY\)/.test(onMove),
+    '平移量是兩指中點的位移——照片跟著手指走')
 
   r.section('層級：沿用 usePortalTarget')
   r.check(/usePortalTarget\(root\)/.test(cropper) && /<Teleport :to="portalTarget">/.test(cropper),
