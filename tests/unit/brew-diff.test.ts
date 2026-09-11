@@ -6,6 +6,7 @@ import * as brewSteps from '../../utils/brewSteps.ts'
 Object.assign(globalThis, {
   secondsToClock: brewSteps.secondsToClock,
   toStepInputs: brewSteps.toStepInputs,
+  hasStepTiming: brewSteps.hasStepTiming,
 })
 const { computeBrewDiff } = await import('../../utils/brewDiff.ts')
 import { createReport } from '../helpers/report.mjs'
@@ -62,6 +63,29 @@ export default function run() {
   r.check(timeOnly.length === 1 && timeOnly[0]!.field === 'step_time', '只改時間時不會誤報水量差異')
   r.check(timeOnly[0]!.before === '45 / 30 / 30 / 40',
     '呈現的是使用者輸入的停留秒數，不是資料庫的累積時間點')
+
+  r.section('沒記錄分段時間（time_offset 全為 0）')
+  // 記錄分段時間預設關閉，多數新紀錄的 time_offset 全為 0。差異區不能比出憑空的數字
+  const untimed = [step(1, 0, 40), step(2, 0, 160), step(3, 0, 220), step(4, 0, 290)]
+  r.check(computeBrewDiff(base({ steps: untimed }), base({ steps: untimed })).length === 0,
+    '兩邊都沒記錄：沒有差異')
+  const untimedTotal = computeBrewDiff(base({ steps: untimed, total_time: 150 }), base({ steps: untimed }))
+  r.check(untimedTotal.length === 1 && untimedTotal[0]!.field === 'total_time',
+    '兩邊都沒記錄、只改總時間：只比出總時間——不會因為最後一段從 total_time 反推而多冒一條「0 / 0 / 0 / 150」')
+  const untimedFewer = computeBrewDiff(base({ steps: untimed.slice(0, 3) }), base({ steps: untimed }))
+  r.check(untimedFewer.some(d => d.field === 'step_count') && !untimedFewer.some(d => d.field === 'step_time'),
+    '兩邊都沒記錄、段數不同：比出段數，不比停留秒數')
+  const oneSide = computeBrewDiff(base({ steps: untimed }), base())
+  const oneSideRow = oneSide.find(d => d.field === 'step_time')
+  r.check(oneSideRow?.before === '45 / 30 / 30 / 40' && oneSideRow.after === '沒記錄',
+    `只有一邊有記錄：另一邊顯示「沒記錄」，不是一串 0（${oneSideRow?.before} → ${oneSideRow?.after}）`)
+  const firstZeroOnly = [step(1, 0, 40), step(2, 45, 160), step(3, 75, 220), step(4, 105, 290)]
+  r.check(computeBrewDiff(base({ steps: firstZeroOnly }), base()).length === 0,
+    '第一段為 0、後續有值：是有記錄的紀錄，照常比對（這裡兩邊相同所以沒有差異）')
+  const bloomOnly = [step(1, 0, 40)]
+  r.check(!computeBrewDiff(base({ steps: bloomOnly, total_time: 120 }), base({ steps: bloomOnly }))
+    .some(d => d.field === 'step_time'),
+  '只有悶蒸一段：不比對停留秒數——那一段的「停留」就是總時間，已經由總沖煮時間比對')
 
   return r.finish()
 }

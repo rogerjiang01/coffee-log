@@ -49,9 +49,17 @@ function sortedSteps(steps: StepRow[]) {
   return [...steps].sort((a, b) => a.step_index - b.step_index)
 }
 
-/** 各段停留秒數。使用者輸入的是這個，比對時也用這個呈現才看得懂。 */
-function holdSeconds(steps: StepRow[], totalTime: number | null) {
-  return toStepInputs(steps, totalTime).map(step => step.holdSeconds)
+/**
+ * 各段停留秒數的顯示字串。使用者輸入的是停留秒數，比對時也用這個呈現才看得懂。
+ * 沒有分段是「沒填」；有分段但沒記錄時間（hasStepTiming 為 false）是「沒記錄」——
+ * 不能把全為 0 的 time_offset 講成「0 / 0 / 180」。
+ */
+function holdSecondsText(steps: StepRow[], totalTime: number | null) {
+  if (!steps.length) return '沒填'
+  if (!hasStepTiming(steps)) return '沒記錄'
+  return toStepInputs(steps, totalTime)
+    .map(step => (step.holdSeconds === null ? '—' : step.holdSeconds))
+    .join(' / ')
 }
 
 export function computeBrewDiff(after: DiffSubject, before: DiffSubject): BrewDiff[] {
@@ -95,11 +103,17 @@ export function computeBrewDiff(after: DiffSubject, before: DiffSubject): BrewDi
   const waterAfter = afterSteps.map(step => Number(step.cumulative_water)).join(' / ')
   push('step_water', '各段水量', waterBefore || '沒填', waterAfter || '沒填')
 
-  const timeBefore = holdSeconds(beforeSteps, before.total_time)
-    .map(value => (value === null ? '—' : value)).join(' / ')
-  const timeAfter = holdSeconds(afterSteps, after.total_time)
-    .map(value => (value === null ? '—' : value)).join(' / ')
-  push('step_time', '各段停留秒數', timeBefore || '沒填', timeAfter || '沒填')
+  // 兩邊都沒記錄分段時間（《01》§8）就不比對：分段時間是可選的進階參數，
+  // 沒記錄的 time_offset 全為 0，照算會比出「0 / 0 / 180」這種憑空的數字——
+  // 最後一段還會從 total_time 反推，改總時間就多冒一條。
+  // 只有一邊有記錄時照常列出，另一邊顯示「沒記錄」。
+  if (hasStepTiming(beforeSteps) || hasStepTiming(afterSteps)) {
+    push(
+      'step_time', '各段停留秒數',
+      holdSecondsText(beforeSteps, before.total_time),
+      holdSecondsText(afterSteps, after.total_time),
+    )
+  }
 
   return diffs
 }

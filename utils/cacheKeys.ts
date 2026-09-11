@@ -48,6 +48,12 @@ export const cacheKeys = {
    * 那樣畫面會先出現一張裂圖。見 utils/photoUrlCache.ts。
    */
   photoUrl: (path: string) => `photo-url:${path}`,
+
+  /**
+   * 使用者偏好（profiles 的偏好欄位，目前只有 record_step_times）。
+   * 沒有任何寫入事件需要清它：唯一的寫入點是設定頁，存成功後直接覆寫這一格。
+   */
+  profilePrefs: () => 'profile:prefs',
 }
 
 /** 寫入事件。欄位只放「決定要失效什麼」需要的資訊 */

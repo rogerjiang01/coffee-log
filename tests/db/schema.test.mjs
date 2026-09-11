@@ -20,6 +20,22 @@ export default async function run() {
   await pg.asSuperuser()
   r.check((await pg.rows(`select 1 from profiles where id='${A}'`)).length === 1, '新帳號自動建立 profile')
 
+  r.section('使用者偏好：記錄分段時間')
+  r.check((await pg.rows(`select record_step_times from profiles where id='${A}'`))[0].record_step_times === false,
+    '新帳號預設關閉——分段時間是進階參數，由使用者宣告要不要用')
+  await pg.as(A)
+  r.check((await pg.query(`update profiles set record_step_times=true where id='${A}'`)).affectedRows === 1,
+    'A 可以打開自己的開關')
+  await pg.as(B)
+  r.check((await pg.rows(`select record_step_times from profiles where id='${A}'`)).length === 0, 'B 讀不到 A 的開關')
+  r.check((await pg.query(`update profiles set record_step_times=false where id='${A}'`)).affectedRows === 0,
+    'B 改不動 A 的開關')
+  await pg.asSuperuser()
+  r.check((await pg.rows(`select record_step_times from profiles where id='${A}'`))[0].record_step_times === true,
+    'A 的開關仍是開著')
+  await r.mustReject(pg.query(`update profiles set record_step_times=null where id='${A}'`),
+    '不接受 NULL——偏好沒有「還沒決定」這個第三態')
+
   r.section('豆子：必填只有 name')
   await pg.as(A)
   const bean = (await pg.rows(`insert into beans (user_id,name) values ('${A}','只有豆名') returning id`))[0].id

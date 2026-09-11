@@ -57,6 +57,11 @@ const values = reactive<BrewFormValues>(initialValues())
 
 const steps = ref<StepInput[]>(props.initialSteps ?? initialSteps())
 
+// 分段時間欄位要不要顯示，由使用者偏好決定（設定頁「記錄分段時間」，預設關閉）。
+// **只影響顯示**：steps 裡的 holdSeconds 不管開不開都一樣保留、一樣儲存，
+// 手法模板帶入的時間也照樣寫進去。這裡刻意不依開關去動 steps。
+const { enabled: recordStepTimes } = useRecordStepTimes()
+
 // 全頁器材選擇器：整個流程留在這一頁，沖煮表單已填的內容完全不動
 const pickerType = ref<EquipmentType | null>(null)
 const equipmentFields: { type: EquipmentType; label: string; key: keyof BrewFormValues }[] = [
@@ -483,7 +488,7 @@ const inputStyle = {
         </p>
       </FormRow>
       <FormRow divider>
-        <PourStepsEditor v-model="steps" :dose="values.dose" />
+        <PourStepsEditor v-model="steps" :dose="values.dose" :show-times="recordStepTimes" />
       </FormRow>
       <FormRow>
         <label class="block text-sm" for="brew-total-time">總沖煮時間</label>

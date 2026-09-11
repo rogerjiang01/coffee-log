@@ -6,7 +6,7 @@
 
 import {
   toStepRows, toStepInputs, incrementalWater, totalWater, brewRatioLabel,
-  secondsToClock, clockToSeconds, initialSteps, waterOrderHints,
+  secondsToClock, clockToSeconds, initialSteps, waterOrderHints, hasStepTiming,
 } from '../../utils/brewSteps.ts'
 import { createReport, equal } from '../helpers/report.mjs'
 
@@ -100,6 +100,45 @@ export default function run() {
   const decomposed = [Math.floor(145 / 60), 145 % 60]
   r.check(equal(decomposed, [2, 25]) && decomposed[0]! * 60 + decomposed[1]! === 145,
     '分:秒輸入框的拆解與組合守恆（145 ↔ 2 分 25 秒）')
+
+  r.section('有沒有記錄分段時間（hasStepTiming）')
+  // time_offset 是 NOT NULL，沒填的停留秒數存檔時當 0 累加——「沒記錄」在資料上就是全為 0
+  const untimed = toStepRows([step('bloom', 40, null), step('pour', 160, null), step('pour', 250, null)])
+  r.check(!hasStepTiming(untimed), 'time_offset 全為 0：沒有記錄分段時間')
+  const untimedBack = toStepInputs(untimed, 180)
+  r.check(untimedBack.every(x => x.holdSeconds === null),
+    `全為 0 時停留秒數一律留空 ${JSON.stringify(untimedBack.map(x => x.holdSeconds))}——`
+    + '不顯示「停 0 秒」，最後一段也不從 total_time 湊出「停 180 秒」')
+  r.check(equal(toStepRows(untimedBack).map(x => x.time_offset), [0, 0, 0]),
+    '沒記錄的紀錄經過編輯頁再存回去，仍是全為 0，資料不變')
+  r.check(hasStepTiming(rows), '第一段是 0、後面有值：有記錄')
+  r.check(equal(toStepInputs(rows, 145).map(x => x.holdSeconds), [45, 30, 30, 40]),
+    '有記錄時照常還原——第一段的 0 不影響判斷')
+  const bloomZero = toStepRows([step('bloom', 40, 0), step('pour', 160, 30), step('pour', 250, null)])
+  r.check(equal(bloomZero.map(x => x.time_offset), [0, 0, 30]) && hasStepTiming(bloomZero),
+    '前兩段都是 0、第三段有值：仍是有記錄——只要任何一段大於 0')
+  const single = toStepRows([step('bloom', 40, 45)])
+  r.check(!hasStepTiming(single), '只有悶蒸一段：time_offset 就是 [0]，判為沒記錄')
+  r.check(toStepInputs(single, 180)[0]!.holdSeconds === null,
+    '只有一段時不顯示「停 180 秒」——那個數字就是總沖煮時間，最後一段的停留本來就不存，沒有資訊遺失')
+  r.check(!hasStepTiming([]), '沒有分段：沒記錄')
+
+  r.section('開關關閉時編輯既有紀錄，時間要保留')
+  // 最容易出錯的地方。開關關閉時表單不顯示時間欄位，但 holdSeconds 仍在表單狀態裡，
+  // 儲存時照樣換算。關閉時使用者改得到的只有水量、備註、段數——逐一模擬
+  const loadedForEdit = toStepInputs(rows, 145)
+  const waterOnly = loadedForEdit.map((x, i) => (i === 2 ? { ...x, cumulativeWater: 230 } : x))
+  r.check(equal(toStepRows(waterOnly).map(x => x.time_offset), [0, 45, 75, 105]),
+    '只改水量：time_offset 原封不動')
+  const notedOnly = loadedForEdit.map((x, i) => (i === 1 ? { ...x, note: '繞圈' } : x))
+  r.check(equal(toStepRows(notedOnly).map(x => x.time_offset), [0, 45, 75, 105]),
+    '只改備註：time_offset 原封不動')
+  const appended = [...loadedForEdit, step('pour', 330, null)]
+  r.check(equal(toStepRows(appended).map(x => x.time_offset).slice(0, 4), [0, 45, 75, 105]),
+    '在最後加一段：原本四段的 time_offset 原封不動')
+  const templateTimed = toStepRows([step('bloom', 40, 45), step('pour', 150, 30), step('pour', 250, 40)])
+  r.check(hasStepTiming(templateTimed) && equal(templateTimed.map(x => x.time_offset), [0, 45, 75]),
+    '手法模板帶入的時間在欄位隱藏時照樣寫進 time_offset——之後打開開關，時間是完整的')
 
   r.section('預設分段')
   const init = initialSteps()

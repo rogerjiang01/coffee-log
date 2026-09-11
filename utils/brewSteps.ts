@@ -73,15 +73,44 @@ export function toStepRows(steps: StepInput[]): StepRow[] {
 }
 
 /**
+ * 這筆紀錄有沒有記錄分段時間（《01》§8）。**判斷一律走這裡，不在各處自己寫條件。**
+ *
+ * 分段時間是可選的進階參數（設定頁「記錄分段時間」，預設關閉）。
+ * time_offset 是 NOT NULL，沒填的停留秒數存檔時當 0 累加，
+ * 所以「沒記錄時間」在資料上就是 time_offset 全為 0。
+ *
+ * 判準可靠：第一段一定是 0，但只要記錄了任何一段的停留，第二段起必然
+ * 大於 0——停留是「到下一段注水前的時間」，包含給水，物理上不可能是 0。
+ *
+ * 邊界：只有一段（悶蒸）時 time_offset 就是 [0]，與「沒記錄」無法區分，
+ * 一律當成沒記錄。不會丟掉資訊：最後一段的停留本來就不存，由 total_time
+ * 表達，而總沖煮時間照常顯示。
+ *
+ * time_offset 維持 NOT NULL 是刻意的：改成可空在顯示上的結果與這裡完全相同，
+ * 卻要動最高權限的規格、migration 與所有讀取點，還會讓「沒記錄」有兩種表示法。
+ */
+export function hasStepTiming(rows: Pick<StepRow, 'time_offset'>[]): boolean {
+  return rows.some(row => Number(row.time_offset) > 0)
+}
+
+/**
  * 資料庫 → 介面。totalTime 用來還原最後一段的停留秒數。
+ *
+ * 沒記錄分段時間的紀錄（hasStepTiming 為 false），停留秒數一律是 null：
+ * 不從全為 0 的 time_offset 算出「停 0 秒」，最後一段也不從 total_time
+ * 湊出「停 {總時間} 秒」。詳情頁、編輯頁、複製流程、差異計算都經過這裡。
  */
 export function toStepInputs(rows: StepRow[], totalTime: number | null): StepInput[] {
   const sorted = [...rows].sort((a, b) => a.step_index - b.step_index)
+  const timed = hasStepTiming(sorted)
 
   return sorted.map((row, index) => {
     const next = sorted[index + 1]
     let holdSeconds: number | null
-    if (next) {
+    if (!timed) {
+      holdSeconds = null
+    }
+    else if (next) {
       holdSeconds = next.time_offset - row.time_offset
     }
     else if (totalTime !== null) {

@@ -9,10 +9,26 @@
 //
 // 悶蒸與其他段落用同一套卡片外觀，靠標題與間距區隔，不靠不同的底色——
 // 兩種卡片樣式並存會讓同一份清單看起來像兩種東西。
+//
+// **「停留」＝到下一段注水前的時間**，也就是給水時間加上停水時間。
+// 訪談資深使用者確認兩者是兩件事：給水速率跟手沖壺有關，而且有行動誤差
+// （眼睛看到 8 秒、身體開始動作要 2 秒），無法預先決定；停水時間可以預期，
+// 也是真正會被刻意調整的參數。不拆成兩個欄位：輸入成本翻倍，而給水時間
+// 本身沒有記錄價值——同一把壺同一個人的給水速率相對固定，所以間隔的變化
+// 主要就是停水的變化。標籤仍叫「停留」，那是咖啡圈的通用說法；
+// 定義靠第一段下方那一行輔助說明。
+// 最後一段沒有下一注，該格留空即可，總沖煮時間會接手。
+//
+// **時間欄位由使用者偏好決定要不要顯示**（設定頁「記錄分段時間」，預設關閉）。
+// 關閉只是不顯示，不改資料：holdSeconds 照樣留在 modelValue 裡，儲存時照樣
+// 換算成 time_offset。編輯一筆已有時間的紀錄、手法模板帶入的時間，
+// 都不會因為欄位藏起來而被清空——這個元件從不寫 holdSeconds，除非使用者輸入。
 
 const props = defineProps<{
   modelValue: StepInput[]
   dose: number | null
+  /** 顯示停留秒數欄位。來自使用者偏好 profiles.record_step_times */
+  showTimes: boolean
 }>()
 
 const emit = defineEmits<{ 'update:modelValue': [StepInput[]] }>()
@@ -96,7 +112,8 @@ function setStir(index: number, stir: boolean) {
           </div>
         </div>
 
-        <!-- 兩欄格線讓兩個輸入框與標籤上下對齊 -->
+        <!-- 兩欄格線讓兩個輸入框與標籤上下對齊。時間欄位關閉時仍保留兩欄，
+             水量輸入框維持同樣寬度，不會因為開關而變成一整條 -->
         <div class="mt-2 grid grid-cols-2 gap-3">
           <div>
             <label class="block text-xs text-muted" :for="`step-water-${index}`">注到</label>
@@ -108,7 +125,7 @@ function setStir(index: number, stir: boolean) {
               @update:model-value="patch(index, { cumulativeWater: $event })"
             />
           </div>
-          <div>
+          <div v-if="showTimes">
             <label class="block text-xs text-muted" :for="`step-hold-${index}`">停留</label>
             <NumberField
               :id="`step-hold-${index}`"
@@ -118,6 +135,9 @@ function setStir(index: number, stir: boolean) {
               class="mt-1"
               @update:model-value="patch(index, { holdSeconds: $event })"
             />
+            <!-- 定義只寫在第一段：每一段的意思都一樣，逐列重複同一句話是雜訊，
+                 在手機上每列還多佔一行。悶蒸永遠是第一段且不可刪，說明不會消失 -->
+            <p v-if="index === 0" class="mt-1 text-xs text-muted">到下一段注水前的時間</p>
           </div>
         </div>
 
