@@ -57,10 +57,29 @@ const values = reactive<BrewFormValues>(initialValues())
 
 const steps = ref<StepInput[]>(props.initialSteps ?? initialSteps())
 
-// 分段時間欄位要不要顯示，由使用者偏好決定（設定頁「記錄分段時間」，預設關閉）。
+// 分段時間欄位要不要顯示，由使用者偏好決定（預設關閉）。
 // **只影響顯示**：steps 裡的 holdSeconds 不管開不開都一樣保留、一樣儲存，
 // 手法模板帶入的時間也照樣寫進去。這裡刻意不依開關去動 steps。
-const { enabled: recordStepTimes } = useRecordStepTimes()
+//
+// 偏好由這裡持有：分段區的切換入口發事件上來，寫入走同一份狀態，
+// 才不會與設定頁那一份對不起來。
+const {
+  enabled: recordStepTimes,
+  loaded: stepTimesLoaded,
+  saving: stepTimesSaving,
+  error: stepTimesError,
+  set: setRecordStepTimes,
+} = useRecordStepTimes()
+
+/** 剛切換成開啟時的回饋。只在這一次切換後顯示，重新進表單就沒有了 */
+const stepTimesNotice = ref('')
+
+async function toggleStepTimes() {
+  const next = !recordStepTimes.value
+  await setRecordStepTimes(next)
+  // 沒存成功時 enabled 會被退回原值，那時不該說「之後的紀錄都會有時間欄位」
+  stepTimesNotice.value = next && recordStepTimes.value === next ? '之後的紀錄都會有時間欄位' : ''
+}
 
 // 全頁器材選擇器：整個流程留在這一頁，沖煮表單已填的內容完全不動
 const pickerType = ref<EquipmentType | null>(null)
@@ -488,7 +507,15 @@ const inputStyle = {
         </p>
       </FormRow>
       <FormRow divider>
-        <PourStepsEditor v-model="steps" :dose="values.dose" :show-times="recordStepTimes" />
+        <PourStepsEditor
+          v-model="steps"
+          :dose="values.dose"
+          :show-times="recordStepTimes"
+          :times-pending="!stepTimesLoaded || stepTimesSaving"
+          :times-notice="stepTimesNotice"
+          :times-error="stepTimesError"
+          @toggle-times="toggleStepTimes"
+        />
       </FormRow>
       <FormRow>
         <label class="block text-sm" for="brew-total-time">總沖煮時間</label>

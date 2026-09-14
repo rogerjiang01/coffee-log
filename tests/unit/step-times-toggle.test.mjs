@@ -29,7 +29,7 @@ export default function run() {
   const editor = read('components/PourStepsEditor.vue')
   const holdBlock = (editor.match(/<div v-if="showTimes[\s\S]*?<\/div>\s*<\/div>/) || [''])[0]
   r.check(/step-hold-/.test(holdBlock), '停留欄位在 v-if="showTimes…" 裡——關閉時整格不出現')
-  r.check(/注完之後停了幾秒再注下一段/.test(holdBlock), '輔助說明也在同一格裡，關閉時一起消失')
+  r.check(/停水時長/.test(holdBlock), '輔助說明也在同一格裡，關閉時一起消失')
   r.check(/<label[^>]*>停留<\/label>/.test(editor), '標籤仍是「停留」——咖啡圈的通用說法，不改')
   r.check(count(editor, /holdSeconds:/g) === 1,
     '編輯器只在使用者輸入時寫 holdSeconds（整份檔案只有那一處），不會因為欄位藏起來而清掉它')
@@ -37,14 +37,31 @@ export default function run() {
   r.section('表單：不依開關去動 steps')
   const form = read('components/BrewForm.vue')
   r.check(/:show-times="recordStepTimes"/.test(form), 'BrewForm 把偏好交給編輯器')
-  r.check(count(form, /\brecordStepTimes\b/g) === 2,
-    'recordStepTimes 只出現在取得偏好與傳給編輯器兩處——沒有依它改寫 steps 或 holdSeconds 的程式')
+  // 只看程式碼，不看註解：檔頭那段說明本來就會提到 holdSeconds
+  r.check(!/holdSeconds\s*[:=]/.test(form),
+    'BrewForm 沒有任何寫 holdSeconds 的程式——開關只決定顯示，不會改寫分段資料')
   for (const page of ['pages/brews/new.vue', 'pages/brews/[id]/edit.vue']) {
     r.check(!/recordStepTimes|useRecordStepTimes|record_step_times/.test(read(page)),
       `${page} 的存檔路徑不讀開關——時間照樣原樣存進 hold_seconds`)
   }
   r.check(/export function toStepRows\(steps: StepInput\[\]\): StepRow\[\]/.test(read('utils/brewSteps.ts')),
     'toStepRows 沒有開關參數：存檔的換算與開關無關')
+
+  r.section('切換入口在分段區的標題列')
+  // 主要入口要在填表當下就看得到：需要這個欄位的進階使用者，正好也是不會去翻設定頁的人
+  r.check(/記錄停水時間/.test(editor) && /不記停水時間/.test(editor),
+    '關閉時是「記錄停水時間」，開啟時是「不記停水時間」')
+  r.check(!/role="switch"/.test(editor),
+    '用文字連結不用 toggle——表單裡的 toggle 代表「這筆資料的欄位」，這個開關卻是全域偏好')
+  r.check(/@click="emit\('toggleTimes'\)"/.test(editor) && !/useRecordStepTimes\(/.test(editor),
+    '編輯器只發事件、不自己取偏好——兩邊各讀一份，寫入之後就會對不起來')
+  r.check(/:disabled="timesPending"/.test(editor), '偏好還沒讀到或正在寫入時不可按')
+  r.check(/@toggle-times="toggleStepTimes"/.test(form) && /setRecordStepTimes\(next\)/.test(form),
+    'BrewForm 接住事件，寫進同一個偏好')
+  r.check(/stepTimesNotice\.value = next && recordStepTimes\.value === next \? '之後的紀錄都會有時間欄位' : ''/.test(form),
+    '開啟之後回饋「之後的紀錄都會有時間欄位」；沒存成功就不說')
+  r.check(/const stepTimesNotice = ref\(''\)/.test(form),
+    '回饋放在表單自己的狀態裡——只在該次切換後顯示，重新進表單不再出現')
 
   r.section('偏好：預設關閉，存在 profiles')
   const pref = read('composables/useRecordStepTimes.ts')
@@ -86,8 +103,9 @@ export default function run() {
     'toStepRows 原樣寫入停留秒數，最後一段一律 null')
   r.check(/index < modelValue\.length - 1/.test(read('components/PourStepsEditor.vue')),
     '編輯器最後一段不顯示停留欄位')
-  r.check(/注完之後停了幾秒再注下一段/.test(read('components/PourStepsEditor.vue')),
-    '輔助說明描述的是斷水時間，不是舊定義的「到下一段注水前的時間」')
+  r.check(/停水時長/.test(read('components/PourStepsEditor.vue'))
+    && !/到下一段注水前的時間/.test(read('components/PourStepsEditor.vue')),
+  '輔助說明是「停水時長」，不是舊定義的「到下一段注水前的時間」')
 
   return r.finish()
 }

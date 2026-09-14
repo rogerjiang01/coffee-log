@@ -21,6 +21,20 @@
 // 「total_time 減掉最後一段時間點」的反推值，測試者看到「停 106 秒」
 // 當場說「這邏輯錯了」。
 //
+// **切換入口放在標題列右側，用文字連結不用 toggle。**
+// 表單裡已經有 toggle 的先例（豆子的「已喝完」），那是「這筆資料的一個欄位」。
+// 分段區再出現一個 toggle，使用者會解讀成「這筆紀錄要不要記時間」——
+// 但它是全域偏好，會影響之後所有紀錄。同一個控制項在同一個表單裡代表
+// 兩種性質就是語意混淆。而且依《03》§4.0，這個開關一旦決定幾乎不會再動，
+// 不該佔常駐控制項的視覺重量。
+//
+// 文字連結的缺陷是它看起來像一次性動作、實際會被記住，所以開啟之後在分段區
+// 下方回饋一行「之後的紀錄都會有時間欄位」。與器材「常用」同構：
+// 副作用在動作之後回饋，不在動作之前警告。
+//
+// 偏好本身由父層（BrewForm）持有並寫入，這裡只發事件——兩個地方各自
+// useRecordStepTimes 會變成兩份狀態，寫入之後就對不起來了。
+//
 // **時間欄位由使用者偏好決定要不要顯示**（設定頁「記錄分段時間」，預設關閉）。
 // 關閉只是不顯示，不改資料：holdSeconds 照樣留在 modelValue 裡，儲存時照樣
 // 原樣寫進 hold_seconds。編輯一筆已有時間的紀錄、手法模板帶入的時間，
@@ -31,9 +45,19 @@ const props = defineProps<{
   dose: number | null
   /** 顯示停留秒數欄位。來自使用者偏好 profiles.record_step_times */
   showTimes: boolean
+  /** 偏好還沒讀到、或正在寫入：切換入口先不可按 */
+  timesPending?: boolean
+  /** 剛切換成開啟時的回饋，說明它會影響之後的紀錄 */
+  timesNotice?: string
+  /** 偏好沒存成功時的訊息 */
+  timesError?: string
 }>()
 
-const emit = defineEmits<{ 'update:modelValue': [StepInput[]] }>()
+const emit = defineEmits<{
+  'update:modelValue': [StepInput[]]
+  /** 切換「記錄停水時間」。偏好由父層持有，這裡不自己去讀寫 */
+  'toggleTimes': []
+}>()
 
 const increments = computed(() => incrementalWater(props.modelValue))
 const orderHints = computed(() => waterOrderHints(props.modelValue))
@@ -60,7 +84,20 @@ function setStir(index: number, stir: boolean) {
 
 <template>
   <section>
-    <p class="text-sm">分段注水</p>
+    <!-- 切換入口在標題列右側：想記時間的那一刻就在填表當下，不必中斷去設定頁。
+         文字連結不用 toggle，理由見檔頭。 -->
+    <div class="flex items-center justify-between gap-3">
+      <p class="text-sm">分段注水</p>
+      <button
+        type="button"
+        :disabled="timesPending"
+        class="shrink-0 px-1 text-sm underline disabled:opacity-60"
+        :style="{ color: 'var(--accent)', minHeight: 'var(--touch-min)' }"
+        @click="emit('toggleTimes')"
+      >
+        {{ showTimes ? '不記停水時間' : '記錄停水時間' }}
+      </button>
+    </div>
 
     <ul class="mt-2">
       <li
@@ -140,7 +177,7 @@ function setStir(index: number, stir: boolean) {
             />
             <!-- 說明只寫在第一段：每一段的意思都一樣，逐列重複同一句話是雜訊，
                  在手機上每列還多佔一行。悶蒸永遠是第一段且不可刪，說明不會消失 -->
-            <p v-if="index === 0" class="mt-1 text-xs text-muted">注完之後停了幾秒再注下一段</p>
+            <p v-if="index === 0" class="mt-1 text-xs text-muted">停水時長</p>
           </div>
         </div>
 
@@ -177,6 +214,10 @@ function setStir(index: number, stir: boolean) {
     <p v-if="water !== null" class="mt-2 text-sm tabular-nums" :style="{ color: 'var(--text-muted)' }">
       總水量 {{ water }}g<span v-if="ratio" class="ml-3">粉水比 {{ ratio }}</span>
     </p>
+
+    <!-- 切換之後的回饋：這個連結看起來像一次性動作，實際會被記住 -->
+    <p v-if="timesNotice" role="status" class="mt-2 text-sm text-muted">{{ timesNotice }}</p>
+    <p v-if="timesError" role="alert" class="mt-2 text-sm" :style="{ color: 'var(--danger)' }">{{ timesError }}</p>
   </section>
 </template>
 
