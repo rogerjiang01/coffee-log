@@ -33,7 +33,7 @@ onMounted(async () => {
         .maybeSingle(),
       supabase
         .from('brew_steps')
-        .select('step_index, time_offset, cumulative_water, step_type, note')
+        .select('step_index, hold_seconds, cumulative_water, step_type, note')
         .eq('brew_id', id.value)
         .order('step_index'),
       supabase.from('brew_flavor_tags').select('flavor_tag_id').eq('brew_id', id.value),
@@ -66,9 +66,9 @@ onMounted(async () => {
       intensity: (brew.intensity as Intensity | null) ?? {},
     }
 
-    // 資料庫的累積時間點在這裡換算回介面的停留秒數
+    // 分段欄位一對一，沒有換算
     const rows = (stepResult.data ?? []) as unknown as StepRow[]
-    stepInputs.value = rows.length ? toStepInputs(rows, totalTime) : initialSteps()
+    stepInputs.value = rows.length ? toStepInputs(rows) : initialSteps()
 
     tagIds.value = ((tagResult.data ?? []) as unknown as { flavor_tag_id: string }[])
       .map(t => t.flavor_tag_id)

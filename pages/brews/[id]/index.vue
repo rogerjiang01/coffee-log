@@ -39,7 +39,7 @@ interface EquipmentNameRow {
 
 const brew = ref<BrewDetail | null>(null)
 const steps = ref<StepInput[]>([])
-// 差異計算吃的是原始列（累積時間點），不是介面用的停留秒數，兩者要分開留著
+// 差異計算吃的是原始列（含 step_index），介面用的是轉換後的 StepInput，兩者分開留著
 const rawSteps = ref<StepRow[]>([])
 const tags = ref<string[]>([])
 const loading = ref(true)
@@ -52,7 +52,7 @@ const actionError = ref('')
 function stepSelect(brewId: string) {
   return supabase
     .from('brew_steps')
-    .select('step_index, time_offset, cumulative_water, step_type, note')
+    .select('step_index, hold_seconds, cumulative_water, step_type, note')
     .eq('brew_id', brewId)
     .order('step_index')
 }
@@ -103,15 +103,13 @@ async function load() {
         return
       }
       brew.value = data
-      // 分段的停留秒數要靠 total_time 反推，所以它變了要重算
-      steps.value = toStepInputs(rawSteps.value, data.total_time)
     },
     onError: fail,
   })
   const stepQuery = cache.swr(cacheKeys.brewSteps(id.value), () => fetchSteps(id.value), {
     apply: (rows) => {
       rawSteps.value = rows
-      steps.value = toStepInputs(rows, brew.value?.total_time ?? null)
+      steps.value = toStepInputs(rows)
     },
     onError: fail,
   })

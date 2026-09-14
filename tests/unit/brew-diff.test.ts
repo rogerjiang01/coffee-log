@@ -13,14 +13,14 @@ import { createReport } from '../helpers/report.mjs'
 
 type Subject = Parameters<typeof computeBrewDiff>[0]
 
-const step = (i: number, t: number, w: number) =>
-  ({ step_index: i, time_offset: t, cumulative_water: w, step_type: 'pour' as const, note: null })
+const step = (i: number, hold: number | null, w: number) =>
+  ({ step_index: i, hold_seconds: hold, cumulative_water: w, step_type: 'pour' as const, note: null })
 
 const base = (over: Partial<Subject> = {}): Subject => ({
   dose: 15, water_temp: 92, grind_setting: 22, total_time: 145,
   grinder_id: 'g1', dripper_id: 'd1', kettle_id: 'k1', brew_method_id: null,
   grinderName: 'Comandante C40', dripperName: 'Hario V60 02', kettleName: 'Hario Buono', methodName: null,
-  steps: [step(1, 0, 40), step(2, 45, 160), step(3, 75, 220), step(4, 105, 290)],
+  steps: [step(1, 45, 40), step(2, 30, 160), step(3, 30, 220), step(4, null, 290)],
   ...over,
 })
 
@@ -53,39 +53,39 @@ export default function run() {
   r.check(computeBrewDiff(base(), base({ grind_setting: null }))[0]!.before === '沒填', '沒填後來填了')
 
   r.section('分段結構')
-  const fewer = computeBrewDiff(base({ steps: [step(1, 0, 40), step(2, 45, 160), step(3, 75, 260)] }), base())
+  const fewer = computeBrewDiff(base({ steps: [step(1, 45, 40), step(2, 30, 160), step(3, null, 260)] }), base())
   r.check(fewer.some(d => d.field === 'step_count' && d.before === '4 段' && d.after === '3 段'), '段數變化')
   const waterOnly = computeBrewDiff(
-    base({ steps: [step(1, 0, 40), step(2, 45, 170), step(3, 75, 220), step(4, 105, 290)] }), base())
+    base({ steps: [step(1, 45, 40), step(2, 30, 170), step(3, 30, 220), step(4, null, 290)] }), base())
   r.check(waterOnly.length === 1 && waterOnly[0]!.field === 'step_water', '只改水量時不會誤報時間差異')
   const timeOnly = computeBrewDiff(
-    base({ steps: [step(1, 0, 40), step(2, 50, 160), step(3, 80, 220), step(4, 105, 290)] }), base())
+    base({ steps: [step(1, 50, 40), step(2, 30, 160), step(3, 30, 220), step(4, null, 290)] }), base())
   r.check(timeOnly.length === 1 && timeOnly[0]!.field === 'step_time', '只改時間時不會誤報水量差異')
-  r.check(timeOnly[0]!.before === '45 / 30 / 30 / 40',
-    '呈現的是使用者輸入的停留秒數，不是資料庫的累積時間點')
+  r.check(timeOnly[0]!.before === '45 / 30 / 30' && timeOnly[0]!.after === '50 / 30 / 30',
+    '呈現的就是資料庫裡的停留秒數；最後一段永遠沒有停留，尾端的空值不列出來')
+  const middleBlank = computeBrewDiff(
+    base({ steps: [step(1, 45, 40), step(2, null, 160), step(3, 30, 220), step(4, null, 290)] }), base())
+  r.check(middleBlank[0]!.after === '45 / — / 30', '中間漏填的那一段顯示為 —，不是省略')
 
-  r.section('沒記錄分段時間（time_offset 全為 0）')
-  // 記錄分段時間預設關閉，多數新紀錄的 time_offset 全為 0。差異區不能比出憑空的數字
-  const untimed = [step(1, 0, 40), step(2, 0, 160), step(3, 0, 220), step(4, 0, 290)]
+  r.section('沒記錄分段時間（hold_seconds 全為 NULL）')
+  // 記錄分段時間預設關閉，多數新紀錄沒有時間。差異區不能比出憑空的數字
+  const untimed = [step(1, null, 40), step(2, null, 160), step(3, null, 220), step(4, null, 290)]
   r.check(computeBrewDiff(base({ steps: untimed }), base({ steps: untimed })).length === 0,
     '兩邊都沒記錄：沒有差異')
   const untimedTotal = computeBrewDiff(base({ steps: untimed, total_time: 150 }), base({ steps: untimed }))
   r.check(untimedTotal.length === 1 && untimedTotal[0]!.field === 'total_time',
-    '兩邊都沒記錄、只改總時間：只比出總時間——不會因為最後一段從 total_time 反推而多冒一條「0 / 0 / 0 / 150」')
+    '兩邊都沒記錄、只改總時間：只比出總時間——分段時間不再與 total_time 有任何關係')
   const untimedFewer = computeBrewDiff(base({ steps: untimed.slice(0, 3) }), base({ steps: untimed }))
   r.check(untimedFewer.some(d => d.field === 'step_count') && !untimedFewer.some(d => d.field === 'step_time'),
     '兩邊都沒記錄、段數不同：比出段數，不比停留秒數')
   const oneSide = computeBrewDiff(base({ steps: untimed }), base())
   const oneSideRow = oneSide.find(d => d.field === 'step_time')
-  r.check(oneSideRow?.before === '45 / 30 / 30 / 40' && oneSideRow.after === '沒記錄',
-    `只有一邊有記錄：另一邊顯示「沒記錄」，不是一串 0（${oneSideRow?.before} → ${oneSideRow?.after}）`)
-  const firstZeroOnly = [step(1, 0, 40), step(2, 45, 160), step(3, 75, 220), step(4, 105, 290)]
-  r.check(computeBrewDiff(base({ steps: firstZeroOnly }), base()).length === 0,
-    '第一段為 0、後續有值：是有記錄的紀錄，照常比對（這裡兩邊相同所以沒有差異）')
-  const bloomOnly = [step(1, 0, 40)]
+  r.check(oneSideRow?.before === '45 / 30 / 30' && oneSideRow.after === '沒記錄',
+    `只有一邊有記錄：另一邊顯示「沒記錄」（${oneSideRow?.before} → ${oneSideRow?.after}）`)
+  const bloomOnly = [step(1, null, 40)]
   r.check(!computeBrewDiff(base({ steps: bloomOnly, total_time: 120 }), base({ steps: bloomOnly }))
     .some(d => d.field === 'step_time'),
-  '只有悶蒸一段：不比對停留秒數——那一段的「停留」就是總時間，已經由總沖煮時間比對')
+  '只有一段：它就是最後一段，沒有停留可比——總沖煮時間自己有一條')
 
   return r.finish()
 }

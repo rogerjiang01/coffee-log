@@ -1,21 +1,23 @@
-// 分段注水的單位轉換（《01-資料庫規格》§3.6、《02-功能規格》§5 區塊三）。
+// 分段注水（《01-資料庫規格》§3.6、《02-功能規格》§5 區塊三）。
 //
-// 這是整個專案最容易寫反的地方，兩個欄位的方向不同：
+// **介面填什麼就存什麼，沒有換算層。**
+//   累積水量  「注到 160 g」→ cumulative_water = 160
+//   停留秒數  「停 30 秒」  → hold_seconds = 30
 //
-//   累積水量  介面輸入「注到 160 g」→ 資料庫直接存 160。**不換算。**
-//             使用者沖煮時看的是磅秤上的累積數字。
+// 停留＝注完之後到下一注之前的**純停水時間**，不含注水動作本身。
 //
-//   時間      介面輸入「停 30 秒」→ 資料庫存「累積時間點」time_offset。
-//             **要換算。** 使用者的心智是「注到 160g，停 30 秒」，
-//             不是「在第 75 秒時」。資料庫一律只認 time_offset。
+// 舊版存的是累積時間點（time_offset），「停留」被定義成「這段開始注水到
+// 下一段開始注水」的全部時間。那個定義要求使用者提供一個他不知道的數字
+// ——注水花了幾秒——兩位實機測試者都填不出來（「我以為是下沖的時間」；
+// 被告知定義之後仍然「不知道怎麼填」）。給水速率依器材與手法而異，
+// 還有行動誤差，無法預期；能預期、也真的在被調整的是停水時間。
+// **換算層與它的測試一起移除了，不要再加回來。**
 //
-// 換算方向：
-//   存檔  time_offset[1] = 0；time_offset[n] = time_offset[n-1] + 停留秒數[n-1]
-//   讀取  停留秒數[n] = time_offset[n+1] − time_offset[n]
-//         最後一段用 total_time − time_offset[n]（§8）
+// 最後一段不存停留秒數（一律 null）：最後一注之後沒有下一注，「停水」
+// 這件事不存在，剩下的只是等它滴完，那段時間由 total_time 記錄。
 //
-// 注意最後一段的停留秒數不影響任何 time_offset——它是最後一次注水之後的
-// 時間，由 total_time 表達，因此不另外儲存。
+// hold_seconds 可為 NULL：沒記錄就是 NULL。舊版 NOT NULL 逼得「沒記錄」
+// 與「停 0 秒」共用同一個值，才需要「全為 0 視為沒記錄」那個變通。
 
 export type StepType = 'bloom' | 'pour' | 'stir' | 'wait'
 
@@ -31,7 +33,8 @@ export interface StepInput {
 /** 資料庫裡的一段 */
 export interface StepRow {
   step_index: number
-  time_offset: number
+  /** 純停水秒數。沒記錄是 null；最後一段永遠是 null */
+  hold_seconds: number | null
   cumulative_water: number
   step_type: StepType
   note: string | null
@@ -47,87 +50,48 @@ export function initialSteps(): StepInput[] {
 }
 
 /**
- * 介面 → 資料庫。
+ * 介面 → 資料庫。**沒有換算，填什麼存什麼。**
+ *
  * cumulative_water 是 NOT NULL，因此沒填水量的列視為使用者沒填完，直接丟掉。
+ * 最後一段的停留一律 null——介面上那一格本來就不顯示，這裡再守一次：
+ * 刪掉尾段時，原本的倒數第二段會變成最後一段，它殘留的值不該被存下來。
  */
 export function toStepRows(steps: StepInput[]): StepRow[] {
   const filled = steps.filter(step => step.cumulativeWater !== null)
-  const rows: StepRow[] = []
-  let offset = 0
 
-  filled.forEach((step, index) => {
-    if (index > 0) {
-      // 累加的是「前一段」的停留秒數，不是自己的
-      offset += filled[index - 1]!.holdSeconds ?? 0
-    }
-    rows.push({
-      step_index: index + 1,
-      time_offset: offset,
-      cumulative_water: step.cumulativeWater!,
-      step_type: step.stepType,
-      note: (step.note ?? '').trim() || null,
-    })
-  })
-
-  return rows
+  return filled.map((step, index) => ({
+    step_index: index + 1,
+    hold_seconds: index === filled.length - 1 ? null : step.holdSeconds,
+    cumulative_water: step.cumulativeWater!,
+    step_type: step.stepType,
+    note: (step.note ?? '').trim() || null,
+  }))
 }
 
 /**
- * 這筆紀錄有沒有記錄分段時間（《01》§8）。**判斷一律走這裡，不在各處自己寫條件。**
+ * 這筆紀錄有沒有記錄分段時間。**判斷一律走這裡，不在各處自己寫條件。**
  *
- * 分段時間是可選的進階參數（設定頁「記錄分段時間」，預設關閉）。
- * time_offset 是 NOT NULL，沒填的停留秒數存檔時當 0 累加，
- * 所以「沒記錄時間」在資料上就是 time_offset 全為 0。
+ * hold_seconds 可為 NULL，「沒記錄」直接由資料表達：全部都是 null。
+ * 停 0 秒是真的 0，與沒記錄不再共用同一個值。
  *
- * 判準可靠：第一段一定是 0，但只要記錄了任何一段的停留，第二段起必然
- * 大於 0——停留是「到下一段注水前的時間」，包含給水，物理上不可能是 0。
- *
- * 邊界：只有一段（悶蒸）時 time_offset 就是 [0]，與「沒記錄」無法區分，
- * 一律當成沒記錄。不會丟掉資訊：最後一段的停留本來就不存，由 total_time
- * 表達，而總沖煮時間照常顯示。
- *
- * time_offset 維持 NOT NULL 是刻意的：改成可空在顯示上的結果與這裡完全相同，
- * 卻要動最高權限的規格、migration 與所有讀取點，還會讓「沒記錄」有兩種表示法。
+ * 最後一段永遠是 null，所以只有一段的紀錄必然回 false——那一段本來就
+ * 沒有下一注可以停。
  */
-export function hasStepTiming(rows: Pick<StepRow, 'time_offset'>[]): boolean {
-  return rows.some(row => Number(row.time_offset) > 0)
+export function hasStepTiming(rows: Pick<StepRow, 'hold_seconds'>[]): boolean {
+  return rows.some(row => row.hold_seconds !== null)
 }
 
-/**
- * 資料庫 → 介面。totalTime 用來還原最後一段的停留秒數。
- *
- * 沒記錄分段時間的紀錄（hasStepTiming 為 false），停留秒數一律是 null：
- * 不從全為 0 的 time_offset 算出「停 0 秒」，最後一段也不從 total_time
- * 湊出「停 {總時間} 秒」。詳情頁、編輯頁、複製流程、差異計算都經過這裡。
- */
-export function toStepInputs(rows: StepRow[], totalTime: number | null): StepInput[] {
-  const sorted = [...rows].sort((a, b) => a.step_index - b.step_index)
-  const timed = hasStepTiming(sorted)
-
-  return sorted.map((row, index) => {
-    const next = sorted[index + 1]
-    let holdSeconds: number | null
-    if (!timed) {
-      holdSeconds = null
-    }
-    else if (next) {
-      holdSeconds = next.time_offset - row.time_offset
-    }
-    else if (totalTime !== null) {
-      const remaining = totalTime - row.time_offset
-      // total_time 比最後一段的時間點還早時不硬湊出負數
-      holdSeconds = remaining >= 0 ? remaining : null
-    }
-    else {
-      holdSeconds = null
-    }
-    return {
+/** 資料庫 → 介面。同樣沒有換算，欄位一對一。 */
+export function toStepInputs(rows: StepRow[]): StepInput[] {
+  return [...rows]
+    .sort((a, b) => a.step_index - b.step_index)
+    .map(row => ({
       stepType: row.step_type,
       cumulativeWater: row.cumulative_water,
-      holdSeconds,
+      // numeric 欄位讀回來可能是字串
+      holdSeconds: row.hold_seconds === null ? null : Number(row.hold_seconds),
       note: row.note ?? '',
-    }
-  })
+    }))
 }
 
 /** 分段模板裡每一段的水量基準（《01-資料庫規格》§3.7） */
@@ -137,7 +101,8 @@ export interface MethodTemplateStep {
   type: StepType
   basis: StepBasis
   factor: number
-  duration: number
+  /** 該段的純停水秒數。最後一段沒有下一注，是 null */
+  duration: number | null
   note?: string
 }
 
@@ -232,7 +197,8 @@ export function stepsFromTemplate(
       stepType: step.type,
       // 磅秤讀的是累積數字，這裡直接給累積值
       cumulativeWater: cumulative,
-      holdSeconds: step.duration,
+      // 模板的 duration 是純停水秒數，直接給，不換算
+      holdSeconds: step.duration ?? null,
       note: step.note ?? '',
     }
   })

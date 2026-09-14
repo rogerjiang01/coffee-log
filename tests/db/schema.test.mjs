@@ -57,8 +57,8 @@ export default async function run() {
   const brew = (await pg.rows(`insert into brews (user_id,bean_id,dose) values ('${A}','${bean}',15) returning id`))[0].id
   const pub = (await pg.rows(`insert into brews (user_id,bean_id,dose,visibility)
     values ('${A}','${bean}',16,'public') returning id`))[0].id
-  await pg.exec(`insert into brew_steps (brew_id,user_id,step_index,time_offset,cumulative_water,step_type)
-    values ('${brew}','${A}',1,0,40,'bloom')`)
+  await pg.exec(`insert into brew_steps (brew_id,user_id,step_index,hold_seconds,cumulative_water,step_type)
+    values ('${brew}','${A}',1,45,40,'bloom')`)
   await pg.as(B)
   r.check((await pg.rows(`select 1 from beans where id='${bean}'`)).length === 0, 'B 讀不到 A 的豆子')
   r.check((await pg.rows(`select 1 from brews where id='${brew}'`)).length === 0, 'B 讀不到 A 的 private 紀錄')
@@ -131,14 +131,16 @@ export default async function run() {
     const steps = method.step_template?.steps ?? []
     const bases = new Set(steps.map(s => s.basis))
     const validBasis = [...bases].every(b => ['dose', 'total', 'remaining'].includes(b))
-    const hasDuration = steps.every(s => typeof s.duration === 'number')
-    const lastIsZero = steps.at(-1)?.duration === 0
+    // duration 是純停水秒數：最後一段沒有下一注所以是 null，其餘必須是正數
+    //（換算成純停水時若有段落變成 0 或負數，要停下來回報，不自行調整）
+    const lastIsNull = steps.at(-1)?.duration === null
+    const othersArePositive = steps.slice(0, -1).every(s => typeof s.duration === 'number' && s.duration > 0)
     const remaining = steps.filter(s => s.basis === 'remaining').reduce((sum, s) => sum + s.factor, 0)
     const total = steps.filter(s => s.basis === 'total').reduce((sum, s) => sum + s.factor, 0)
     const remainingOk = !bases.has('remaining') || Math.abs(remaining - 1) < 1e-9
     const totalOk = !bases.has('total') || Math.abs(total - 1) < 1e-9
-    r.check(steps.length > 0 && validBasis && hasDuration && lastIsZero && remainingOk && totalOk,
-      `${method.name}：${steps.length} 段、basis 合法、factor 總和為 1、最後一段 duration 為 0`)
+    r.check(steps.length > 0 && validBasis && othersArePositive && lastIsNull && remainingOk && totalOk,
+      `${method.name}：${steps.length} 段、basis 合法、factor 總和為 1、停留秒數都是正數、最後一段 duration 為 null`)
     r.check(Number(method.default_ratio) === 15 && (method.aliases?.length ?? 0) > 0,
       `${method.name}：有預設粉水比與別名`)
   }

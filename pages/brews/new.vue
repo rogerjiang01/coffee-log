@@ -43,7 +43,7 @@ onMounted(async () => {
         .maybeSingle(),
       supabase
         .from('brew_steps')
-        .select('step_index, time_offset, cumulative_water, step_type, note')
+        .select('step_index, hold_seconds, cumulative_water, step_type, note')
         .eq('brew_id', copyId)
         .order('step_index'),
     ])
@@ -72,7 +72,7 @@ onMounted(async () => {
       const rows = (stepResult.data ?? []) as unknown as StepRow[]
       // 完整分段，含備註與攪拌標記
       if (rows.length) {
-        initialSteps.value = toStepInputs(rows, (source.total_time as number | null) ?? null)
+        initialSteps.value = toStepInputs(rows)
       }
     }
     else {
@@ -139,7 +139,7 @@ async function onSubmit(payload: {
   }
   const brewId = (data as unknown as { id: string }).id
 
-  // 分段：介面的停留秒數在這裡才換算成累積時間點
+  // 分段：填什麼存什麼，沒有換算；最後一段的停留由 toStepRows 設成 null
   const stepRows = toStepRows(steps).map(step => ({
     ...step,
     brew_id: brewId,

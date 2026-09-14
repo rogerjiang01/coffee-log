@@ -108,7 +108,7 @@ async function enrichEntries(rows: BrewRow[]) {
       : Promise.resolve({ data: [] }),
     supabase
       .from('brew_steps')
-      .select('brew_id, step_index, time_offset, cumulative_water, step_type, note')
+      .select('brew_id, step_index, hold_seconds, cumulative_water, step_type, note')
       .in('brew_id', [...rows.map(row => row.id as string), ...sourceIds])
       .order('step_index'),
   ])
