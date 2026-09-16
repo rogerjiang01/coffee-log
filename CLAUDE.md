@@ -35,6 +35,16 @@ Supabase（Auth / Postgres / Storage）
 - 不要主動重構其他階段已完成的程式碼
 - 每個階段結束前，明確列出：做了什麼、跳過了什麼、有哪些地方是你自行判斷的
 - Supabase schema 一律透過 `supabase/migrations/` 的檔案管理，不得假設我會在 dashboard 手動設定
+- **含不可逆操作的 migration，在要我跑 `supabase db push` 之前必須先報告。** 不可逆指
+  `drop column`、`drop table`、以及任何覆寫既有使用者資料的 `update`／`delete`。
+  報告要有三項，寫在請我執行的那則訊息裡，不要只寫在 migration 註解：
+  1. **哪幾行是不可逆的**，逐條列出（例如「第 62 行 `alter table brew_steps drop column time_offset`」）
+  2. **影響範圍**：動到哪張表、哪些列、資料會怎麼變，以及搬移後對不上時 migration 會不會自己中止
+  3. **備份指令**，可以直接複製貼上執行，例如
+     `supabase db dump --linked --data-only -f 備份-YYYYMMDD.sql`；
+     只動到單一張表時附上那張表的 `select` 匯出，比整份 dump 好還原
+  推上去之後才發現搬錯，能救回來的只有備份——遠端沒有復原點，
+  而這個專案的資料是一筆一筆手動記的，重建不回來。
 - 提交訊息使用正體中文
 
 ## 測試

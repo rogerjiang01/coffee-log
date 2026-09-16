@@ -52,5 +52,32 @@ export default function run() {
   r.check(/prefers-reduced-motion/.test(css),
     'prefers-reduced-motion 的全域規則還在（《03》§6 要求）')
 
+  r.section('提示色是三層裡的中間那層（《03》§4.1）')
+  // --danger 只代表「這樣送不出去」，--text-muted 是一直都在的參考資訊。
+  // 針對輸入值出現、但存得起來的提示需要自己一層，否則不是被當成錯誤，
+  // 就是混進參考資訊裡被自動略過。
+  const tokens = readFileSync(new URL('../../assets/css/tokens.css', import.meta.url), 'utf8')
+  r.check(/--notice:\s*var\(--sand-700\)/.test(tokens), '--notice 取 sand-700')
+  r.check(/--color-notice:\s*var\(--notice\)/.test(css), '接到 Tailwind theme 上')
+  r.check(!/--notice:\s*var\(--(red|ink)/.test(tokens), '不是紅色也不是中性灰')
+
+  const grind = readFileSync(new URL('../../components/GrindSettingInput.vue', import.meta.url), 'utf8')
+  r.section('刻度提示的位置與顏色')
+  const referenceLine = (grind.match(/<p v-if="hasCatalog[\s\S]*?<\/p>/) || [''])[0]
+  r.check(/rangeNotice/.test(referenceLine),
+    '超出範圍的提示在參考資訊那一行裡面——分開一行就跟參考資訊長得一樣')
+  r.check(/var\(--notice\)/.test(referenceLine), '用 --notice')
+  r.check(!/var\(--danger\)/.test(grind),
+    '不用 --danger——這個值存得起來，紅色會讓人以為存不起來')
+  r.check(/whitespace-nowrap/.test(referenceLine),
+    '整段不斷行：中文預設可在任兩字之間換行，會斷成「超出磨豆機刻」＋「度範圍」')
+  r.check(!/這台的刻度到|這台的刻度從/.test(grind), '舊的定義句文案已經拿掉')
+
+  // 間隔不符維持原樣：獨立一行、--text-muted
+  const incrementLine = (grind.match(/<p v-if="incrementNotice"[\s\S]*?<\/p>/) || [''])[0]
+  r.check(!!incrementLine && /text-muted/.test(incrementLine),
+    '間隔不符仍是獨立一行的 --text-muted，這次不動它')
+  r.check(!referenceLine.includes('incrementNotice'), '間隔不符沒有被搬到第一行')
+
   return r.finish()
 }

@@ -61,21 +61,40 @@ function isMultipleOf(value: number, increment: number) {
 }
 
 /**
- * 刻度驗證。**回傳的一律是提示，呼叫端不得用它阻擋儲存。**
+ * 刻度提示。**回傳的一律是提示，呼叫端不得用它阻擋儲存。**
  * 使用者可能改裝、可能記錯、可能用型錄未涵蓋的方式讀數。
+ *
+ * 一次只回一則，而且**超出範圍優先於間隔不符**：兩者同時成立時
+ * （例如 1–8、半格定位的機器填了 87.3），先講範圍。範圍是「你可能看錯行了」，
+ * 間隔只是「這台停不到那個位置」——前者才是使用者需要先確認的那件事，
+ * 兩則一起出現只會讓他兩則都不讀。
+ *
+ * kind 決定呈現方式（《03》§4.1 的三層）：
+ *   range      針對輸入值出現，接在參考資訊那一行後面，用 --notice
+ *   increment  維持原樣：獨立一行、--text-muted
  */
-export function grindScaleHints(value: number | null, spec: GrindScaleSpec): string[] {
-  if (value === null || Number.isNaN(value)) return []
-  const hints: string[] = []
+export type GrindNoticeKind = 'range' | 'increment'
 
-  if (!unset(spec.min) && value < spec.min!) hints.push(`這台的刻度從 ${spec.min} 開始`)
+export interface GrindNotice {
+  kind: GrindNoticeKind
+  text: string
+}
+
+export function grindScaleNotice(value: number | null, spec: GrindScaleSpec): GrindNotice | null {
+  if (value === null || Number.isNaN(value)) return null
+
   // max 為 null 代表無上限，不做上限檢查（Niche Zero 超過 50 仍可繼續轉）
-  if (!unset(spec.max) && value > spec.max!) hints.push(`這台的刻度到 ${spec.max} 為止`)
+  if (!unset(spec.max) && value > spec.max!) return { kind: 'range', text: '超出磨豆機刻度範圍' }
+  if (!unset(spec.min) && value < spec.min!) return { kind: 'range', text: '低於磨豆機刻度範圍' }
+
   // increment 為 null 代表連續無段，不檢查倍數，但範圍檢查照常
   if (!unset(spec.increment) && !isMultipleOf(value, spec.increment!)) {
-    hints.push(spec.increment === 1 ? '這台只能停在整數格' : `這台的最小間隔是 ${spec.increment}`)
+    return {
+      kind: 'increment',
+      text: spec.increment === 1 ? '這台只能停在整數格' : `這台的最小間隔是 ${spec.increment}`,
+    }
   }
-  return hints
+  return null
 }
 
 /** 輸入框旁顯示的範圍，例如「1–16」「0 以上」 */
