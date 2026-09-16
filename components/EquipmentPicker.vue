@@ -23,7 +23,7 @@ const supabase = useSupabaseClient()
 const cache = useQueryCache()
 const userId = useCurrentUserId()
 
-const items = ref<EquipmentOption[]>([])
+const items = ref<UserEquipmentRow[]>([])
 const lastUsed = ref<Map<string, string>>(new Map())
 const loading = ref(true)
 const loadError = ref('')
@@ -82,13 +82,11 @@ async function fetchPickerData(type: string) {
   // 器材清單與「最後使用日期」都只靠 type，互不相依，一起發
   const column = `${type}_id`
   const [listResult, brewResult] = await Promise.all([
-    supabase
-      .from('user_equipment')
-      .select('id, type, custom_name, is_default, catalog_id, equipment_catalog ( brand, model, variant, grind_scale_min, grind_scale_max, grind_scale_increment, grind_scale_suggested_min, grind_scale_suggested_max, grind_scale_note )')
-      .eq('type', type)
-      .order('is_default', { ascending: false })
-      .order('created_at', { ascending: true })
-      .order('id', { ascending: true }),
+    // 欄位與排序走 utils/equipment.ts 的共用定義。這裡的 key 是
+    // equipment:<type>，與 equipment:all 不同，但欄位集合仍然只該有一份
+    orderUserEquipment(
+      supabase.from('user_equipment').select(USER_EQUIPMENT_SELECT).eq('type', type),
+    ),
     supabase
       .from('brews')
       .select(`${column}, brewed_at`)
@@ -109,7 +107,7 @@ async function fetchPickerData(type: string) {
   }
 
   return {
-    items: (listResult.data ?? []) as unknown as EquipmentOption[],
+    items: (listResult.data ?? []) as unknown as UserEquipmentRow[],
     lastUsed: lastUsedPairs,
   }
 }

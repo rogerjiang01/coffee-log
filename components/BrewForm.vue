@@ -113,18 +113,17 @@ const doseError = ref('')
 const summaryError = ref('')
 
 // 器材：新增時各類型的常用器材自動帶入
-const equipment = ref<EquipmentOption[]>([])
+const equipment = ref<UserEquipmentRow[]>([])
 const methods = ref<{ id: string; name: string }[]>([])
 
+// 欄位與排序都走 utils/equipment.ts 的共用定義：這個查詢與器材管理頁
+// 共用 equipment:all 這個快取 key，兩邊的欄位集合不一致就會靜默壞掉
 async function fetchEquipment() {
-  const { data, error } = await supabase
-    .from('user_equipment')
-    .select('id, type, custom_name, is_default, catalog_id, equipment_catalog ( brand, model, variant, grind_scale_min, grind_scale_max, grind_scale_increment, grind_scale_suggested_min, grind_scale_suggested_max, grind_scale_note )')
-    .order('is_default', { ascending: false })
-    .order('created_at', { ascending: true })
-    .order('id', { ascending: true })
+  const { data, error } = await orderUserEquipment(
+    supabase.from('user_equipment').select(USER_EQUIPMENT_SELECT),
+  )
   if (error) throw toError(error)
-  return (data ?? []) as unknown as EquipmentOption[]
+  return (data ?? []) as unknown as UserEquipmentRow[]
 }
 
 async function loadEquipment() {
@@ -188,18 +187,7 @@ async function loadLookups() {
 const selectedGrinder = computed(() =>
   equipment.value.find(item => item.id === values.grinder_id) ?? null,
 )
-const grindSpec = computed<GrindScaleSpec>(() => {
-  const c = selectedGrinder.value?.equipment_catalog
-  if (!c) return emptyGrindScale
-  return {
-    min: c.grind_scale_min,
-    max: c.grind_scale_max,
-    increment: c.grind_scale_increment,
-    suggestedMin: c.grind_scale_suggested_min,
-    suggestedMax: c.grind_scale_suggested_max,
-    note: c.grind_scale_note,
-  }
-})
+const grindSpec = computed<GrindScaleSpec>(() => grindScaleOf(selectedGrinder.value?.equipment_catalog))
 
 // 手法選定後依粉重換算並填入分段（§3.7、§5）。
 // 手法只是模板來源，帶入後使用者可自由修改，brew_method_id 不變，

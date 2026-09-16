@@ -137,15 +137,118 @@ export function matchesPattern(key: string, pattern: string): boolean {
 // 下面的檢查只在開發模式跑：記住每個 key 第一次拿到的欄位集合，
 // 之後對不上就在 console 警告。比對的是**回傳的欄位**而不是 select
 // 字串——實際會壞掉的是欄位，而不是怎麼寫的。
+//
+// **內嵌關聯要一起比。** 第一版只看最外層的欄位名，結果漏掉了實際發生的
+// 第二次：器材管理頁與沖煮表單都查 `equipment_catalog ( … )`，最外層
+// 七個欄位一模一樣，差別全在內嵌那一層——一邊只有 brand/model/variant，
+// 另一邊多六個 grind_scale_*。檢查說沒事，畫面上印出「刻度 undefined–undefined」。
+// 所以 describeShape 會遞迴進內嵌物件，寫成 `equipment_catalog(brand,model)`。
 
-const shapes = new Map<string, string>()
+const shapes = new Map<string, ShapeTree>()
 
-/** 取一筆代表列的欄位集合。陣列取第一筆；空陣列無從判斷，回 null */
+// 只看前面幾列就夠：需要的只是「某個內嵌欄位長什麼樣」的一個代表值。
+// 全掃的話時間軸那種上千列的查詢每次重新驗證都要走一遍。
+// 代價是前 20 列的內嵌關聯剛好都是 null 時判不出來——那與空陣列同類，
+// 一律當作「無從判斷」跳過，不誤報。
+const SAMPLE_ROWS = 20
+
+/**
+ * 取一筆代表列的欄位集合，內嵌關聯遞迴展開成 `欄位(子欄位,子欄位)`。
+ * 陣列取前幾列；取不到任何物件就是無從判斷，回 null。
+ */
 export function describeShape(data: unknown): string | null {
-  const row = Array.isArray(data) ? data[0] : data
-  if (!row || typeof row !== 'object') return null
-  const keys = Object.keys(row as Record<string, unknown>)
-  return keys.length ? keys.slice().sort().join(',') : null
+  return describeRows(Array.isArray(data) ? data.slice(0, SAMPLE_ROWS) : [data])
+}
+
+function describeRows(values: unknown[]): string | null {
+  const rows = values.filter(
+    (value): value is Record<string, unknown> =>
+      !!value && typeof value === 'object' && !Array.isArray(value),
+  )
+  if (!rows.length) return null
+
+  const keys = Object.keys(rows[0]!)
+  if (!keys.length) return null
+
+  return keys.slice().sort().map((key) => {
+    // 內嵌關聯可能是單筆（物件）或多筆（陣列），也可能整欄都是 null。
+    // 純量值在 describeRows 裡會被濾掉，回 null，於是只留欄位名。
+    const nested = describeRows(rows.flatMap(row => (Array.isArray(row[key]) ? row[key] as unknown[] : [row[key]])))
+    return nested ? `${key}(${nested})` : key
+  }).join(',')
+}
+
+/** 欄位樹。值為 null 代表「不知道底下長怎樣」：純量，或這次取樣全是 null 的內嵌 */
+type ShapeTree = Map<string, ShapeTree | null>
+
+function parseShape(shape: string): ShapeTree {
+  const tree: ShapeTree = new Map()
+  let name = ''
+  let depth = 0
+  let nested = ''
+  for (const char of shape) {
+    if (depth > 0) {
+      if (char === '(') depth++
+      if (char === ')') {
+        depth--
+        if (depth === 0) {
+          tree.set(name, parseShape(nested))
+          name = ''
+          nested = ''
+          continue
+        }
+      }
+      nested += char
+    }
+    else if (char === '(') depth++
+    else if (char === ',') {
+      if (name) tree.set(name, null)
+      name = ''
+    }
+    else name += char
+  }
+  if (name) tree.set(name, null)
+  return tree
+}
+
+/**
+ * 比對兩棵欄位樹，回傳對不上的欄位路徑。
+ *
+ * **「這一層不知道長怎樣」（null）與任何東西都相容。** 內嵌關聯在某次取樣裡
+ * 可能整批都是 null（例如器材全是自建的，沒有一台有型錄），那時看不出它的
+ * 子欄位——那是資料的樣子，不是查詢換了欄位。把它當成衝突會在使用者
+ * 新增第一台型錄器材時誤報。真正要抓的是**同一層的欄位名對不上**。
+ */
+function conflicts(known: ShapeTree, next: ShapeTree, prefix = ''): string[] {
+  const found: string[] = []
+  for (const key of new Set([...known.keys(), ...next.keys()])) {
+    const path = prefix ? `${prefix}.${key}` : key
+    if (!known.has(key) || !next.has(key)) {
+      found.push(path)
+      continue
+    }
+    const a = known.get(key)
+    const b = next.get(key)
+    if (a && b) found.push(...conflicts(a, b, path))
+  }
+  return found
+}
+
+/** 兩邊都沒有衝突時，把知道得比較細的那一邊留下來當基準 */
+function mergeShapes(known: ShapeTree, next: ShapeTree): ShapeTree {
+  const merged: ShapeTree = new Map()
+  for (const [key, a] of known) {
+    const b = next.get(key)
+    merged.set(key, a && b ? mergeShapes(a, b) : (a ?? b ?? null))
+  }
+  return merged
+}
+
+function printShape(tree: ShapeTree): string {
+  return [...tree.keys()].map((key) => {
+    const child = tree.get(key)
+    return child ? `${key}(${printShape(child)})` : key
+  }).join(',')
 }
 
 /**
@@ -161,13 +264,22 @@ export function checkCacheShape(key: string, data: unknown): string | null {
 
   const known = shapes.get(key)
   if (!known) {
-    shapes.set(key, shape)
+    shapes.set(key, parseShape(shape))
     return null
   }
-  if (known === shape) return null
+
+  const next = parseShape(shape)
+  const mismatched = conflicts(known, next)
+  if (!mismatched.length) {
+    // 基準只在沒有衝突時更新，而且只會變得更細——出錯的那個呼叫端
+    // 每次都要警告，不能被它自己覆蓋成新基準之後就靜下來
+    shapes.set(key, mergeShapes(known, next))
+    return null
+  }
 
   return `[cache] 「${key}」這個 key 被兩種不同欄位的查詢共用了。`
-    + `先前：${known}；這次：${shape}。`
+    + `對不上的欄位：${mismatched.join('、')}。`
+    + `先前：${printShape(known)}；這次：${shape}。`
     + '誰先跑誰決定快取內容，後到的元件會拿到缺欄位的資料，而且不會有錯誤。'
     + '請改用不同的 key，或把查詢收斂到單一元件。'
 }

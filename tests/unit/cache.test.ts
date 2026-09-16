@@ -164,5 +164,54 @@ export default function run() {
   r.check(checkCacheShape('beans:item:x', { id: '1', name: 'a' }) !== null,
     'maybeSingle 回傳的單一物件同樣比對得到')
 
+  r.section('內嵌關聯的欄位也要比')
+  // 第二次發生的就是這種：器材管理頁與沖煮表單都查 equipment_catalog，
+  // 最外層七個欄位一模一樣，差別全在內嵌那一層的 grind_scale_*。
+  // 只比最外層的話這個檢查會說沒事，而畫面上印著「刻度 undefined–undefined」。
+  __resetCacheShapes()
+  const catalogNarrow = [{
+    id: 'e1', type: 'grinder', custom_name: null, is_default: true, catalog_id: 'c1', note: null,
+    equipment_catalog: { brand: 'Comandante', model: 'C40', variant: null },
+  }]
+  const catalogWide = [{
+    id: 'e1', type: 'grinder', custom_name: null, is_default: true, catalog_id: 'c1', note: null,
+    equipment_catalog: {
+      brand: 'Comandante', model: 'C40', variant: null,
+      grind_scale_min: 0, grind_scale_max: 40, grind_scale_increment: 1,
+      grind_scale_suggested_min: 18, grind_scale_suggested_max: 30, grind_scale_note: null,
+    },
+  }]
+  r.check(equal(
+    describeShape(catalogNarrow),
+    'catalog_id,custom_name,equipment_catalog(brand,model,variant),id,is_default,note,type',
+  ), '內嵌關聯展開成 欄位(子欄位)')
+  r.check(checkCacheShape('equipment:all', catalogNarrow) === null, '第一次只記錄')
+  const nested = checkCacheShape('equipment:all', catalogWide)
+  r.check(nested !== null, '最外層相同、內嵌欄位不同，一樣要抓出來')
+  r.check(!!nested && nested.includes('equipment_catalog.grind_scale_max'),
+    '警告指到內嵌的那個欄位路徑，不用自己比對兩串欄位')
+
+  r.section('內嵌關聯整批是 null 時不誤報')
+  // 器材全是自建的時候，equipment_catalog 每一列都是 null，看不出子欄位。
+  // 那是資料的樣子，不是查詢換了欄位——之後新增第一台型錄器材不該跳警告。
+  __resetCacheShapes()
+  const noCatalog = [{
+    id: 'e2', type: 'grinder', custom_name: '阿嬤那台', is_default: false, catalog_id: null, note: null,
+    equipment_catalog: null,
+  }]
+  r.check(checkCacheShape('equipment:all', noCatalog) === null, '第一次只記錄')
+  r.check(checkCacheShape('equipment:all', catalogWide) === null,
+    '後來出現有型錄的器材，不算欄位集合變了')
+  // 基準要跟著變細，否則這之後再也抓不到真正缺欄位的查詢
+  r.check(checkCacheShape('equipment:all', catalogNarrow) !== null,
+    '知道內嵌長怎樣之後，缺欄位的查詢照樣抓得到')
+
+  r.section('一對多的內嵌取得到子欄位')
+  __resetCacheShapes()
+  r.check(equal(
+    describeShape([{ id: 'b1', brew_flavor_tags: [{ flavor_tags: { name: '柑橘' } }] }]),
+    'brew_flavor_tags(flavor_tags(name)),id',
+  ), '陣列型的內嵌關聯一樣展開')
+
   return r.finish()
 }

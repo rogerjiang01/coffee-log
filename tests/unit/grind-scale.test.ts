@@ -56,5 +56,22 @@ export default function run() {
   r.check(grindScaleHints(null, EK43).length === 0, '沒填不提示')
   r.check(grindScaleHints(Number.NaN, EK43).length === 0, 'NaN 不提示')
 
+  r.section('undefined 與 null 同義')
+  // 缺欄位的查詢結果給的是 undefined 不是 null。`=== null` 會判成
+  // 「有這個值」，於是提示變成「這台的最小間隔是 undefined」、
+  // 範圍顯示「刻度 undefined–undefined」——不會報錯，只會印在使用者臉上。
+  // 真正的來源（equipment:all 被兩種欄位的查詢共用）已經收斂成單一查詢定義，
+  // 這裡是第二道防線。
+  const MISSING: GrindScaleSpec = {
+    min: undefined, max: undefined, increment: undefined,
+    suggestedMin: undefined, suggestedMax: undefined, note: undefined,
+  }
+  r.check(grindScaleHints(87, MISSING).length === 0, '欄位是 undefined 時不給任何提示')
+  r.check(grindScaleRangeLabel(MISSING) === null, '不顯示「刻度 undefined–undefined」')
+  r.check(grindScaleSuggestionLabel(MISSING) === null, '不顯示 undefined 的建議範圍')
+  r.check(isFreeformScale(MISSING), '判定為無刻度，整段提示都不出現')
+  r.check(grindScaleHints(87, { ...C40, max: undefined }).length === 0,
+    '只有 max 缺欄位時不做上限檢查，不會拿 undefined 去比大小')
+
   return r.finish()
 }

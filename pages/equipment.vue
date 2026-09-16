@@ -4,21 +4,11 @@
     // 規格的頁面清單只有 /equipment 一條路由，因此新增與編輯都在這一頁內完成，
     // 不另開 /equipment/new 與 /equipment/[id]。
 
-    interface EquipmentRow {
-        id: string;
-        catalog_id: string | null;
-        type: EquipmentType;
-        custom_name: string | null;
-        is_default: boolean;
-        note: string | null;
-        equipment_catalog: { brand: string; model: string; variant: string | null } | null;
-    }
-
     const supabase = useSupabaseClient();
     const cache = useQueryCache();
     const userId = useCurrentUserId();
 
-    const items = ref<EquipmentRow[]>([]);
+    const items = ref<UserEquipmentRow[]>([]);
     const loading = ref(true);
     const loadError = ref("");
     const actionError = ref("");
@@ -39,20 +29,9 @@
     });
     const selectedCatalog = ref<CatalogRow | null>(null);
 
-    const scaleSpec = computed<GrindScaleSpec>(() => {
-        const c = selectedCatalog.value;
-        if (!c) return emptyGrindScale;
-        return {
-            min: c.grind_scale_min,
-            max: c.grind_scale_max,
-            increment: c.grind_scale_increment,
-            suggestedMin: c.grind_scale_suggested_min,
-            suggestedMax: c.grind_scale_suggested_max,
-            note: c.grind_scale_note,
-        };
-    });
+    const scaleSpec = computed<GrindScaleSpec>(() => grindScaleOf(selectedCatalog.value));
 
-    function displayName(row: EquipmentRow) {
+    function displayName(row: UserEquipmentRow) {
         if (row.equipment_catalog) {
             const c = row.equipment_catalog;
             return `${c.brand} ${c.model}${c.variant ? ` ${c.variant}` : ""}`;
@@ -62,11 +41,13 @@
 
     const grouped = computed(() => equipmentTypes.map((type) => ({ type, rows: items.value.filter((item) => item.type === type) })).filter((group) => group.rows.length > 0));
 
+    // 欄位與排序走 utils/equipment.ts 的共用定義。這一頁與沖煮表單共用
+    // equipment:all 這個快取 key，欄位集合不一致的話誰先跑誰決定快取內容——
+    // 這裡少了 grind_scale_*，先開這一頁再去填沖煮表單，刻度提示就會印出 undefined
     async function fetchEquipment() {
-        // 排序寫死：常用器材在前，再依建立時間，最後用 id 當決勝鍵
-        const { data, error } = await supabase.from("user_equipment").select("id, catalog_id, type, custom_name, is_default, note, equipment_catalog ( brand, model, variant )").order("is_default", { ascending: false }).order("created_at", { ascending: true }).order("id", { ascending: true });
+        const { data, error } = await orderUserEquipment(supabase.from("user_equipment").select(USER_EQUIPMENT_SELECT));
         if (error) throw toError(error);
-        return (data ?? []) as unknown as EquipmentRow[];
+        return (data ?? []) as unknown as UserEquipmentRow[];
     }
 
     /**
@@ -121,7 +102,7 @@
         Object.assign(form, { type: "grinder", catalog_id: null, custom_name: "", note: "", is_default: false });
     }
 
-    function startEdit(row: EquipmentRow) {
+    function startEdit(row: UserEquipmentRow) {
         editing.value = row.id;
         formError.value = "";
         selectedCatalog.value = null;

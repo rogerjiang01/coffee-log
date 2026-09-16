@@ -13,6 +13,7 @@ const suites = [
   ['unit/lookup.test.ts', '查表欄位的比對'],
   ['unit/countries.test.ts', '產國的洲別分組'],
   ['unit/grind-scale.test.ts', '刻度四欄制'],
+  ['unit/equipment-query.test.mjs', '器材查詢的單一定義'],
   ['unit/last-used.test.ts', '器材的上次使用時間'],
   ['unit/panel.test.ts', '浮層定位'],
   ['unit/draft.test.ts', '表單自動暫存'],

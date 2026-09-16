@@ -40,7 +40,9 @@ const matches = computed(() =>
 async function fetchCatalog(type: string) {
   const { data } = await supabase
     .from('equipment_catalog')
-    .select('id, brand, model, variant, grind_scale_min, grind_scale_max, grind_scale_increment, grind_scale_suggested_min, grind_scale_suggested_max, grind_scale_note')
+    // 欄位走 utils/equipment.ts 的共用定義：型錄的欄位少拿一個，
+    // 前端就少一種刻度提示，而且不會報錯
+    .select(EQUIPMENT_CATALOG_SELECT)
     .eq('type', type)
     .order('sort_order')
     .order('model')
