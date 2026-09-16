@@ -103,8 +103,8 @@ export function computeBrewDiff(after: DiffSubject, before: DiffSubject): BrewDi
   const waterAfter = afterSteps.map(step => Number(step.cumulative_water)).join(' / ')
   push('step_water', '各段水量', waterBefore || '沒填', waterAfter || '沒填')
 
-  // 兩邊都沒記錄分段時間就不比對：分段時間是可選的進階參數（設定頁的
-  // 「記錄分段時間」預設關閉），沒記錄的 hold_seconds 全是 null，
+  // 兩邊都沒記錄分段時間就不比對：分段時間是可選的進階參數（分段注水區的
+  // 「記錄停水時間」預設關閉），沒記錄的 hold_seconds 全是 null，
   // 比出來只會是一排空值。只有一邊有記錄時照常列出，另一邊顯示「沒記錄」。
   if (hasStepTiming(beforeSteps) || hasStepTiming(afterSteps)) {
     push('step_time', '各段停留秒數', holdSecondsText(beforeSteps), holdSecondsText(afterSteps))

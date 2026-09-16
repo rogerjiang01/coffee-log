@@ -35,7 +35,7 @@
 // 偏好本身由父層（BrewForm）持有並寫入，這裡只發事件——兩個地方各自
 // useRecordStepTimes 會變成兩份狀態，寫入之後就對不起來了。
 //
-// **時間欄位由使用者偏好決定要不要顯示**（設定頁「記錄分段時間」，預設關閉）。
+// **時間欄位由使用者偏好決定要不要顯示**（標題列的切換入口，預設關閉）。
 // 關閉只是不顯示，不改資料：holdSeconds 照樣留在 modelValue 裡，儲存時照樣
 // 原樣寫進 hold_seconds。編輯一筆已有時間的紀錄、手法模板帶入的時間，
 // 都不會因為欄位藏起來而被清空——這個元件從不寫 holdSeconds，除非使用者輸入。
@@ -84,7 +84,7 @@ function setStir(index: number, stir: boolean) {
 
 <template>
   <section>
-    <!-- 切換入口在標題列右側：想記時間的那一刻就在填表當下，不必中斷去設定頁。
+    <!-- 切換入口在標題列右側，而且是唯一入口：想記時間的那一刻就在填表當下。
          文字連結不用 toggle，理由見檔頭。 -->
     <div class="flex items-center justify-between gap-3">
       <p class="text-sm">分段注水</p>

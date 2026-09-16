@@ -28,6 +28,7 @@ const suites = [
   ['unit/draft-photos.test.ts', '暫存中的豆袋照片'],
   ['unit/draft-photos-wiring.test.mjs', '照片暫存的接線'],
   ['unit/step-times-toggle.test.mjs', '記錄分段時間的開關'],
+  ['unit/compare-table.test.mjs', '比較表的可點擊線索'],
   ['db/schema.test.mjs', 'Schema、RLS 與 seed'],
   ['db/brews.test.mjs', '分段與複製（資料庫）'],
 ]

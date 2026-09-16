@@ -61,8 +61,8 @@ const steps = ref<StepInput[]>(props.initialSteps ?? initialSteps())
 // **只影響顯示**：steps 裡的 holdSeconds 不管開不開都一樣保留、一樣儲存，
 // 手法模板帶入的時間也照樣寫進去。這裡刻意不依開關去動 steps。
 //
-// 偏好由這裡持有：分段區的切換入口發事件上來，寫入走同一份狀態，
-// 才不會與設定頁那一份對不起來。
+// 偏好由這裡持有：分段區的切換入口發事件上來，寫入走同一份狀態。
+// 分段區的入口是唯一入口，設定頁沒有第二個控制點。
 const {
   enabled: recordStepTimes,
   loaded: stepTimesLoaded,

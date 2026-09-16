@@ -51,7 +51,7 @@ export const cacheKeys = {
 
   /**
    * 使用者偏好（profiles 的偏好欄位，目前只有 record_step_times）。
-   * 沒有任何寫入事件需要清它：唯一的寫入點是設定頁，存成功後直接覆寫這一格。
+   * 沒有任何寫入事件需要清它：唯一的寫入點是分段注水區的切換入口，存成功後直接覆寫這一格。
    */
   profilePrefs: () => 'profile:prefs',
 }

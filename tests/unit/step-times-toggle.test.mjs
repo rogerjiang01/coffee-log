@@ -70,13 +70,12 @@ export default function run() {
   const migration = read('supabase/migrations/20260911100000_profile_record_step_times.sql')
   r.check(/add column record_step_times boolean not null default false/.test(migration), 'migration：預設 false')
 
-  r.section('設定頁')
+  r.section('只有一個入口')
+  // 同一個偏好兩個控制點要同步、文案要一致、改行為要記得改兩次；
+  // 而「使用者不在填表的時候，為什麼會想關掉時間欄位」想不出這個情境
   const settings = read('pages/settings.vue')
-  r.check(/role="switch"/.test(settings) && /:aria-checked="recordStepTimes"/.test(settings), '開關有 switch 語意與狀態')
-  r.check(/記錄分段時間/.test(settings) && /進階參數。停水時間會影響各段風味在口中的比重。/.test(settings),
-    '標題與說明文字照規格，說明只講它是什麼')
-  r.check(/:disabled="!prefLoaded \|\| prefSaving"/.test(settings),
-    '讀到設定之前不可按——否則會拿預設的「關」蓋掉已經打開的人')
+  r.check(!/record_step_times|useRecordStepTimes|recordStepTimes|role="switch"/.test(settings),
+    '設定頁沒有這個開關，只剩帳號與登出')
 
   r.section('「有沒有記錄時間」只有一個判斷來源')
   const sources = [...sourceFiles('components'), ...sourceFiles('pages'), ...sourceFiles('utils'), ...sourceFiles('composables')]
