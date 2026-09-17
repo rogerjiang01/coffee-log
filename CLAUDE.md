@@ -41,9 +41,10 @@ Supabase（Auth / Postgres / Storage）
   報告要有三項，寫在請我執行的那則訊息裡，不要只寫在 migration 註解：
   1. **哪幾行是不可逆的**，逐條列出（例如「第 62 行 `alter table brew_steps drop column time_offset`」）
   2. **影響範圍**：動到哪張表、哪些列、資料會怎麼變，以及搬移後對不上時 migration 會不會自己中止
-  3. **備份指令**，可以直接複製貼上執行，例如
-     `supabase db dump --linked --data-only -f 備份-YYYYMMDD.sql`；
-     只動到單一張表時附上那張表的 `select` 匯出，比整份 dump 好還原
+  3. **備份指令**，可以直接複製貼上執行。**這台機器沒有 Docker，`supabase db dump` 跑不起來**
+     （它靠 Docker 裡的 pg_dump），所以預設給一段在 Supabase SQL editor 執行的 `select`，
+     讓它直接產生還原用的 `update`／`insert` 語句，存成檔案。只列會被動到的列，比整份 dump 好還原。
+     Supabase CLI 是專案的 devDependency，沒有全域安裝：指令一律寫成 `pnpm exec supabase …`
   推上去之後才發現搬錯，能救回來的只有備份——遠端沒有復原點，
   而這個專案的資料是一筆一筆手動記的，重建不回來。
 - **新增或修改任何面向使用者的文案前，先查 `docs/04-詞彙表.md`。** 表裡沒有的詞先問，
