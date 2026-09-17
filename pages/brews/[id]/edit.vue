@@ -97,7 +97,8 @@ async function onSubmit(payload: {
   saving.value = true
   error.value = ''
 
-  // form_duration_seconds 只記錄新增時的填寫時間，編輯不覆蓋
+  // form_duration_seconds 只在新增時寫入，編輯不覆蓋也不累加：
+  // 要量的是「記一筆要多久」，不是「總共花多少時間維護這筆」
   const { error: updateError } = await supabase
     .from('brews')
     .update({

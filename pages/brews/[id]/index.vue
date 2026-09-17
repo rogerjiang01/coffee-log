@@ -206,7 +206,7 @@ const params = computed(() => {
     { label: '粉水比', value: ratio.value },
     { label: '水溫', value: b.water_temp === null ? null : `${b.water_temp} °C` },
     { label: '研磨刻度', value: b.grind_setting === null ? null : String(b.grind_setting) },
-    { label: '總沖煮時間', value: b.total_time === null ? null : secondsToClock(b.total_time) },
+    { label: '沖煮時間', value: b.total_time === null ? null : secondsToClock(b.total_time) },
     { label: '養豆天數', value: restedDays.value === null ? null : `${restedDays.value} 天` },
     { label: '磨豆機', value: b.grinder ? equipmentOptionName(b.grinder) : null },
     { label: '濾杯', value: b.dripper ? equipmentOptionName(b.dripper) : null },
@@ -318,7 +318,7 @@ async function destroy() {
           >
             <span class="min-w-0 flex-1 text-sm">
               <span class="flex items-center gap-1.5">
-                {{ step.stepType === 'bloom' ? '悶蒸' : `第 ${index} 段` }}
+                {{ stepLabel(steps, index) }}
                 <!-- 唯讀頁沒有按鈕可以變色，改成掛一個強調色圖示，
                      形狀與編輯器的切換鈕相同 -->
                 <StirIcon

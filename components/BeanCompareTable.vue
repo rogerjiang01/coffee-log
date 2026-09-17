@@ -10,17 +10,18 @@
 // 收藏的標示不只靠底色：§2 說明過淺色底在暖底色上幾乎看不出來，
 // 所以最右欄另有愛心圖示。
 //
-// **進入指示（›）跟著日期放在固定欄裡。** 實機測試時測試者「認真看不出來」
-// 紀錄可以點進去，只有從首頁進去才知道。整列其實都是連結（tr 不能包 a，
+// **可以點進去的線索是日期本身做成連結樣式（--accent）。** 實機測試時
+// 測試者「認真看不出來」紀錄可以點進去。整列其實都是連結（tr 不能包 a，
 // 所以每一格各包一個 NuxtLink），但沒有任何看得見的線索。
 //
-// 放固定欄是量出來的：375px 下表格寬 461、可視區只有 333，
-// 指示若放最右欄，x 會落在 458——要往右捲 128px 才看得到，
-// 等於沒有解決「看不出可以點」這件事。日期欄是 sticky，永遠在畫面上。
+// 日期是每一列的識別，使用者本來就靠它辨認「這是哪一次」；表格裡的識別欄
+// 做成連結是標準模式，不需要另加圖示。日期欄是 sticky，橫向捲動時永遠看得到。
+// 先前用過跟在日期後面的 chevron（›），已移除。
 //
-// 用圖示而不是底色：底色已經被「收藏」佔用了（收藏列是 --accent-wash），
-// 再用底色表示「可點」會讓兩件事混在一起。也不能只靠 hover——
-// 觸控裝置沒有 hover，而這個 app 的主場就是手機。
+// 不用底色表示可點：底色已經被「收藏」佔用了（收藏列是 --accent-wash）。
+// 也不能只靠 hover——觸控裝置沒有 hover，而這個 app 的主場就是手機。
+//
+// 其他格仍然可點（維持整列可點），但維持 --text，連結樣式只在日期上。
 
 const props = defineProps<{
   rows: CompareRow[]
@@ -81,19 +82,11 @@ function rowBackground(row: CompareRow) {
             >
               <NuxtLink
                 :to="`/brews/${row.id}`"
-                class="flex items-center gap-1"
-                :style="{ color: 'var(--text)' }"
+                class="underline underline-offset-2"
+                :style="{ color: 'var(--accent)' }"
               >
                 {{ row.date }}
-                <!-- 這是整列「可以點進去」唯一看得見的線索，所以跟著固定欄走 -->
-                <svg
-                  width="14" height="14" viewBox="0 0 16 16" aria-hidden="true"
-                  class="shrink-0"
-                  :style="{ color: 'var(--text-muted)' }"
-                >
-                  <path d="M6 3l5 5-5 5" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
-                </svg>
-                <span class="sr-only">查看這筆紀錄</span>
+                <span class="sr-only">，查看這筆紀錄</span>
               </NuxtLink>
             </th>
 

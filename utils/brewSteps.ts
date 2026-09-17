@@ -2,9 +2,9 @@
 //
 // **介面填什麼就存什麼，沒有換算層。**
 //   累積水量  「注到 160 g」→ cumulative_water = 160
-//   停留秒數  「停 30 秒」  → hold_seconds = 30
+//   停水時間  「停 30 秒」  → hold_seconds = 30
 //
-// 停留＝注完之後到下一注之前的**純停水時間**，不含注水動作本身。
+// 停留＝注完之後到下一注之前的**停水時間**，不含注水動作本身。
 //
 // 舊版存的是累積時間點（time_offset），「停留」被定義成「這段開始注水到
 // 下一段開始注水」的全部時間。那個定義要求使用者提供一個他不知道的數字
@@ -13,7 +13,7 @@
 // 還有行動誤差，無法預期；能預期、也真的在被調整的是停水時間。
 // **換算層與它的測試一起移除了，不要再加回來。**
 //
-// 最後一段不存停留秒數（一律 null）：最後一注之後沒有下一注，「停水」
+// 最後一段不存停水時間（一律 null）：最後一注之後沒有下一注，「停水」
 // 這件事不存在，剩下的只是等它滴完，那段時間由 total_time 記錄。
 //
 // hold_seconds 可為 NULL：沒記錄就是 NULL。舊版 NOT NULL 逼得「沒記錄」
@@ -33,7 +33,7 @@ export interface StepInput {
 /** 資料庫裡的一段 */
 export interface StepRow {
   step_index: number
-  /** 純停水秒數。沒記錄是 null；最後一段永遠是 null */
+  /** 停水時間。沒記錄是 null；最後一段永遠是 null */
   hold_seconds: number | null
   cumulative_water: number
   step_type: StepType
@@ -47,6 +47,18 @@ export function emptyStep(stepType: StepType = 'pour'): StepInput {
 /** 悶蒸就是 step_index = 1 且 step_type = 'bloom' 的那一筆，沒有獨立欄位 */
 export function initialSteps(): StepInput[] {
   return [emptyStep('bloom'), emptyStep('pour')]
+}
+
+/**
+ * 段落標題：悶蒸叫「悶蒸」，其餘從「第 1 段」數起。
+ *
+ * 不能直接用陣列索引當段號：那只在第一段是悶蒸時成立。四六法的第一注
+ * 不是悶蒸（《01》§3.7），它的第一段是 pour，用索引會出現「第 0 段」。
+ */
+export function stepLabel(steps: { stepType: StepType }[], index: number): string {
+  if (steps[index]?.stepType === 'bloom') return '悶蒸'
+  const bloomsBefore = steps.slice(0, index).filter(step => step.stepType === 'bloom').length
+  return `第 ${index + 1 - bloomsBefore} 段`
 }
 
 /**
@@ -101,7 +113,7 @@ export interface MethodTemplateStep {
   type: StepType
   basis: StepBasis
   factor: number
-  /** 該段的純停水秒數。最後一段沒有下一注，是 null */
+  /** 該段的停水時間。最後一段沒有下一注，是 null */
   duration: number | null
   note?: string
 }
@@ -197,7 +209,7 @@ export function stepsFromTemplate(
       stepType: step.type,
       // 磅秤讀的是累積數字，這裡直接給累積值
       cumulativeWater: cumulative,
-      // 模板的 duration 是純停水秒數，直接給，不換算
+      // 模板的 duration 是停水時間，直接給，不換算
       holdSeconds: step.duration ?? null,
       note: step.note ?? '',
     }
@@ -277,7 +289,7 @@ export function brewRatioLabel(water: number | null, dose: number | null): strin
   return `1:${(water / dose).toFixed(1)}`
 }
 
-/** 總沖煮時間的顯示與輸入都是分:秒，資料庫存秒數 */
+/** 沖煮時間的顯示與輸入都是分:秒，資料庫存秒數 */
 export function secondsToClock(total: number | null): string {
   if (total === null || total < 0) return ''
   const minutes = Math.floor(total / 60)

@@ -8,38 +8,39 @@ import { emptyStep } from '../../utils/brewSteps.ts'
 import type { MethodTemplate } from '../../utils/brewSteps.ts'
 import { createReport, equal } from '../helpers/report.mjs'
 
-// 與 20260914110000_brew_method_hold_durations.sql 一致（duration 是純停水秒數，
-// 最後一段沒有下一注所以是 null）。那些數值是從舊定義估算的，尚未實機核實。
+// 與目前遠端的 seed 一致：duration 來自 20260917100000（台灣主流教學交叉比對，
+// 尚未實機核實），四六法第一注的 type 來自 20260917110000（pour，不是悶蒸）。
+// duration 是純停水秒數，最後一段沒有下一注所以是 null。
 const templates: Record<string, MethodTemplate> = {
   三段式: { steps: [
     { type: 'bloom', basis: 'dose', factor: 2, duration: 30, note: '讓粉床完全濕透' },
-    { type: 'pour', basis: 'remaining', factor: 0.6, duration: 30, note: '主萃取，帶出風味前調' },
+    { type: 'pour', basis: 'remaining', factor: 0.6, duration: 35, note: '主萃取，帶出風味前調' },
     { type: 'pour', basis: 'remaining', factor: 0.4, duration: null, note: '補足後段醇厚度' },
   ] },
   四六: { steps: [
-    { type: 'bloom', basis: 'total', factor: 0.1667, duration: 40, note: '前 40% 第一注。此注水量少，甜感較高' },
-    { type: 'pour', basis: 'total', factor: 0.2333, duration: 30, note: '前 40% 第二注，完成酸甜比設定' },
-    { type: 'pour', basis: 'total', factor: 0.2, duration: 30, note: '後 60% 開始，等流乾再注' },
-    { type: 'pour', basis: 'total', factor: 0.2, duration: 30, note: '等流乾再注' },
+    { type: 'pour', basis: 'total', factor: 0.1667, duration: 38, note: '前 40% 第一注。此注水量少，甜感較高' },
+    { type: 'pour', basis: 'total', factor: 0.2333, duration: 33, note: '前 40% 第二注，完成酸甜比設定' },
+    { type: 'pour', basis: 'total', factor: 0.2, duration: 33, note: '後 60% 開始，等流乾再注' },
+    { type: 'pour', basis: 'total', factor: 0.2, duration: 33, note: '等流乾再注' },
     { type: 'pour', basis: 'total', factor: 0.2, duration: null, note: '等流乾再注' },
   ] },
   五段式: { steps: [
-    { type: 'bloom', basis: 'dose', factor: 3, duration: 40, note: '注完抓起濾杯順時針晃動，讓粉水完全融合' },
-    { type: 'pour', basis: 'remaining', factor: 0.25, duration: 25, note: '等水流下約三分之一再注下一段' },
-    { type: 'pour', basis: 'remaining', factor: 0.25, duration: 25 },
-    { type: 'pour', basis: 'remaining', factor: 0.25, duration: 25 },
+    { type: 'bloom', basis: 'dose', factor: 3, duration: 33, note: '注完抓起濾杯順時針晃動，讓粉水完全融合' },
+    { type: 'pour', basis: 'remaining', factor: 0.25, duration: 20, note: '等水流下約三分之一再注下一段' },
+    { type: 'pour', basis: 'remaining', factor: 0.25, duration: 20 },
+    { type: 'pour', basis: 'remaining', factor: 0.25, duration: 20 },
     { type: 'pour', basis: 'remaining', factor: 0.25, duration: null, note: '注完再次輕晃濾杯，讓粉床平整下落' },
   ] },
   攪拌流: { steps: [
     { type: 'bloom', basis: 'dose', factor: 2.5, duration: 25, note: '注完立即用攪拌棒十字攪拌' },
-    { type: 'pour', basis: 'remaining', factor: 0.2, duration: 25, note: '大水流破壞粉層' },
-    { type: 'pour', basis: 'remaining', factor: 0.26, duration: 25, note: '改為輕柔細水流' },
-    { type: 'pour', basis: 'remaining', factor: 0.26, duration: 25 },
+    { type: 'pour', basis: 'remaining', factor: 0.2, duration: 20, note: '大水流破壞粉層' },
+    { type: 'pour', basis: 'remaining', factor: 0.26, duration: 20, note: '改為輕柔細水流' },
+    { type: 'pour', basis: 'remaining', factor: 0.26, duration: 20 },
     { type: 'pour', basis: 'remaining', factor: 0.28, duration: null, note: '注完抓起濾杯輕敲桌面一下' },
   ] },
   肥尾: { steps: [
-    { type: 'bloom', basis: 'dose', factor: 2.5, duration: 40 },
-    { type: 'pour', basis: 'remaining', factor: 0.2, duration: 30 },
+    { type: 'bloom', basis: 'dose', factor: 2.5, duration: 35 },
+    { type: 'pour', basis: 'remaining', factor: 0.2, duration: 25 },
     { type: 'pour', basis: 'remaining', factor: 0.2, duration: 5, note: '以下四注不等流乾，快速補水' },
     { type: 'pour', basis: 'remaining', factor: 0.2, duration: 5 },
     { type: 'pour', basis: 'remaining', factor: 0.2, duration: 5 },
@@ -63,11 +64,11 @@ export default function run() {
 
   r.section('五個手法在 20g / 1:15（總水 300ml）')
   const expected: Record<string, { water: number[], hold: (number | null)[] }> = {
-    三段式: { water: [40, 196, 300], hold: [30, 30, null] },
-    四六: { water: [50, 120, 180, 240, 300], hold: [40, 30, 30, 30, null] },
-    五段式: { water: [60, 120, 180, 240, 300], hold: [40, 25, 25, 25, null] },
-    攪拌流: { water: [50, 100, 165, 230, 300], hold: [25, 25, 25, 25, null] },
-    肥尾: { water: [50, 100, 150, 200, 250, 300], hold: [40, 30, 5, 5, 5, null] },
+    三段式: { water: [40, 196, 300], hold: [30, 35, null] },
+    四六: { water: [50, 120, 180, 240, 300], hold: [38, 33, 33, 33, null] },
+    五段式: { water: [60, 120, 180, 240, 300], hold: [33, 20, 20, 20, null] },
+    攪拌流: { water: [50, 100, 165, 230, 300], hold: [25, 20, 20, 20, null] },
+    肥尾: { water: [50, 100, 150, 200, 250, 300], hold: [35, 25, 5, 5, 5, null] },
   }
   for (const [name, template] of Object.entries(templates)) {
     const result = stepsFromTemplate(template, 20, 15)!
@@ -130,14 +131,14 @@ export default function run() {
   r.check(rao.steps.at(-1)!.holdSeconds === null,
     '模板最後一段的 duration 是 null，帶進表單也是 null——最後一注之後沒有下一注')
   const holds = toStepRows(rao.steps).map(s => s.hold_seconds)
-  r.check(equal(holds, [40, 25, 25, 25, null]),
+  r.check(equal(holds, [33, 20, 20, 20, null]),
     `寫進資料庫的停留秒數 ${JSON.stringify(holds)}——原樣寫入，不換算；結束前的時間由 total_time 表達`)
 
   r.section('純停水不受粉重影響，數值可移植')
   // 停 30 秒對 15g 與 25g 都是 30 秒，物理意義不變，所以 duration 不跟著粉重換算
   const small = stepsFromTemplate(templates.四六!, 15, 15)!.steps.map(s => s.holdSeconds)
   const large = stepsFromTemplate(templates.四六!, 25, 15)!.steps.map(s => s.holdSeconds)
-  r.check(equal(small, large) && equal(small, [40, 30, 30, 30, null]),
+  r.check(equal(small, large) && equal(small, [38, 33, 33, 33, null]),
     `15g 與 25g 的停留秒數相同 ${JSON.stringify(small)}`)
 
   r.section('粉重未填時不帶入')

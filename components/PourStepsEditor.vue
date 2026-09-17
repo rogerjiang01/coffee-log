@@ -4,20 +4,22 @@
 // 介面輸入的是「注到幾克」與「停幾秒」，兩個都原樣存進資料庫（沒有換算層）。
 // 寫入由 utils/brewSteps.ts 的 toStepRows 負責，這個元件只管介面。
 //
-// 悶蒸單獨呈現在最上方，但資料層仍是 step_index = 1、step_type = 'bloom'
-// 的一般段落，沒有獨立欄位。
+// 悶蒸沒有單獨的區塊：它與其他段落在同一份清單裡，差別只有三處，
+// 全部由 step_type = 'bloom' 決定——標題叫「悶蒸」、不能刪除、不能標攪拌。
+// 資料層它就是 step_index = 1 的一般段落，沒有獨立欄位。
+// 沒有悶蒸的分段（四六法）第一段是一般段落，可刪、可標攪拌，從「第 1 段」數起。
 //
 // 悶蒸與其他段落用同一套卡片外觀，靠標題與間距區隔，不靠不同的底色——
 // 兩種卡片樣式並存會讓同一份清單看起來像兩種東西。
 //
-// **「停留」＝注完之後到下一注之前的純停水時間**，不含注水動作本身。
+// **「停留」＝注完之後到下一注之前的停水時間**，不含注水動作本身。
 // 舊定義是「這段開始注水到下一段開始注水」的全部時間，兩位實機測試者都
 // 填不出來——那要求他記得注水花了幾秒，而給水速率依器材與手法而異、
 // 還有行動誤差，他無法預期。停水時間則可以預期，也是他真正在調整的東西。
 // 標籤仍叫「停留」，那是咖啡圈的通用說法；意思靠第一段下方那一行說明。
 //
 // **最後一段不顯示這一格。** 最後一注之後沒有下一注，「停水」這件事不存在；
-// 剩下的只是等它滴完，那段時間由總沖煮時間記錄。舊版在那裡顯示
+// 剩下的只是等它滴完，那段時間由沖煮時間記錄。舊版在那裡顯示
 // 「total_time 減掉最後一段時間點」的反推值，測試者看到「停 106 秒」
 // 當場說「這邏輯錯了」。
 //
@@ -43,7 +45,7 @@
 const props = defineProps<{
   modelValue: StepInput[]
   dose: number | null
-  /** 顯示停留秒數欄位。來自使用者偏好 profiles.record_step_times */
+  /** 顯示停水時間欄位。來自使用者偏好 profiles.record_step_times */
   showTimes: boolean
   /** 偏好還沒讀到、或正在寫入：切換入口先不可按 */
   timesPending?: boolean
@@ -107,7 +109,7 @@ function setStir(index: number, stir: boolean) {
       >
         <div class="flex items-center justify-between gap-3">
           <p class="text-sm font-medium">
-            {{ step.stepType === 'bloom' ? '悶蒸' : `第 ${index} 段` }}
+            {{ stepLabel(modelValue, index) }}
           </p>
 
           <div class="flex items-center gap-1">
@@ -131,7 +133,7 @@ function setStir(index: number, stir: boolean) {
                 ? { color: 'var(--on-accent-wash)', background: 'var(--accent-wash)', minHeight: 'var(--touch-min)', minWidth: 'var(--touch-min)' }
                 : { color: 'var(--text-muted)', minHeight: 'var(--touch-min)', minWidth: 'var(--touch-min)' }"
               :aria-pressed="step.stepType === 'stir'"
-              :aria-label="`把第 ${index} 段標成攪拌`"
+              :aria-label="`把${stepLabel(modelValue, index)}標成攪拌`"
               @click="setStir(index, step.stepType !== 'stir')"
             >
               <StirIcon />
@@ -141,7 +143,7 @@ function setStir(index: number, stir: boolean) {
               type="button"
               class="shrink-0"
               :style="{ color: 'var(--text-muted)', minHeight: 'var(--touch-min)', minWidth: 'var(--touch-min)' }"
-              :aria-label="`刪除第 ${index} 段`"
+              :aria-label="`刪除${stepLabel(modelValue, index)}`"
               @click="removeStep(index)"
             >
               <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true" class="mx-auto">
@@ -177,7 +179,7 @@ function setStir(index: number, stir: boolean) {
             />
             <!-- 說明只寫在第一段：每一段的意思都一樣，逐列重複同一句話是雜訊，
                  在手機上每列還多佔一行。悶蒸永遠是第一段且不可刪，說明不會消失 -->
-            <p v-if="index === 0" class="mt-1 text-xs text-muted">停水時長</p>
+            <p v-if="index === 0" class="mt-1 text-xs text-muted">停水時間</p>
           </div>
         </div>
 
@@ -203,7 +205,7 @@ function setStir(index: number, stir: boolean) {
           type="text"
           class="mt-2 block w-full field field--note py-1.5 text-sm"
           placeholder="這段的備註"
-          :aria-label="`第 ${index} 段的備註`"
+          :aria-label="`${stepLabel(modelValue, index)}的備註`"
           @input="patch(index, { note: ($event.target as HTMLInputElement).value })"
         >
       </li>

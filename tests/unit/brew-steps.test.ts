@@ -9,6 +9,7 @@
 // 都填不出來）。換算層與它的測試一起移除了——不要因為「它有測試」加回來。
 
 import {
+  stepLabel,
   toStepRows, toStepInputs, incrementalWater, totalWater, brewRatioLabel,
   secondsToClock, clockToSeconds, initialSteps, waterOrderHints, hasStepTiming,
 } from '../../utils/brewSteps.ts'
@@ -40,7 +41,7 @@ export default function run() {
   r.check(equal(back.map(x => x.cumulativeWater), [40, 160, 220, 290]), '累積水量原樣還原')
   r.check(equal(toStepRows(back), rows), '介面→資料庫→介面→資料庫，結果一致')
   r.check(toStepInputs.length === 1,
-    'toStepInputs 只吃分段列——不再需要 total_time，最後一段不從總時間反推')
+    'toStepInputs 只吃分段列——不再需要 total_time，最後一段不從沖煮時間反推')
 
   r.section('未填完的列')
   const partial = toStepRows([step('bloom', 40, 45), step('pour', null, 30), step('pour', 200, 20)])
@@ -60,6 +61,15 @@ export default function run() {
   const noteBack = toStepInputs(noteRows)
   r.check(noteBack[1]!.note === '', 'null 還原成空字串，介面不會顯示 null')
   r.check(equal(toStepRows(noteBack), noteRows), '含備註與攪拌時來回轉換仍守恆')
+
+  r.section('段落標題')
+  const withBloom = [step('bloom', 40, 45), step('pour', 160, 30), step('stir', 160, 10)]
+  r.check(equal(withBloom.map((_, i) => stepLabel(withBloom, i)), ['悶蒸', '第 1 段', '第 2 段']),
+    '有悶蒸時：悶蒸、第 1 段、第 2 段')
+  // 四六法的第一注不是悶蒸，用陣列索引當段號會出現「第 0 段」
+  const noBloom = [step('pour', 50, 38), step('pour', 120, 33)]
+  r.check(equal(noBloom.map((_, i) => stepLabel(noBloom, i)), ['第 1 段', '第 2 段']),
+    '沒有悶蒸時從第 1 段數起，不會出現第 0 段')
 
   r.section('累積水量遞減的提示')
   const ok = [step('bloom', 40, 45), step('pour', 160, 30), step('pour', 290, 0)]

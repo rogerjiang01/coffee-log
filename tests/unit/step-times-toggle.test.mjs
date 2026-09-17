@@ -29,7 +29,7 @@ export default function run() {
   const editor = read('components/PourStepsEditor.vue')
   const holdBlock = (editor.match(/<div v-if="showTimes[\s\S]*?<\/div>\s*<\/div>/) || [''])[0]
   r.check(/step-hold-/.test(holdBlock), '停留欄位在 v-if="showTimes…" 裡——關閉時整格不出現')
-  r.check(/停水時長/.test(holdBlock), '輔助說明也在同一格裡，關閉時一起消失')
+  r.check(/>停水時間<\/p>/.test(holdBlock), '輔助說明也在同一格裡，關閉時一起消失')
   r.check(/<label[^>]*>停留<\/label>/.test(editor), '標籤仍是「停留」——咖啡圈的通用說法，不改')
   r.check(count(editor, /holdSeconds:/g) === 1,
     '編輯器只在使用者輸入時寫 holdSeconds（整份檔案只有那一處），不會因為欄位藏起來而清掉它')
@@ -97,14 +97,14 @@ export default function run() {
   r.check(leftovers.length === 0,
     `除了 brewSteps 檔頭的歷史說明，程式碼裡不再有 time_offset${leftovers.length ? `：${leftovers.join('、')}` : ''}`)
   r.check(/export function toStepInputs\(rows: StepRow\[\]\): StepInput\[\]/.test(read('utils/brewSteps.ts')),
-    'toStepInputs 只吃分段列，沒有 total_time 參數——最後一段不再從總時間反推')
+    'toStepInputs 只吃分段列，沒有 total_time 參數——最後一段不再從沖煮時間反推')
   r.check(/hold_seconds: index === filled\.length - 1 \? null : step\.holdSeconds/.test(read('utils/brewSteps.ts')),
     'toStepRows 原樣寫入停留秒數，最後一段一律 null')
   r.check(/index < modelValue\.length - 1/.test(read('components/PourStepsEditor.vue')),
     '編輯器最後一段不顯示停留欄位')
-  r.check(/停水時長/.test(read('components/PourStepsEditor.vue'))
+  r.check(/>停水時間<\/p>/.test(read('components/PourStepsEditor.vue'))
     && !/到下一段注水前的時間/.test(read('components/PourStepsEditor.vue')),
-  '輔助說明是「停水時長」，不是舊定義的「到下一段注水前的時間」')
+  '輔助說明是「停水時間」（與切換入口同一個詞），不是舊定義的「到下一段注水前的時間」')
 
   return r.finish()
 }

@@ -50,7 +50,7 @@ function sortedSteps(steps: StepRow[]) {
 }
 
 /**
- * 各段停留秒數的顯示字串。資料庫存的就是這個數字，不必反推。
+ * 各段停水時間的顯示字串。資料庫存的就是這個數字，不必反推。
  * 沒有分段是「沒填」；有分段但沒記錄時間是「沒記錄」。
  * 最後一段永遠沒有停留（沒有下一注），尾端的空值不列出來。
  */
@@ -88,12 +88,12 @@ export function computeBrewDiff(after: DiffSubject, before: DiffSubject): BrewDi
   }
 
   push(
-    'total_time', '總沖煮時間',
+    'total_time', '沖煮時間',
     before.total_time === null ? '沒填' : secondsToClock(before.total_time),
     after.total_time === null ? '沒填' : secondsToClock(after.total_time),
   )
 
-  // 分段結構：段數、各段累積水量、各段停留秒數，三者分開列
+  // 分段結構：段數、各段累積水量、各段停水時間，三者分開列
   const beforeSteps = sortedSteps(before.steps)
   const afterSteps = sortedSteps(after.steps)
 
@@ -101,13 +101,13 @@ export function computeBrewDiff(after: DiffSubject, before: DiffSubject): BrewDi
 
   const waterBefore = beforeSteps.map(step => Number(step.cumulative_water)).join(' / ')
   const waterAfter = afterSteps.map(step => Number(step.cumulative_water)).join(' / ')
-  push('step_water', '各段水量', waterBefore || '沒填', waterAfter || '沒填')
+  push('step_water', '各段累積水量', waterBefore || '沒填', waterAfter || '沒填')
 
   // 兩邊都沒記錄分段時間就不比對：分段時間是可選的進階參數（分段注水區的
   // 「記錄停水時間」預設關閉），沒記錄的 hold_seconds 全是 null，
   // 比出來只會是一排空值。只有一邊有記錄時照常列出，另一邊顯示「沒記錄」。
   if (hasStepTiming(beforeSteps) || hasStepTiming(afterSteps)) {
-    push('step_time', '各段停留秒數', holdSecondsText(beforeSteps), holdSecondsText(afterSteps))
+    push('step_time', '各段停水時間', holdSecondsText(beforeSteps), holdSecondsText(afterSteps))
   }
 
   return diffs

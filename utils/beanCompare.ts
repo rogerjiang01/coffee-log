@@ -30,12 +30,18 @@ export interface CompareRow {
   cells: CompareCell[]
 }
 
-/** 欄位標題。第一欄的日期固定不動，不在這個清單裡。 */
-export const compareColumns = ['養豆', '粉重', '粉水比', '水溫', '刻度', '時間']
+/**
+ * 欄位標題。第一欄的日期固定不動，不在這個清單裡。
+ * 空間不夠才用簡稱（刻度、養豆），同一層級不混用（見《04-詞彙表》）。
+ * 沖煮時間用全稱：這張表本來就橫向捲動，多兩個字只是多捲一點，
+ * 但「時間」單獨出現分不出是停水時間還是沖煮時間。
+ */
+export const compareColumns = ['養豆', '粉重', '粉水比', '水溫', '刻度', '沖煮時間']
 
 const EMPTY = '—'
 
-function formatDate(iso: string) {
+/** 比較表與「照上次再沖一次」共用的日期格式（03/12） */
+export function compareDate(iso: string) {
   const date = new Date(iso)
   const pad = (n: number) => String(n).padStart(2, '0')
   return `${pad(date.getMonth() + 1)}/${pad(date.getDate())}`
@@ -75,7 +81,7 @@ export function buildCompareRows(brews: CompareBrew[], roastDate: string | null)
     previous = values
     return {
       id: brew.id,
-      date: formatDate(brew.brewed_at),
+      date: compareDate(brew.brewed_at),
       isFavorite: brew.is_favorite,
       cells,
     }

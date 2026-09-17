@@ -28,6 +28,8 @@ const photoUrl = ref<string | null>(null)
 const brewCount = ref(0)
 const favoriteCount = ref(0)
 const compareRows = ref<CompareRow[]>([])
+/** 最新一筆紀錄，「照上次再沖一次」要複製的對象 */
+const latestBrew = ref<{ id: string, date: string } | null>(null)
 const loading = ref(true)
 const loadError = ref('')
 const notFound = ref(false)
@@ -103,6 +105,9 @@ async function loadPhoto(path: string | null) {
 
 function applyBrews(rows: Omit<CompareBrew, 'totalWater'>[], water: Map<string, number>) {
   brewCount.value = rows.length
+  // fetchBrews 依 brewed_at、id 由舊到新排，最後一筆就是最新的
+  const latest = rows.at(-1)
+  latestBrew.value = latest ? { id: latest.id, date: compareDate(latest.brewed_at) } : null
   favoriteCount.value = rows.filter(row => row.is_favorite).length
   compareRows.value = buildCompareRows(
     rows.map(row => ({ ...row, totalWater: water.get(row.id) ?? null })),
@@ -307,13 +312,28 @@ async function destroy() {
         </template>
       </section>
 
-      <NuxtLink
-        :to="`/brews/new?bean=${bean.id}`"
-        class="mt-8 block w-full rounded-sm px-4 py-3 text-center font-medium"
-        :style="{ background: 'var(--accent)', color: 'var(--on-accent)', minHeight: 'var(--touch-min)' }"
-      >
-        用這支豆子沖一杯
-      </NuxtLink>
+      <!--
+        只有一個主要動作，依有沒有紀錄二選一，不並列兩顆（《02》§8）。
+        空白表單在這裡幾乎沒有價值：想換手法、換粉重，複製之後改那幾格
+        比從空白填快，而水溫、刻度、器材多半不會變。並列兩顆的成本是
+        每次都要做一個沒必要的選擇。
+
+        永遠複製最新那筆，不做「有收藏就複製收藏的」：畫面上看不出來的規則
+        違反可預測性。想複製收藏那筆，從比較表點進去再複製。
+      -->
+      <div class="mt-8">
+        <NuxtLink
+          :to="latestBrew ? `/brews/new?copy=${latestBrew.id}` : `/brews/new?bean=${bean.id}`"
+          class="flex w-full items-center justify-center rounded-sm px-4 py-3 text-center font-medium"
+          :style="{ background: 'var(--accent)', color: 'var(--on-accent)', minHeight: 'var(--touch-min)' }"
+        >
+          {{ latestBrew ? '照上次再沖一次' : '用這支豆子沖一杯' }}
+        </NuxtLink>
+        <!-- 帶入哪一筆寫在按鈕下方，按鈕文字不塞資訊。日期格式與比較表一致 -->
+        <p v-if="latestBrew" class="mt-1 text-center text-xs tabular-nums text-muted">
+          帶入 {{ latestBrew.date }} 那次的參數
+        </p>
+      </div>
 
       <!-- 狀態不是動作，用 role="switch" 的開關而不是按鈕 -->
       <div class="mt-4">

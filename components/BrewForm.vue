@@ -29,8 +29,9 @@ const emit = defineEmits<{
 const supabase = useSupabaseClient()
 const cache = useQueryCache()
 
-// 產品指標（§9）：表單開啟到成功送出的秒數，使用者不可見
-const openedAt = Date.now()
+// 產品指標（《01》§9）：記這一筆實際互動了多少秒，閒置超過 60 秒的間隔不計入。
+// 使用者不可見。只有新增流程會寫入，編輯頁收到也不用（見 edit.vue）
+const interactionTime = useInteractionTime()
 
 function initialValues(): BrewFormValues {
   return {
@@ -226,7 +227,7 @@ watch(() => values.dose, () => {
   methodNotice.value = result.notice ?? ''
 })
 
-// 養豆天數＝沖煮時間 − 烘焙日期。衍生值，不存資料庫；
+// 養豆天數＝沖煮日期 − 烘焙日期。衍生值，不存資料庫；
 // 豆子沒有烘焙日期時不顯示，不阻擋也不報錯。
 const selectedBeanRoastDate = ref<string | null>(null)
 const restedDays = computed(() =>
@@ -253,7 +254,7 @@ function submit() {
     values: { ...values },
     steps: steps.value,
     flavorTagIds: flavorTagIds.value,
-    formDurationSeconds: Math.max(0, Math.round((Date.now() - openedAt) / 1000)),
+    formDurationSeconds: interactionTime.seconds(),
   })
 }
 
@@ -375,7 +376,7 @@ const inputStyle = {
          後面的填寫都在正確的時間脈絡下。 -->
     <FormCard title="這一杯">
       <FormRow>
-        <label class="block text-sm" for="brew-at">沖煮時間</label>
+        <label class="block text-sm" for="brew-at">沖煮日期</label>
         <!-- datetime-local 的原生內容有自己的最小寬度，w-full 擋不住它撐開容器 -->
         <div class="mt-1 overflow-hidden">
           <input
@@ -452,8 +453,8 @@ const inputStyle = {
 
     <!-- 手法在粉重與水溫之後、分段之前：手法選定後會依粉重換算並填入分段，
          兩者相隔太遠使用者看不到這件事發生。
-         總沖煮時間在分段最下方：最後一注之後的時間不由分段表達（最後一段
-         沒有停留秒數），它就是總沖煮時間的一部分，放在分段正下方最近。 -->
+         沖煮時間在分段最下方：最後一注之後的時間不由分段表達（最後一段
+         沒有停水時間），它就是沖煮時間的一部分，放在分段正下方最近。 -->
     <FormCard title="沖煮">
       <FormRow>
         <label class="block text-sm" for="brew-dose">
@@ -507,7 +508,7 @@ const inputStyle = {
         />
       </FormRow>
       <FormRow>
-        <label class="block text-sm" for="brew-total-time">總沖煮時間</label>
+        <label class="block text-sm" for="brew-total-time">沖煮時間</label>
         <DurationPicker id="brew-total-time" v-model="values.total_time" class="mt-1" />
       </FormRow>
     </FormCard>

@@ -144,21 +144,25 @@ export default async function run() {
     r.check(Number(method.default_ratio) === 15 && (method.aliases?.length ?? 0) > 0,
       `${method.name}：有預設粉水比與別名`)
   }
-  const fourSix = methods.find(m => m.name === '四六沖法')
+  const fourSix = methods.find(m => m.name === '四六法')
   r.check(fourSix?.step_template.steps.every(s => s.basis === 'total'),
-    '四六沖法全部使用 total 基準——它的第一注不是悶蒸，是結構比例')
-  const threeStage = methods.find(m => m.name === '三段式沖法')
+    '四六法全部使用 total 基準——它的第一注不是悶蒸，是結構比例')
+  r.check(fourSix?.step_template.steps[0].type === 'pour',
+    '四六法第一注是 pour 不是 bloom——畫面上不會顯示「悶蒸」')
+  r.check(methods.filter(m => m.name !== '四六法').every(m => m.step_template.steps[0].type === 'bloom'),
+    '其他四個手法的第一段仍是悶蒸')
+  const threeStage = methods.find(m => m.name === '三段式')
   r.check(threeStage?.step_template.steps[0].basis === 'dose',
     '三段式的悶蒸使用 dose 基準——悶蒸是物理需求，需求量由粉重決定')
 
   r.section('手法模板的停水秒數（台灣主流教學交叉比對，尚未實機核實）')
   // 20260917100000 只改 duration：水量與段數必須與原本的 seed 一模一樣
   for (const [name, durations, factors] of [
-    ['三段式沖法', [30, 35, null], [2, 0.6, 0.4]],
-    ['四六沖法', [38, 33, 33, 33, null], [0.1667, 0.2333, 0.2, 0.2, 0.2]],
-    ['五段式沖法', [33, 20, 20, 20, null], [3, 0.25, 0.25, 0.25, 0.25]],
-    ['攪拌流五段沖法', [25, 20, 20, 20, null], [2.5, 0.2, 0.26, 0.26, 0.28]],
-    ['肥尾沖法', [35, 25, 5, 5, 5, null], [2.5, 0.2, 0.2, 0.2, 0.2, 0.2]],
+    ['三段式', [30, 35, null], [2, 0.6, 0.4]],
+    ['四六法', [38, 33, 33, 33, null], [0.1667, 0.2333, 0.2, 0.2, 0.2]],
+    ['五段式 Rao Spin', [33, 20, 20, 20, null], [3, 0.25, 0.25, 0.25, 0.25]],
+    ['Perger 攪拌流', [25, 20, 20, 20, null], [2.5, 0.2, 0.26, 0.26, 0.28]],
+    ['肥尾法', [35, 25, 5, 5, 5, null], [2.5, 0.2, 0.2, 0.2, 0.2, 0.2]],
   ]) {
     const steps = methods.find(m => m.name === name)?.step_template.steps ?? []
     r.check(JSON.stringify(steps.map(s => s.duration)) === JSON.stringify(durations),
@@ -166,14 +170,24 @@ export default async function run() {
     r.check(JSON.stringify(steps.map(s => s.factor)) === JSON.stringify(factors),
       `${name}：水量比例沒有被動到`)
   }
-  const threeStageNote = methods.find(m => m.name === '三段式沖法')?.step_template.steps[0].note
+  const threeStageNote = methods.find(m => m.name === '三段式')?.step_template.steps[0].note
   r.check(threeStageNote === '讓粉床完全濕透', '段落備註沒有被動到')
   const descriptions = await pg.rows(`select name, description from brew_methods
-    where user_id is null and name in ('五段式沖法', '攪拌流五段沖法')`)
-  r.check(descriptions.find(d => d.name === '五段式沖法')?.description.includes('台灣社群的五段變體'),
+    where user_id is null and name in ('五段式 Rao Spin', 'Perger 攪拌流')`)
+  r.check(descriptions.find(d => d.name === '五段式 Rao Spin')?.description.includes('台灣社群的五段變體'),
     '五段式的說明標明是台灣變體')
-  r.check(descriptions.find(d => d.name === '攪拌流五段沖法')?.description.includes('台灣常見的五段結構'),
+  r.check(descriptions.find(d => d.name === 'Perger 攪拌流')?.description.includes('台灣常見的五段結構'),
     '攪拌流的說明標明是台灣常見結構')
+
+  r.section('手法名稱不帶「沖法」，舊名稱留在別名裡')
+  r.check(equal(methods.map(m => m.name), ['三段式', '四六法', '五段式 Rao Spin', 'Perger 攪拌流', '肥尾法']),
+    `名稱：${methods.map(m => m.name).join('、')}`)
+  r.check(methods.every(m => !m.name.includes('沖法')), '沒有任何名稱含「沖法」')
+  r.check(methods.every(m => !m.aliases.includes(m.name)), '別名裡沒有與名稱相同的項目')
+  for (const [name, old] of [['三段式', '三段式沖法'], ['四六法', '四六沖法'], ['五段式 Rao Spin', '五段式沖法'],
+    ['Perger 攪拌流', '攪拌流五段沖法'], ['肥尾法', '肥尾沖法']]) {
+    r.check(methods.find(m => m.name === name)?.aliases.includes(old), `${name} 的別名含舊名稱「${old}」`)
+  }
 
   r.section('刻度四欄制的 seed 值')
   for (const [model, expected] of [

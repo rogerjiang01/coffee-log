@@ -39,7 +39,7 @@ export default function run() {
   const dose = computeBrewDiff(base({ dose: 16.5 }), base())
   r.check(dose[0]!.before === '15 g' && dose[0]!.after === '16.5 g', '粉重去掉無意義的尾數')
   const time = computeBrewDiff(base({ total_time: 150 }), base())
-  r.check(time[0]!.before === '2:25' && time[0]!.after === '2:30', '總沖煮時間顯示分:秒')
+  r.check(time[0]!.before === '2:25' && time[0]!.after === '2:30', '沖煮時間顯示分:秒')
 
   r.section('器材比對 id、顯示名稱')
   const grinder = computeBrewDiff(base({ grinder_id: 'g2', grinderName: '1Zpresso JX-Pro' }), base())
@@ -74,7 +74,7 @@ export default function run() {
     '兩邊都沒記錄：沒有差異')
   const untimedTotal = computeBrewDiff(base({ steps: untimed, total_time: 150 }), base({ steps: untimed }))
   r.check(untimedTotal.length === 1 && untimedTotal[0]!.field === 'total_time',
-    '兩邊都沒記錄、只改總時間：只比出總時間——分段時間不再與 total_time 有任何關係')
+    '兩邊都沒記錄、只改沖煮時間：只比出沖煮時間——分段時間不再與 total_time 有任何關係')
   const untimedFewer = computeBrewDiff(base({ steps: untimed.slice(0, 3) }), base({ steps: untimed }))
   r.check(untimedFewer.some(d => d.field === 'step_count') && !untimedFewer.some(d => d.field === 'step_time'),
     '兩邊都沒記錄、段數不同：比出段數，不比停留秒數')
@@ -85,7 +85,7 @@ export default function run() {
   const bloomOnly = [step(1, null, 40)]
   r.check(!computeBrewDiff(base({ steps: bloomOnly, total_time: 120 }), base({ steps: bloomOnly }))
     .some(d => d.field === 'step_time'),
-  '只有一段：它就是最後一段，沒有停留可比——總沖煮時間自己有一條')
+  '只有一段：它就是最後一段，沒有停留可比——沖煮時間自己有一條')
 
   return r.finish()
 }
