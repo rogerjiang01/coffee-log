@@ -212,19 +212,26 @@ function applyTemplate() {
   methodNotice.value = result.notice ?? ''
 }
 
-// 選了手法就整組帶入；粉重還沒填時 templateResult 回 null，等粉重填好再套用
-watch(() => values.brew_method_id, applyTemplate)
-
+// 選了手法就整組帶入；粉重還沒填時 templateResult 回 null，等粉重填好再套用。
+//
 // 粉重變動時整組重算——總水量由粉重決定，不重算等於留著舊粉重的分段。
 // 這會蓋掉使用者手動改過的值，是刻意的取捨：規則要能被預測。
 // 理由與被撤掉的逐段機制寫在 shouldRegenerateSteps 的註解裡。
-watch(() => values.dose, () => {
-  if (!values.brew_method_id) return
-  const result = templateResult()
-  if (!result) return
-  if (!shouldRegenerateSteps(steps.value, result.steps.length)) return
-  steps.value = result.steps
-  methodNotice.value = result.notice ?? ''
+//
+// 兩者都只在「使用者改的」時候觸發；暫存還原與全部清除走 writeBack，不重算
+// （規則與原因見 utils/templateTrigger.ts）
+const { writeBack } = watchTemplateTriggers({
+  method: () => values.brew_method_id,
+  dose: () => values.dose,
+  onMethodChange: applyTemplate,
+  onDoseChange: () => {
+    if (!values.brew_method_id) return
+    const result = templateResult()
+    if (!result) return
+    if (!shouldRegenerateSteps(steps.value, result.steps.length)) return
+    steps.value = result.steps
+    methodNotice.value = result.notice ?? ''
+  },
 })
 
 // 養豆天數＝沖煮日期 − 烘焙日期。衍生值，不存資料庫；
@@ -325,17 +332,19 @@ async function sanitizeDraft(incoming: BrewDraft): Promise<BrewDraft> {
 const draft = props.draftKey
   ? useFormDraft<BrewDraft>(props.draftKey, {
       read: () => ({ values: { ...values }, steps: steps.value, flavorTagIds: flavorTagIds.value }),
-      restore: (data) => {
+      restore: data => writeBack(() => {
         Object.assign(values, data.values)
         if (data.steps?.length) steps.value = data.steps
         flavorTagIds.value = data.flavorTagIds ?? []
-      },
-      reset: () => {
+      }),
+      // 全部清除是還原，不是改參數：分段退回初始值，不依手法重算
+      reset: () => writeBack(() => {
         Object.assign(values, initialValues())
         steps.value = props.initialSteps ?? initialSteps()
         flavorTagIds.value = props.initialFlavorTagIds ?? []
+        methodNotice.value = ''
         draftNote.value = ''
-      },
+      }),
       sanitize: sanitizeDraft,
     })
   : null
@@ -484,12 +493,12 @@ const inputStyle = {
             <option v-for="method in methods" :key="method.id" :value="method.id">{{ method.name }}</option>
           </select>
         </SelectField>
-        <p v-if="!methods.length" class="mt-1 text-xs text-muted">手法的分段模板還沒建立</p>
-        <p v-else class="mt-1 text-xs text-muted">選擇手法會依粉重帶入分段</p>
+        <p v-if="!methods.length" class="mt-1 text-xs text-muted">沖煮手法的分段模板還沒建立</p>
+        <p v-else class="mt-1 text-xs text-muted">選擇沖煮手法會依粉重帶入分段</p>
         <!-- 內建手法的分段模板數值尚未經實機核實（見 CLAUDE.md 階段備註）。
              在核實之前先講清楚它是參考值，避免使用者當成標準答案照做。 -->
         <p v-if="methods.length" class="mt-1 text-xs text-muted">
-          內建手法為參考框架，實際水量請依自己的器材與豆子調整
+          內建沖煮手法為參考框架，實際水量請依自己的器材與豆子調整
         </p>
         <!-- 不擋儲存，所以是 --notice 不是 --danger（《03》§4.1） -->
         <p v-if="methodNotice" class="mt-1 text-xs" :style="{ color: 'var(--notice)' }">

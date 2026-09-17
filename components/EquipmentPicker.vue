@@ -335,7 +335,7 @@ const inputStyle = { minHeight: 'var(--touch-min)' }
         <CatalogSelect v-model="form.catalog_id" :type="type" />
 
         <div v-if="type === 'grinder' && form.catalog_id" class="mt-3">
-          <p class="text-xs text-muted">刻度規格會跟著型號一起帶進來</p>
+          <p class="text-xs text-muted">研磨刻度規格會跟著型號一起帶進來</p>
         </div>
 
         <div class="mt-5">

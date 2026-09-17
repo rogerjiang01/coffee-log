@@ -183,6 +183,11 @@ export default async function run() {
   r.check(equal(methods.map(m => m.name), ['三段式', '四六法', '五段式 Rao Spin', 'Perger 攪拌流', '肥尾法']),
     `名稱：${methods.map(m => m.name).join('、')}`)
   r.check(methods.every(m => !m.name.includes('沖法')), '沒有任何名稱含「沖法」')
+  const shake = await pg.rows(`select name from brew_methods
+    where user_id is null and (description like '%晃動%' or step_template::text like '%晃動%')`)
+  r.check(shake.length === 0, `內建手法用「搖晃」不用「晃動」${shake.length ? `：${shake.map(m => m.name).join('、')}` : ''}`)
+  const raoNote = methods.find(m => m.name === '五段式 Rao Spin')?.step_template.steps[0].note
+  r.check(raoNote === '注完抓起濾杯順時針搖晃，讓粉水完全融合', `五段式 Rao Spin 悶蒸備註（實際 ${raoNote}）`)
   r.check(methods.every(m => !m.aliases.includes(m.name)), '別名裡沒有與名稱相同的項目')
   for (const [name, old] of [['三段式', '三段式沖法'], ['四六法', '四六沖法'], ['五段式 Rao Spin', '五段式沖法'],
     ['Perger 攪拌流', '攪拌流五段沖法'], ['肥尾法', '肥尾沖法']]) {

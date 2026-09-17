@@ -8,6 +8,8 @@ const suites = [
   // 只會讓所有既有紀錄的時間資料悄悄失真。
   ['unit/brew-steps.test.ts', '分段注水的單位轉換'],
   ['unit/brew-template.test.ts', '手法的分段模板'],
+  ['unit/template-trigger.test.ts', '手法模板的重算時機'],
+  ['unit/template-trigger-wiring.test.mjs', '模板重算的接線'],
   ['unit/brew-diff.test.ts', '差異計算'],
   ['unit/bean-compare.test.ts', '豆子比較表'],
   ['unit/lookup.test.ts', '查表欄位的比對'],

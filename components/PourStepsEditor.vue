@@ -178,7 +178,8 @@ function setStir(index: number, stir: boolean) {
               @update:model-value="patch(index, { holdSeconds: $event })"
             />
             <!-- 說明只寫在第一段：每一段的意思都一樣，逐列重複同一句話是雜訊，
-                 在手機上每列還多佔一行。悶蒸永遠是第一段且不可刪，說明不會消失 -->
+                 在手機上每列還多佔一行。跟著 index 走不跟著段落走：第一段被刪掉（四六法的第一段可刪），
+                 說明移到新的第一段，不會消失 -->
             <p v-if="index === 0" class="mt-1 text-xs text-muted">停水時間</p>
           </div>
         </div>

@@ -25,7 +25,7 @@ const templates: Record<string, MethodTemplate> = {
     { type: 'pour', basis: 'total', factor: 0.2, duration: null, note: '等流乾再注' },
   ] },
   五段式: { steps: [
-    { type: 'bloom', basis: 'dose', factor: 3, duration: 33, note: '注完抓起濾杯順時針晃動，讓粉水完全融合' },
+    { type: 'bloom', basis: 'dose', factor: 3, duration: 33, note: '注完抓起濾杯順時針搖晃，讓粉水完全融合' },
     { type: 'pour', basis: 'remaining', factor: 0.25, duration: 20, note: '等水流下約三分之一再注下一段' },
     { type: 'pour', basis: 'remaining', factor: 0.25, duration: 20 },
     { type: 'pour', basis: 'remaining', factor: 0.25, duration: 20 },
@@ -120,10 +120,10 @@ export default function run() {
   r.section('type 與 note 一併帶入')
   const rao = stepsFromTemplate(templates.五段式!, 20, 15)!
   r.check(rao.steps[0]!.stepType === 'bloom', '第一段是 bloom')
-  r.check(rao.steps[0]!.note === '注完抓起濾杯順時針晃動，讓粉水完全融合', '悶蒸的 note 有帶入')
+  r.check(rao.steps[0]!.note === '注完抓起濾杯順時針搖晃，讓粉水完全融合', '悶蒸的 note 有帶入')
   r.check(rao.steps[2]!.note === '', '模板沒寫 note 的段落是空字串')
   const rows = toStepRows(rao.steps)
-  r.check(rows[0]!.step_type === 'bloom' && rows[0]!.note === '注完抓起濾杯順時針晃動，讓粉水完全融合',
+  r.check(rows[0]!.step_type === 'bloom' && rows[0]!.note === '注完抓起濾杯順時針搖晃，讓粉水完全融合',
     'note 與 step_type 會一起寫進 brew_steps')
   r.check(rows[2]!.note === null, '沒有 note 的段落存 null')
 
