@@ -13,9 +13,9 @@ const props = defineProps<{
 
 const emit = defineEmits<{ 'update:modelValue': [number | null] }>()
 
-const notice = computed(() => grindScaleNotice(props.modelValue, props.spec))
-const rangeNotice = computed(() => (notice.value?.kind === 'range' ? notice.value.text : null))
-const incrementNotice = computed(() => (notice.value?.kind === 'increment' ? notice.value.text : null))
+// 超出範圍與間隔不符同位置、同顏色，一次只有一則：兩者皆不符時
+// grindScaleNotice 只回範圍那一則（《02》§5）
+const notice = computed(() => grindScaleNotice(props.modelValue, props.spec)?.text ?? null)
 const range = computed(() => grindScaleRangeLabel(props.spec))
 const suggestion = computed(() => grindScaleSuggestionLabel(props.spec))
 const freeform = computed(() => isFreeformScale(props.spec))
@@ -32,13 +32,18 @@ const freeform = computed(() => isFreeformScale(props.spec))
 
     <!-- 型錄沒有資料、或面板本來就沒刻度時完全不提示，
          連「這台沒有刻度」都不說：畫面上沒有提示本身就是那個資訊 -->
-    <p v-if="hasCatalog && !freeform" class="mt-1 text-xs tabular-nums text-muted">
+    <!--
+      flex-wrap ＋ gap-x-3 取代每段的 ml-3：column-gap 只在同一行的兩段之間生效，
+      換到下一行的那段會貼齊左緣。ml-3 會跟著換行，只有提示縮排 12px，
+      下面的型錄備註卻貼齊左緣，看起來像排版出錯。
+    -->
+    <p v-if="hasCatalog && !freeform" class="mt-1 flex flex-wrap gap-x-3 text-xs tabular-nums text-muted">
       <span v-if="range">刻度 {{ range }}</span>
-      <span v-if="!unset(spec.increment)" class="ml-3">最小間隔 {{ spec.increment }}</span>
-      <span v-else class="ml-3">連續無段</span>
-      <span v-if="suggestion" class="ml-3">{{ suggestion }}</span>
+      <span v-if="!unset(spec.increment)">最小間隔 {{ spec.increment }}</span>
+      <span v-else>連續無段</span>
+      <span v-if="suggestion">{{ suggestion }}</span>
       <!--
-        超出範圍的提示接在參考資訊後面，同一行。分開一行的話它長得跟
+        超出範圍、不符最小間隔都接在參考資訊後面，同一行。分開一行的話它長得跟
         參考資訊一樣，而參考資訊是一直都在的東西，使用者看久了會自動略過。
 
         whitespace-nowrap：中文預設可以在任兩個字之間換行，一行放不下時
@@ -47,15 +52,11 @@ const freeform = computed(() => isFreeformScale(props.spec))
         顏色用 --notice 不用 --danger：這個值存得起來（《03》§4.1）。
       -->
       <span
-        v-if="rangeNotice"
-        class="ml-3 whitespace-nowrap"
+        v-if="notice"
+        class="whitespace-nowrap"
         :style="{ color: 'var(--notice)' }"
-      >{{ rangeNotice }}</span>
+      >{{ notice }}</span>
     </p>
     <p v-if="spec.note" class="mt-1 text-xs text-muted">{{ spec.note }}</p>
-
-    <!-- 間隔不符維持原樣：獨立一行、--text-muted。
-         它講的是「這台停不到那個位置」，不像超出範圍那樣可能是看錯行 -->
-    <p v-if="incrementNotice" class="mt-1 text-xs text-muted">{{ incrementNotice }}</p>
   </div>
 </template>

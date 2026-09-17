@@ -29,14 +29,14 @@ export default function run() {
 
   r.section('increment 表達精度')
   r.check(hint(22, C40) === '', 'C40 填 22 沒有提示')
-  r.check(hint(22.5, C40).includes('整數'), 'C40 填 22.5 提示只能停在整數格')
+  r.check(hint(22.5, C40) === '不符最小間隔', 'C40 填 22.5 提示不符最小間隔——整數格機型也是同一句')
   r.check(hint(4.5, R440) === '', 'R440 填 4.5 沒有提示')
-  r.check(hint(4.3, R440).includes('0.5'), 'R440 填 4.3 提示最小間隔')
+  r.check(hint(4.3, R440) === '不符最小間隔', 'R440 填 4.3 提示不符最小間隔')
 
   r.section('EK43 的浮點陷阱')
   r.check(hint(12.3, EK43) === '', '填 12.3 沒有提示（12.3 % 0.1 的浮點誤差已處理）')
   r.check(hint(9.7, EK43) === '', '填 9.7 沒有提示')
-  r.check(hint(1.05, EK43).includes('0.1'), '填 1.05 提示間隔')
+  r.check(hint(1.05, EK43) === '不符最小間隔', '填 1.05 提示間隔')
   r.check(hint(20, EK43) === '超出磨豆機刻度範圍', '填 20 提示超出範圍')
 
   r.section('increment 為 null：不驗倍數，範圍照驗')
@@ -82,8 +82,8 @@ export default function run() {
   // 「這個數字有問題」，不是這台機器的規格——規格就寫在同一行的左邊
   r.check(hint(87, C40) === '超出磨豆機刻度範圍', '高於上限：超出磨豆機刻度範圍')
   r.check(hint(-3, C40) === '低於磨豆機刻度範圍', '低於下限：低於磨豆機刻度範圍')
-  r.check(kind(87, C40) === 'range', '超出範圍歸類為 range——接在參考資訊那一行，用 --notice')
-  r.check(kind(22.5, C40) === 'increment', '間隔不符歸類為 increment——維持獨立一行、--text-muted')
+  r.check(kind(87, C40) === 'range', '超出範圍歸類為 range')
+  r.check(kind(22.5, C40) === 'increment', '間隔不符歸類為 increment——兩者畫在同一個位置，分類只用來決定優先序')
 
   r.section('同時超出範圍又不符間隔時只講範圍')
   // R440 是 1–10、半格定位。87.3 兩邊都不符，但要先讓使用者確認有沒有看錯行

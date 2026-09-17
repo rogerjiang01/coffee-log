@@ -490,7 +490,8 @@ const inputStyle = {
         <p v-if="methods.length" class="mt-1 text-xs text-muted">
           內建手法為參考框架，實際水量請依自己的器材與豆子調整
         </p>
-        <p v-if="methodNotice" class="mt-1 text-xs" :style="{ color: 'var(--danger)' }">
+        <!-- 不擋儲存，所以是 --notice 不是 --danger（《03》§4.1） -->
+        <p v-if="methodNotice" class="mt-1 text-xs" :style="{ color: 'var(--notice)' }">
           {{ methodNotice }}
         </p>
       </FormRow>

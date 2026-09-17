@@ -257,7 +257,7 @@ export function waterOrderHints(steps: StepInput[]): (string | null)[] {
     if (step.cumulativeWater === null) return null
 
     const hint = previous !== null && step.cumulativeWater < previous
-      ? '累積水量應增加'
+      ? '填寫磅秤顯示的累積水量'
       : null
 
     previous = step.cumulativeWater

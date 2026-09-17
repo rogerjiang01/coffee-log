@@ -89,10 +89,9 @@ export function grindScaleNotice(value: number | null, spec: GrindScaleSpec): Gr
 
   // increment 為 null 代表連續無段，不檢查倍數，但範圍檢查照常
   if (!unset(spec.increment) && !isMultipleOf(value, spec.increment!)) {
-    return {
-      kind: 'increment',
-      text: spec.increment === 1 ? '這台只能停在整數格' : `這台的最小間隔是 ${spec.increment}`,
-    }
+    // 整數格機型也用同一句：間隔的數字就寫在同一行左邊（「最小間隔 1」），
+    // 提示只需要說這個值對不上
+    return { kind: 'increment', text: '不符最小間隔' }
   }
   return null
 }

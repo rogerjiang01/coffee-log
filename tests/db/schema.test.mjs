@@ -151,6 +151,30 @@ export default async function run() {
   r.check(threeStage?.step_template.steps[0].basis === 'dose',
     '三段式的悶蒸使用 dose 基準——悶蒸是物理需求，需求量由粉重決定')
 
+  r.section('手法模板的停水秒數（台灣主流教學交叉比對，尚未實機核實）')
+  // 20260917100000 只改 duration：水量與段數必須與原本的 seed 一模一樣
+  for (const [name, durations, factors] of [
+    ['三段式沖法', [30, 35, null], [2, 0.6, 0.4]],
+    ['四六沖法', [38, 33, 33, 33, null], [0.1667, 0.2333, 0.2, 0.2, 0.2]],
+    ['五段式沖法', [33, 20, 20, 20, null], [3, 0.25, 0.25, 0.25, 0.25]],
+    ['攪拌流五段沖法', [25, 20, 20, 20, null], [2.5, 0.2, 0.26, 0.26, 0.28]],
+    ['肥尾沖法', [35, 25, 5, 5, 5, null], [2.5, 0.2, 0.2, 0.2, 0.2, 0.2]],
+  ]) {
+    const steps = methods.find(m => m.name === name)?.step_template.steps ?? []
+    r.check(JSON.stringify(steps.map(s => s.duration)) === JSON.stringify(durations),
+      `${name}：duration ${durations.join(' / ')}`)
+    r.check(JSON.stringify(steps.map(s => s.factor)) === JSON.stringify(factors),
+      `${name}：水量比例沒有被動到`)
+  }
+  const threeStageNote = methods.find(m => m.name === '三段式沖法')?.step_template.steps[0].note
+  r.check(threeStageNote === '讓粉床完全濕透', '段落備註沒有被動到')
+  const descriptions = await pg.rows(`select name, description from brew_methods
+    where user_id is null and name in ('五段式沖法', '攪拌流五段沖法')`)
+  r.check(descriptions.find(d => d.name === '五段式沖法')?.description.includes('台灣社群的五段變體'),
+    '五段式的說明標明是台灣變體')
+  r.check(descriptions.find(d => d.name === '攪拌流五段沖法')?.description.includes('台灣常見的五段結構'),
+    '攪拌流的說明標明是台灣常見結構')
+
   r.section('刻度四欄制的 seed 值')
   for (const [model, expected] of [
     ['EK43', { mn: '1', mx: '16', inc: '0.1' }],

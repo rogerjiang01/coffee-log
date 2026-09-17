@@ -181,9 +181,17 @@ function setStir(index: number, stir: boolean) {
           </div>
         </div>
 
-        <!-- 累積水量遞減的提示。只提示不阻擋儲存，用 --text-muted 而非
-             --danger：這不是錯誤，是「看起來不太對」。 -->
-        <p v-if="orderHints[index]" class="mt-2 text-xs text-muted">
+        <!--
+          累積水量遞減的提示。**刻意維持提示、不阻擋儲存**，之後也不要改成擋：
+          我們無權判定使用者填錯——他可能在記一個我們沒想過的沖法，
+          也可能想先存起來之後再改。「所有驗證只提示不阻擋」這條沒有例外。
+
+          文案講該填什麼，不講「你填錯了」：最常見的原因是把這一注的水量
+          當成累積水量填進來，而磅秤上顯示的就是累積值。
+
+          顏色是 --notice：針對這次填的值出現、但存得起來（《03》§4.1）。
+        -->
+        <p v-if="orderHints[index]" class="mt-2 text-xs" :style="{ color: 'var(--notice)' }">
           {{ orderHints[index] }}
         </p>
 

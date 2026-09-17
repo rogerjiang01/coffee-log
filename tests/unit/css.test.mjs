@@ -64,8 +64,8 @@ export default function run() {
   const grind = readFileSync(new URL('../../components/GrindSettingInput.vue', import.meta.url), 'utf8')
   r.section('刻度提示的位置與顏色')
   const referenceLine = (grind.match(/<p v-if="hasCatalog[\s\S]*?<\/p>/) || [''])[0]
-  r.check(/rangeNotice/.test(referenceLine),
-    '超出範圍的提示在參考資訊那一行裡面——分開一行就跟參考資訊長得一樣')
+  r.check(/v-if="notice"/.test(referenceLine),
+    '提示在參考資訊那一行裡面——分開一行就跟參考資訊長得一樣')
   r.check(/var\(--notice\)/.test(referenceLine), '用 --notice')
   r.check(!/var\(--danger\)/.test(grind),
     '不用 --danger——這個值存得起來，紅色會讓人以為存不起來')
@@ -73,11 +73,16 @@ export default function run() {
     '整段不斷行：中文預設可在任兩字之間換行，會斷成「超出磨豆機刻」＋「度範圍」')
   r.check(!/這台的刻度到|這台的刻度從/.test(grind), '舊的定義句文案已經拿掉')
 
-  // 間隔不符維持原樣：獨立一行、--text-muted
-  const incrementLine = (grind.match(/<p v-if="incrementNotice"[\s\S]*?<\/p>/) || [''])[0]
-  r.check(!!incrementLine && /text-muted/.test(incrementLine),
-    '間隔不符仍是獨立一行的 --text-muted，這次不動它')
-  r.check(!referenceLine.includes('incrementNotice'), '間隔不符沒有被搬到第一行')
+  r.section('間隔不符與範圍提示同位置、同顏色')
+  r.check(!/incrementNotice|rangeNotice/.test(grind), '不再分兩種提示各自擺放')
+  r.check((grind.match(/<p\b/g) || []).length === 2,
+    '只剩參考資訊與型錄備註兩個段落——間隔不符不再獨立一行')
+
+  r.section('換到第二行時貼齊左緣')
+  // ml-3 會跟著換行的那段一起走，只有提示縮排 12px。
+  // column-gap 只作用在同一行的兩段之間
+  r.check(/flex-wrap/.test(referenceLine) && /gap-x-3/.test(referenceLine), '第一行用 flex-wrap ＋ gap-x-3')
+  r.check(!/ml-\d/.test(referenceLine), '第一行裡沒有任何 ml-*')
 
   return r.finish()
 }
