@@ -493,8 +493,7 @@ const inputStyle = {
             <option v-for="method in methods" :key="method.id" :value="method.id">{{ method.name }}</option>
           </select>
         </SelectField>
-        <p v-if="!methods.length" class="mt-1 text-xs text-muted">沖煮手法的分段模板還沒建立</p>
-        <p v-else class="mt-1 text-xs text-muted">選擇沖煮手法會依粉重帶入分段</p>
+        <p v-if="methods.length" class="mt-1 text-xs text-muted">選擇沖煮手法會依粉重帶入分段</p>
         <!-- 內建手法的分段模板數值尚未經實機核實（見 CLAUDE.md 階段備註）。
              在核實之前先講清楚它是參考值，避免使用者當成標準答案照做。 -->
         <p v-if="methods.length" class="mt-1 text-xs text-muted">
@@ -580,6 +579,9 @@ const inputStyle = {
       >
         {{ busy ? '儲存中' : submitLabel }}
       </button>
+
+      <!-- 暫存狀態：使用者在按儲存之前擔心東西安不安全，視線在這裡（《03》§4.11） -->
+      <DraftStatus v-if="draft" :status="draft.status.value" class="mt-2" />
 
       <p
         v-if="error || summaryError || lookupError"

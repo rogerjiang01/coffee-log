@@ -28,22 +28,29 @@ export function useFormDraft<T>(key: string, options: {
   /** 橫幅模式：已經填入，只是告知 */
   const recovered = ref(false)
 
+  /** 暫存狀態指示（儲存按鈕下方）。第一次有變動之前是 null，不顯示 */
+  const status = ref<DraftSaveStatus>(null)
+
   const armed = ref(false)
-  let timer: ReturnType<typeof setTimeout> | null = null
   let baseline: string | null = null
 
-  function write(value: T) {
-    try {
-      localStorage.setItem(key, packDraft(value))
-    }
-    catch {
-      // 私密瀏覽或容量已滿。暫存是安全網，不該因為存不了就中斷填寫。
-    }
-  }
+  const writer = createDraftWriter<T>({
+    write: (value) => {
+      try {
+        localStorage.setItem(key, packDraft(value))
+        return true
+      }
+      catch {
+        // 私密瀏覽或容量已滿。暫存是安全網，不該因為存不了就中斷填寫；
+        // 但也不能顯示「已暫存」，狀態指示會收起來。
+        return false
+      }
+    },
+    onStatus: (next) => { status.value = next },
+  })
 
   function clear() {
-    if (timer) clearTimeout(timer)
-    timer = null
+    writer.cancel()
     recovered.value = false
     try {
       localStorage.removeItem(key)
@@ -100,7 +107,7 @@ export function useFormDraft<T>(key: string, options: {
   })
 
   onBeforeUnmount(() => {
-    if (timer) clearTimeout(timer)
+    writer.stop()
   })
 
   watch(options.read, (value) => {
@@ -109,8 +116,7 @@ export function useFormDraft<T>(key: string, options: {
     if (!armed.value || pending.value !== null) return
     // 沒動過的空白表單不值得存，存了下次進來就會被問一次
     if (JSON.stringify(value) === baseline) return
-    if (timer) clearTimeout(timer)
-    timer = setTimeout(() => write(value), 500)
+    writer.schedule(value)
   }, { deep: true })
 
   /** overlay：接著填 */
@@ -133,5 +139,5 @@ export function useFormDraft<T>(key: string, options: {
     clear()
   }
 
-  return { pending, recovered, accept, discard, clearAll, clear }
+  return { pending, recovered, status, accept, discard, clearAll, clear }
 }

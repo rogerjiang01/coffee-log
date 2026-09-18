@@ -298,7 +298,7 @@ const inputStyle = { minHeight: 'var(--touch-min)' }
           </li>
         </ul>
         <p v-else-if="!items.length" class="px-5 py-4 text-muted">
-          還沒有{{ equipmentLabels[type] }}，按右上角的加號建一個。
+          按右上角的加號
         </p>
 
         <ul v-else class="px-3 py-2">

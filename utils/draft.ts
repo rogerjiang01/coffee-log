@@ -152,3 +152,53 @@ export function droppedFieldsMessage(dropped: string[]): string {
   if (!labels.length) return ''
   return `${labels.join('、')}已被刪除，請重新選擇`
 }
+
+/** 寫入暫存的等待時間：持續輸入時不寫，停下來這麼久才寫 */
+export const DRAFT_WRITE_DELAY_MS = 500
+
+/**
+ * 暫存的狀態指示（《03》§4.11）。
+ *   null      還沒有任何變動，或暫存被清掉／寫不進去——不顯示
+ *   'saving'  有變動、等待寫入中——「暫存中」
+ *   'saved'   寫入完成——「已暫存」
+ */
+export type DraftSaveStatus = 'saving' | 'saved' | null
+
+/**
+ * 延遲寫入暫存，並回報狀態。
+ *
+ * 狀態跟著真實的寫入走：變動當下就是 saving，持續輸入時一直停在 saving
+ * （每次變動都重新計時），停下來、寫入完成才變 saved。
+ * 寫入失敗（私密瀏覽、容量已滿）回到 null：沒存進去就不能說「已暫存」。
+ */
+export function createDraftWriter<T>(options: {
+  /** 實際寫入。回傳是否成功 */
+  write: (value: T) => boolean
+  onStatus: (status: DraftSaveStatus) => void
+  delayMs?: number
+}) {
+  let timer: ReturnType<typeof setTimeout> | null = null
+
+  function stop() {
+    if (timer) clearTimeout(timer)
+    timer = null
+  }
+
+  return {
+    schedule(value: T) {
+      stop()
+      options.onStatus('saving')
+      timer = setTimeout(() => {
+        timer = null
+        options.onStatus(options.write(value) ? 'saved' : null)
+      }, options.delayMs ?? DRAFT_WRITE_DELAY_MS)
+    },
+    /** 暫存被清掉：不再寫入，也不再顯示狀態 */
+    cancel() {
+      stop()
+      options.onStatus(null)
+    },
+    /** 元件卸載：只停掉計時，狀態不必再動 */
+    stop,
+  }
+}

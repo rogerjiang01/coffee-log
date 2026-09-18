@@ -19,6 +19,8 @@ const suites = [
   ['unit/last-used.test.ts', '器材的上次使用時間'],
   ['unit/panel.test.ts', '浮層定位'],
   ['unit/draft.test.ts', '表單自動暫存'],
+  ['unit/draft-status.test.ts', '暫存狀態指示'],
+  ['unit/draft-status-wiring.test.mjs', '暫存狀態指示的接線'],
   ['unit/inline-draft.test.ts', '就地新增的暫存'],
   ['unit/cache.test.ts', '客戶端快取'],
   ['unit/query-cache.test.ts', 'SWR 快取'],

@@ -292,24 +292,16 @@ async function destroy() {
 
       <!-- 比較表。這張表必須在手機上好用——Excel 在電腦上做得比這好，
            但在手機上做得極差，而喝咖啡的當下人都在手機上。 -->
-      <section class="mt-8">
+      <!-- 沒有紀錄時整區不出現，不寫文案也不留空標題：
+           下方的「用這支豆子沖一杯」就是下一步（《03》§5.6） -->
+      <section v-if="compareRows.length" class="mt-8">
         <h2 class="font-serif text-lg font-bold">每次怎麼沖的</h2>
-
-        <p v-if="!compareRows.length" class="mt-2 text-muted">
-          還沒有紀錄。沖一杯記下來，之後就能比較每次的調整。
+        <p v-if="compareRows.length === 1" class="mt-2 text-muted">
+          再記一筆就能開始比較——改動的數值會標出來。
         </p>
-
-        <template v-else>
-          <p v-if="compareRows.length === 1" class="mt-2 text-muted">
-            再記一筆就能開始比較——改動的數值會標出來。
-          </p>
-          <div class="mt-3">
-            <BeanCompareTable :rows="compareRows" />
-          </div>
-          <p v-if="compareRows.length > 1" class="mt-2 text-xs text-muted">
-            由舊到新，與前一次不同的數值有標色。左右可以捲動。
-          </p>
-        </template>
+        <div class="mt-3">
+          <BeanCompareTable :rows="compareRows" />
+        </div>
       </section>
 
       <!--

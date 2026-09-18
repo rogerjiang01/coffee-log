@@ -174,10 +174,6 @@ async function onSubmit(payload: {
       <NuxtLink to="/" class="text-sm underline" :style="{ color: 'var(--accent)' }">取消</NuxtLink>
     </div>
 
-    <p v-if="copiedFrom" class="mt-1 text-sm text-muted">
-      代入上一次沖煮參數與沖煮流程
-    </p>
-
     <!-- 骨架：表單的分組卡片先佔位，等資料回來換成真的表單。
          §6 不做進場動畫，所以是靜態色塊。 -->
     <div v-if="!ready" aria-busy="true" aria-label="讀取中" class="mt-8 space-y-4">

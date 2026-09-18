@@ -373,6 +373,9 @@ function selectStyle(value: unknown) {
       {{ busy ? '儲存中' : submitLabel }}
     </button>
 
+    <!-- 暫存狀態：使用者在按儲存之前擔心東西安不安全，視線在這裡（《03》§4.11） -->
+    <DraftStatus v-if="draft" :status="draft.status.value" class="mt-2" />
+
     <!-- 錯誤訊息在按鈕正下方。放上方時長表單一捲動就看不到，
          使用者會以為「按了沒反應」。 -->
     <p
