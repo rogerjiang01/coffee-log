@@ -27,5 +27,10 @@ export default function run() {
   const composable = read('composables/useFormDraft.ts')
   r.check(/createDraftWriter/.test(composable), 'useFormDraft 的寫入走 createDraftWriter，狀態跟著真實寫入')
 
+  const newPage = read('pages/brews/new.vue')
+  r.check(/newBrewDraftKey\(/.test(newPage) && /:draft-key="draftKey"/.test(newPage),
+    '新增沖煮紀錄的暫存 key 依進入方式分開（複製 A 的暫存不會還原進複製 B）')
+  r.check(!/draft-key="draft:brew:new"/.test(newPage), '不再寫死 draft:brew:new')
+
   return r.finish()
 }

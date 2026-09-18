@@ -5,6 +5,7 @@
 
 import {
   packDraft, unpackDraft, unpackDraftEnvelope, pruneMissingIds, collectIds, draftKey,
+  newBrewDraftKey, sweepExpiredDrafts,
   draftAge, droppedFieldsMessage, DRAFT_TTL_MS, DRAFT_AUTO_RESTORE_MS,
 } from '../../utils/draft.ts'
 import { createReport, equal } from '../helpers/report.mjs'
@@ -18,6 +19,45 @@ export default function run() {
   r.check(draftKey('brew', 'abc') === 'draft:brew:abc', '編輯沖煮紀錄')
   r.check(draftKey('bean', null) === 'draft:bean:new', '新增豆子')
   r.check(draftKey('bean', 'xyz') === 'draft:bean:xyz', '編輯豆子')
+
+  r.section('新增沖煮紀錄：三種進入方式的 key 互不干擾')
+  // 原本三者共用 draft:brew:new，複製 A 的暫存會被還原進複製 B 的表單
+  const blank = newBrewDraftKey({})
+  const copyA = newBrewDraftKey({ copy: 'A' })
+  const copyB = newBrewDraftKey({ copy: 'B' })
+  const beanX = newBrewDraftKey({ bean: 'X' })
+  const beanY = newBrewDraftKey({ bean: 'Y' })
+  r.check(blank === 'draft:brew:new', '空白新增：draft:brew:new（沿用，舊暫存只會被這裡讀到）')
+  r.check(copyA === 'draft:brew:copy:A', '複製：draft:brew:copy:{來源 id}')
+  r.check(beanX === 'draft:brew:bean:X', '指定豆子：draft:brew:bean:{豆子 id}')
+  r.check(new Set([blank, copyA, copyB, beanX, beanY]).size === 5, '空白、複製 A、複製 B、豆子 X、豆子 Y 五個 key 都不同')
+  r.check(newBrewDraftKey({ copy: 'A', bean: 'X' }) === copyA, '同時帶 copy 與 bean 時以 copy 為準（與頁面一致）')
+  r.check(newBrewDraftKey({ copy: null, bean: null }) === blank, 'query 為 null 等同空白新增')
+  r.check(![copyA, beanX].includes(draftKey('brew', 'A')) && ![copyA, beanX].includes(draftKey('brew', 'X')),
+    '不會撞到編輯紀錄的 key（draft:brew:{id}）')
+
+  r.section('過期的複製／指定豆子暫存主動清掉')
+  const store = new Map<string, string>([
+    ['draft:brew:copy:old', packDraft({ dose: 15 }, NOW - DRAFT_TTL_MS - 1)],
+    ['draft:brew:copy:fresh', packDraft({ dose: 16 }, NOW - 1000)],
+    ['draft:brew:bean:old', packDraft({ dose: 17 }, NOW - DRAFT_TTL_MS - 1)],
+    ['draft:brew:bean:broken', '壞掉的'],
+    ['draft:brew:new', packDraft({ dose: 18 }, NOW - DRAFT_TTL_MS - 1)],
+    ['draft:bean:new', packDraft({ name: '豆' }, NOW - DRAFT_TTL_MS - 1)],
+    ['other', 'x'],
+  ])
+  const storage = {
+    get length() { return store.size },
+    key: (i: number) => [...store.keys()][i] ?? null,
+    getItem: (k: string) => store.get(k) ?? null,
+    removeItem: (k: string) => { store.delete(k) },
+  }
+  const swept = sweepExpiredDrafts(storage, NOW)
+  r.check(equal(swept.sort(), ['draft:brew:bean:broken', 'draft:brew:bean:old', 'draft:brew:copy:old']),
+    `過期與壞掉的都清掉（實際 ${swept.join('、')}）`)
+  r.check(store.has('draft:brew:copy:fresh'), '7 天內的保留')
+  r.check(store.has('draft:bean:new') && store.has('draft:brew:new') && store.has('other'),
+    '其他 key 不碰：豆子表單的照片在 IndexedDB，要走自己的清除流程')
 
   r.section('存取與還原')
   const data = { name: '耶加雪菲', dose: 15, tags: ['a', 'b'] }

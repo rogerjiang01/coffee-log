@@ -27,6 +27,51 @@ export function draftKey(kind: 'brew' | 'bean', id: string | null) {
   return `draft:${kind}:${id ?? 'new'}`
 }
 
+/**
+ * 新增沖煮紀錄的暫存 key，依進入方式分開（《02》§6）。
+ *
+ *   /brews/new              draft:brew:new
+ *   /brews/new?bean={id}    draft:brew:bean:{id}
+ *   /brews/new?copy={id}    draft:brew:copy:{id}（同時帶 bean 時以 copy 為準，與頁面一致）
+ *
+ * 三者原本共用 draft:brew:new：複製 A 的暫存會被還原進複製 B 的表單，
+ * 使用者拿到的不是他選的那一筆。進入方式本身就是使用者的選擇，暫存不能跨過它。
+ *
+ * 空白新增沿用 draft:brew:new，所以改版前留下的舊暫存只會被空白新增讀到，
+ * 格式沒變，照一般暫存還原（指向已刪除資料的欄位照常清空），不會報錯。
+ */
+export function newBrewDraftKey(query: { copy?: string | null, bean?: string | null }) {
+  if (query.copy) return `draft:brew:copy:${query.copy}`
+  if (query.bean) return `draft:brew:bean:${query.bean}`
+  return 'draft:brew:new'
+}
+
+/** 依複製來源、指定豆子分開的 key 會一直累積，這兩種前綴過期就清掉 */
+export const SWEPT_DRAFT_PREFIXES = ['draft:brew:copy:', 'draft:brew:bean:']
+
+/**
+ * 清掉過期（超過 7 天）或壞掉的暫存。
+ *
+ * 每個複製來源各有一個 key，沒回去過的那些不會再被讀到，
+ * 7 天時效只在讀取時生效，所以要主動掃。只掃上面兩種前綴——
+ * 其他 key（豆子表單）另有照片存在 IndexedDB，要走各自的清除流程。
+ */
+export function sweepExpiredDrafts(
+  storage: Pick<Storage, 'length' | 'key' | 'getItem' | 'removeItem'>,
+  now: number = Date.now(),
+  prefixes: string[] = SWEPT_DRAFT_PREFIXES,
+) {
+  const expired: string[] = []
+  for (let i = 0; i < storage.length; i++) {
+    const key = storage.key(i)
+    if (!key || !prefixes.some(prefix => key.startsWith(prefix))) continue
+    if (unpackDraftEnvelope(storage.getItem(key), now) === null) expired.push(key)
+  }
+  // 邊走邊刪會讓 index 錯位，收集完再刪
+  for (const key of expired) storage.removeItem(key)
+  return expired
+}
+
 export function packDraft<T>(data: T, now: number = Date.now()) {
   return JSON.stringify({ savedAt: now, data } satisfies DraftEnvelope<T>)
 }

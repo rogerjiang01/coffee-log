@@ -22,7 +22,20 @@ const initial = ref<Partial<BrewFormValues> | undefined>(undefined)
 const initialSteps = ref<StepInput[] | undefined>(undefined)
 const copiedFrom = ref<string | null>(null)
 
+// 暫存依進入方式分開：複製 A 的暫存不能還原進複製 B（《02》§6、utils/draft.ts）
+const draftKey = newBrewDraftKey({
+  copy: typeof route.query.copy === 'string' ? route.query.copy : null,
+  bean: typeof route.query.bean === 'string' ? route.query.bean : null,
+})
+
 onMounted(async () => {
+  try {
+    sweepExpiredDrafts(localStorage)
+  }
+  catch {
+    // 私密瀏覽等情況讀不到 localStorage：沒得掃就算了，不影響開表單
+  }
+
   const beanId = typeof route.query.bean === 'string' ? route.query.bean : null
   const copyId = typeof route.query.copy === 'string' ? route.query.copy : null
 
@@ -192,7 +205,7 @@ async function onSubmit(payload: {
     <div v-else class="mt-8">
       <BrewForm
         ref="form"
-        draft-key="draft:brew:new"
+        :draft-key="draftKey"
         :initial="initial"
         :initial-steps="initialSteps"
         submit-label="儲存"
