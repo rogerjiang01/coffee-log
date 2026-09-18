@@ -11,6 +11,8 @@
 // 圖示與文字的切換就是全部的回饋。
 //
 // 不設 aria-live：持續輸入時每停半秒就會唸一次，對螢幕閱讀器使用者是噪音。
+//
+// 置左不置中：它是狀態資訊不是主要內容，置中會讓它看起來像一個獨立的區塊。
 
 defineProps<{ status: DraftSaveStatus }>()
 </script>
@@ -18,7 +20,7 @@ defineProps<{ status: DraftSaveStatus }>()
 <template>
   <p
     v-if="status"
-    class="flex items-center justify-center gap-1 text-xs"
+    class="flex items-center gap-1 text-sm"
     :style="{ color: 'var(--text-muted)' }"
   >
     <!-- 暫存中：雙箭頭圍圈（sync） -->

@@ -8,6 +8,7 @@ definePageMeta({ screen: 'flow' })
 const route = useRoute()
 const supabase = useSupabaseClient()
 const cache = useQueryCache()
+const exitTo = useFlowExit()
 const userId = useCurrentUserId()
 
 const id = computed(() => String(route.params.id))
@@ -100,7 +101,8 @@ async function onSubmit(values: EquipmentFormValues) {
   }
   form.value?.clearDraft()
   cache.invalidateAfter({ kind: 'equipment' })
-  await navigateTo('/equipment')
+  // 上一頁就是器材列表時退回去，否則取代表單那一筆（useFlowExit）
+  await exitTo('/equipment')
 }
 
 async function destroy() {
@@ -114,7 +116,8 @@ async function destroy() {
   }
   form.value?.clearDraft()
   cache.invalidateAfter({ kind: 'equipment' })
-  await navigateTo('/equipment')
+  // 上一頁就是器材列表時退回去，否則取代表單那一筆（useFlowExit）
+  await exitTo('/equipment')
 }
 </script>
 

@@ -87,7 +87,8 @@ export default function run() {
     r.check(edit > template.indexOf('再沖一次') && edit < template.lastIndexOf('刪除'),
       `${path}：編輯在內容區，排在主要按鈕之後、刪除之前`)
   }
-  r.check(/:back="brewParent\(brew\?\.beans\?\.id\)"/.test(read('pages/brews/[id]/index.vue')), '紀錄詳情的 ‹ 回到它的豆子')
+  r.check(/<PageHeader :back="BREW_BACK_FALLBACK" back-history \/>/.test(read('pages/brews/[id]/index.vue')),
+    '紀錄詳情的 ‹ 是歷史式，沒有上一頁回首頁（紀錄沒有列表頁，沒有真的父層）')
   r.check(/<PageHeader back="\/beans" \/>/.test(read('pages/beans/[id]/index.vue')), '豆子詳情的 ‹ 回到豆子列表')
 
   r.section('流程型：左上 ‹ 離開，沒有「取消」連結')
@@ -118,6 +119,20 @@ export default function run() {
     '導向別頁前先退掉浮層；同網址（返回鍵關浮層）不攔')
   r.check(/go\(-steps, false\)/.test(plugin), '自己退的時候不讓路由器跟著導覽')
   r.check(/flush: 'sync'/.test(read('composables/useOverlayHistory.ts')), '關掉浮層的後退在導覽開始前就發出')
+
+  r.section('儲存與刪除後的跳轉不留下表單頁')
+  for (const path of [
+    'pages/brews/new.vue', 'pages/brews/[id]/edit.vue', 'pages/brews/[id]/index.vue',
+    'pages/beans/new.vue', 'pages/beans/[id]/edit.vue', 'pages/beans/[id]/index.vue',
+    'pages/equipment/new.vue', 'pages/equipment/[id]/edit.vue',
+  ]) {
+    const text = stripComments(read(path))
+    r.check(/await exitTo\(/.test(text) && !/navigateTo\(/.test(text), `${path}：用 exitTo，不用 push`)
+  }
+  const back = read('components/BackButton.vue')
+  r.check(/label === '離開'[\s\S]*?exitTo\(/.test(back), '流程型的 ‹ 離開也走 exitTo：詳情 → 編輯 → ‹ 不會多一筆詳情')
+  r.check(/beforeNavigate\(\)[\s\S]*?router\.back\(\)/.test(read('composables/useFlowExit.ts')),
+    '回上一頁之前先等浮層退完（router.back 不經過導覽守衛）')
 
   r.section('器材選擇器')
   const picker = stripComments(templateOf(read('components/EquipmentPicker.vue')))

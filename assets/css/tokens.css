@@ -97,6 +97,10 @@
     --border: var(--sand-100); /* 分隔線、一般邊界 */
     --border-strong: var(--sand-400); /* 需要更明顯的次要按鈕 */
     --text-faint: var(--sand-400); /* 比 --text-muted 再淡一階的附屬文字 */
+    /* 首頁右上角的設定齒輪。它在標題旁邊，用 --text 會跟標題搶；
+       用 --text-muted 又與內文的參考資訊同一個顏色，看不出是可以按的東西。
+       對比：--bg 上 4.89:1、--surface 上 5.09:1（非文字，門檻 3:1） */
+    --settings-icon: var(--sand-600);
 
     /* 狀態 */
     --favorite: var(--red-500); /* 愛心 */

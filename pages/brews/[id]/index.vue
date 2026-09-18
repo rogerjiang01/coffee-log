@@ -4,13 +4,14 @@
 // 這階段只做內容顯示：差異區塊與「照這次再沖一次」屬於階段 6。
 // 衍生值在此頁完整顯示，全部即時計算，不存資料庫（§8）。
 //
-// 檢視型畫面（《03》§3）：左上 ‹ 返回這筆紀錄的豆子，分頁列保留，編輯與刪除在內容區。
+// 檢視型畫面（《03》§3）：左上 ‹ 回上一頁（歷史式），分頁列保留，編輯與刪除在內容區。
 
 definePageMeta({ screen: 'view' })
 
 const route = useRoute()
 const supabase = useSupabaseClient()
 const cache = useQueryCache()
+const exitTo = useFlowExit()
 
 const id = computed(() => String(route.params.id))
 
@@ -235,17 +236,18 @@ async function destroy() {
     return
   }
   cache.invalidateAfter({ kind: 'brew' })
-  await navigateTo('/')
+  // 不留在 history 裡：刪除後按返回不會看到「找不到」（useFlowExit）
+  await exitTo('/')
 }
 </script>
 
 <template>
   <main class="mx-auto px-5 pt-10 pb-16" :style="{ maxWidth: 'var(--content-max)' }">
     <!-- ‹ 在所有狀態判斷之外：讀取中、讀取失敗、找不到都要看得到。
-         返回上一層依內容階層，不依來源：紀錄的上一層是它的豆子——從首頁時間軸
-         點進來的人也一樣，他要回首頁有分頁列。這樣重新整理之後仍然正確，
-         也補上了「紀錄沒有回到豆子的入口」。資料還沒到時先指向豆子列表。 -->
-    <PageHeader :back="brewParent(brew?.beans?.id)" />
+         歷史式：回到使用者實際來的地方，沒有上一頁（外部連結直接打開）才回首頁。
+         紀錄沒有自己的列表頁，任何「上一層」都是猜的——從時間軸點進來的人
+         不認為紀錄屬於豆子，‹ 卻帶他到一個沒去過的豆子詳情（《03》§3、BREW_BACK_FALLBACK） -->
+    <PageHeader :back="BREW_BACK_FALLBACK" back-history />
 
     <p v-if="loadError" role="alert" class="mt-4 text-sm" :style="{ color: 'var(--danger)' }">{{ loadError }}</p>
     <!-- 整頁都讀不到時才給重試；已經有內容（例如只有分段讀不到）時，紅字就夠了 -->

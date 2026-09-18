@@ -15,6 +15,7 @@ definePageMeta({ screen: 'flow' })
 const route = useRoute()
 const supabase = useSupabaseClient()
 const cache = useQueryCache()
+const exitTo = useFlowExit()
 const userId = useCurrentUserId()
 
 const form = ref<{ clearDraft: () => void } | null>(null)
@@ -183,7 +184,8 @@ async function onSubmit(payload: {
   // 存成功了，這份暫存沒有用了
   form.value?.clearDraft()
   cache.invalidateAfter({ kind: 'brew' })
-  await navigateTo(`/brews/${brewId}`)
+  // 取代表單那一筆：儲存後按返回不會回到表單（useFlowExit）
+  await exitTo(`/brews/${brewId}`)
 }
 </script>
 

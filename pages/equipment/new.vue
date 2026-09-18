@@ -5,6 +5,7 @@ definePageMeta({ screen: 'flow' })
 
 const supabase = useSupabaseClient()
 const cache = useQueryCache()
+const exitTo = useFlowExit()
 const userId = useCurrentUserId()
 
 const form = ref<{ clearDraft: () => void } | null>(null)
@@ -38,7 +39,8 @@ async function onSubmit(values: EquipmentFormValues) {
   // 存成功了，這份暫存沒有用了
   form.value?.clearDraft()
   cache.invalidateAfter({ kind: 'equipment' })
-  await navigateTo('/equipment')
+  // 上一頁就是器材列表時退回去，否則取代表單那一筆（useFlowExit）
+  await exitTo('/equipment')
 }
 </script>
 

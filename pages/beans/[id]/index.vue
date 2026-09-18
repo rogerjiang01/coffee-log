@@ -44,6 +44,7 @@ const actionError = ref('')
 const id = computed(() => String(route.params.id))
 
 const cache = useQueryCache()
+const exitTo = useFlowExit()
 
 // 從列表帶進來的資料只有一半（沒有產區、處理法、品種、官方風味描述）。
 // 標題與照片可以先出來，其餘欄位等完整資料回來再補——
@@ -192,7 +193,8 @@ async function destroy() {
   // 外鍵 cascade，紀錄跟著沒了——時間軸與次數統計都要重來
   cache.invalidateAfter({ kind: 'bean' })
   if (path) await remove(path)
-  await navigateTo('/beans')
+  // 不留在 history 裡：刪除後按返回不會看到「找不到」（useFlowExit）
+  await exitTo('/beans')
 }
 </script>
 

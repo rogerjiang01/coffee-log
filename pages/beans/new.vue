@@ -10,6 +10,7 @@ definePageMeta({ screen: 'flow' })
 
 const supabase = useSupabaseClient()
 const cache = useQueryCache()
+const exitTo = useFlowExit()
 const userId = useCurrentUserId()
 const { upload } = useBeanPhotos()
 
@@ -73,7 +74,8 @@ async function onSubmit({ values, photo }: { values: BeanFormValues; photo: Comp
   form.value?.clearDraft()
   // 新的豆子要出現在列表與首頁上區
   cache.invalidateAfter({ kind: 'bean' })
-  await navigateTo(`/beans/${beanId}`)
+  // 取代表單那一筆：儲存後按返回不會回到表單（useFlowExit）
+  await exitTo(`/beans/${beanId}`)
 }
 </script>
 

@@ -8,6 +8,7 @@ definePageMeta({ screen: 'flow' })
 const route = useRoute()
 const supabase = useSupabaseClient()
 const cache = useQueryCache()
+const exitTo = useFlowExit()
 const userId = useCurrentUserId()
 const { upload, remove, signedUrl } = useBeanPhotos()
 
@@ -129,7 +130,8 @@ async function onSubmit(
   form.value?.clearDraft()
   // 豆名與烘焙日期被內嵌在沖煮查詢裡，時間軸與紀錄詳情也要重來
   cache.invalidateAfter({ kind: 'bean' })
-  await navigateTo(`/beans/${id.value}`)
+  // 上一頁就是這支豆子時退回去，不多一筆（useFlowExit）
+  await exitTo(`/beans/${id.value}`)
 }
 </script>
 
