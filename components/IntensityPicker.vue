@@ -36,13 +36,24 @@ function pick(key: keyof Intensity, level: number) {
     <p class="text-sm">強度</p>
     <p class="text-xs text-muted">描述強弱，不是好壞</p>
 
+    <!-- 「弱／強」只標一次，在四列圓點的上方、與圓點欄對齊。
+         原本每一列兩端各標一次：標籤 40 ＋ 弱 ＋ 五個 44 的觸控區 ＋ 強，
+         375px 下需要 320px 以上，卡片內只有 301px，右端的「強」被切掉。
+         四列的意思相同，逐列重複也是雜訊。 -->
+    <div class="mt-3 flex items-center gap-3">
+      <span class="w-10 shrink-0" />
+      <div class="flex flex-1 justify-between text-xs" :style="{ color: 'var(--text-muted)' }">
+        <span class="text-center" :style="{ minWidth: 'var(--touch-min)' }">弱</span>
+        <span class="text-center" :style="{ minWidth: 'var(--touch-min)' }">強</span>
+      </div>
+    </div>
+
     <div
       v-for="dimension in dimensions"
       :key="dimension.key"
       class="mt-3 flex items-center gap-3"
     >
       <span class="w-10 shrink-0 text-sm">{{ dimension.label }}</span>
-      <span class="shrink-0 text-xs" :style="{ color: 'var(--text-muted)' }">弱</span>
 
       <div class="flex flex-1 justify-between" role="radiogroup" :aria-label="dimension.label">
         <button
@@ -67,8 +78,6 @@ function pick(key: keyof Intensity, level: number) {
           />
         </button>
       </div>
-
-      <span class="shrink-0 text-xs" :style="{ color: 'var(--text-muted)' }">強</span>
     </div>
   </section>
 </template>
