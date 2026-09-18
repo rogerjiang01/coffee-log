@@ -12,6 +12,11 @@
 
     defineEmits<{ accept: []; discard: [] }>();
 
+    // **刻意不佔 history（與其他浮層不同）。** 這個問題一定要回答——
+    // 返回鍵若只是關掉它，表單會停在「沒接著填、也沒重新開始」的狀態，
+    // 暫存寫入也因為等待回答而暫停。按返回就照原本離開這一頁，暫存留著，
+    // 下次進來再問一次。
+
     const dialog = ref<HTMLDialogElement | null>(null);
 
     watch(

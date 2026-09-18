@@ -53,6 +53,9 @@ const banned = {
   代入: '帶入',
   細口壺: '手沖壺',
   下壺: '分享壺',
+  重新載入: '重試',
+  重試這一頁: '重試',
+  回豆子列表: '‹（返回，圖示）',
 }
 
 export default function run() {
@@ -63,7 +66,7 @@ export default function run() {
   r.check(/04-詞彙表/.test(read('CLAUDE.md')), 'CLAUDE.md 要求新增文案前先查詞彙表')
 
   r.section('刻意不用的同義詞沒有出現在介面上')
-  const sources = [...sourceFiles('components'), ...sourceFiles('pages'), ...sourceFiles('utils'), ...sourceFiles('composables')]
+  const sources = [...sourceFiles('components'), ...sourceFiles('pages'), ...sourceFiles('utils'), ...sourceFiles('composables'), 'app.vue', 'error.vue']
   const texts = sources.map(path => [path, stripComments(read(path))])
   for (const [word, instead] of Object.entries(banned)) {
     const hits = texts.filter(([, text]) => text.includes(word)).map(([path]) => path)

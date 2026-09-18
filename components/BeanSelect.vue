@@ -153,6 +153,9 @@ async function toggle() {
   }
 }
 
+// 返回鍵關掉浮層，不離開頁面。就地新增的內容照樣留著——返回是「關閉」，不是「取消」
+useOverlayHistory(() => open.value, close)
+
 function close() {
   open.value = false
   query.value = ''

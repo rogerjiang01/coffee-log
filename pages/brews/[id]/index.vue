@@ -3,6 +3,10 @@
 //
 // 這階段只做內容顯示：差異區塊與「照這次再沖一次」屬於階段 6。
 // 衍生值在此頁完整顯示，全部即時計算，不存資料庫（§8）。
+//
+// 檢視型畫面（《03》§3）：左上 ‹ 返回這筆紀錄的豆子，分頁列保留，編輯與刪除在內容區。
+
+definePageMeta({ screen: 'view' })
 
 const route = useRoute()
 const supabase = useSupabaseClient()
@@ -237,15 +241,11 @@ async function destroy() {
 
 <template>
   <main class="mx-auto px-5 pt-10 pb-16" :style="{ maxWidth: 'var(--content-max)' }">
-    <!-- 返回入口在所有狀態判斷之外：讀取中、讀取失敗、找不到都要看得到。
-         這一頁沒有分頁列，它不在的話只剩瀏覽器返回鍵能離開。
-         編輯要等資料到位——讀不到的紀錄沒有東西可以編輯。 -->
-    <div class="flex items-baseline justify-between">
-      <NuxtLink to="/" class="text-sm underline" :style="{ color: 'var(--accent)' }">首頁</NuxtLink>
-      <NuxtLink v-if="brew" :to="`/brews/${brew.id}/edit`" class="text-sm underline" :style="{ color: 'var(--accent)' }">
-        編輯
-      </NuxtLink>
-    </div>
+    <!-- ‹ 在所有狀態判斷之外：讀取中、讀取失敗、找不到都要看得到。
+         返回上一層依內容階層，不依來源：紀錄的上一層是它的豆子——從首頁時間軸
+         點進來的人也一樣，他要回首頁有分頁列。這樣重新整理之後仍然正確，
+         也補上了「紀錄沒有回到豆子的入口」。資料還沒到時先指向豆子列表。 -->
+    <PageHeader :back="brewParent(brew?.beans?.id)" />
 
     <p v-if="loadError" role="alert" class="mt-4 text-sm" :style="{ color: 'var(--danger)' }">{{ loadError }}</p>
     <!-- 整頁都讀不到時才給重試；已經有內容（例如只有分段讀不到）時，紅字就夠了 -->
@@ -271,7 +271,6 @@ async function destroy() {
 
     <template v-else-if="notFound">
       <h1 class="mt-4 font-serif text-xl font-bold">找不到這筆紀錄</h1>
-      <NuxtLink to="/" class="mt-4 inline-block underline" :style="{ color: 'var(--accent)' }">回首頁</NuxtLink>
     </template>
 
     <template v-else-if="brew">
@@ -419,6 +418,15 @@ async function destroy() {
         :style="{ background: 'var(--accent)', color: 'var(--on-accent)', minHeight: 'var(--touch-min)' }"
       >
         照這次再沖一次
+      </NuxtLink>
+
+      <!-- 編輯與刪除在內容區，不在頂部角落（《03》§3）：頂部角落只留給 ‹ -->
+      <NuxtLink
+        :to="`/brews/${brew.id}/edit`"
+        class="mt-3 flex w-full items-center justify-center rounded-sm border px-4 py-3"
+        :style="{ borderColor: 'var(--border)', minHeight: 'var(--touch-min)' }"
+      >
+        編輯
       </NuxtLink>
 
       <button

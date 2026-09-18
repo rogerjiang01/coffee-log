@@ -1,6 +1,8 @@
 <script setup lang="ts">
 // 豆子列表。未喝完的排前面，同組內依建立時間倒序。
 
+definePageMeta({ screen: 'browse' })
+
 interface BeanRow {
   id: string
   name: string
@@ -75,12 +77,10 @@ onMounted(load)
 </script>
 
 <template>
-  <!-- 底部留白避開浮動按鈕，否則最後一筆會被永久遮住 -->
-  <main class="mx-auto px-5 pt-10 pb-32" :style="{ maxWidth: 'var(--content-max)' }">
-    <div class="flex items-baseline justify-between">
-      <h1 class="font-serif text-xl font-bold">豆子</h1>
-      <NuxtLink to="/" class="text-sm underline" :style="{ color: 'var(--accent)' }">回首頁</NuxtLink>
-    </div>
+  <!-- 底部留白避開浮動按鈕，否則最後一筆會被永久遮住；分頁列的高度由 app.vue 讓出 -->
+  <main class="mx-auto px-5 pt-10 pb-24" :style="{ maxWidth: 'var(--content-max)' }">
+    <!-- 瀏覽型：頂部只有標題。回首頁是分頁列的事，這裡不放第二個入口 -->
+    <PageHeader title="豆子" />
 
     <p v-if="loadError" role="alert" class="mt-4 text-sm" :style="{ color: 'var(--danger)' }">
       {{ loadError }}
@@ -143,7 +143,5 @@ onMounted(load)
         <path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
       </svg>
     </NuxtLink>
-
-    <BottomNav />
   </main>
 </template>

@@ -7,6 +7,11 @@ const supabaseUrl = useRuntimeConfig().public.supabase.url
 useHead({
   link: [{ rel: 'preconnect', href: supabaseUrl, crossorigin: '' }],
 })
+
+// 分頁列在這裡統一放，依頁面宣告的畫面類型（definePageMeta 的 screen）決定，
+// 不由各頁自己放（《03》§3）。放在錯誤邊界外面：頁內算繪出錯時它還在，仍然是出口。
+const route = useRoute()
+const tabBar = computed(() => showsTabBar(route.meta.screen))
 </script>
 
 <template>
@@ -41,7 +46,7 @@ useHead({
             :style="{ borderColor: 'var(--border-strong)', minHeight: 'var(--touch-min)' }"
             @click="clearError"
           >
-            重試這一頁
+            重試
           </button>
         </div>
 
@@ -51,4 +56,10 @@ useHead({
       </main>
     </template>
   </NuxtErrorBoundary>
+
+  <template v-if="tabBar">
+    <!-- 分頁列是 fixed，頁面最底下要讓出它的高度，最後一個按鈕才不會被蓋住 -->
+    <div aria-hidden="true" :style="{ height: 'calc(52px + env(safe-area-inset-bottom))' }" />
+    <BottomNav />
+  </template>
 </template>

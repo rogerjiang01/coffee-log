@@ -1,5 +1,9 @@
 <script setup lang="ts">
 // 編輯豆子。與新增共用同一個表單，差別只在初始值與照片已存在。
+//
+// 流程型畫面（《03》§3）：左上 ‹ 離開（暫存保留），沒有分頁列，底部是儲存。
+
+definePageMeta({ screen: 'flow' })
 
 const route = useRoute()
 const supabase = useSupabaseClient()
@@ -131,20 +135,15 @@ async function onSubmit(
 
 <template>
   <main class="mx-auto px-5 py-10" :style="{ maxWidth: 'var(--content-max)' }">
-    <template v-if="view === 'notFound'">
-      <h1 class="font-serif text-xl font-bold">找不到這支豆子</h1>
-      <NuxtLink to="/beans" class="mt-4 inline-block underline" :style="{ color: 'var(--accent)' }">
-        回豆子列表
-      </NuxtLink>
-    </template>
+    <!-- ‹ 在所有狀態判斷之外。它是「離開」不是「取消」：暫存留著，回來還在（《04》）。
+         找不到這一筆時回上一層的列表——回到它的詳情頁只會再看到一次「找不到」 -->
+    <PageHeader
+      :title="view === 'notFound' ? '找不到這支豆子' : '編輯豆子'"
+      :back="view === 'notFound' ? '/beans' : `/beans/${id}`"
+      back-label="離開"
+    />
 
-    <template v-else>
-      <!-- 離開的入口不跟著資料走：讀取中、讀取失敗都要看得到 -->
-      <div class="flex items-baseline justify-between">
-        <h1 class="font-serif text-xl font-bold">編輯豆子</h1>
-        <NuxtLink :to="`/beans/${id}`" class="text-sm underline" :style="{ color: 'var(--accent)' }">取消</NuxtLink>
-      </div>
-
+    <template v-if="view !== 'notFound'">
       <div v-if="view === 'loading'" aria-busy="true" aria-label="讀取中" class="mt-8 space-y-4">
         <div
           v-for="card in 2" :key="card"

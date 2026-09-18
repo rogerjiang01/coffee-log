@@ -1,9 +1,8 @@
 // 載入失敗時的頁面接線（結構檢查）。
 //
 // 編輯頁：表單只在 view === 'ready' 時渲染，每一個查詢的 error 都有檢查，
-// 失敗時有重試，離開的入口不跟著狀態消失。
-// 詳情頁：返回入口在所有狀態判斷之外——這兩頁沒有分頁列，
-// 返回入口不見的話只剩瀏覽器返回鍵能離開。
+// 失敗時有重試，離開的入口（‹）不跟著狀態消失。
+// 詳情頁：返回入口（‹）在所有狀態判斷之外，讀取失敗時仍然看得到。
 
 import { readFileSync } from 'node:fs'
 import { createReport } from '../helpers/report.mjs'
@@ -23,6 +22,7 @@ export default function run() {
   const editPages = [
     ['pages/brews/[id]/edit.vue', '<BrewForm', /firstQueryError\(brewResult, stepResult, tagResult\)/],
     ['pages/beans/[id]/edit.vue', '<BeanForm', /firstQueryError\(result\)/],
+    ['pages/equipment/[id]/edit.vue', '<EquipmentForm', /firstQueryError\(result\)/],
   ]
   for (const [path, formTag, checksErrors] of editPages) {
     const text = read(path)
@@ -34,18 +34,18 @@ export default function run() {
     r.check(checksErrors.test(text), `${path}：每一個查詢的 error 都檢查，不只看 data`)
     r.check(/loaded: initial\.value !== null/.test(text), `${path}：「已載入」看的是資料到位，不是沒有出錯`)
     r.check(/view === 'error'[\s\S]*?@click="load"[\s\S]*?重試/.test(template), `${path}：錯誤狀態有重試`)
-    const cancel = template.search(/>取消</)
-    r.check(cancel > 0 && cancel < template.indexOf("view === 'loading'"),
-      `${path}：取消在讀取中與錯誤狀態也看得到`)
+    const header = template.indexOf('<PageHeader')
+    r.check(header > 0 && header < template.indexOf("view === 'loading'") && header < template.indexOf("view === 'notFound'"),
+      `${path}：離開的入口（‹）在讀取中、錯誤、找不到都看得到`)
   }
 
   const detailPages = [
-    ['pages/brews/[id]/index.vue', /<NuxtLink to="\/"[^>]*>首頁<\/NuxtLink>/, 'v-else-if="brew"'],
-    ['pages/beans/[id]/index.vue', /to="\/beans"[^>]*>\s*豆子\s*<\/NuxtLink>/, 'v-else-if="bean"'],
+    ['pages/brews/[id]/index.vue', 'v-else-if="brew"'],
+    ['pages/beans/[id]/index.vue', 'v-else-if="bean"'],
   ]
-  for (const [path, backLink, loaded] of detailPages) {
+  for (const [path, loaded] of detailPages) {
     const template = templateOf(read(path))
-    const back = template.search(backLink)
+    const back = template.indexOf('<PageHeader')
     r.check(back > 0 && back < template.indexOf('v-if="loading"') && back < template.indexOf(loaded),
       `${path}：返回入口在所有狀態判斷之外`)
     r.check(/@click="load"[\s\S]*?重試/.test(template), `${path}：讀取失敗有重試`)

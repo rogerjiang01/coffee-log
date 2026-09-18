@@ -59,6 +59,11 @@ const title = computed(() => `選擇${equipmentLabels[props.type]}`)
 // 沒有焦點鎖定也沒有 Esc——鍵盤使用者一旦 tab 出去就回不來。
 const dialog = ref<HTMLDialogElement | null>(null)
 
+// 返回鍵：新增畫面先回到清單（與標題列的 ‹ 相同，填到一半的內容留著），
+// 清單畫面再按一次才關掉選擇器。新增畫面是疊在清單上的第二層
+useOverlayHistory(() => props.open, () => emit('close'))
+useOverlayHistory(() => props.open && mode.value === 'create', () => { mode.value = 'list' })
+
 // immediate 不可省略：父層用 v-if 掛載這個元件，掛載時 props.open 已經
 // 是 true，沒有 immediate 的話這個 watch 等的 false→true 永遠不會發生，
 // load() 一次都不會被呼叫，畫面就永遠停在「讀取中」。
@@ -395,13 +400,16 @@ const inputStyle = { minHeight: 'var(--touch-min)' }
         </p>
       </div>
 
-      <!-- 底部動作 -->
+      <!-- 底部動作。清單畫面沒有「取消」：不選就離開是標題列的 ‹，
+           兩個做完全一樣的事的按鈕只會讓人猜哪個會丟東西。
+           新增畫面的「取消」會清掉填到一半的內容，與 ‹（保留）不同，所以留著。 -->
       <footer class="flex shrink-0 gap-3 border-t px-5 py-3" :style="{ borderColor: 'var(--border)' }">
         <button
+          v-if="mode === 'create'"
           type="button"
           class="flex-1 rounded-sm border px-4 py-3"
           :style="{ borderColor: 'var(--border)', minHeight: 'var(--touch-min)' }"
-          @click="mode === 'create' ? cancelCreate() : emit('close')"
+          @click="cancelCreate"
         >
           取消
         </button>

@@ -47,6 +47,9 @@ const emit = defineEmits<{
   cancel: []
 }>()
 
+// 這個元件只在裁切時才掛上，掛著就是開著。返回鍵等同「取消」：不保留剛選的這張
+useOverlayHistory(() => true, () => emit('cancel'))
+
 /** 輸出邊長。與壓縮的長邊上限一致，裁完不需要再縮 */
 const OUTPUT_EDGE = 1600
 

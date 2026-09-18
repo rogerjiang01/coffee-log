@@ -40,7 +40,7 @@ function reload() {
         網址可能打錯了，或這筆資料已經被刪除。
       </template>
       <template v-else>
-        已經記錄的資料沒有受影響。重新載入通常就會好；如果一直出現同一組代碼，把它回報給我們。
+        已經記錄的資料沒有受影響。重試通常就會好；如果一直出現同一組代碼，把它回報給我們。
       </template>
     </p>
 
@@ -60,7 +60,7 @@ function reload() {
         :style="{ borderColor: 'var(--border-strong)', minHeight: 'var(--touch-min)' }"
         @click="reload"
       >
-        重新載入
+        重試
       </button>
     </div>
 

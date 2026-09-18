@@ -3,6 +3,10 @@
 //
 // 此頁的重點是該豆子所有沖煮紀錄的並排比較——這是本產品「幫助使用者進步」
 // 的核心價值落點。
+//
+// 檢視型畫面（《03》§3）：左上 ‹ 返回豆子列表，分頁列保留，編輯與刪除在內容區。
+
+definePageMeta({ screen: 'view' })
 
 interface BeanDetail {
   id: string
@@ -194,28 +198,9 @@ async function destroy() {
 
 <template>
   <main class="mx-auto px-5 py-10" :style="{ maxWidth: 'var(--content-max)' }">
-    <!-- 返回入口在所有狀態判斷之外：讀取中、讀取失敗、找不到都要看得到。
-         這一頁沒有分頁列，它不在的話只剩瀏覽器返回鍵能離開。
-         編輯要等資料到位——讀不到的豆子沒有東西可以編輯。
-         這一列給 44px 高度，兩個連結撐滿——它們是可點區塊不是行內文字連結，
-         《03》§7 的觸控目標下限適用 -->
-    <div class="flex items-center justify-between" :style="{ minHeight: 'var(--touch-min)' }">
-      <NuxtLink
-        to="/beans"
-        class="flex items-center pr-2 text-sm underline"
-        :style="{ color: 'var(--accent)', alignSelf: 'stretch' }"
-      >
-        豆子
-      </NuxtLink>
-      <NuxtLink
-        v-if="bean"
-        :to="`/beans/${bean.id}/edit`"
-        class="flex items-center pl-2 text-sm underline"
-        :style="{ color: 'var(--accent)', alignSelf: 'stretch', minWidth: 'var(--touch-min)', justifyContent: 'flex-end' }"
-      >
-        編輯
-      </NuxtLink>
-    </div>
+    <!-- ‹ 在所有狀態判斷之外：讀取中、讀取失敗、找不到都要看得到。
+         返回上一層依內容階層，不依來源：豆子的上一層永遠是豆子列表 -->
+    <PageHeader back="/beans" />
 
     <p v-if="loadError" role="alert" class="mt-4 text-sm" :style="{ color: 'var(--danger)' }">{{ loadError }}</p>
     <!-- 整頁都讀不到時才給重試；豆子已經顯示（例如只有紀錄讀不到）時，紅字就夠了 -->
@@ -240,9 +225,6 @@ async function destroy() {
 
     <template v-else-if="notFound">
       <h1 class="mt-4 font-serif text-xl font-bold">找不到這支豆子</h1>
-      <NuxtLink to="/beans" class="mt-6 inline-block underline" :style="{ color: 'var(--accent)' }">
-        回豆子列表
-      </NuxtLink>
     </template>
 
     <template v-else-if="bean">
@@ -352,9 +334,19 @@ async function destroy() {
 
       <p v-if="actionError" class="mt-4 text-sm" :style="{ color: 'var(--danger)' }">{{ actionError }}</p>
 
+      <!-- 編輯與刪除在內容區，不在頂部角落（《03》§3）：頂部角落只留給 ‹。
+           權重依頻率排：再沖一次（主要）→ 編輯（次要，有框）→ 刪除（最低，無框） -->
+      <NuxtLink
+        :to="`/beans/${bean.id}/edit`"
+        class="mt-4 flex w-full items-center justify-center rounded-sm border px-4 py-3"
+        :style="{ borderColor: 'var(--border)', minHeight: 'var(--touch-min)' }"
+      >
+        編輯
+      </NuxtLink>
+
       <button
         type="button"
-        class="mt-4 w-full rounded-sm px-4 py-3"
+        class="mt-3 w-full rounded-sm px-4 py-3"
         :style="{ color: 'var(--danger)', minHeight: 'var(--touch-min)' }"
         @click="confirmOpen = true"
       >

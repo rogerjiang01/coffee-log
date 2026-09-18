@@ -96,6 +96,9 @@ async function toggle() {
   }
 }
 
+// 返回鍵關掉浮層，不離開頁面。
+useOverlayHistory(() => open.value, close)
+
 function close() {
   open.value = false
   query.value = ''

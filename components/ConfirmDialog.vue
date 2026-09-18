@@ -15,6 +15,9 @@ const emit = defineEmits<{ confirm: []; cancel: [] }>()
 
 const dialog = ref<HTMLDialogElement | null>(null)
 
+// 返回鍵等同「取消」：不刪
+useOverlayHistory(() => props.open, () => emit('cancel'))
+
 watch(() => props.open, (value) => {
   if (!dialog.value) return
   if (value && !dialog.value.open) dialog.value.showModal()

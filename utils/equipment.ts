@@ -1,5 +1,7 @@
 // 器材相關的共用邏輯。
 
+import { toError } from './errorMessage.ts'
+
 export type EquipmentType = 'grinder' | 'dripper' | 'filter' | 'kettle' | 'server'
 
 export const equipmentTypes: EquipmentType[] = ['grinder', 'dripper', 'filter', 'kettle', 'server']
@@ -310,3 +312,34 @@ export function lastUsedFromBrews(
 
 /** 五個器材類型對應到 brews 上的欄位 */
 export const EQUIPMENT_COLUMNS = ['grinder_id', 'dripper_id', 'filter_id', 'kettle_id', 'server_id']
+
+/** 器材表單（/equipment/new、/equipment/[id]/edit）的值 */
+export interface EquipmentFormValues {
+  type: EquipmentType
+  catalog_id: string | null
+  custom_name: string
+  note: string
+  is_default: boolean
+}
+
+/**
+ * 每個類型只能有一台常用（DB 有 partial unique index，欄位名仍是 is_default）。
+ * 設新的常用之前先把同類型的既有常用清掉，否則會撞上唯一約束，
+ * 把資料庫層的錯誤訊息丟到使用者面前。編輯時 exceptId 是正在編輯的那一台。
+ */
+export async function clearDefaultEquipment(
+  supabase: { from: (table: string) => any },
+  userId: string,
+  type: EquipmentType,
+  exceptId?: string,
+) {
+  let request = supabase
+    .from('user_equipment')
+    .update({ is_default: false })
+    .eq('user_id', userId)
+    .eq('type', type)
+    .eq('is_default', true)
+  if (exceptId) request = request.neq('id', exceptId)
+  const { error } = await request
+  if (error) throw toError(error)
+}

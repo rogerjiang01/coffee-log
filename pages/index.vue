@@ -5,6 +5,8 @@
 // 不是從零開始填表。上下兩區並存，不做視角切換——切換器會把決策成本
 // 丟給使用者，而兩區並存已經同時滿足兩種需求。
 
+definePageMeta({ screen: 'browse' })
+
 const supabase = useSupabaseClient()
 const { signedUrls } = useBeanPhotos()
 
@@ -246,12 +248,28 @@ const newBrewLink = computed(() =>
 </script>
 
 <template>
-  <!-- 底部留白同時避開分頁列與浮動按鈕 -->
-  <main class="mx-auto px-5 pt-10 pb-32" :style="{ maxWidth: 'var(--content-max)' }">
-    <div class="flex items-baseline justify-between">
-      <h1 class="font-serif text-xl font-bold">手沖咖啡紀錄</h1>
-      <NuxtLink to="/settings" class="text-sm underline" :style="{ color: 'var(--accent)' }">設定</NuxtLink>
-    </div>
+  <!-- 底部留白避開浮動按鈕；分頁列的高度由 app.vue 讓出 -->
+  <main class="mx-auto px-5 pt-10 pb-24" :style="{ maxWidth: 'var(--content-max)' }">
+    <PageHeader title="手沖咖啡紀錄">
+      <template #end>
+        <!-- 設定只從這裡進（《03》§3）。icon 封閉清單的三個之一 -->
+        <NuxtLink
+          to="/settings"
+          aria-label="設定"
+          class="-mr-3 flex shrink-0 items-center justify-center"
+          :style="{ minWidth: 'var(--touch-min)', minHeight: 'var(--touch-min)' }"
+        >
+          <svg
+            width="22" height="22" viewBox="0 0 24 24" fill="none"
+            stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"
+            aria-hidden="true"
+          >
+            <circle cx="12" cy="12" r="3" />
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
+          </svg>
+        </NuxtLink>
+      </template>
+    </PageHeader>
 
     <p v-if="loadError" role="alert" class="mt-4 text-sm" :style="{ color: 'var(--danger)' }">
       {{ loadError }}
@@ -375,7 +393,5 @@ const newBrewLink = computed(() =>
         <path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
       </svg>
     </NuxtLink>
-
-    <BottomNav />
   </main>
 </template>

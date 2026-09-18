@@ -7,6 +7,10 @@
 //   /brews/new?copy={id}    複製既有紀錄
 //
 // 複製是本產品最高頻的路徑，優先做對。
+//
+// 流程型畫面（《03》§3）：左上 ‹ 離開（暫存保留），沒有分頁列，底部是儲存。
+
+definePageMeta({ screen: 'flow' })
 
 const route = useRoute()
 const supabase = useSupabaseClient()
@@ -23,10 +27,13 @@ const initialSteps = ref<StepInput[] | undefined>(undefined)
 const copiedFrom = ref<string | null>(null)
 
 // 暫存依進入方式分開：複製 A 的暫存不能還原進複製 B（《02》§6、utils/draft.ts）
-const draftKey = newBrewDraftKey({
+const entry = {
   copy: typeof route.query.copy === 'string' ? route.query.copy : null,
   bean: typeof route.query.bean === 'string' ? route.query.bean : null,
-})
+}
+const draftKey = newBrewDraftKey(entry)
+// ‹ 離開到哪裡只看網址（utils/navigation.ts）：複製回來源紀錄、指定豆子回那支豆子
+const leaveTo = newBrewLeaveTarget(entry)
 
 onMounted(async () => {
   try {
@@ -182,10 +189,9 @@ async function onSubmit(payload: {
 
 <template>
   <main class="mx-auto px-5 pt-10 pb-16" :style="{ maxWidth: 'var(--content-max)' }">
-    <div class="flex items-baseline justify-between">
-      <h1 class="font-serif text-xl font-bold">{{ copiedFrom ? '再沖一次' : '新增紀錄' }}</h1>
-      <NuxtLink to="/" class="text-sm underline" :style="{ color: 'var(--accent)' }">取消</NuxtLink>
-    </div>
+    <!-- ‹ 是「離開」不是「取消」：暫存留著，回來還在（《04》）。
+         會丟掉內容的動作才叫取消，這一頁沒有 -->
+    <PageHeader :title="copiedFrom ? '再沖一次' : '新增紀錄'" :back="leaveTo" back-label="離開" />
 
     <!-- 骨架：表單的分組卡片先佔位，等資料回來換成真的表單。
          §6 不做進場動畫，所以是靜態色塊。 -->

@@ -3,6 +3,10 @@
 //
 // 照片的上傳順序：先建立豆子取得 id，再以 {user_id}/{bean_id}.{ext} 上傳，
 // 最後回寫 photo_path。路徑格式由 §7 決定，而 bean_id 在建立前不存在。
+//
+// 流程型畫面（《03》§3）：左上 ‹ 離開（暫存保留），沒有分頁列，底部是儲存。
+
+definePageMeta({ screen: 'flow' })
 
 const supabase = useSupabaseClient()
 const cache = useQueryCache()
@@ -75,10 +79,8 @@ async function onSubmit({ values, photo }: { values: BeanFormValues; photo: Comp
 
 <template>
   <main class="mx-auto px-5 py-10" :style="{ maxWidth: 'var(--content-max)' }">
-    <div class="flex items-baseline justify-between">
-      <h1 class="font-serif text-xl font-bold">新增豆子</h1>
-      <NuxtLink to="/beans" class="text-sm underline" :style="{ color: 'var(--accent)' }">取消</NuxtLink>
-    </div>
+    <!-- ‹ 是「離開」不是「取消」：暫存留著，回來還在（《04》） -->
+    <PageHeader title="新增豆子" back="/beans" back-label="離開" />
 
     <div class="mt-8">
       <BeanForm ref="form" draft-key="draft:bean:new" submit-label="儲存" :busy="saving" :error="error" @submit="onSubmit" />
