@@ -264,8 +264,8 @@ const inputStyle = { minHeight: 'var(--touch-min)' }
           :aria-label="mode === 'create' ? '回到清單' : '返回'"
           @click="mode === 'create' ? (mode = 'list') : emit('close')"
         >
-          <svg width="20" height="20" viewBox="0 0 20 20" aria-hidden="true" class="mx-auto">
-            <path d="M12 4l-6 6 6 6" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
+          <svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true" class="mx-auto">
+            <path d="M15 5l-7 7 7 7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
           </svg>
         </button>
 
