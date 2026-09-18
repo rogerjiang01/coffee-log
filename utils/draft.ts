@@ -223,27 +223,49 @@ export function createDraftWriter<T>(options: {
   delayMs?: number
 }) {
   let timer: ReturnType<typeof setTimeout> | null = null
+  /** 排定了、還沒寫入的內容 */
+  let pending: { value: T } | null = null
 
   function stop() {
     if (timer) clearTimeout(timer)
     timer = null
+    pending = null
+  }
+
+  function writeNow(value: T) {
+    options.onStatus(options.write(value) ? 'saved' : null)
   }
 
   return {
     schedule(value: T) {
       stop()
       options.onStatus('saving')
+      pending = { value }
       timer = setTimeout(() => {
         timer = null
-        options.onStatus(options.write(value) ? 'saved' : null)
+        pending = null
+        writeNow(value)
       }, options.delayMs ?? DRAFT_WRITE_DELAY_MS)
     },
-    /** 暫存被清掉：不再寫入，也不再顯示狀態 */
+    /** 暫存被清掉：丟掉待寫入的內容，不再寫入，也不再顯示狀態 */
     cancel() {
       stop()
       options.onStatus(null)
     },
-    /** 元件卸載：只停掉計時，狀態不必再動 */
-    stop,
+    /**
+     * 元件卸載：待寫入的內容**立刻寫進去**再停。
+     *
+     * 原本卸載時只停掉計時，改完一個欄位後 0.5 秒內按取消、返回鍵或
+     * 分頁列，那次改動就不見了——延遲寫入是為了不在打字時一直寫，
+     * 不是為了在離開時丟東西。
+     *
+     * 與 cancel 相反：cancel 是暫存被清掉（儲存成功、全部清除、重新開始），
+     * 待寫入的內容必須丟掉，否則剛清掉的暫存又會被寫回來。
+     */
+    flush() {
+      const value = pending
+      stop()
+      if (value) writeNow(value.value)
+    },
   }
 }

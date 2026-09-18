@@ -237,14 +237,31 @@ async function destroy() {
 
 <template>
   <main class="mx-auto px-5 pt-10 pb-16" :style="{ maxWidth: 'var(--content-max)' }">
-    <p v-if="loadError" role="alert" class="text-sm" :style="{ color: 'var(--danger)' }">{{ loadError }}</p>
+    <!-- 返回入口在所有狀態判斷之外：讀取中、讀取失敗、找不到都要看得到。
+         這一頁沒有分頁列，它不在的話只剩瀏覽器返回鍵能離開。
+         編輯要等資料到位——讀不到的紀錄沒有東西可以編輯。 -->
+    <div class="flex items-baseline justify-between">
+      <NuxtLink to="/" class="text-sm underline" :style="{ color: 'var(--accent)' }">首頁</NuxtLink>
+      <NuxtLink v-if="brew" :to="`/brews/${brew.id}/edit`" class="text-sm underline" :style="{ color: 'var(--accent)' }">
+        編輯
+      </NuxtLink>
+    </div>
+
+    <p v-if="loadError" role="alert" class="mt-4 text-sm" :style="{ color: 'var(--danger)' }">{{ loadError }}</p>
+    <!-- 整頁都讀不到時才給重試；已經有內容（例如只有分段讀不到）時，紅字就夠了 -->
+    <button
+      v-if="loadError && !brew && !notFound && !loading"
+      type="button"
+      class="mt-4 w-full rounded-sm border px-4 py-3"
+      :style="{ borderColor: 'var(--border-strong)', minHeight: 'var(--touch-min)' }"
+      @click="load"
+    >
+      重試
+    </button>
+
     <!-- 骨架：版面結構立刻畫出來，資料回來再填。
          這不會讓資料變快，但空白加「讀取中」與有形狀的頁面，感受差很多。 -->
     <div v-if="loading" aria-busy="true" aria-label="讀取中">
-      <div class="flex items-baseline justify-between">
-        <SkeletonBlock width="3rem" height="0.875rem" />
-        <SkeletonBlock width="2rem" height="0.875rem" />
-      </div>
       <SkeletonBlock width="60%" height="1.75rem" class="mt-4" />
       <SkeletonBlock width="9rem" height="0.875rem" class="mt-2" />
       <div class="mt-8 space-y-3">
@@ -253,18 +270,11 @@ async function destroy() {
     </div>
 
     <template v-else-if="notFound">
-      <h1 class="font-serif text-xl font-bold">找不到這筆紀錄</h1>
+      <h1 class="mt-4 font-serif text-xl font-bold">找不到這筆紀錄</h1>
       <NuxtLink to="/" class="mt-4 inline-block underline" :style="{ color: 'var(--accent)' }">回首頁</NuxtLink>
     </template>
 
     <template v-else-if="brew">
-      <div class="flex items-baseline justify-between">
-        <NuxtLink to="/" class="text-sm underline" :style="{ color: 'var(--accent)' }">首頁</NuxtLink>
-        <NuxtLink :to="`/brews/${brew.id}/edit`" class="text-sm underline" :style="{ color: 'var(--accent)' }">
-          編輯
-        </NuxtLink>
-      </div>
-
       <h1 class="mt-4 font-serif text-2xl font-bold">
         {{ brew.beans?.name ?? '沒有指定豆子' }}
       </h1>

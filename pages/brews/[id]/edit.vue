@@ -21,7 +21,18 @@ const form = ref<{ clearDraft: () => void } | null>(null)
 const saving = ref(false)
 const error = ref('')
 
-onMounted(async () => {
+const view = computed(() => loadView({
+  loading: loading.value,
+  loadError: loadError.value,
+  notFound: notFound.value,
+  loaded: initial.value !== null,
+}))
+
+async function load() {
+  loading.value = true
+  loadError.value = ''
+  notFound.value = false
+  initial.value = null
   try {
     // 三個查詢都只靠網址上的 id，一起發。原本是一個接一個 await，
     // 三趟來回全部疊在使用者按下「編輯」到看見表單之間。
@@ -38,8 +49,13 @@ onMounted(async () => {
         .order('step_index'),
       supabase.from('brew_flavor_tags').select('flavor_tag_id').eq('brew_id', id.value),
     ])
-    const data = brewResult.data
 
+    // 三個都要檢查。分段或標籤讀不到卻照樣顯示表單，分段會退回模板、
+    // 標籤是空的——按下儲存就把原本的分段與標籤刪掉換成這些（loadState.ts）
+    const failed = firstQueryError(brewResult, stepResult, tagResult)
+    if (failed) throw toError(failed)
+
+    const data = brewResult.data
     if (!data) {
       notFound.value = true
       return
@@ -47,6 +63,14 @@ onMounted(async () => {
     const brew = data as unknown as Record<string, unknown>
     const totalTime = (brew.total_time as number | null) ?? null
 
+    // 分段欄位一對一，沒有換算
+    const rows = (stepResult.data ?? []) as unknown as StepRow[]
+    stepInputs.value = rows.length ? toStepInputs(rows) : initialSteps()
+
+    tagIds.value = ((tagResult.data ?? []) as unknown as { flavor_tag_id: string }[])
+      .map(t => t.flavor_tag_id)
+
+    // 最後才設：initial 有值代表表單需要的東西全部到位
     initial.value = {
       bean_id: (brew.bean_id as string | null) ?? null,
       brew_method_id: (brew.brew_method_id as string | null) ?? null,
@@ -65,24 +89,18 @@ onMounted(async () => {
       tasting_notes: (brew.tasting_notes as string | null) ?? '',
       intensity: (brew.intensity as Intensity | null) ?? {},
     }
-
-    // 分段欄位一對一，沒有換算
-    const rows = (stepResult.data ?? []) as unknown as StepRow[]
-    stepInputs.value = rows.length ? toStepInputs(rows) : initialSteps()
-
-    tagIds.value = ((tagResult.data ?? []) as unknown as { flavor_tag_id: string }[])
-      .map(t => t.flavor_tag_id)
-
-    loading.value = false
   }
   catch (e) {
+    initial.value = null
     loadError.value = `讀不到資料：${errorText(e)}`
   }
   finally {
     // finally：任何失敗都不能讓頁面停在「讀取中」
     loading.value = false
   }
-})
+}
+
+onMounted(load)
 
 async function onSubmit(payload: {
   values: BrewFormValues
@@ -154,34 +172,48 @@ async function onSubmit(payload: {
 
 <template>
   <main class="mx-auto px-5 pt-10 pb-16" :style="{ maxWidth: 'var(--content-max)' }">
-    <p v-if="loadError" role="alert" class="text-sm" :style="{ color: 'var(--danger)' }">{{ loadError }}</p>
-    <!-- 骨架：表單的分組卡片先佔位，等資料回來換成真的表單。
-         §6 不做進場動畫，所以是靜態色塊。 -->
-    <div v-if="loading" aria-busy="true" aria-label="讀取中" class="mt-8 space-y-4">
-      <div
-        v-for="card in 3" :key="card"
-        class="rounded-sm border p-5"
-        :style="{ borderColor: 'var(--border)', background: 'var(--surface)' }"
-      >
-        <SkeletonBlock width="5rem" height="0.875rem" />
-        <div class="mt-4 space-y-4">
-          <SkeletonBlock v-for="row in 3" :key="row" height="1.5rem" />
-        </div>
-      </div>
-    </div>
-
-    <template v-else-if="notFound">
+    <template v-if="view === 'notFound'">
       <h1 class="font-serif text-xl font-bold">找不到這筆紀錄</h1>
       <NuxtLink to="/" class="mt-4 inline-block underline" :style="{ color: 'var(--accent)' }">回首頁</NuxtLink>
     </template>
 
     <template v-else>
+      <!-- 離開的入口不跟著資料走：讀取中、讀取失敗都要看得到 -->
       <div class="flex items-baseline justify-between">
         <h1 class="font-serif text-xl font-bold">編輯紀錄</h1>
         <NuxtLink :to="`/brews/${id}`" class="text-sm underline" :style="{ color: 'var(--accent)' }">取消</NuxtLink>
       </div>
 
-      <div class="mt-8">
+      <!-- 骨架：表單的分組卡片先佔位，等資料回來換成真的表單。
+           §6 不做進場動畫，所以是靜態色塊。 -->
+      <div v-if="view === 'loading'" aria-busy="true" aria-label="讀取中" class="mt-8 space-y-4">
+        <div
+          v-for="card in 3" :key="card"
+          class="rounded-sm border p-5"
+          :style="{ borderColor: 'var(--border)', background: 'var(--surface)' }"
+        >
+          <SkeletonBlock width="5rem" height="0.875rem" />
+          <div class="mt-4 space-y-4">
+            <SkeletonBlock v-for="row in 3" :key="row" height="1.5rem" />
+          </div>
+        </div>
+      </div>
+
+      <!-- 讀取失敗不渲染表單（loadState.ts）：那張表單可以儲存，
+           而儲存會用不完整的內容覆蓋這筆紀錄 -->
+      <div v-else-if="view === 'error'" class="mt-8">
+        <p role="alert" class="text-sm" :style="{ color: 'var(--danger)' }">{{ loadError }}</p>
+        <button
+          type="button"
+          class="mt-4 w-full rounded-sm border px-4 py-3"
+          :style="{ borderColor: 'var(--border-strong)', minHeight: 'var(--touch-min)' }"
+          @click="load"
+        >
+          重試
+        </button>
+      </div>
+
+      <div v-else-if="view === 'ready'" class="mt-8">
         <BrewForm
           ref="form"
           :draft-key="`draft:brew:${id}`"

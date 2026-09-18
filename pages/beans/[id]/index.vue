@@ -194,9 +194,42 @@ async function destroy() {
 
 <template>
   <main class="mx-auto px-5 py-10" :style="{ maxWidth: 'var(--content-max)' }">
-    <p v-if="loadError" role="alert" class="text-sm" :style="{ color: 'var(--danger)' }">{{ loadError }}</p>
+    <!-- 返回入口在所有狀態判斷之外：讀取中、讀取失敗、找不到都要看得到。
+         這一頁沒有分頁列，它不在的話只剩瀏覽器返回鍵能離開。
+         編輯要等資料到位——讀不到的豆子沒有東西可以編輯。
+         這一列給 44px 高度，兩個連結撐滿——它們是可點區塊不是行內文字連結，
+         《03》§7 的觸控目標下限適用 -->
+    <div class="flex items-center justify-between" :style="{ minHeight: 'var(--touch-min)' }">
+      <NuxtLink
+        to="/beans"
+        class="flex items-center pr-2 text-sm underline"
+        :style="{ color: 'var(--accent)', alignSelf: 'stretch' }"
+      >
+        豆子
+      </NuxtLink>
+      <NuxtLink
+        v-if="bean"
+        :to="`/beans/${bean.id}/edit`"
+        class="flex items-center pl-2 text-sm underline"
+        :style="{ color: 'var(--accent)', alignSelf: 'stretch', minWidth: 'var(--touch-min)', justifyContent: 'flex-end' }"
+      >
+        編輯
+      </NuxtLink>
+    </div>
+
+    <p v-if="loadError" role="alert" class="mt-4 text-sm" :style="{ color: 'var(--danger)' }">{{ loadError }}</p>
+    <!-- 整頁都讀不到時才給重試；豆子已經顯示（例如只有紀錄讀不到）時，紅字就夠了 -->
+    <button
+      v-if="loadError && !bean && !notFound && !loading"
+      type="button"
+      class="mt-4 w-full rounded-sm border px-4 py-3"
+      :style="{ borderColor: 'var(--border-strong)', minHeight: 'var(--touch-min)' }"
+      @click="load"
+    >
+      重試
+    </button>
+
     <div v-if="loading" aria-busy="true" aria-label="讀取中">
-      <SkeletonBlock width="3rem" height="0.875rem" />
       <SkeletonBlock height="10rem" radius="4px" class="mt-4" />
       <SkeletonBlock width="55%" height="1.75rem" class="mt-4" />
       <SkeletonBlock width="8rem" height="0.875rem" class="mt-2" />
@@ -206,32 +239,13 @@ async function destroy() {
     </div>
 
     <template v-else-if="notFound">
-      <h1 class="font-serif text-xl font-bold">找不到這支豆子</h1>
+      <h1 class="mt-4 font-serif text-xl font-bold">找不到這支豆子</h1>
       <NuxtLink to="/beans" class="mt-6 inline-block underline" :style="{ color: 'var(--accent)' }">
         回豆子列表
       </NuxtLink>
     </template>
 
     <template v-else-if="bean">
-      <!-- 這一列給 44px 高度，兩個連結撐滿——它們是可點區塊不是行內文字連結，
-           《03》§7 的觸控目標下限適用 -->
-      <div class="flex items-center justify-between" :style="{ minHeight: 'var(--touch-min)' }">
-        <NuxtLink
-          to="/beans"
-          class="flex items-center pr-2 text-sm underline"
-          :style="{ color: 'var(--accent)', alignSelf: 'stretch' }"
-        >
-          豆子
-        </NuxtLink>
-        <NuxtLink
-          :to="`/beans/${bean.id}/edit`"
-          class="flex items-center pl-2 text-sm underline"
-          :style="{ color: 'var(--accent)', alignSelf: 'stretch', minWidth: 'var(--touch-min)', justifyContent: 'flex-end' }"
-        >
-          編輯
-        </NuxtLink>
-      </div>
-
       <!-- 正方形，與裁切比例一致：使用者在裁切畫面框的就是這裡看到的。
            object-cover 只為了裁切上線前存的非正方形舊照片。 -->
       <img

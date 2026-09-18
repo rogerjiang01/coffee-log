@@ -106,8 +106,10 @@ export function useFormDraft<T>(key: string, options: {
     }
   })
 
+  // 離開頁面時把還沒寫的那一筆寫進去（createDraftWriter.flush）。
+  // 儲存成功或清除時 clear() 已經先 cancel 過，這裡不會把它寫回來。
   onBeforeUnmount(() => {
-    writer.stop()
+    writer.flush()
   })
 
   watch(options.read, (value) => {

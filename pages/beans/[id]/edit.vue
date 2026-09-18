@@ -19,14 +19,30 @@ const form = ref<{ clearDraft: () => void } | null>(null)
 const saving = ref(false)
 const error = ref('')
 
-onMounted(async () => {
+const view = computed(() => loadView({
+  loading: loading.value,
+  loadError: loadError.value,
+  notFound: notFound.value,
+  loaded: initial.value !== null,
+}))
+
+async function load() {
+  loading.value = true
+  loadError.value = ''
+  notFound.value = false
+  initial.value = null
   try {
-    const { data } = await supabase
+    const result = await supabase
       .from('beans')
       .select('name, photo_path, roaster, roast_date, roast_level, country_id, region, processing_method_id, variety_id, official_notes')
       .eq('id', id.value)
       .maybeSingle()
 
+    // 查詢失敗不是「找不到」：supabase-js 不拋例外，要自己看 error（loadState.ts）
+    const failed = firstQueryError(result)
+    if (failed) throw toError(failed)
+
+    const data = result.data
     if (!data) {
       notFound.value = true
       return
@@ -45,16 +61,18 @@ onMounted(async () => {
       variety_id: (bean.variety_id as string | null) ?? null,
       official_notes: (bean.official_notes as string | null) ?? '',
     }
-    loading.value = false
   }
   catch (e) {
+    initial.value = null
     loadError.value = `讀不到資料：${errorText(e)}`
   }
   finally {
     // finally：任何失敗都不能讓頁面停在「讀取中」
     loading.value = false
   }
-})
+}
+
+onMounted(load)
 
 async function onSubmit(
   { values, photo, photoCleared }: { values: BeanFormValues; photo: CompressedImage | null; photoCleared: boolean },
@@ -113,21 +131,7 @@ async function onSubmit(
 
 <template>
   <main class="mx-auto px-5 py-10" :style="{ maxWidth: 'var(--content-max)' }">
-    <p v-if="loadError" role="alert" class="text-sm" :style="{ color: 'var(--danger)' }">{{ loadError }}</p>
-    <div v-if="loading" aria-busy="true" aria-label="讀取中" class="mt-8 space-y-4">
-      <div
-        v-for="card in 2" :key="card"
-        class="rounded-sm border p-5"
-        :style="{ borderColor: 'var(--border)', background: 'var(--surface)' }"
-      >
-        <SkeletonBlock width="5rem" height="0.875rem" />
-        <div class="mt-4 space-y-4">
-          <SkeletonBlock v-for="row in 3" :key="row" height="1.5rem" />
-        </div>
-      </div>
-    </div>
-
-    <template v-else-if="notFound">
+    <template v-if="view === 'notFound'">
       <h1 class="font-serif text-xl font-bold">找不到這支豆子</h1>
       <NuxtLink to="/beans" class="mt-4 inline-block underline" :style="{ color: 'var(--accent)' }">
         回豆子列表
@@ -135,12 +139,40 @@ async function onSubmit(
     </template>
 
     <template v-else>
+      <!-- 離開的入口不跟著資料走：讀取中、讀取失敗都要看得到 -->
       <div class="flex items-baseline justify-between">
         <h1 class="font-serif text-xl font-bold">編輯豆子</h1>
         <NuxtLink :to="`/beans/${id}`" class="text-sm underline" :style="{ color: 'var(--accent)' }">取消</NuxtLink>
       </div>
 
-      <div class="mt-8">
+      <div v-if="view === 'loading'" aria-busy="true" aria-label="讀取中" class="mt-8 space-y-4">
+        <div
+          v-for="card in 2" :key="card"
+          class="rounded-sm border p-5"
+          :style="{ borderColor: 'var(--border)', background: 'var(--surface)' }"
+        >
+          <SkeletonBlock width="5rem" height="0.875rem" />
+          <div class="mt-4 space-y-4">
+            <SkeletonBlock v-for="row in 3" :key="row" height="1.5rem" />
+          </div>
+        </div>
+      </div>
+
+      <!-- 讀取失敗不渲染表單（loadState.ts）：那張表單可以儲存，
+           而儲存會用空白的內容覆蓋這支豆子 -->
+      <div v-else-if="view === 'error'" class="mt-8">
+        <p role="alert" class="text-sm" :style="{ color: 'var(--danger)' }">{{ loadError }}</p>
+        <button
+          type="button"
+          class="mt-4 w-full rounded-sm border px-4 py-3"
+          :style="{ borderColor: 'var(--border-strong)', minHeight: 'var(--touch-min)' }"
+          @click="load"
+        >
+          重試
+        </button>
+      </div>
+
+      <div v-else-if="view === 'ready'" class="mt-8">
         <BeanForm
           ref="form"
           :draft-key="`draft:bean:${id}`"

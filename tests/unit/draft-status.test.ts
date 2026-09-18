@@ -62,5 +62,30 @@ export default async function run() {
   await wait(40)
   r.check(cleared.last() === null && cleared.written.length === 0, '全部清除、儲存成功：不再寫入，狀態收起來')
 
+  r.section('離開時立刻寫入待處理的內容')
+  const leaving = setup()
+  leaving.writer.schedule('a')
+  leaving.writer.schedule('ab')
+  leaving.writer.flush()
+  r.check(leaving.written.join() === 'ab', '不等延遲，當場寫入最後一次的內容')
+  r.check(leaving.last() === 'saved', '寫入後是「已暫存」')
+  await wait(40)
+  r.check(leaving.written.length === 1, '計時器已停，不會再寫一次')
+
+  const idleFlush = setup()
+  idleFlush.writer.flush()
+  r.check(idleFlush.written.length === 0 && idleFlush.history.length === 0, '沒有待寫入的內容：什麼都不做')
+
+  const cancelledFlush = setup()
+  cancelledFlush.writer.schedule('a')
+  cancelledFlush.writer.cancel()
+  cancelledFlush.writer.flush()
+  r.check(cancelledFlush.written.length === 0, '清掉之後離開：不把丟掉的內容寫回來')
+
+  const failingFlush = setup(() => false)
+  failingFlush.writer.schedule('a')
+  failingFlush.writer.flush()
+  r.check(failingFlush.last() === null, '離開時寫不進去：狀態收起來，不說已暫存')
+
   return r.finish()
 }
