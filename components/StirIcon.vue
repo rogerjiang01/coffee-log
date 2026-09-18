@@ -16,7 +16,7 @@ defineProps<{ label?: string }>()
     :aria-hidden="label ? undefined : true"
     :role="label ? 'img' : undefined"
     :aria-label="label"
-    fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"
+    fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
   >
     <path d="M12 3a6 6 0 016 6c0 3.5-3 5-6 5s-6-1.5-6-5" />
     <path d="M12 14v7" />

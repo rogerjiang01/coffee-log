@@ -271,7 +271,7 @@ async function create() {
         width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"
         :style="{ color: 'var(--text-muted)', transform: open ? 'rotate(180deg)' : 'none', transition: 'transform var(--motion-duration) var(--motion-ease)' }"
       >
-        <path d="M3 6l5 5 5-5" fill="none" stroke="currentColor" stroke-width="1.5" />
+        <path d="M3 6l5 5 5-5" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
       </svg>
     </button>
 

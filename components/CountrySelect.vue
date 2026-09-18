@@ -145,7 +145,7 @@ const optionStyle = { minHeight: 'var(--touch-min)' }
           transition: 'transform var(--motion-duration) var(--motion-ease)',
         }"
       >
-        <path d="M3 6l5 5 5-5" fill="none" stroke="currentColor" stroke-width="1.5" />
+        <path d="M3 6l5 5 5-5" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
       </svg>
     </button>
 

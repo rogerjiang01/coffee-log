@@ -17,7 +17,7 @@ defineProps<{ filled?: boolean }>()
       class="pointer-events-none absolute top-1/2 right-0 -translate-y-1/2"
       :style="{ color: 'var(--text-muted)' }"
     >
-      <path d="M3 6l5 5 5-5" fill="none" stroke="currentColor" stroke-width="1.5" />
+      <path d="M3 6l5 5 5-5" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
     </svg>
   </div>
 </template>

@@ -26,8 +26,8 @@ defineProps<{ status: DraftSaveStatus }>()
     <!-- 暫存中：雙箭頭圍圈（sync） -->
     <svg
       v-if="status === 'saving'"
-      width="14" height="14" viewBox="0 0 24 24" fill="none"
-      stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"
+      width="16" height="16" viewBox="0 0 24 24" fill="none"
+      stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round"
       aria-hidden="true"
     >
       <path d="M20 12a8 8 0 0 1-13.66 5.66" />
@@ -38,8 +38,8 @@ defineProps<{ status: DraftSaveStatus }>()
     <!-- 已暫存：細線打勾，不加實心圓底——那太像完成的慶祝符號 -->
     <svg
       v-else
-      width="14" height="14" viewBox="0 0 24 24" fill="none"
-      stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"
+      width="16" height="16" viewBox="0 0 24 24" fill="none"
+      stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round"
       aria-hidden="true"
     >
       <path d="M5 12.5l4.5 4.5L19 7.5" />

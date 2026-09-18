@@ -158,8 +158,9 @@
     --font-heading: "Noto Serif TC", ui-serif, Georgia, "Songti TC", serif;
     --font-body: "Noto Sans TC", ui-sans-serif, system-ui, -apple-system, "PingFang TC", "Microsoft JhengHei", sans-serif;
 
-    /* 字級階層（六級，基準 16px）。
-     中文文字不得小於 0.75rem，--text-xs 即為下限。
+    /* 字級階層（五級，基準 16px）。
+     中文文字不得小於 0.875rem。使用者的情境是沖煮當下——站著、手可能是濕的、
+     注意力在水流上、螢幕離眼睛比坐著遠，12px 在那個情境下看不清楚。
      內文級距行高維持 ≥1.7；標題級距收緊，中文標題行高過大會散。 */
 
     --text-2xl: 2rem;
@@ -172,8 +173,10 @@
     --text-base--line-height: 1.75;
     --text-sm: 0.875rem;
     --text-sm--line-height: 1.7;
-    --text-xs: 0.75rem;
-    --text-xs--line-height: 1.7;
+    /* --text-xs 併入 --text-sm，名字保留：刪掉的話 text-xs 會悄悄回到
+       Tailwind 內建的 12px，而且不會報錯。原本的 41 處之後順手改成 text-sm。 */
+    --text-xs: var(--text-sm);
+    --text-xs--line-height: var(--text-sm--line-height);
 
     --leading-body: 1.75;
 

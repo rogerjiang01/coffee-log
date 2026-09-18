@@ -13,7 +13,7 @@ const items = [
   { to: '/equipment', label: '器材' },
 ] as const
 
-// 亮哪一項依內容階層（utils/navigation.ts）：紀錄詳情屬於豆子
+// 亮哪一項依內容階層（utils/navigation.ts）：紀錄詳情亮首頁，它出現在首頁時間軸（《03》§3）
 const isActive = (to: string) => tabSection(route.path) === to
 </script>
 
