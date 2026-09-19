@@ -72,6 +72,29 @@ export function sweepExpiredDrafts(
   return expired
 }
 
+/** 所有暫存 key 的共同前綴（沖煮、豆子、器材、就地新增都是） */
+export const DRAFT_PREFIX = 'draft:'
+
+/**
+ * 登出時清掉所有暫存，不論有沒有過期。
+ *
+ * 與 7 天失效是兩回事：失效是暫存自己變舊，登出是使用者明確說「我要走了」。
+ * 共用裝置上不清的話，下一個人登入會看到前一個人填到一半的內容。
+ * 只清 draft: 開頭的——收合區的展開狀態這類介面偏好不是誰的資料。
+ */
+export function clearAllDrafts(
+  storage: Pick<Storage, 'length' | 'key' | 'removeItem'>,
+) {
+  const found: string[] = []
+  for (let i = 0; i < storage.length; i++) {
+    const key = storage.key(i)
+    if (key?.startsWith(DRAFT_PREFIX)) found.push(key)
+  }
+  // 邊走邊刪會讓 index 錯位，收集完再刪
+  for (const key of found) storage.removeItem(key)
+  return found
+}
+
 export function packDraft<T>(data: T, now: number = Date.now()) {
   return JSON.stringify({ savedAt: now, data } satisfies DraftEnvelope<T>)
 }

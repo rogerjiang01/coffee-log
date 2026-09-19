@@ -127,7 +127,17 @@ export function createDraftPhotos(backend: DraftPhotoBackend, now: () => number 
     }
   }
 
-  return { save, load, remove, sweep }
+  /** 登出時整個清空：這個 store 裡只有暫存照片。失敗不丟例外——不該擋住登出 */
+  async function clear(): Promise<void> {
+    try {
+      for (const [key] of await backend.entries()) await backend.delete(key)
+    }
+    catch (e) {
+      console.warn('[draft-photo] 暫存照片清不掉', e)
+    }
+  }
+
+  return { save, load, remove, sweep, clear }
 }
 
 const DB_NAME = 'coffee-log'

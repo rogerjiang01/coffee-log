@@ -5,7 +5,7 @@
 
 import {
   packDraft, unpackDraft, unpackDraftEnvelope, pruneMissingIds, collectIds, draftKey,
-  newBrewDraftKey, sweepExpiredDrafts,
+  newBrewDraftKey, sweepExpiredDrafts, clearAllDrafts,
   draftAge, droppedFieldsMessage, DRAFT_TTL_MS, DRAFT_AUTO_RESTORE_MS,
 } from '../../utils/draft.ts'
 import { createReport, equal } from '../helpers/report.mjs'
@@ -58,6 +58,30 @@ export default function run() {
   r.check(store.has('draft:brew:copy:fresh'), '7 天內的保留')
   r.check(store.has('draft:bean:new') && store.has('draft:brew:new') && store.has('other'),
     '其他 key 不碰：豆子表單的照片在 IndexedDB，要走自己的清除流程')
+
+  r.section('登出清掉所有暫存')
+  {
+    // 每一種 key 格式都放一份，新鮮的、過期的、壞掉的都有：登出不看時效
+    const drafts = [
+      draftKey('brew', null), draftKey('brew', 'abc'), draftKey('bean', null), draftKey('bean', 'abc'),
+      newBrewDraftKey({ copy: 'abc' }), newBrewDraftKey({ bean: 'abc' }),
+      'draft:bean:inline', 'draft:equipment:new', 'draft:equipment:abc',
+    ]
+    const store = new Map<string, string>(drafts.map(key => [key, packDraft({ dose: 15 }, NOW)]))
+    store.set('draft:brew:copy:old', packDraft({ dose: 15 }, NOW - DRAFT_TTL_MS - 1))
+    store.set('draft:bean:broken', '壞掉的')
+    store.set('brew-advanced-open', 'true')
+    const storage = {
+      get length() { return store.size },
+      key: (i: number) => [...store.keys()][i] ?? null,
+      removeItem: (k: string) => { store.delete(k) },
+    }
+    const cleared = clearAllDrafts(storage)
+    const left = [...store.keys()].filter(key => key.startsWith('draft:'))
+    r.check(left.length === 0, `登出後沒有任何 draft: 開頭的 key（剩下 ${left.join('、') || '無'}）`)
+    r.check(cleared.length === drafts.length + 2, '新鮮的、過期的、壞掉的一起清，不看 7 天時效')
+    r.check(store.get('brew-advanced-open') === 'true', '收合區展開狀態這類介面偏好不碰')
+  }
 
   r.section('存取與還原')
   const data = { name: '耶加雪菲', dose: 15, tags: ['a', 'b'] }

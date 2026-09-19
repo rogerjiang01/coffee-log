@@ -39,5 +39,11 @@ export default function run() {
   r.check(/useInlineDraft<EquipmentInlineDraft>\(`equipment:\$\{props\.type\}`, emptyDraft\)/.test(read('components/EquipmentPicker.vue')),
     '器材的就地新增沒有持久化——這一條沒有要求')
 
+  r.section('登出（pages/settings.vue）')
+  const settings = read('pages/settings.vue')
+  const signOut = settings.match(/async function signOut\(\) \{[\s\S]*?\n\}/)?.[0] ?? ''
+  r.check(/clearAllDrafts\(localStorage\)[\s\S]*?await draftPhotos\.clear\(\)[\s\S]*?supabase\.auth\.signOut\(\)/.test(signOut),
+    '登出前先清 localStorage 的 draft: 與 IndexedDB 的暫存照片——共用裝置上下一個人不會看到')
+
   return r.finish()
 }

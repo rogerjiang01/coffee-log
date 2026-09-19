@@ -253,9 +253,10 @@ function selectStyle(value: unknown) {
     />
     <!-- 逃生路徑：放在最上方，且不進卡片——它是媒體區塊不是欄位列，
          塞進卡片會變成框中框。 -->
+    <!-- 按了「移除」就不再退回已上傳的那張：儲存時它會被刪掉，預覽要與之一致 -->
     <PhotoField
       :key="photoFieldKey"
-      :preview-url="restoredPhotoUrl ?? photoUrl ?? null"
+      :preview-url="photoCleared ? null : (restoredPhotoUrl ?? photoUrl ?? null)"
       :notice="photoNotice"
       @picked="onPhotoPicked"
     />

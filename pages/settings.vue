@@ -17,6 +17,15 @@ const signingOut = ref(false)
 
 async function signOut() {
   signingOut.value = true
+  // 暫存先清再登出：共用裝置上，下一個人登入不該看到前一個人填到一半的內容。
+  // 文字在 localStorage、照片在 IndexedDB，兩邊都清。清不掉也照樣登出
+  try {
+    clearAllDrafts(localStorage)
+  }
+  catch {
+    // 私密瀏覽等情境讀不到 localStorage：那裡本來就沒有暫存
+  }
+  await draftPhotos.clear()
   await supabase.auth.signOut()
   await navigateTo('/login')
 }

@@ -97,5 +97,23 @@ export default async function run() {
   r.check(!isStoredPhoto({ savedAt: 1, bytes: new ArrayBuffer(0), type: 'image/webp', ext: 'webp', width: 1, height: 1 }),
     '空的 bytes 不算有照片')
 
+  r.section('登出清掉所有暫存照片')
+  {
+    const { data: stored, backend: fresh } = memoryBackend()
+    const store = createDraftPhotos(fresh, () => clock)
+    for (const key of ['draft:bean:new', 'draft:bean:abc', 'draft:bean:inline']) await store.save(key, photo())
+    stored.set('draft:bean:broken', { savedAt: clock })
+    await store.clear()
+    r.check(stored.size === 0, `登出後 IndexedDB 裡一張都不剩（剩 ${stored.size} 筆），壞掉的也一起清`)
+    let clearThrew = false
+    try {
+      await failing.clear()
+    }
+    catch {
+      clearThrew = true
+    }
+    r.check(!clearThrew, '清不掉也不往外丟例外——不該擋住登出')
+  }
+
   return r.finish()
 }
