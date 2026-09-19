@@ -13,6 +13,7 @@ definePageMeta({ screen: 'view' })
 const supabase = useSupabaseClient()
 const user = useSupabaseUser()
 
+const cache = useQueryCache()
 const signingOut = ref(false)
 
 async function signOut() {
@@ -27,6 +28,8 @@ async function signOut() {
   }
   await draftPhotos.clear()
   await supabase.auth.signOut()
+  // 查詢快取在登出之後才清：登出前清掉的話，這段空檔裡還掛著的頁面會用舊 session 重抓回來
+  cache.clear()
   await navigateTo('/login')
 }
 </script>

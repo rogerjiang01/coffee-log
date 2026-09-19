@@ -142,7 +142,17 @@ export function useQueryCache() {
     return { hit: false, settled }
   }
 
-  return { swr, peek, prime, set, invalidate, invalidateAfter }
+  /**
+   * 登出時整個清空。快取在記憶體裡、跨頁面存活，登出又是站內跳轉不重新載入——
+   * 不清的話，共用裝置上換帳號登入，重新整理之前會看到前一個人的資料。
+   * 飛行中的請求一起作廢，回來時 run 會發現自己已不在 inflight 而不寫入。
+   */
+  function clear() {
+    store.clear()
+    inflight.clear()
+  }
+
+  return { swr, peek, prime, set, invalidate, invalidateAfter, clear }
 }
 
 /** 測試用：清空整個快取 */

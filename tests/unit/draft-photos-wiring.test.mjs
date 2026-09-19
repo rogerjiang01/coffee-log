@@ -15,8 +15,12 @@ export default function run() {
 
   r.section('豆子表單（draft:bean:new、draft:bean:{id}）')
   const form = read('components/BeanForm.vue')
-  r.check(/read: \(\) => \(\{ \.\.\.values, photo: photo\.value !== null \}\)/.test(form),
-    '文字暫存帶「有照片」標記——只選了照片、還沒打字的表單也會被暫存')
+  r.check(/read: \(\) => \(\{ \.\.\.values, photo: photo\.value !== null, photoRemoved: photoCleared\.value \}\)/.test(form),
+    '文字暫存帶「有照片」與「按過移除」兩個標記——只選了照片、還沒打字的表單也會被暫存')
+  r.check(/restore: \(\{ photo: hadPhoto, photoRemoved, \.\.\.data \}\) => \{[\s\S]*?if \(photoRemoved\) photoCleared\.value = true/.test(form),
+    '還原時維持移除後的樣子——否則重新載入後舊照片回來，儲存時也不會刪')
+  r.check(/:preview-url="photoCleared \? null :/.test(form),
+    '移除後預覽不退回已上傳的那張，與儲存時的實際行為一致')
   r.check(/draftPhotos\.load\(/.test(form) && /PHOTO_NOT_RESTORED/.test(form),
     '還原時從 IndexedDB 讀回照片；讀不回來就說明，其他欄位照常還原')
   r.check(/watch\(photo,[\s\S]*?draftPhotos\.save\(storageKey, value\)[\s\S]*?draftPhotos\.remove\(storageKey\)/.test(form),
@@ -44,6 +48,8 @@ export default function run() {
   const signOut = settings.match(/async function signOut\(\) \{[\s\S]*?\n\}/)?.[0] ?? ''
   r.check(/clearAllDrafts\(localStorage\)[\s\S]*?await draftPhotos\.clear\(\)[\s\S]*?supabase\.auth\.signOut\(\)/.test(signOut),
     '登出前先清 localStorage 的 draft: 與 IndexedDB 的暫存照片——共用裝置上下一個人不會看到')
+  r.check(/supabase\.auth\.signOut\(\)[\s\S]*?cache\.clear\(\)[\s\S]*?navigateTo\('\/login'\)/.test(signOut),
+    '登出後清空查詢快取——站內跳轉不重新載入，不清的話下一個帳號會先看到前一個人的資料')
 
   return r.finish()
 }

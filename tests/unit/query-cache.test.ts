@@ -118,6 +118,19 @@ export default async function run() {
   r.check(cache.peek(cacheKeys.brewPage(0)) === null,
     '中途被失效的查詢回來後不寫進快取——否則剛存的東西會被舊資料蓋回去')
 
+  r.section('登出時整個清空')
+  __resetQueryCache()
+  await cache.swr(cacheKeys.brewPage(0), async () => ['前一個人的紀錄'], { apply: () => {} }).settled
+  await cache.swr(cacheKeys.beanList(), async () => ['前一個人的豆子'], { apply: () => {} }).settled
+  const flying = cache.swr(cacheKeys.brewPage(1), async () => { await sleep(20); return ['登出時還在路上'] }, {
+    apply: () => {},
+  })
+  cache.clear()
+  await flying.settled
+  r.check(cache.peek(cacheKeys.brewPage(0)) === null && cache.peek(cacheKeys.beanList()) === null,
+    '所有快取都清掉，不只特定樣式——換帳號登入不會先看到前一個人的資料')
+  r.check(cache.peek(cacheKeys.brewPage(1)) === null, '登出時還在路上的請求回來後不寫進快取')
+
   r.section('同一個 key 同時被要兩次只發一個請求')
   __resetQueryCache()
   let calls = 0

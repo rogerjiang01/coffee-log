@@ -113,8 +113,12 @@ function submit() {
 //   - 照片讀不回來時靠它說明，其他欄位照常還原
 //   - 只選了照片、還沒打字的表單也會被暫存——照片是逃生路徑，
 //     不想打字的人第一個動作就是它
+//
+// photoRemoved 記的是「按過移除」。編輯頁上已上傳的那張不在 photo 裡，
+// 不另外記的話，重新載入後舊照片會回來、儲存時也不會刪——
+// 使用者以為移除了，實際上沒有。
 
-type BeanDraft = BeanFormValues & { photo?: boolean }
+type BeanDraft = BeanFormValues & { photo?: boolean, photoRemoved?: boolean }
 
 const BEAN_REFERENCE_FIELDS = ['country_id', 'processing_method_id', 'variety_id']
 const draftNote = ref('')
@@ -185,10 +189,12 @@ async function sanitizeDraft(incoming: BeanDraft): Promise<BeanDraft> {
 const storageKey = props.draftKey
 const draft = storageKey
   ? useFormDraft<BeanDraft>(storageKey, {
-      read: () => ({ ...values, photo: photo.value !== null }),
-      restore: ({ photo: hadPhoto, ...data }) => {
+      read: () => ({ ...values, photo: photo.value !== null, photoRemoved: photoCleared.value }),
+      restore: ({ photo: hadPhoto, photoRemoved, ...data }) => {
         Object.assign(values, data)
-        if (hadPhoto) void restorePhoto(storageKey)
+        // 兩者互斥：移除後再選一張，photoCleared 就回到 false
+        if (photoRemoved) photoCleared.value = true
+        else if (hadPhoto) void restorePhoto(storageKey)
       },
       reset: () => {
         Object.assign(values, initialValues())
