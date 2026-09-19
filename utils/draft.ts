@@ -37,8 +37,7 @@ export function draftKey(kind: 'brew' | 'bean', id: string | null) {
  * 三者原本共用 draft:brew:new：複製 A 的暫存會被還原進複製 B 的表單，
  * 使用者拿到的不是他選的那一筆。進入方式本身就是使用者的選擇，暫存不能跨過它。
  *
- * 空白新增沿用 draft:brew:new，所以改版前留下的舊暫存只會被空白新增讀到，
- * 格式沒變，照一般暫存還原（指向已刪除資料的欄位照常清空），不會報錯。
+ * 這裡回傳的是表單用的 key，實際存放前還要經過 scopeDraftKey 加上使用者 id。
  */
 export function newBrewDraftKey(query: { copy?: string | null, bean?: string | null }) {
   if (query.copy) return `draft:brew:copy:${query.copy}`
@@ -46,25 +45,45 @@ export function newBrewDraftKey(query: { copy?: string | null, bean?: string | n
   return 'draft:brew:new'
 }
 
-/** 依複製來源、指定豆子分開的 key 會一直累積，這兩種前綴過期就清掉 */
-export const SWEPT_DRAFT_PREFIXES = ['draft:brew:copy:', 'draft:brew:bean:']
+/** 所有暫存 key 的共同前綴（沖煮、豆子、器材、就地新增都是） */
+export const DRAFT_PREFIX = 'draft:'
 
 /**
- * 清掉過期（超過 7 天）或壞掉的暫存。
+ * 把表單用的 key 換成實際存放的 key：插入使用者 id。
  *
- * 每個複製來源各有一個 key，沒回去過的那些不會再被讀到，
- * 7 天時效只在讀取時生效，所以要主動掃。只掃上面兩種前綴——
- * 其他 key（豆子表單）另有照片存在 IndexedDB，要走各自的清除流程。
+ *   draft:brew:new  →  draft:{user_id}:brew:new
+ *
+ * **隔離靠 key，不靠清除動作。** 登出時會清，但關分頁、session 過期、
+ * 直接換帳號都不會經過登出——那時只有 key 不同才保證 B 讀不到 A 的暫存，
+ * 也不會拿 A 的暫存去做參照檢查，跳出「磨豆機已被刪除」這種不屬於他的訊息。
+ * IndexedDB 的照片用同一個 key，所以照片也跟著分開。
+ *
+ * 改版前的 key 沒有 user id（draft:brew:new），不遷移：新程式不會再讀它們，
+ * 由 sweepExpiredDrafts 在 7 天後清掉，照片由 draftPhotos 自己的時效清掉。
+ */
+export function scopeDraftKey(userId: string, key: string) {
+  if (!userId) throw new Error('scopeDraftKey：缺使用者 id，暫存會變成所有人共用')
+  if (!key.startsWith(DRAFT_PREFIX)) throw new Error(`scopeDraftKey：不是暫存 key：${key}`)
+  return `draft:${userId}:${key.slice(DRAFT_PREFIX.length)}`
+}
+
+/**
+ * 清掉過期（超過 7 天）或壞掉的暫存，所有 draft: 開頭的 key 都掃，不分使用者。
+ *
+ * 7 天時效只在讀取時生效，而有兩種 key 不會再被任何人讀到，所以要主動掃：
+ *   - 每個複製來源、每支指定豆子各有一個 key，沒回去過的那些
+ *   - 改版前沒有 user id 的舊格式 key（見 scopeDraftKey）
+ * 過期的豆子表單暫存一起清也沒有損失：讀取時本來就當作沒有。
+ * 它在 IndexedDB 的照片不在這裡清，draftPhotos 會依自己的 7 天時效清掉。
  */
 export function sweepExpiredDrafts(
   storage: Pick<Storage, 'length' | 'key' | 'getItem' | 'removeItem'>,
   now: number = Date.now(),
-  prefixes: string[] = SWEPT_DRAFT_PREFIXES,
 ) {
   const expired: string[] = []
   for (let i = 0; i < storage.length; i++) {
     const key = storage.key(i)
-    if (!key || !prefixes.some(prefix => key.startsWith(prefix))) continue
+    if (!key?.startsWith(DRAFT_PREFIX)) continue
     if (unpackDraftEnvelope(storage.getItem(key), now) === null) expired.push(key)
   }
   // 邊走邊刪會讓 index 錯位，收集完再刪
@@ -72,14 +91,12 @@ export function sweepExpiredDrafts(
   return expired
 }
 
-/** 所有暫存 key 的共同前綴（沖煮、豆子、器材、就地新增都是） */
-export const DRAFT_PREFIX = 'draft:'
-
 /**
  * 登出時清掉所有暫存，不論有沒有過期。
  *
  * 與 7 天失效是兩回事：失效是暫存自己變舊，登出是使用者明確說「我要走了」。
- * 共用裝置上不清的話，下一個人登入會看到前一個人填到一半的內容。
+ * key 已經依使用者分開（scopeDraftKey），這裡不是隔離的唯一防線；
+ * 但使用者明確離開了，他填到一半的內容就不該繼續留在這台裝置上。
  * 只清 draft: 開頭的——收合區的展開狀態這類介面偏好不是誰的資料。
  */
 export function clearAllDrafts(

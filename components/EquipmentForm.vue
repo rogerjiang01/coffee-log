@@ -91,8 +91,10 @@ function submit() {
 }
 
 // 自動暫存（《02》§6）。型號是系統型錄，使用者刪不掉，不必檢查參照是否還在
-const draft = props.draftKey
-  ? useFormDraft<EquipmentFormValues>(props.draftKey, {
+// 實際存放的 key 帶使用者 id：A 的暫存 B 讀不到（utils/draft.ts）
+const draftStorageKey = useScopedDraftKey(props.draftKey)
+const draft = draftStorageKey
+  ? useFormDraft<EquipmentFormValues>(draftStorageKey, {
       read: () => ({ ...values }),
       restore: data => writeBack({ ...initialValues(), ...data }),
       reset: () => {

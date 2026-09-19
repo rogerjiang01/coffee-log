@@ -186,7 +186,8 @@ async function sanitizeDraft(incoming: BeanDraft): Promise<BeanDraft> {
   return pruned.data as unknown as BeanDraft
 }
 
-const storageKey = props.draftKey
+// 實際存放的 key 帶使用者 id：A 的暫存與照片 B 讀不到（utils/draft.ts）
+const storageKey = useScopedDraftKey(props.draftKey)
 const draft = storageKey
   ? useFormDraft<BeanDraft>(storageKey, {
       read: () => ({ ...values, photo: photo.value !== null, photoRemoved: photoCleared.value }),

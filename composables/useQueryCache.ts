@@ -26,10 +26,45 @@ interface Entry {
 
 // 模組層的 Map 在 SSR 時是跨請求共用的，所以伺服器端一律不快取（見 swr）。
 // 本專案的資料查詢全部在 onMounted 發生，伺服器端本來就走不到這裡。
+//
+// **依使用者分區。** 實際存放的 key 是「使用者 id ＋ 分隔字元 ＋ cacheKeys 的 key」。
+// 快取在記憶體裡、跨頁面存活，換帳號是站內跳轉、不會重新載入；
+// 不分區的話，B 登入後第一個畫面會先用 A 的資料畫出來（命中就同步 apply），
+// 等背景重查回來才換掉——那就是「閃一秒上一個帳號」。
+// 分區之後 B 的格子是空的，第一次一律未命中、走骨架，不需要任何清除動作；
+// 上一個人有沒有正常登出都無所謂。登出時的 clear() 仍然保留，但不是唯一防線。
 const store = new Map<string, Entry>()
 
-/** 同一個 key 同時被要兩次時共用一個請求，不發兩次 */
+/** 同一個 key 同時被要兩次時共用一個請求，不發兩次。key 與 store 相同，也是分區過的 */
 const inflight = new Map<string, Promise<unknown>>()
+
+const SCOPE_SEPARATOR = '\u0001'
+
+/**
+ * 目前的分區，也就是登入者的 id。由 plugins/query-cache-scope.client.ts 接上
+ * useCurrentUserId；每次存取時現讀，不在 useQueryCache() 當下取——
+ * 元件可能在 A 的時候 setup、在 B 的時候才查詢。
+ *
+ * 回 null（沒登入、或登入狀態還在切換）時整個快取停用：不讀、不寫，
+ * 查詢照常發出。寧可多等一趟來回，也不能把資料放進一個誰都能讀的格子。
+ *
+ * 預設是固定的分區，給沒有 Nuxt 執行環境的單元測試用。
+ */
+let currentScope: () => string | null = () => 'test'
+
+export function setQueryCacheScope(scope: () => string | null) {
+  currentScope = scope
+}
+
+function scoped(key: string): string | null {
+  const scope = currentScope()
+  return scope ? `${scope}${SCOPE_SEPARATOR}${key}` : null
+}
+
+/** 分區過的 key 取回 cacheKeys 的那一段，給失效比對用 */
+function unscoped(stored: string) {
+  return stored.slice(stored.indexOf(SCOPE_SEPARATOR) + 1)
+}
 
 export interface SwrHandlers<T> {
   /** 資料到手時呼叫。命中會呼叫一次，背景重查回來若有變動再呼叫一次 */
@@ -43,7 +78,8 @@ export interface SwrHandlers<T> {
 
 export function useQueryCache() {
   function peek<T>(key: string): { data: T, partial: boolean } | null {
-    const entry = store.get(key)
+    const full = scoped(key)
+    const entry = full ? store.get(full) : undefined
     return entry ? { data: entry.data as T, partial: entry.partial } : null
   }
 
@@ -56,29 +92,42 @@ export function useQueryCache() {
    * 這裡刻意不做欄位集合檢查——半成品的欄位本來就比較少，那是設計而非錯誤。
    */
   function prime<T>(key: string, data: T) {
-    const existing = store.get(key)
+    const full = scoped(key)
+    if (!full) return
+    const existing = store.get(full)
     if (existing && !existing.partial) return
-    store.set(key, { data, partial: true })
+    store.set(full, { data, partial: true })
   }
 
-  function set<T>(key: string, data: T) {
+  /** 寫進指定的分區。查詢回來時用發出當下的分區，不是回來當下的 */
+  function write(full: string, data: unknown) {
     // 開發模式才檢查：同一個 key 被不同欄位的查詢共用時會靜默壞掉，
     // 說明見 utils/cacheKeys.ts 的「同一個 key 的欄位集合必須一致」
     if (import.meta.dev) {
-      const warning = checkCacheShape(key, data)
+      const warning = checkCacheShape(unscoped(full), data)
       if (warning) console.warn(warning)
     }
-    store.set(key, { data, partial: false })
+    store.set(full, { data, partial: false })
   }
 
-  /** 清掉符合任一樣式的 key。樣式結尾的 `*` 是前綴比對 */
+  function set<T>(key: string, data: T) {
+    const full = scoped(key)
+    if (full) write(full, data)
+  }
+
+  /**
+   * 清掉符合任一樣式的 key。樣式結尾的 `*` 是前綴比對。
+   * 所有分區一起清：寫入只可能來自目前的使用者，但多清別人的格子沒有壞處，
+   * 少清則要多想一條規則。
+   */
   function invalidate(patterns: string[]) {
+    const hit = (full: string) => patterns.some(pattern => matchesPattern(unscoped(full), pattern))
     for (const key of [...store.keys()]) {
-      if (patterns.some(pattern => matchesPattern(key, pattern))) store.delete(key)
+      if (hit(key)) store.delete(key)
     }
     // 正在飛的請求也要作廢，否則它回來會把舊資料寫回去
     for (const key of [...inflight.keys()]) {
-      if (patterns.some(pattern => matchesPattern(key, pattern))) inflight.delete(key)
+      if (hit(key)) inflight.delete(key)
     }
   }
 
@@ -88,20 +137,24 @@ export function useQueryCache() {
   }
 
   async function run<T>(key: string, fetcher: () => Promise<T>): Promise<T> {
-    const pending = inflight.get(key) as Promise<T> | undefined
+    const full = scoped(key)
+    // 沒有分區（沒登入、登入狀態切換中）：直接查，不共用、不留下
+    if (!full) return await fetcher()
+
+    const pending = inflight.get(full) as Promise<T> | undefined
     if (pending) return await pending
 
     const promise = fetcher()
       .then((data) => {
-        // 這中間可能被 invalidate 掉了。還在 inflight 裡才代表這份結果仍然有效
-        if (inflight.get(key) === promise) set(key, data)
+        // 這中間可能被 invalidate 或 clear 掉了。還在 inflight 裡才代表這份結果仍然有效
+        if (inflight.get(full) === promise) write(full, data)
         return data
       })
       .finally(() => {
-        if (inflight.get(key) === promise) inflight.delete(key)
+        if (inflight.get(full) === promise) inflight.delete(full)
       })
 
-    inflight.set(key, promise)
+    inflight.set(full, promise)
     return await promise
   }
 
@@ -143,8 +196,8 @@ export function useQueryCache() {
   }
 
   /**
-   * 登出時整個清空。快取在記憶體裡、跨頁面存活，登出又是站內跳轉不重新載入——
-   * 不清的話，共用裝置上換帳號登入，重新整理之前會看到前一個人的資料。
+   * 登出時整個清空，所有分區。分區已經保證 B 讀不到 A 的格子，
+   * 這一步是讓離開的人的資料不再留在這台裝置的記憶體裡。
    * 飛行中的請求一起作廢，回來時 run 會發現自己已不在 inflight 而不寫入。
    */
   function clear() {

@@ -38,6 +38,8 @@ const suites = [
   ['unit/photo-cropper.test.mjs', '照片裁切'],
   ['unit/pinch.test.ts', '雙指縮放的比例換算'],
   ['unit/draft-photos.test.ts', '暫存中的豆袋照片'],
+  ['unit/user-isolation.test.ts', '換帳號時的資料隔離'],
+  ['unit/user-isolation-wiring.test.mjs', '資料隔離的接線'],
   ['unit/draft-photos-wiring.test.mjs', '照片暫存的接線'],
   ['unit/step-times-toggle.test.mjs', '記錄分段時間的開關'],
   ['unit/compare-table.test.mjs', '比較表的可點擊線索'],

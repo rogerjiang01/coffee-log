@@ -329,8 +329,10 @@ async function sanitizeDraft(incoming: BrewDraft): Promise<BrewDraft> {
   }
 }
 
-const draft = props.draftKey
-  ? useFormDraft<BrewDraft>(props.draftKey, {
+// 實際存放的 key 帶使用者 id：A 的暫存 B 讀不到（utils/draft.ts）
+const draftStorageKey = useScopedDraftKey(props.draftKey)
+const draft = draftStorageKey
+  ? useFormDraft<BrewDraft>(draftStorageKey, {
       read: () => ({ values: { ...values }, steps: steps.value, flavorTagIds: flavorTagIds.value }),
       restore: data => writeBack(() => {
         Object.assign(values, data.values)

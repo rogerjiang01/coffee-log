@@ -32,16 +32,17 @@ export default function run() {
 
   r.section('就地新增（draft:bean:inline）')
   const select = read('components/BeanSelect.vue')
-  r.check(/useInlineDraft<BeanInlineDraft>\([\s\S]*?key: 'draft:bean:inline',\s*photoField: 'photo'/.test(select),
-    '就地新增的豆子持久化在 draft:bean:inline')
+  r.check(/const inlineKey = useScopedDraftKey\('draft:bean:inline'\)/.test(select)
+    && /useInlineDraft<BeanInlineDraft>\(\s*inlineKey \?\? 'draft:bean:inline',[\s\S]*?inlineKey \? \{ key: inlineKey, photoField: 'photo' \}/.test(select),
+    '就地新增的豆子持久化在 draft:{user_id}:bean:inline，記憶體層也用同一個帶使用者的 key')
   r.check(/inlineDraft\.restore\(\)/.test(select) && /PHOTO_NOT_RESTORED/.test(select),
     '掛載時從持久層還原；照片讀不回來就說明')
   const cancel = (select.match(/function cancelCreate\(\) \{[\s\S]*?\n}/) || [''])[0]
   r.check(/inlineDraft\.clear\(\)/.test(cancel), '按取消會清掉兩層——與既有的取消語意一致')
 
   r.section('範圍')
-  r.check(/useInlineDraft<EquipmentInlineDraft>\(`equipment:\$\{props\.type\}`, emptyDraft\)/.test(read('components/EquipmentPicker.vue')),
-    '器材的就地新增沒有持久化——這一條沒有要求')
+  r.check(/useInlineDraft<EquipmentInlineDraft>\(`\$\{userId\.value \?\? ''\}:equipment:\$\{props\.type\}`, emptyDraft\)/.test(read('components/EquipmentPicker.vue')),
+    '器材的就地新增沒有持久化——這一條沒有要求；記憶體層的 key 帶使用者 id')
 
   r.section('登出（pages/settings.vue）')
   const settings = read('pages/settings.vue')

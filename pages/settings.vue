@@ -11,7 +11,12 @@
 definePageMeta({ screen: 'view' })
 
 const supabase = useSupabaseClient()
+const session = useSupabaseSession()
 const user = useSupabaseUser()
+// 先看 session：claims 在換帳號後要等另一趟 getClaims() 才換，那之前會是上一個人的信箱。
+// 整頁載入時 session 沒有 user（伺服器端刪掉了），那時 claims 是新的（見 useCurrentUserId）
+const email = computed(() =>
+  (session.value as { user?: { email?: string } } | null)?.user?.email ?? user.value?.email ?? '')
 
 const cache = useQueryCache()
 const signingOut = ref(false)
@@ -40,7 +45,7 @@ async function signOut() {
 
     <section class="mt-8">
       <h2 class="text-sm text-muted">帳號</h2>
-      <p class="mt-1">{{ user?.email }}</p>
+      <p class="mt-1">{{ email }}</p>
     </section>
 
     <button

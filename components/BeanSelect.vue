@@ -36,10 +36,13 @@ const creating = ref(false)
 interface BeanInlineDraft { name: string, photo: CompressedImage | null }
 // 豆名進 localStorage、照片進 IndexedDB：分頁被回收之後回來還在。
 // 沖煮表單本身會還原，這一格若消失，使用者只會看到豆子那格空了。
-const inlineDraft = useInlineDraft<BeanInlineDraft>('bean', () => ({ name: '', photo: null }), {
-  key: 'draft:bean:inline',
-  photoField: 'photo',
-})
+// 記憶體層與持久層都用帶使用者 id 的 key：沒登出就換帳號時，B 打開的不會是 A 建到一半的豆子
+const inlineKey = useScopedDraftKey('draft:bean:inline')
+const inlineDraft = useInlineDraft<BeanInlineDraft>(
+  inlineKey ?? 'draft:bean:inline',
+  () => ({ name: '', photo: null }),
+  inlineKey ? { key: inlineKey, photoField: 'photo' } : undefined,
+)
 const restored = inlineDraft.read()
 
 const draftName = ref(restored.name)

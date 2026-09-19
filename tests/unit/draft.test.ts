@@ -5,7 +5,7 @@
 
 import {
   packDraft, unpackDraft, unpackDraftEnvelope, pruneMissingIds, collectIds, draftKey,
-  newBrewDraftKey, sweepExpiredDrafts, clearAllDrafts,
+  newBrewDraftKey, sweepExpiredDrafts, clearAllDrafts, scopeDraftKey,
   draftAge, droppedFieldsMessage, DRAFT_TTL_MS, DRAFT_AUTO_RESTORE_MS,
 } from '../../utils/draft.ts'
 import { createReport, equal } from '../helpers/report.mjs'
@@ -36,15 +36,19 @@ export default function run() {
   r.check(![copyA, beanX].includes(draftKey('brew', 'A')) && ![copyA, beanX].includes(draftKey('brew', 'X')),
     '不會撞到編輯紀錄的 key（draft:brew:{id}）')
 
-  r.section('過期的複製／指定豆子暫存主動清掉')
+  r.section('過期與壞掉的暫存主動清掉，所有 draft: key 都掃')
+  const A = '11111111-aaaa-4aaa-8aaa-aaaaaaaaaaaa'
+  const B = '22222222-bbbb-4bbb-8bbb-bbbbbbbbbbbb'
   const store = new Map<string, string>([
-    ['draft:brew:copy:old', packDraft({ dose: 15 }, NOW - DRAFT_TTL_MS - 1)],
-    ['draft:brew:copy:fresh', packDraft({ dose: 16 }, NOW - 1000)],
-    ['draft:brew:bean:old', packDraft({ dose: 17 }, NOW - DRAFT_TTL_MS - 1)],
-    ['draft:brew:bean:broken', '壞掉的'],
+    [scopeDraftKey(A, 'draft:brew:copy:old'), packDraft({ dose: 15 }, NOW - DRAFT_TTL_MS - 1)],
+    [scopeDraftKey(A, 'draft:brew:copy:fresh'), packDraft({ dose: 16 }, NOW - 1000)],
+    [scopeDraftKey(B, 'draft:brew:bean:old'), packDraft({ dose: 17 }, NOW - DRAFT_TTL_MS - 1)],
+    [scopeDraftKey(B, 'draft:brew:bean:broken'), '壞掉的'],
+    [scopeDraftKey(B, 'draft:bean:new'), packDraft({ name: '豆' }, NOW - 1000)],
+    // 改版前沒有 user id 的舊格式：不遷移，新程式也不讀，過期後由這裡清掉
     ['draft:brew:new', packDraft({ dose: 18 }, NOW - DRAFT_TTL_MS - 1)],
-    ['draft:bean:new', packDraft({ name: '豆' }, NOW - DRAFT_TTL_MS - 1)],
-    ['other', 'x'],
+    ['draft:bean:new', packDraft({ name: '舊' }, NOW - 1000)],
+    ['brew-advanced-open', 'true'],
   ])
   const storage = {
     get length() { return store.size },
@@ -52,12 +56,42 @@ export default function run() {
     getItem: (k: string) => store.get(k) ?? null,
     removeItem: (k: string) => { store.delete(k) },
   }
-  const swept = sweepExpiredDrafts(storage, NOW)
-  r.check(equal(swept.sort(), ['draft:brew:bean:broken', 'draft:brew:bean:old', 'draft:brew:copy:old']),
-    `過期與壞掉的都清掉（實際 ${swept.join('、')}）`)
-  r.check(store.has('draft:brew:copy:fresh'), '7 天內的保留')
-  r.check(store.has('draft:bean:new') && store.has('draft:brew:new') && store.has('other'),
-    '其他 key 不碰：豆子表單的照片在 IndexedDB，要走自己的清除流程')
+  let sweepThrew = false
+  let swept: string[] = []
+  try {
+    swept = sweepExpiredDrafts(storage, NOW)
+  }
+  catch {
+    sweepThrew = true
+  }
+  r.check(!sweepThrew, '新舊格式混在一起時掃描不報錯')
+  r.check(equal(swept.sort(), [
+    'draft:brew:new',
+    scopeDraftKey(A, 'draft:brew:copy:old'),
+    scopeDraftKey(B, 'draft:brew:bean:broken'),
+    scopeDraftKey(B, 'draft:brew:bean:old'),
+  ].sort()), `過期與壞掉的都清掉，不分使用者、不分新舊格式（實際 ${swept.join('、')}）`)
+  r.check(store.has(scopeDraftKey(A, 'draft:brew:copy:fresh')) && store.has(scopeDraftKey(B, 'draft:bean:new')),
+    '7 天內的保留——別人的也是，那是他的暫存，只是這一刻不是他在用')
+  r.check(store.has('draft:bean:new'), '舊格式未過期的也留著，等它自己過期：直接讓它們過期即可，不提早刪')
+  r.check(store.has('brew-advanced-open'), '不是 draft: 開頭的不碰')
+
+  r.section('依使用者分開的 key')
+  r.check(scopeDraftKey(A, 'draft:brew:new') === `draft:${A}:brew:new`, 'draft:brew:new → draft:{user_id}:brew:new')
+  r.check(scopeDraftKey(A, newBrewDraftKey({ copy: 'x' })) === `draft:${A}:brew:copy:x`, '複製的 key 同樣加上使用者')
+  r.check(scopeDraftKey(A, 'draft:brew:new') !== scopeDraftKey(B, 'draft:brew:new'),
+    '同一張表單，兩個人的 key 不同')
+  r.check(scopeDraftKey(A, 'draft:brew:new') !== 'draft:brew:new', '與改版前的舊格式也不同——舊暫存不會被當成任何人的讀回來')
+  r.check(scopeDraftKey(A, 'draft:brew:new').startsWith('draft:'),
+    '仍是 draft: 開頭：登出清除與過期掃描照樣涵蓋')
+  let emptyThrew = false
+  try {
+    scopeDraftKey('', 'draft:brew:new')
+  }
+  catch {
+    emptyThrew = true
+  }
+  r.check(emptyThrew, '沒有使用者 id 時不給 key——寧可不存，也不存成所有人共用的格子')
 
   r.section('登出清掉所有暫存')
   {

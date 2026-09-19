@@ -43,7 +43,9 @@ interface EquipmentInlineDraft {
 }
 const emptyDraft = (): EquipmentInlineDraft =>
   ({ catalog_id: null, custom_name: '', note: '', is_default: false })
-const inlineDraft = computed(() => useInlineDraft<EquipmentInlineDraft>(`equipment:${props.type}`, emptyDraft))
+// 只在記憶體，但記憶體跨帳號存活（站內跳轉不重新載入），所以一樣帶使用者 id
+const inlineDraft = computed(() =>
+  useInlineDraft<EquipmentInlineDraft>(`${userId.value ?? ''}:equipment:${props.type}`, emptyDraft))
 
 const form = reactive<EquipmentInlineDraft>(emptyDraft())
 
