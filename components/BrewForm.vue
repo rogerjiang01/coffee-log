@@ -23,14 +23,17 @@ const emit = defineEmits<{
     steps: StepInput[]
     flavorTagIds: string[]
     formDurationSeconds: number
+    paramsDurationSeconds: number
+    tastingDurationSeconds: number
   }]
 }>()
 
 const supabase = useSupabaseClient()
 const cache = useQueryCache()
 
-// 產品指標（《01》§9）：記這一筆實際互動了多少秒，閒置超過 60 秒的間隔不計入。
-// 使用者不可見。只有新增流程會寫入，編輯頁收到也不用（見 edit.vue）
+// 產品指標（《01》§9）：記這一筆實際互動了多少秒，閒置超過 60 秒的間隔不計入，
+// 並分成參數與品飲兩段（模板上的 data-section）。使用者不可見。
+// 只有新增流程會寫入，編輯頁收到也不用（見 edit.vue）
 const interactionTime = useInteractionTime()
 
 function initialValues(): BrewFormValues {
@@ -257,11 +260,14 @@ function submit() {
     return
   }
   summaryError.value = ''
+  const duration = interactionTime.measure()
   emit('submit', {
     values: { ...values },
     steps: steps.value,
     flavorTagIds: flavorTagIds.value,
-    formDurationSeconds: interactionTime.seconds(),
+    formDurationSeconds: duration.total,
+    paramsDurationSeconds: duration.params,
+    tastingDurationSeconds: duration.tasting,
   })
 }
 
@@ -383,10 +389,17 @@ const inputStyle = {
       @accept="draft.accept()"
       @discard="draft.discard()"
     />
+    <!--
+      data-section 是記錄耗時的分段依據（《01》§9），不是樣式，也不影響任何顯示。
+      params ＝ 參數、tasting ＝ 品飲、other ＝ 兩者都不算但計入總耗時。
+      沒有標記的地方（捲動、teleport 出去的浮層、送出按鈕）沿用上一次的區段，
+      所以浮層不必自己標——打開它的那個觸發元素已經在某一段裡了。
+    -->
     <!-- 時間戳最前面：事後補記時可能要先改日期，越早改完，
          後面的填寫都在正確的時間脈絡下。 -->
     <FormCard title="這一杯">
-      <FormRow>
+      <!-- 日期是 other：事後補記時改日期可能要翻行事曆，那不是參數記錄的時間 -->
+      <FormRow data-section="other">
         <label class="block text-sm" for="brew-at">沖煮日期</label>
         <!-- datetime-local 的原生內容有自己的最小寬度，w-full 擋不住它撐開容器 -->
         <div class="mt-1 overflow-hidden">
@@ -400,7 +413,7 @@ const inputStyle = {
           >
         </div>
       </FormRow>
-      <FormRow>
+      <FormRow data-section="params">
         <BeanSelect
           v-model="values.bean_id"
           :error="beanError"
@@ -414,7 +427,7 @@ const inputStyle = {
 
     <!-- 研磨刻度緊接磨豆機：刻度的驗證依賴磨豆機型錄，
          兩者分開會讓刻度失去上下文。依賴關係優先於變動頻率。 -->
-    <FormCard title="器材">
+    <FormCard title="器材" data-section="params">
       <FormRow>
         <EquipmentTrigger
           label="磨豆機"
@@ -466,7 +479,7 @@ const inputStyle = {
          兩者相隔太遠使用者看不到這件事發生。
          沖煮時間在分段最下方：最後一注之後的時間不由分段表達（最後一段
          沒有停水時間），它就是沖煮時間的一部分，放在分段正下方最近。 -->
-    <FormCard title="沖煮">
+    <FormCard title="沖煮" data-section="params">
       <FormRow>
         <label class="block text-sm" for="brew-dose">
           粉重
@@ -523,7 +536,7 @@ const inputStyle = {
       </FormRow>
     </FormCard>
 
-    <FormCard title="喝起來">
+    <FormCard title="喝起來" data-section="tasting">
       <FormRow divider>
         <IntensityPicker v-model="values.intensity" />
       </FormRow>
@@ -553,6 +566,7 @@ const inputStyle = {
       <button
         type="button"
         role="switch"
+        data-section="tasting"
         :aria-checked="values.is_favorite"
         class="flex w-full items-center justify-between rounded-sm border px-4 py-3"
         :style="{ borderColor: 'var(--border)', background: 'var(--surface)', minHeight: 'var(--touch-min)' }"

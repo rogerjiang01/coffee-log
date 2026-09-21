@@ -113,12 +113,14 @@ async function onSubmit(payload: {
   steps: StepInput[]
   flavorTagIds: string[]
   formDurationSeconds: number
+  paramsDurationSeconds: number
+  tastingDurationSeconds: number
 }) {
   if (!userId.value) {
     error.value = SESSION_EXPIRED
     return
   }
-  const { values, steps, flavorTagIds, formDurationSeconds } = payload
+  const { values, steps, flavorTagIds, formDurationSeconds, paramsDurationSeconds, tastingDurationSeconds } = payload
 
   saving.value = true
   error.value = ''
@@ -143,8 +145,10 @@ async function onSubmit(payload: {
     brewed_at: fromLocalInput(values.brewed_at) ?? new Date().toISOString(),
     // 自動 diff 的唯一資料來源（§3.5）
     copied_from_brew_id: copiedFrom.value,
-    // 產品指標，使用者不可見（§9）
+    // 產品指標，使用者不可見（§9）。兩段相加小於或等於總耗時，差額是日期這類欄位
     form_duration_seconds: formDurationSeconds,
+    params_duration_seconds: paramsDurationSeconds,
+    tasting_duration_seconds: tastingDurationSeconds,
   }
 
   const { data, error: insertError } = await supabase

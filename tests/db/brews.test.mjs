@@ -23,8 +23,8 @@ export default async function run() {
     { stepType: 'pour', cumulativeWater: 290, holdSeconds: 40, note: '' },
   ]
   const totalTime = 145
-  const brew = (await pg.rows(`insert into brews (user_id,bean_id,dose,total_time,form_duration_seconds)
-    values ('${A}','${bean}',20,${totalTime},73) returning id`))[0].id
+  const brew = (await pg.rows(`insert into brews (user_id,bean_id,dose,total_time,form_duration_seconds,params_duration_seconds,tasting_duration_seconds)
+    values ('${A}','${bean}',20,${totalTime},73,40,25) returning id`))[0].id
   for (const row of toStepRows(ui)) {
     await pg.exec(`insert into brew_steps (brew_id,user_id,step_index,hold_seconds,cumulative_water,step_type,note)
       values ('${brew}','${A}',${row.step_index},${row.hold_seconds === null ? 'null' : row.hold_seconds},${row.cumulative_water},'${row.step_type}',${row.note === null ? 'null' : `'${row.note}'`})`)
@@ -67,6 +67,17 @@ export default async function run() {
   r.check(cols.includes('form_duration_seconds'), 'form_duration_seconds 存在')
   r.check((await pg.rows(`select form_duration_seconds f from brews where id='${brew}'`))[0].f === 73,
     'form_duration_seconds 有寫入')
+
+  r.section('參數與品飲各自的耗時（§9.1）')
+  const durations = (await pg.rows(`select form_duration_seconds t, params_duration_seconds p,
+    tasting_duration_seconds s from brews where id='${brew}'`))[0]
+  r.check(durations.p === 40 && durations.s === 25, '兩個區段的秒數各自寫入')
+  r.check(durations.p + durations.s <= durations.t,
+    '兩段相加不超過總耗時——差額是日期這類不歸任何一段的欄位')
+  const blank = (await pg.rows(`insert into brews (user_id,bean_id,dose)
+    values ('${A}','${bean}',20) returning params_duration_seconds p, tasting_duration_seconds s`))[0]
+  r.check(blank.p === null && blank.s === null,
+    '沒寫就是 NULL——既有紀錄不回填，NULL 的意思是「沒有分段資料」不是 0')
 
   r.section('複製流程')
   const copy = (await pg.rows(`insert into brews (user_id,bean_id,dose,total_time,copied_from_brew_id)
