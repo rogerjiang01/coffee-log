@@ -11,6 +11,7 @@ interface BeanRow {
   roast_date: string | null
   roast_level: RoastLevel | null
   is_finished: boolean
+  is_sample: boolean
 }
 
 const supabase = useSupabaseClient()
@@ -28,7 +29,7 @@ async function fetchBeans() {
   // 少了決勝鍵時，created_at 相同的兩筆每次載入的順序可能不同。
   const { data, error } = await supabase
     .from('beans')
-    .select('id, name, photo_path, roaster, roast_date, roast_level, is_finished')
+    .select('id, name, photo_path, roaster, roast_date, roast_level, is_finished, is_sample')
     .order('is_finished', { ascending: true })
     .order('created_at', { ascending: false })
     .order('id', { ascending: false })
@@ -105,6 +106,7 @@ onMounted(load)
               :roast-level="bean.roast_level"
               :roaster="bean.roaster"
               :roast-date="bean.roast_date"
+              :is-sample="bean.is_sample"
             />
           </NuxtLink>
         </li>
@@ -124,6 +126,7 @@ onMounted(load)
                 :roast-level="bean.roast_level"
                 :roaster="bean.roaster"
                 :roast-date="bean.roast_date"
+              :is-sample="bean.is_sample"
               />
             </NuxtLink>
           </li>

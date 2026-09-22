@@ -56,6 +56,8 @@ const banned = {
   重新載入: '重試',
   重試這一頁: '重試',
   回豆子列表: '‹（返回，圖示）',
+  示範資料: '範例',
+  假資料: '範例',
 }
 
 export default function run() {

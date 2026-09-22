@@ -13,6 +13,8 @@ const props = defineProps<{
   grindSetting: number | null
   isFavorite: boolean
   diffs: BrewDiff[]
+  /** 註冊時自動建立的範例紀錄（《01》§13） */
+  isSample?: boolean
 }>()
 
 const ratio = computed(() => brewRatioLabel(props.totalWater, props.dose))
@@ -31,6 +33,7 @@ const hint = computed(() => props.diffs[0] ?? null)
   <article class="py-3">
     <div class="flex items-baseline justify-between gap-3">
       <h3 class="min-w-0 flex-1 truncate font-medium">{{ beanName ?? '沒有指定豆子' }}</h3>
+      <SampleBadge v-if="isSample" />
       <span class="shrink-0 text-sm tabular-nums text-muted">{{ date }}</span>
       <svg
         v-if="isFavorite"

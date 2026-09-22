@@ -46,8 +46,10 @@ const suites = [
   ['unit/interaction-time.test.ts', '記錄時間的量法'],
   ['unit/interaction-time-wiring.test.mjs', '記錄時間的接線'],
   ['unit/save-event.test.ts', '每次儲存都記一筆耗時'],
+  ['unit/sample-badge-wiring.test.mjs', '範例標籤的接線'],
   ['unit/glossary.test.mjs', '介面用詞'],
   ['db/schema.test.mjs', 'Schema、RLS 與 seed'],
+  ['db/sample-data.test.mjs', '新使用者的範例資料'],
   ['db/brews.test.mjs', '分段與複製（資料庫）'],
 ]
 

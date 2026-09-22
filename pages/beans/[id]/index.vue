@@ -17,6 +17,7 @@ interface BeanDetail {
   roast_level: RoastLevel | null
   official_notes: string | null
   is_finished: boolean
+  is_sample: boolean
   countries: { name_zh: string } | null
   region: string | null
   processing_methods: { name: string } | null
@@ -55,7 +56,7 @@ async function fetchBean() {
   const { data, error } = await supabase
     .from('beans')
     .select(`
-      id, name, photo_path, roaster, roast_date, roast_level, region, official_notes, is_finished,
+      id, name, photo_path, roaster, roast_date, roast_level, region, official_notes, is_finished, is_sample,
       countries ( name_zh ),
       processing_methods ( name ), varieties ( name )
     `)
@@ -246,7 +247,12 @@ async function destroy() {
         <span class="font-serif text-lg font-bold">{{ bean.name }}</span>
       </div>
 
-      <h1 class="mt-5 font-serif text-2xl font-bold">{{ bean.name }}</h1>
+      <!-- 標籤是標題的修飾語，不是另一段內容。對齊基線不置中：
+           長豆名會換成兩行，置中的話標籤會飄在兩行之間 -->
+      <div class="mt-5 flex items-baseline gap-2">
+        <h1 class="min-w-0 font-serif text-2xl font-bold">{{ bean.name }}</h1>
+        <SampleBadge v-if="bean.is_sample" />
+      </div>
 
       <dl class="mt-6">
         <div

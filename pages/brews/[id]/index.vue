@@ -29,6 +29,7 @@ interface BrewDetail {
   brewed_at: string
   rating: number | null
   is_favorite: boolean
+  is_sample: boolean
   tasting_notes: string | null
   intensity: Intensity | null
   beans: { id: string; name: string; roast_date: string | null } | null
@@ -68,7 +69,7 @@ async function fetchBrew() {
     .select(`
       id, copied_from_brew_id, brew_method_id, grinder_id, dripper_id, kettle_id,
       dose, water_temp, grind_setting, total_time, brewed_at,
-      rating, is_favorite, tasting_notes, intensity,
+      rating, is_favorite, is_sample, tasting_notes, intensity,
       beans ( id, name, roast_date ),
       brew_methods ( name ),
       grinder:grinder_id ( custom_name, equipment_catalog ( brand, model, variant ) ),
@@ -276,9 +277,13 @@ async function destroy() {
     </template>
 
     <template v-else-if="brew">
-      <h1 class="mt-4 font-serif text-2xl font-bold">
-        {{ brew.beans?.name ?? '沒有指定豆子' }}
-      </h1>
+      <!-- 對齊基線不置中：長豆名換成兩行時，置中的標籤會飄在兩行之間 -->
+      <div class="mt-4 flex items-baseline gap-2">
+        <h1 class="min-w-0 font-serif text-2xl font-bold">
+          {{ brew.beans?.name ?? '沒有指定豆子' }}
+        </h1>
+        <SampleBadge v-if="brew.is_sample" />
+      </div>
       <p class="mt-1 text-sm tabular-nums text-muted">{{ formatDate(brew.brewed_at) }}</p>
       <!-- 評分與收藏是兩個獨立欄位，分開顯示 -->
       <div v-if="brew.rating !== null || brew.is_favorite" class="mt-3 flex items-center gap-3">

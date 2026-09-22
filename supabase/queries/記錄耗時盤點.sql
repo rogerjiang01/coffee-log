@@ -15,6 +15,13 @@
 --
 -- 2. 你的帳號：以 email 判斷。如果 app 裡用的不是這個 email，改 my_email。
 --
+-- ── 範例資料一律排除 ───────────────────────────────────
+--
+-- 註冊時自動建立的那一筆沖煮紀錄（《01》§13）不是使用者記的，
+-- 它的耗時欄位是空的、也沒有儲存事件，但**筆數會被算進去**——
+-- 每個新帳號平白多一筆，複製佔比與「有沒有填品飲」都會被稀釋。
+-- 所以每一段都加 `is_sample = false`（經由 brew_id 的那幾段用 exists 過濾）。
+--
 -- ── 為什麼用 created_at 不用 brewed_at ──────────────────
 --
 -- 分界問的是「這筆是哪一版程式寫的」，那是寫入時間。
@@ -39,6 +46,7 @@ rows as (
   from brews b
   join auth.users u on u.id = b.user_id
   where b.form_duration_seconds is not null
+    and b.is_sample = false
 )
 select
   case when before then '改版前（表單開啟到送出）' else '改版後（累計互動間隔）' end as 期間,
@@ -73,6 +81,7 @@ rows as (
     u.email = (select my_email from params)      as mine
   from brews b
   join auth.users u on u.id = b.user_id
+  where b.is_sample = false
 )
 select
   case when before then '改版前' else '改版後' end as 期間,
@@ -102,6 +111,7 @@ select
 from brews b
 join auth.users u on u.id = b.user_id
 where b.params_duration_seconds is not null
+  and b.is_sample = false
 group by 1
 order by 1;
 
@@ -124,9 +134,11 @@ with params as (
     'rogerjiang01@gmail.com'             as my_email
 ),
 first_save as (
-  select brew_id, min(saved_at) as started_at
-  from brew_save_events
-  group by brew_id
+  -- 範例紀錄排除：使用者編輯範例並儲存時也會寫下儲存事件（《01》§13）
+  select e.brew_id, min(e.saved_at) as started_at
+  from brew_save_events e
+  join brews b on b.id = e.brew_id and b.is_sample = false
+  group by e.brew_id
 ),
 one_record as (
   select
@@ -178,6 +190,7 @@ select
   round(avg(e.tasting_seconds) filter (where e.tasting_seconds > 0)) as 有填時的平均秒數
 from brew_save_events e
 join auth.users u on u.id = e.user_id
+join brews b on b.id = e.brew_id and b.is_sample = false
 where e.entry = 'edit'
 group by 1
 order by 1;
@@ -192,6 +205,7 @@ tasting as (
     min(e.saved_at)                                as created_at
   from brew_save_events e
   join auth.users u on u.id = e.user_id
+  join brews b on b.id = e.brew_id and b.is_sample = false
   group by e.brew_id, u.email
 )
 select

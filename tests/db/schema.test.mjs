@@ -42,8 +42,10 @@ export default async function run() {
   r.ok('只給 user_id 與 name 就能建立豆子')
   const notNull = (await pg.rows(`select column_name from information_schema.columns
     where table_name='beans' and is_nullable='NO' order by column_name`)).map(x => x.column_name)
-  r.check(equal(notNull, ['created_at', 'id', 'is_finished', 'name', 'updated_at', 'user_id']),
-    `beans 的 NOT NULL 僅有 id/user_id/name 與系統欄位：${notNull.join(',')}`)
+  // is_finished 與 is_sample 是 NOT NULL DEFAULT false：沒有人需要填它們，
+  // 也沒有「還沒決定」的第三態。「必填只有三個」管的是使用者必須填寫的內容
+  r.check(equal(notNull, ['created_at', 'id', 'is_finished', 'is_sample', 'name', 'updated_at', 'user_id']),
+    `beans 裡使用者要填的 NOT NULL 只有 name：${notNull.join(',')}`)
 
   r.section('沖煮紀錄：必填是 bean_id 與 dose')
   const brewNotNull = (await pg.rows(`select column_name from information_schema.columns

@@ -111,6 +111,7 @@
                             <div class="flex min-w-0 flex-1 items-center gap-2">
                                 <h3 class="min-w-0 truncate font-medium">{{ displayName(row) }}</h3>
                                 <span v-if="row.is_default" class="shrink-0 rounded-sm px-2 py-0.5 text-xs" :style="{ background: 'var(--accent-wash)', color: 'var(--on-accent-wash)' }">常用</span>
+                                <SampleBadge v-if="row.is_sample" />
                             </div>
 
                             <!-- 撐滿整列高度，觸控目標才滿足《03》§7 的 44px。

@@ -14,6 +14,8 @@ const props = defineProps<{
   roastDate: string | null
   brewCount: number
   favoriteCount: number
+  /** 註冊時自動建立的範例豆子（《01》§13） */
+  isSample?: boolean
 }>()
 
 const fill = computed(() => roastFill(props.roastLevel))
@@ -46,7 +48,11 @@ const days = computed(() => restDays(props.roastDate))
     </div>
 
     <div class="flex h-24 flex-col justify-between px-3 py-2">
-      <h3 class="truncate text-sm font-medium">{{ name }}</h3>
+      <!-- 標籤擠在固定寬度的卡片裡，所以豆名讓位（truncate）而不是換行撐高卡片 -->
+      <div class="flex min-w-0 items-center gap-1.5">
+        <h3 class="truncate text-sm font-medium">{{ name }}</h3>
+        <SampleBadge v-if="isSample" />
+      </div>
 
       <p v-if="days !== null" class="tabular-nums" :style="{ color: 'var(--text)' }">
         養豆 <span class="text-lg font-medium">{{ days }}</span> 天

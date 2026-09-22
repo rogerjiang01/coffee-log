@@ -186,7 +186,7 @@ const CATALOG_COLUMNS = [
 export const EQUIPMENT_CATALOG_SELECT = ['id', ...CATALOG_COLUMNS].join(', ')
 
 export const USER_EQUIPMENT_SELECT
-  = `id, catalog_id, type, custom_name, is_default, note, equipment_catalog ( ${CATALOG_COLUMNS.join(', ')} )`
+  = `id, catalog_id, type, custom_name, is_default, is_sample, note, equipment_catalog ( ${CATALOG_COLUMNS.join(', ')} )`
 
 /** USER_EQUIPMENT_SELECT 回傳的一列。放在 utils 讓 Nuxt 自動匯入。 */
 export interface UserEquipmentRow {
@@ -195,6 +195,8 @@ export interface UserEquipmentRow {
   type: EquipmentType
   custom_name: string | null
   is_default: boolean
+  /** 註冊時自動建立的範例器材（《01》§13）。只多一個標籤，其他行為完全相同 */
+  is_sample: boolean
   note: string | null
   equipment_catalog: {
     brand: string

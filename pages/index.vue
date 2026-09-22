@@ -18,6 +18,7 @@ interface ActiveBean {
   photo_path: string | null
   roast_date: string | null
   roast_level: RoastLevel | null
+  is_sample: boolean
 }
 
 interface TimelineEntry {
@@ -28,6 +29,7 @@ interface TimelineEntry {
   waterTemp: number | null
   grindSetting: number | null
   isFavorite: boolean
+  isSample: boolean
   totalWater: number | null
   diffs: BrewDiff[]
 }
@@ -44,7 +46,7 @@ const loadError = ref('')
 
 // 一筆紀錄要算差異，需要它自己與來源的參數、器材名稱與分段
 const BREW_SELECT = `
-  id, brewed_at, dose, water_temp, grind_setting, total_time, is_favorite, copied_from_brew_id,
+  id, brewed_at, dose, water_temp, grind_setting, total_time, is_favorite, is_sample, copied_from_brew_id,
   brew_method_id, grinder_id, dripper_id, kettle_id,
   beans ( name ),
   brew_methods ( name ),
@@ -91,6 +93,7 @@ function toEntries(rows: BrewRow[]): TimelineEntry[] {
     waterTemp: (row.water_temp as number | null) ?? null,
     grindSetting: (row.grind_setting as number | null) ?? null,
     isFavorite: (row.is_favorite as boolean | null) ?? false,
+    isSample: (row.is_sample as boolean | null) ?? false,
     totalWater: null,
     diffs: [],
   }))
@@ -147,7 +150,7 @@ const cache = useQueryCache()
 async function fetchActiveBeans() {
   const { data, error } = await supabase
     .from('beans')
-    .select('id, name, photo_path, roast_date, roast_level')
+    .select('id, name, photo_path, roast_date, roast_level, is_sample')
     .eq('is_finished', false)
     .order('created_at', { ascending: false })
     .order('id', { ascending: false })
@@ -332,6 +335,7 @@ const newBrewLink = computed(() =>
                   :roast-date="bean.roast_date"
                   :brew-count="brewCounts.get(bean.id) ?? 0"
                   :favorite-count="favoriteCounts.get(bean.id) ?? 0"
+                  :is-sample="bean.is_sample"
                 />
               </NuxtLink>
             </li>
@@ -363,6 +367,7 @@ const newBrewLink = computed(() =>
                 :water-temp="entry.waterTemp"
                 :grind-setting="entry.grindSetting"
                 :is-favorite="entry.isFavorite"
+                :is-sample="entry.isSample"
                 :diffs="entry.diffs"
               />
             </NuxtLink>
