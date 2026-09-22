@@ -50,6 +50,7 @@ const suites = [
   ['unit/glossary.test.mjs', '介面用詞'],
   ['db/schema.test.mjs', 'Schema、RLS 與 seed'],
   ['db/sample-data.test.mjs', '新使用者的範例資料'],
+  ['db/function-grants.test.mjs', 'public schema 的函式執行權'],
   ['db/brews.test.mjs', '分段與複製（資料庫）'],
 ]
 
