@@ -13,11 +13,12 @@ defineProps<{ filled?: boolean }>()
   <div class="relative">
     <slot />
     <svg
-      width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"
+      width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"
+      fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round"
       class="pointer-events-none absolute top-1/2 right-0 -translate-y-1/2"
       :style="{ color: 'var(--text-muted)' }"
     >
-      <path d="M3 6l5 5 5-5" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="m6 9 6 6 6-6" />
     </svg>
   </div>
 </template>

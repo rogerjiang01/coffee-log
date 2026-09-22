@@ -42,7 +42,7 @@ defineProps<{ status: DraftSaveStatus }>()
       stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round"
       aria-hidden="true"
     >
-      <path d="M5 12.5l4.5 4.5L19 7.5" />
+      <path d="M20 6 9 17l-5-5" />
     </svg>
     {{ status === 'saving' ? '暫存中' : '已暫存' }}
   </p>

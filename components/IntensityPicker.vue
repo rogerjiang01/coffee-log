@@ -57,7 +57,7 @@
                     <span
                         class="block size-4 rounded-full border"
                         :style="{
-                            borderColor: (modelValue[dimension.key] ?? 0) >= level ? 'var(--accent)' : 'var(--border)',
+                            borderColor: (modelValue[dimension.key] ?? 0) >= level ? 'var(--accent)' : 'var(--control-empty)',
                             background: (modelValue[dimension.key] ?? 0) >= level ? 'var(--accent)' : 'transparent',
                             transition: 'background var(--motion-duration) var(--motion-ease)',
                         }"

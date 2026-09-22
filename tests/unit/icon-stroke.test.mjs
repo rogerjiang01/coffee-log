@@ -22,6 +22,7 @@ function rendered(svg) {
 }
 
 const HEART = 'M2 9.5a5.5 5.5 0 0 1 9.591-3.676'
+const STAR = 'M11.525 2.295a.53.53 0 0 1 .95 0'
 
 const ICONS = [
   // 頂部導覽與主要動作：2px
@@ -35,22 +36,26 @@ const ICONS = [
   ['分享', 'components/ShareIcon.vue', 'm16 6-4-4-4 4', 2, 1],
   // 內容區的小圖示：1.5px
   ['分段的 ×', 'components/PourStepsEditor.vue', 'M18 6 6 18', 1.5, 1],
-  ['⌄ 收合區', 'components/CollapsibleSection.vue', 'M3 6l5 5 5-5', 1.5, 1],
-  ['⌄ 原生下拉', 'components/SelectField.vue', 'M3 6l5 5 5-5', 1.5, 1],
-  ['⌄ 豆子下拉', 'components/BeanSelect.vue', 'M3 6l5 5 5-5', 1.5, 1],
-  ['⌄ 產國下拉', 'components/CountrySelect.vue', 'M3 6l5 5 5-5', 1.5, 1],
-  ['⌄ 型號下拉', 'components/CatalogSelect.vue', 'M3 6l5 5 5-5', 1.5, 1],
-  ['⌄ 處理法／品種下拉', 'components/LookupSelect.vue', 'M3 6l5 5 5-5', 1.5, 1],
+  ['⌄ 收合區', 'components/CollapsibleSection.vue', 'm6 9 6 6 6-6', 1.5, 1],
+  ['⌄ 原生下拉', 'components/SelectField.vue', 'm6 9 6 6 6-6', 1.5, 1],
+  ['⌄ 豆子下拉', 'components/BeanSelect.vue', 'm6 9 6 6 6-6', 1.5, 1],
+  ['⌄ 產國下拉', 'components/CountrySelect.vue', 'm6 9 6 6 6-6', 1.5, 1],
+  ['⌄ 型號下拉', 'components/CatalogSelect.vue', 'm6 9 6 6 6-6', 1.5, 1],
+  ['⌄ 處理法／品種下拉', 'components/LookupSelect.vue', 'm6 9 6 6 6-6', 1.5, 1],
   ['› 器材欄位', 'components/EquipmentTrigger.vue', 'm9 18 6-6-6-6', 1.5, 1],
   ['攪拌標記', 'components/StirIcon.vue', 'M12 14v7', 1.5, 1],
   ['暫存中（sync）', 'components/DraftStatus.vue', 'M18 3v4h-4', 1.5, 1],
-  ['已暫存（打勾）', 'components/DraftStatus.vue', 'M5 12.5l4.5 4.5L19 7.5', 1.5, 1],
+  ['已暫存（打勾）', 'components/DraftStatus.vue', 'M20 6 9 17l-5-5', 1.5, 1],
   // 收藏愛心：四個尺寸都要落在 1.5px。換成 Lucide 之前四處寫的都是 1.5，
   // 但顯示寬不同（16／18／24），實際線寬因此散成 1.0、1.125、1.5 三種。
   ['愛心（表單）', 'components/BrewForm.vue', HEART, 1.5, 1],
   ['愛心（時間軸）', 'components/BrewTimelineItem.vue', HEART, 1.5, 1],
   ['愛心（比較表）', 'components/BeanCompareTable.vue', HEART, 1.5, 1],
   ['愛心（紀錄詳情）', 'pages/brews/[id]/index.vue', HEART, 1.5, 1],
+  // 星等：表單 24px、詳情頁 20px，兩處都要落在 1.5px。
+  // 換成 Lucide 之前兩處都寫 1.5，詳情頁那個實際只有 1.25
+  ['星等（表單）', 'components/StarRating.vue', STAR, 1.5, 1],
+  ['星等（紀錄詳情）', 'pages/brews/[id]/index.vue', STAR, 1.5, 1],
 ]
 
 export default function run() {
@@ -91,12 +96,40 @@ export default function run() {
     ['components/BrewTimelineItem.vue', HEART],
     ['components/BeanCompareTable.vue', HEART],
     ['pages/brews/[id]/index.vue', HEART],
+    ['components/StarRating.vue', STAR],
+    ['pages/brews/[id]/index.vue', STAR],
+    ['components/DraftStatus.vue', 'M20 6 9 17l-5-5'],
+    ['components/CollapsibleSection.vue', 'm6 9 6 6 6-6'],
+    ['components/SelectField.vue', 'm6 9 6 6 6-6'],
+    ['components/BeanSelect.vue', 'm6 9 6 6 6-6'],
+    ['components/CountrySelect.vue', 'm6 9 6 6 6-6'],
+    ['components/CatalogSelect.vue', 'm6 9 6 6 6-6'],
+    ['components/LookupSelect.vue', 'm6 9 6 6 6-6'],
   ]
   for (const [file, marker] of LUCIDE) {
     const svgs = svgsWith(read(file), marker)
     r.check(svgs.length > 0 && svgs.every(s => /viewBox="0 0 24 24"/.test(s)),
       `${file}：${marker.slice(0, 12)}… 的 viewBox 是 24`)
   }
+
+  r.section('未選取的輸入元件輪廓要過 3:1（《03》§7）')
+  // --border 是分隔線的顏色（sand-100，白底 1.23:1）。畫在「可以按」的東西上
+  // 就低於非文字元素的門檻，使用者看不出那裡還有五個可點的目標
+  const empty = [
+    ['components/StarRating.vue', '星等（表單）'],
+    ['pages/brews/[id]/index.vue', '星等（紀錄詳情）'],
+    ['components/BrewForm.vue', '收藏愛心（表單）'],
+    ['components/IntensityPicker.vue', '強度圓點'],
+  ]
+  for (const [file, name] of empty) {
+    const src = read(file)
+    r.check(/:\s*'var\(--control-empty\)'/.test(src), `${name}：未選取用 --control-empty`)
+    r.check(!/>=\s*level\s*\?[^\n]*'var\(--border\)'/.test(src) && !/is_favorite\s*\?[^\n]*'var\(--border\)'/.test(src),
+      `${name}：沒有退回 --border`)
+    r.check(/--control-empty/.test(src), `${name}：檔案裡確實引用了 --control-empty`)
+  }
+  r.check(/--control-empty:\s*var\(--sand-500\);/.test(read('assets/css/tokens.css')),
+    '--control-empty 是 sand-500（白底 3.53:1，唯一過得了 3:1 的淺色階）')
 
   r.section('圖示來源有記在 repo 裡')
   const notice = read('NOTICE.md')
