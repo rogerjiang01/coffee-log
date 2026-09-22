@@ -46,5 +46,30 @@ export default function run() {
   r.check(!/params_duration_seconds\s*:/.test(editPage) && !/tasting_duration_seconds\s*:/.test(editPage),
     '兩個區段欄位在編輯流程同樣不寫入，比照 form_duration_seconds')
 
+  r.section('每次儲存都記一列（《01》§9.2）')
+  const saveEvent = read('composables/useBrewSaveEvent.ts')
+  // 註解裡寫了「不得接 .select()」，比對的是去掉註解之後的程式碼
+  const saveEventCode = saveEvent.replace(/\/\/.*/g, '')
+  r.check(!/\.select\(/.test(saveEventCode),
+    'insert 之後不接 .select()——這張表沒有給 authenticated select 權限，接了會 permission denied')
+  r.check(/import\.meta\.dev/.test(saveEvent), '失敗只在開發模式印出，不顯示給使用者')
+  r.check(!/retry|重試/.test(saveEventCode), '不重試')
+  for (const [page, name] of [[newPage, '新增'], [editPage, '編輯']]) {
+    r.check(/await saveEvent\.record\(/.test(page), `${name}流程會記一列`)
+    r.check(page.indexOf('saveEvent.record(') < page.indexOf('clearDraft()'),
+      `${name}流程在清暫存之前記——清暫存會把計時器歸零`)
+    r.check(/entry: brewSaveEntry\(/.test(page), `${name}流程的入口沿用暫存 key 的分法`)
+  }
+
+  const migration = read('supabase/migrations/20260922100000_brew_save_events.sql')
+  r.check(/on delete cascade/.test(migration), '沖煮紀錄刪除時一併刪除')
+  r.check(/for insert/.test(migration) && !/for (select|update|delete)/.test(migration),
+    '只有 insert policy——單向的量測紀錄，少一個 policy 就少一個寫錯的機會')
+  r.check(/revoke all on table brew_save_events/.test(migration)
+    && /grant insert on table brew_save_events to authenticated/.test(migration),
+    'table privilege 只給 insert（RLS 之上還有一層權限）')
+  r.check(/exists \(select 1 from brews/.test(migration),
+    'with check 會確認那筆紀錄是自己的——只比對 user_id 擋不住替別人的紀錄寫一列')
+
   return r.finish()
 }

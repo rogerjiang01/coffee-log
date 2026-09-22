@@ -45,6 +45,7 @@ const suites = [
   ['unit/compare-table.test.mjs', '比較表的可點擊線索'],
   ['unit/interaction-time.test.ts', '記錄時間的量法'],
   ['unit/interaction-time-wiring.test.mjs', '記錄時間的接線'],
+  ['unit/save-event.test.ts', '每次儲存都記一筆耗時'],
   ['unit/glossary.test.mjs', '介面用詞'],
   ['db/schema.test.mjs', 'Schema、RLS 與 seed'],
   ['db/brews.test.mjs', '分段與複製（資料庫）'],

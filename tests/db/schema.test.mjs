@@ -70,6 +70,44 @@ export default async function run() {
   r.check((await pg.rows(`select 1 from brews where id='${pub}'`)).length === 1,
     'B 讀得到 A 標為 public 的紀錄——visibility 邏輯現在就生效')
 
+  r.section('儲存事件：只寫得進去，讀不出來（§9.2）')
+  // 這張表是單向的量測紀錄：只有 insert policy，table privilege 也只給 insert
+  await pg.as(A)
+  r.check((await pg.query(`insert into brew_save_events (brew_id,user_id,entry,params_seconds,tasting_seconds,total_seconds)
+    values ('${brew}','${A}','blank',40,25,70)`)).affectedRows === 1, 'A 記得了自己紀錄的一列')
+  await r.mustReject(pg.query(`select 1 from brew_save_events`),
+    'A 自己也讀不到——介面不讀它，盤點在 SQL Editor 做')
+  await r.mustReject(pg.query(`insert into brew_save_events (brew_id,user_id,entry,params_seconds,tasting_seconds,total_seconds)
+    values ('${brew}','${A}','手動',1,1,1)`), '入口只收四種值')
+  await pg.as(B)
+  await r.mustReject(pg.query(`insert into brew_save_events (brew_id,user_id,entry,params_seconds,tasting_seconds,total_seconds)
+    values ('${brew}','${B}','edit',10,0,10)`),
+    'B 不能替 A 的紀錄記一列——只比對 user_id 的話，汙染的是 A 那筆的統計')
+  await r.mustReject(pg.query(`insert into brew_save_events (brew_id,user_id,entry,params_seconds,tasting_seconds,total_seconds)
+    values ('${brew}','${A}','edit',10,0,10)`), 'B 也不能冒用 A 的身分')
+  await pg.asSuperuser()
+  r.check((await pg.rows(`select count(*)::int n from brew_save_events where brew_id='${brew}'`))[0].n === 1,
+    '只有 A 自己那一列留下來')
+
+  // 沒有 delete policy，刪除靠 brew_id 的 on delete cascade
+  await pg.as(A)
+  const doomed = (await pg.rows(`insert into brews (user_id,bean_id,dose) values ('${A}','${bean}',17) returning id`))[0].id
+  await pg.exec(`insert into brew_save_events (brew_id,user_id,entry,params_seconds,tasting_seconds,total_seconds)
+    values ('${doomed}','${A}','blank',30,0,30)`)
+  await pg.exec(`insert into brew_save_events (brew_id,user_id,entry,params_seconds,tasting_seconds,total_seconds)
+    values ('${doomed}','${A}','edit',5,20,25)`)
+  await pg.asSuperuser()
+  r.check((await pg.rows(`select count(*)::int n from brew_save_events where brew_id='${doomed}'`))[0].n === 2,
+    '同一筆紀錄可以有多列——每次儲存記一次')
+  await pg.as(A)
+  await pg.exec(`delete from brews where id='${doomed}'`)
+  await pg.asSuperuser()
+  r.check((await pg.rows(`select count(*)::int n from brew_save_events where brew_id='${doomed}'`))[0].n === 0,
+    '刪掉沖煮紀錄，它的儲存事件一併刪除')
+
+  // 下一段接著用 B 的身分
+  await pg.as(B)
+
   r.section('混合表：偽造系統項目')
   for (const table of ['processing_methods', 'varieties', 'flavor_tags', 'brew_methods']) {
     await r.mustReject(pg.query(`insert into ${table} (user_id,name) values (null,'偽造')`),

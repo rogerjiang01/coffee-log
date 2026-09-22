@@ -15,6 +15,7 @@ definePageMeta({ screen: 'flow' })
 const route = useRoute()
 const supabase = useSupabaseClient()
 const cache = useQueryCache()
+const saveEvent = useBrewSaveEvent()
 const exitTo = useFlowExit()
 const userId = useCurrentUserId()
 
@@ -184,6 +185,15 @@ async function onSubmit(payload: {
       flavorTagIds.map(id => ({ brew_id: brewId, flavor_tag_id: id, user_id: userId.value })) as never,
     )
   }
+
+  // 耗時：每次儲存記一列（§9.2）。寫在 clearDraft 之前——清暫存會把計時器歸零。
+  // 失敗不影響已經存好的紀錄，也不顯示錯誤
+  await saveEvent.record({
+    brewId,
+    userId: userId.value,
+    entry: brewSaveEntry(draftKey),
+    duration: { total: formDurationSeconds, params: paramsDurationSeconds, tasting: tastingDurationSeconds },
+  })
 
   // 存成功了，這份暫存沒有用了
   form.value?.clearDraft()

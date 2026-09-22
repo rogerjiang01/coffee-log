@@ -40,7 +40,7 @@ export function useInteractionTime() {
    * 三個值一起回傳而不是分成三支：每呼叫一次就 touch 一次，分開拿會多記幾毫秒到
    * 最後那一段身上。使用者看不到這三個值（《01》§9）。
    */
-  function measure() {
+  function measure(): InteractionDuration {
     touch()
     return {
       total: clock.seconds(),
@@ -49,5 +49,13 @@ export function useInteractionTime() {
     }
   }
 
-  return { measure }
+  return {
+    measure,
+    /** 目前累計，不記互動。存進暫存用（《02》§6） */
+    snapshot: () => clock.snapshot(),
+    /** 暫存還原：接著累積，不是從零開始 */
+    carryOver: (previous: InteractionDuration) => clock.carryOver(previous),
+    /** 暫存被清掉時跟著歸零 */
+    reset: () => clock.reset(),
+  }
 }

@@ -104,3 +104,103 @@ join auth.users u on u.id = b.user_id
 where b.params_duration_seconds is not null
 group by 1
 order by 1;
+
+
+-- ══ 4.「一次記錄」的耗時（brew_save_events，§9.2）═════════
+--
+-- 同一筆沖煮紀錄在**建立後 N 分鐘內**的所有儲存，算同一次記錄。
+-- N 是查詢的參數不是資料的定義：改 N 不必動資料，也不會讓舊資料斷掉。
+--
+-- 為什麼要有 N：沖之前先存、沖完回來補填是一次記錄（間隔幾分鐘）；
+-- 隔了三天回來改分數是另一件事（維護，不是記錄）。N 就是這條界線。
+-- 預設 30 分鐘——一杯手沖連準備帶沖煮不會超過這個數字。
+--
+-- 落在窗外的儲存整列忽略，不併進任何一次記錄：它們是「維護」，
+-- 要看那部分請用第 5 段。
+
+with params as (
+  select
+    interval '30 minutes'                as window_size,   -- 這裡改 N
+    'rogerjiang01@gmail.com'             as my_email
+),
+first_save as (
+  select brew_id, min(saved_at) as started_at
+  from brew_save_events
+  group by brew_id
+),
+one_record as (
+  select
+    e.brew_id,
+    u.email = (select my_email from params) as mine,
+    sum(e.params_seconds)  as params_seconds,
+    sum(e.tasting_seconds) as tasting_seconds,
+    count(*)               as saves
+  from brew_save_events e
+  join first_save f on f.brew_id = e.brew_id
+  join auth.users u  on u.id = e.user_id
+  where e.saved_at <= f.started_at + (select window_size from params)
+  group by e.brew_id, u.email
+)
+select
+  case when mine then '我' else '其他使用者' end                         as 帳號,
+  count(*)                                                               as 記錄筆數,
+  round(avg(saves), 1)                                                   as 平均儲存次數,
+  min(params_seconds)                                                    as 參數最短,
+  percentile_cont(0.5) within group (order by params_seconds)::int       as 參數中位數,
+  round(avg(params_seconds))                                             as 參數平均,
+  max(params_seconds)                                                    as 參數最長,
+  min(tasting_seconds)                                                   as 品飲最短,
+  percentile_cont(0.5) within group (order by tasting_seconds)::int      as 品飲中位數,
+  round(avg(tasting_seconds))                                            as 品飲平均,
+  max(tasting_seconds)                                                   as 品飲最長
+from one_record
+group by 1
+order by 1;
+
+
+-- ══ 5. 事後補品飲的比例 ═══════════════════════════════════
+--
+-- 兩個不同的問題，分成兩段：
+--   5a. 每次編輯裡，有多少次真的在填品飲（編輯也可能只是改個刻度）
+--   5b. 有多少筆紀錄的品飲是建立之後才第一次填的
+--
+-- 5b 的判斷是「第一次出現品飲秒數的那一列，是不是建立的那一列」。
+-- 用秒數而不是欄位內容：欄位內容只看得到最後的結果，看不出是哪一次填的。
+
+-- 5a. 編輯裡有填品飲的比例
+with params as (select 'rogerjiang01@gmail.com' as my_email)
+select
+  case when u.email = (select my_email from params) then '我' else '其他使用者' end as 帳號,
+  count(*)                                                        as 編輯次數,
+  count(*) filter (where e.tasting_seconds > 0)                   as 有填品飲的次數,
+  round(100.0 * count(*) filter (where e.tasting_seconds > 0)
+        / nullif(count(*), 0), 1)                                 as 佔比,
+  round(avg(e.tasting_seconds) filter (where e.tasting_seconds > 0)) as 有填時的平均秒數
+from brew_save_events e
+join auth.users u on u.id = e.user_id
+where e.entry = 'edit'
+group by 1
+order by 1;
+
+-- 5b. 品飲是建立之後才第一次填的紀錄
+with params as (select 'rogerjiang01@gmail.com' as my_email),
+tasting as (
+  select
+    e.brew_id,
+    u.email = (select my_email from params)        as mine,
+    min(e.saved_at) filter (where e.tasting_seconds > 0) as first_tasting_at,
+    min(e.saved_at)                                as created_at
+  from brew_save_events e
+  join auth.users u on u.id = e.user_id
+  group by e.brew_id, u.email
+)
+select
+  case when mine then '我' else '其他使用者' end                        as 帳號,
+  count(*)                                                              as 有儲存事件的紀錄數,
+  count(*) filter (where first_tasting_at is not null)                  as 有填過品飲,
+  count(*) filter (where first_tasting_at > created_at)                 as 建立後才第一次填品飲,
+  round(100.0 * count(*) filter (where first_tasting_at > created_at)
+        / nullif(count(*) filter (where first_tasting_at is not null), 0), 1) as 佔有填過品飲的比例
+from tasting
+group by 1
+order by 1;

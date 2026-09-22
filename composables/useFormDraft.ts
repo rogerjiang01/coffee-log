@@ -22,6 +22,14 @@ export function useFormDraft<T>(key: string, options: {
   sanitize?: (data: T) => Promise<T> | T
   /** 暫存被清掉時（儲存成功、重新開始、全部清除）。放在 localStorage 以外的東西（照片）跟著清 */
   onClear?: () => void
+  /**
+   * 判斷「有沒有改過」時只看這部分。預設看整份。
+   *
+   * 沖煮表單的耗時跟著暫存一起走（《02》§6），但它不是使用者填的內容：
+   * 打了字又刪回空白時，內容與初始狀態相同、秒數卻不同，
+   * 少了這個過濾就會對著一張空表單顯示「未儲存的內容已恢復」。
+   */
+  identity?: (value: T) => unknown
 }) {
   /** overlay 模式：等使用者決定 */
   const pending = ref<T | null>(null)
@@ -33,6 +41,10 @@ export function useFormDraft<T>(key: string, options: {
 
   const armed = ref(false)
   let baseline: string | null = null
+
+  /** 拿來比對「與初始狀態相同嗎」的字串 */
+  const fingerprint = (value: T) =>
+    JSON.stringify(options.identity ? options.identity(value) : value)
 
   const writer = createDraftWriter<T>({
     write: (value) => {
@@ -74,7 +86,7 @@ export function useFormDraft<T>(key: string, options: {
   }
 
   onMounted(async () => {
-    baseline = JSON.stringify(options.read())
+    baseline = fingerprint(options.read())
 
     let envelope: { savedAt: number, data: T } | null = null
     try {
@@ -87,7 +99,7 @@ export function useFormDraft<T>(key: string, options: {
       return
     }
     // 與初始狀態相同的暫存沒有還原價值
-    if (JSON.stringify(envelope.data) === baseline) {
+    if (fingerprint(envelope.data) === baseline) {
       clear()
       armed.value = true
       return
@@ -117,7 +129,7 @@ export function useFormDraft<T>(key: string, options: {
     // 橫幅模式不受此限——內容已經填進去了。
     if (!armed.value || pending.value !== null) return
     // 沒動過的空白表單不值得存，存了下次進來就會被問一次
-    if (JSON.stringify(value) === baseline) return
+    if (fingerprint(value) === baseline) return
     writer.schedule(value)
   }, { deep: true })
 

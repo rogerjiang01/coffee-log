@@ -11,6 +11,7 @@ definePageMeta({ screen: 'flow' })
 const route = useRoute()
 const supabase = useSupabaseClient()
 const cache = useQueryCache()
+const saveEvent = useBrewSaveEvent()
 const exitTo = useFlowExit()
 const userId = useCurrentUserId()
 
@@ -111,6 +112,9 @@ async function onSubmit(payload: {
   values: BrewFormValues
   steps: StepInput[]
   flavorTagIds: string[]
+  formDurationSeconds: number
+  paramsDurationSeconds: number
+  tastingDurationSeconds: number
 }) {
   if (!userId.value) {
     error.value = SESSION_EXPIRED
@@ -120,8 +124,9 @@ async function onSubmit(payload: {
   saving.value = true
   error.value = ''
 
-  // form_duration_seconds 只在新增時寫入，編輯不覆蓋也不累加：
-  // 要量的是「記一筆要多久」，不是「總共花多少時間維護這筆」
+  // brews 上的 form_duration_seconds 只在新增時寫入，編輯不覆蓋也不累加：
+  // 要量的是「記一筆要多久」，不是「總共花多少時間維護這筆」。
+  // 編輯時的耗時記在 brew_save_events（§9.2），那張表每次儲存都記一列
   const { error: updateError } = await supabase
     .from('brews')
     .update({
@@ -167,6 +172,18 @@ async function onSubmit(payload: {
       flavorTagIds.map(tagId => ({ brew_id: id.value, flavor_tag_id: tagId, user_id: userId.value })) as never,
     )
   }
+
+  // 耗時：每次儲存記一列（§9.2）。寫在 clearDraft 之前——清暫存會把計時器歸零
+  await saveEvent.record({
+    brewId: id.value,
+    userId: userId.value,
+    entry: brewSaveEntry(`draft:brew:${id.value}`),
+    duration: {
+      total: payload.formDurationSeconds,
+      params: payload.paramsDurationSeconds,
+      tasting: payload.tastingDurationSeconds,
+    },
+  })
 
   saving.value = false
   form.value?.clearDraft()

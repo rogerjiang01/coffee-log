@@ -280,6 +280,12 @@ interface BrewDraft {
   values: BrewFormValues
   steps: StepInput[]
   flavorTagIds: string[]
+  /**
+   * 累計的耗時（《02》§6）。重新載入時表單內容會從暫存回來，計時器卻從零開始——
+   * iOS 回收分頁再打開正是最常見的情況，那段時間會憑空消失。
+   * 存的是秒數不是時間點：中斷期間的間隔本來就不該計入。
+   */
+  duration?: InteractionDuration
 }
 
 // 這些欄位存的是別筆資料的 id，還原前要確認對象還在
@@ -332,6 +338,8 @@ async function sanitizeDraft(incoming: BrewDraft): Promise<BrewDraft> {
     values: pruned.data as unknown as BrewFormValues,
     steps: incoming.steps ?? [],
     flavorTagIds: keptTags,
+    // 耗時原樣帶過去：參照檢查管的是指向別筆資料的 id，與它無關
+    duration: incoming.duration,
   }
 }
 
@@ -339,12 +347,21 @@ async function sanitizeDraft(incoming: BrewDraft): Promise<BrewDraft> {
 const draftStorageKey = useScopedDraftKey(props.draftKey)
 const draft = draftStorageKey
   ? useFormDraft<BrewDraft>(draftStorageKey, {
-      read: () => ({ values: { ...values }, steps: steps.value, flavorTagIds: flavorTagIds.value }),
-      restore: data => writeBack(() => {
-        Object.assign(values, data.values)
-        if (data.steps?.length) steps.value = data.steps
-        flavorTagIds.value = data.flavorTagIds ?? []
+      read: () => ({
+        values: { ...values },
+        steps: steps.value,
+        flavorTagIds: flavorTagIds.value,
+        duration: interactionTime.snapshot(),
       }),
+      restore: (data) => {
+        // 接著累積，不是從零開始。放在 writeBack 外面：它與表單狀態無關
+        if (data.duration) interactionTime.carryOver(data.duration)
+        writeBack(() => {
+          Object.assign(values, data.values)
+          if (data.steps?.length) steps.value = data.steps
+          flavorTagIds.value = data.flavorTagIds ?? []
+        })
+      },
       // 全部清除是還原，不是改參數：分段退回初始值，不依手法重算
       reset: () => writeBack(() => {
         Object.assign(values, initialValues())
@@ -354,6 +371,12 @@ const draft = draftStorageKey
         draftNote.value = ''
       }),
       sanitize: sanitizeDraft,
+      // 耗時不算「使用者填的內容」：打了字又刪回空白時，內容與初始狀態相同、
+      // 秒數卻不同，不排除的話會對著一張空表單顯示「未儲存的內容已恢復」
+      identity: ({ values: v, steps: st, flavorTagIds: tags }) => ({ values: v, steps: st, flavorTagIds: tags }),
+      // 暫存被清掉（重新開始、全部清除、儲存成功）時耗時跟著歸零：
+      // 那些動作的意思都是「先前那一輪不算了」
+      onClear: () => interactionTime.reset(),
     })
   : null
 

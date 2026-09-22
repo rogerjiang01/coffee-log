@@ -45,6 +45,33 @@ export function newBrewDraftKey(query: { copy?: string | null, bean?: string | n
   return 'draft:brew:new'
 }
 
+/**
+ * 一次儲存是從哪個入口來的（brew_save_events.entry，《01》§9.2）。
+ *
+ * 沿用暫存 key 的分法：入口的定義已經在 key 上了，另外定一套遲早會分岔。
+ */
+export type BrewSaveEntry = 'blank' | 'bean' | 'copy' | 'edit'
+
+/**
+ * 從表單用的暫存 key 判斷入口。
+ *
+ *   draft:brew:new        → blank
+ *   draft:brew:bean:{id}  → bean
+ *   draft:brew:copy:{id}  → copy
+ *   draft:brew:{id}       → edit（編輯既有紀錄，key 是那筆的 id）
+ *
+ * 認不出來的一律當 edit 會汙染統計，所以認不出來就回 null，由呼叫端決定
+ * ——量測資料寧可少一列，也不要多一列歸錯的。
+ */
+export function brewSaveEntry(key: string | undefined): BrewSaveEntry | null {
+  if (!key?.startsWith('draft:brew:')) return null
+  const rest = key.slice('draft:brew:'.length)
+  if (rest === 'new') return 'blank'
+  if (rest.startsWith('bean:')) return 'bean'
+  if (rest.startsWith('copy:')) return 'copy'
+  return rest ? 'edit' : null
+}
+
 /** 所有暫存 key 的共同前綴（沖煮、豆子、器材、就地新增都是） */
 export const DRAFT_PREFIX = 'draft:'
 

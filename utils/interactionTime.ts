@@ -35,6 +35,15 @@ export type FormSection = 'params' | 'tasting'
  */
 export type SectionMark = FormSection | 'other'
 
+/** 三個累計秒數。存進暫存、寫進 brew_save_events 用的都是這個形狀 */
+export interface InteractionDuration {
+  total: number
+  params: number
+  tasting: number
+}
+
+export const EMPTY_DURATION: InteractionDuration = { total: 0, params: 0, tasting: 0 }
+
 export interface InteractionClock {
   /** 記下一次互動。時間戳由呼叫端給，方便測試 */
   touch: (now: number, section?: SectionMark | null) => void
@@ -42,6 +51,18 @@ export interface InteractionClock {
   seconds: () => number
   /** 某一段累計的互動秒數。兩段相加必定小於或等於 seconds()，差額是 other */
   sectionSeconds: (section: FormSection) => number
+  /** 目前的三個秒數，不記互動。給暫存寫入用 */
+  snapshot: () => InteractionDuration
+  /**
+   * 接續先前累計的秒數（暫存還原）。
+   *
+   * 重新載入之後表單內容會從暫存回來，計時器卻從零開始——那段時間會憑空消失，
+   * 而 iOS 回收分頁再打開正是最常見的情況。接續的是秒數不是時間點：
+   * 中斷期間的那段間隔本來就不該計入，重新開始計時剛好就是對的。
+   */
+  carryOver: (previous: InteractionDuration) => void
+  /** 歸零（暫存被清掉：重新開始、全部清除、儲存成功）。不影響「上一次互動是什麼時候」 */
+  reset: () => void
 }
 
 export function createInteractionClock(idleGapMs: number = IDLE_GAP_MS): InteractionClock {
@@ -72,6 +93,26 @@ export function createInteractionClock(idleGapMs: number = IDLE_GAP_MS): Interac
     },
     sectionSeconds(section) {
       return Math.round(sectionMs[section] / 1000)
+    },
+    snapshot() {
+      return {
+        total: Math.round(totalMs / 1000),
+        params: Math.round(sectionMs.params / 1000),
+        tasting: Math.round(sectionMs.tasting / 1000),
+      }
+    },
+    carryOver(previous) {
+      // 壞掉的暫存不該讓計時器變成負數或 NaN
+      const sane = (value: unknown) =>
+        typeof value === 'number' && Number.isFinite(value) && value > 0 ? value * 1000 : 0
+      totalMs += sane(previous?.total)
+      sectionMs.params += sane(previous?.params)
+      sectionMs.tasting += sane(previous?.tasting)
+    },
+    reset() {
+      totalMs = 0
+      sectionMs.params = 0
+      sectionMs.tasting = 0
     },
   }
 }
