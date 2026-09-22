@@ -21,27 +21,36 @@ function rendered(svg) {
   return strokes.map(stroke => stroke * width / viewBox)
 }
 
+const HEART = 'M2 9.5a5.5 5.5 0 0 1 9.591-3.676'
+
 const ICONS = [
   // 頂部導覽與主要動作：2px
-  ['‹ 返回／離開', 'components/BackButton.vue', 'M15 5l-7 7 7 7', 2, 2],
-  ['器材選擇器的 ‹', 'components/EquipmentPicker.vue', 'M15 5l-7 7 7 7', 2, 1],
+  ['‹ 返回／離開', 'components/BackButton.vue', 'm15 18-6-6 6-6', 2, 2],
+  ['器材選擇器的 ‹', 'components/EquipmentPicker.vue', 'm15 18-6-6 6-6', 2, 1],
   ['設定齒輪', 'pages/index.vue', 'r="3"', 2, 1],
-  ['器材選擇器的 ＋', 'components/EquipmentPicker.vue', 'M12 5v14M5 12h14', 2, 1],
-  ['浮動按鈕的 ＋（首頁）', 'pages/index.vue', 'M12 5v14M5 12h14', 2, 1],
-  ['浮動按鈕的 ＋（豆子）', 'pages/beans/index.vue', 'M12 5v14M5 12h14', 2, 1],
-  ['浮動按鈕的 ＋（器材）', 'pages/equipment/index.vue', 'M12 5v14M5 12h14', 2, 1],
+  ['器材選擇器的 ＋', 'components/EquipmentPicker.vue', 'M5 12h14', 2, 1],
+  ['浮動按鈕的 ＋（首頁）', 'pages/index.vue', 'M5 12h14', 2, 1],
+  ['浮動按鈕的 ＋（豆子）', 'pages/beans/index.vue', 'M5 12h14', 2, 1],
+  ['浮動按鈕的 ＋（器材）', 'pages/equipment/index.vue', 'M5 12h14', 2, 1],
+  ['分享', 'components/ShareIcon.vue', 'm16 6-4-4-4 4', 2, 1],
   // 內容區的小圖示：1.5px
-  ['分段的 ×', 'components/PourStepsEditor.vue', 'M4 4l8 8M12 4l-8 8', 1.5, 1],
+  ['分段的 ×', 'components/PourStepsEditor.vue', 'M18 6 6 18', 1.5, 1],
   ['⌄ 收合區', 'components/CollapsibleSection.vue', 'M3 6l5 5 5-5', 1.5, 1],
   ['⌄ 原生下拉', 'components/SelectField.vue', 'M3 6l5 5 5-5', 1.5, 1],
   ['⌄ 豆子下拉', 'components/BeanSelect.vue', 'M3 6l5 5 5-5', 1.5, 1],
   ['⌄ 產國下拉', 'components/CountrySelect.vue', 'M3 6l5 5 5-5', 1.5, 1],
   ['⌄ 型號下拉', 'components/CatalogSelect.vue', 'M3 6l5 5 5-5', 1.5, 1],
   ['⌄ 處理法／品種下拉', 'components/LookupSelect.vue', 'M3 6l5 5 5-5', 1.5, 1],
-  ['› 器材欄位', 'components/EquipmentTrigger.vue', 'M6 3l5 5-5 5', 1.5, 1],
+  ['› 器材欄位', 'components/EquipmentTrigger.vue', 'm9 18 6-6-6-6', 1.5, 1],
   ['攪拌標記', 'components/StirIcon.vue', 'M12 14v7', 1.5, 1],
   ['暫存中（sync）', 'components/DraftStatus.vue', 'M18 3v4h-4', 1.5, 1],
   ['已暫存（打勾）', 'components/DraftStatus.vue', 'M5 12.5l4.5 4.5L19 7.5', 1.5, 1],
+  // 收藏愛心：四個尺寸都要落在 1.5px。換成 Lucide 之前四處寫的都是 1.5，
+  // 但顯示寬不同（16／18／24），實際線寬因此散成 1.0、1.125、1.5 三種。
+  ['愛心（表單）', 'components/BrewForm.vue', HEART, 1.5, 1],
+  ['愛心（時間軸）', 'components/BrewTimelineItem.vue', HEART, 1.5, 1],
+  ['愛心（比較表）', 'components/BeanCompareTable.vue', HEART, 1.5, 1],
+  ['愛心（紀錄詳情）', 'pages/brews/[id]/index.vue', HEART, 1.5, 1],
 ]
 
 export default function run() {
@@ -60,10 +69,39 @@ export default function run() {
 
   r.section('尺寸')
   const size = svg => Number(svg.match(/\swidth="([\d.]+)"/)[1])
-  r.check(svgsWith(read('components/BackButton.vue'), 'M15 5l-7 7 7 7').every(s => size(s) === 22), '‹ 22×22')
+  r.check(svgsWith(read('components/BackButton.vue'), 'm15 18-6-6 6-6').every(s => size(s) === 22), '‹ 22×22')
   r.check(svgsWith(read('pages/index.vue'), 'r="3"').every(s => size(s) === 22), '齒輪 22×22')
   r.check(svgsWith(read('components/DraftStatus.vue'), 'viewBox').every(s => size(s) === 16),
     '暫存狀態的圖示 16px（原本 14px，比旁邊文字的筆畫還細）')
+
+  r.section('Lucide 圖示一律是 24 格線')
+  // viewBox 與 stroke-width 要一起改。只改其中一個，線寬會默默差 1.5 倍而且畫面上看不出來
+  const LUCIDE = [
+    ['components/BackButton.vue', 'm15 18-6-6 6-6'],
+    ['components/EquipmentPicker.vue', 'm15 18-6-6 6-6'],
+    ['components/EquipmentPicker.vue', 'M5 12h14'],
+    ['pages/index.vue', 'M5 12h14'],
+    ['pages/beans/index.vue', 'M5 12h14'],
+    ['pages/equipment/index.vue', 'M5 12h14'],
+    ['pages/index.vue', 'r="3"'],
+    ['components/PourStepsEditor.vue', 'M18 6 6 18'],
+    ['components/EquipmentTrigger.vue', 'm9 18 6-6-6-6'],
+    ['components/ShareIcon.vue', 'm16 6-4-4-4 4'],
+    ['components/BrewForm.vue', HEART],
+    ['components/BrewTimelineItem.vue', HEART],
+    ['components/BeanCompareTable.vue', HEART],
+    ['pages/brews/[id]/index.vue', HEART],
+  ]
+  for (const [file, marker] of LUCIDE) {
+    const svgs = svgsWith(read(file), marker)
+    r.check(svgs.length > 0 && svgs.every(s => /viewBox="0 0 24 24"/.test(s)),
+      `${file}：${marker.slice(0, 12)}… 的 viewBox 是 24`)
+  }
+
+  r.section('圖示來源有記在 repo 裡')
+  const notice = read('NOTICE.md')
+  r.check(/Lucide/.test(notice) && /ISC License/.test(notice), 'NOTICE.md 記了 Lucide 與 ISC License')
+  r.check(/Lucide/.test(read('docs/03-介面規範.md')), '《03》§3 註明圖示來源')
 
   r.section('字級下限（《03》§2.4）')
   const tokens = read('assets/css/tokens.css')

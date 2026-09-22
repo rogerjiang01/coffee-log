@@ -142,8 +142,12 @@ onMounted(load)
       class="fixed right-5 bottom-20 z-30 flex size-14 items-center justify-center rounded-full"
       :style="{ background: 'var(--accent)', color: 'var(--on-accent)', boxShadow: 'var(--overlay-shadow)' }"
     >
-      <svg width="24" height="24" viewBox="0 0 24 24" aria-hidden="true">
-        <path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+      <svg
+        width="24" height="24" viewBox="0 0 24 24" aria-hidden="true"
+        fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+      >
+        <path d="M5 12h14" />
+        <path d="M12 5v14" />
       </svg>
     </NuxtLink>
   </main>

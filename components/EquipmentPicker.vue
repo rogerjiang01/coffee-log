@@ -266,8 +266,11 @@ const inputStyle = { minHeight: 'var(--touch-min)' }
           :aria-label="mode === 'create' ? '回到清單' : '返回'"
           @click="mode === 'create' ? (mode = 'list') : emit('close')"
         >
-          <svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true" class="mx-auto">
-            <path d="M15 5l-7 7 7 7" fill="none" stroke="currentColor" stroke-width="2.18" stroke-linecap="round" stroke-linejoin="round" />
+          <svg
+            width="22" height="22" viewBox="0 0 24 24" aria-hidden="true" class="mx-auto"
+            fill="none" stroke="currentColor" stroke-width="2.18" stroke-linecap="round" stroke-linejoin="round"
+          >
+            <path d="m15 18-6-6 6-6" />
           </svg>
         </button>
 
@@ -282,8 +285,12 @@ const inputStyle = { minHeight: 'var(--touch-min)' }
           :aria-label="`新增${equipmentLabels[type]}`"
           @click="startCreate"
         >
-          <svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true" class="mx-auto">
-            <path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.18" stroke-linecap="round" />
+          <svg
+            width="22" height="22" viewBox="0 0 24 24" aria-hidden="true" class="mx-auto"
+            fill="none" stroke="currentColor" stroke-width="2.18" stroke-linecap="round" stroke-linejoin="round"
+          >
+            <path d="M5 12h14" />
+            <path d="M12 5v14" />
           </svg>
         </button>
       </header>

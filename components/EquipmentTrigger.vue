@@ -19,8 +19,11 @@ defineEmits<{ open: [] }>()
       <span class="min-w-0 truncate" :style="{ color: name ? 'var(--text)' : 'var(--text-muted)' }">
         {{ name ?? '選填' }}
       </span>
-      <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true" :style="{ color: 'var(--text-muted)' }">
-        <path d="M6 3l5 5-5 5" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+      <svg
+        width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" :style="{ color: 'var(--text-muted)' }"
+        fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round"
+      >
+        <path d="m9 18 6-6-6-6" />
       </svg>
     </button>
   </div>

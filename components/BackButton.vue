@@ -43,8 +43,11 @@ function onClick(event: MouseEvent) {
     class="-ml-3 flex shrink-0 items-center justify-center"
     :style="{ minWidth: 'var(--touch-min)', minHeight: 'var(--touch-min)' }"
   >
-    <svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true">
-      <path d="M15 5l-7 7 7 7" fill="none" stroke="currentColor" stroke-width="2.18" stroke-linecap="round" stroke-linejoin="round" />
+    <svg
+      width="22" height="22" viewBox="0 0 24 24" aria-hidden="true"
+      fill="none" stroke="currentColor" stroke-width="2.18" stroke-linecap="round" stroke-linejoin="round"
+    >
+      <path d="m15 18-6-6 6-6" />
     </svg>
   </NuxtLink>
   <a
@@ -55,8 +58,11 @@ function onClick(event: MouseEvent) {
     :style="{ minWidth: 'var(--touch-min)', minHeight: 'var(--touch-min)' }"
     @click="onClick"
   >
-    <svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true">
-      <path d="M15 5l-7 7 7 7" fill="none" stroke="currentColor" stroke-width="2.18" stroke-linecap="round" stroke-linejoin="round" />
+    <svg
+      width="22" height="22" viewBox="0 0 24 24" aria-hidden="true"
+      fill="none" stroke="currentColor" stroke-width="2.18" stroke-linecap="round" stroke-linejoin="round"
+    >
+      <path d="m15 18-6-6 6-6" />
     </svg>
   </a>
 </template>

@@ -599,14 +599,13 @@ const inputStyle = {
           收藏
           <span class="ml-2 text-sm text-muted">還想再沖一次</span>
         </span>
-        <svg width="24" height="24" viewBox="0 0 24 24" aria-hidden="true">
-          <path
-            d="M12 20s-7-4.5-7-9.5A3.5 3.5 0 0112 8a3.5 3.5 0 017 2.5C19 15.5 12 20 12 20z"
-            :fill="values.is_favorite ? 'var(--favorite)' : 'transparent'"
-            :stroke="values.is_favorite ? 'var(--favorite)' : 'var(--border)'"
-            stroke-width="1.5"
-            stroke-linejoin="round"
-          />
+        <svg
+          width="24" height="24" viewBox="0 0 24 24" aria-hidden="true"
+          stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"
+          :fill="values.is_favorite ? 'var(--favorite)' : 'transparent'"
+          :stroke="values.is_favorite ? 'var(--favorite)' : 'var(--border)'"
+        >
+          <path d="M2 9.5a5.5 5.5 0 0 1 9.591-3.676.56.56 0 0 0 .818 0A5.49 5.49 0 0 1 22 9.5c0 2.29-1.5 4-3 5.5l-5.492 5.313a2 2 0 0 1-3 .019L5 15c-1.5-1.5-3-3.2-3-5.5" />
         </svg>
       </button>
 
