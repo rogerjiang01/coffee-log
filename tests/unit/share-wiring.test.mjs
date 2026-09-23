@@ -73,15 +73,41 @@ export default function run() {
   r.check(/createShare\(pendingCode\.value/.test(retry) && !/deliverShareLink|navigator\.share/.test(retry),
     '「再試一次」用同一個代碼重送建立請求，不再叫一次系統選單')
 
-  r.section('面板沿用既有的浮層')
+  r.section('對話框沿用刪除確認對話框：標題 → 主體 → 動作（《03》§4.13.2）')
   r.check(/<dialog/.test(panel) && /showModal\(\)/.test(panel), '原生 <dialog> 的 showModal()')
   r.check(/backdrop:bg-\[var\(--overlay-scrim\)\]/.test(panel), '有遮罩')
   r.check(/useOverlayHistory\(/.test(panel), '佔一筆 history，返回鍵關閉')
   r.check(/@click="onDialogClick"/.test(panel) && /event\.target === dialog\.value/.test(panel), '點遮罩關閉')
-  r.check(/v-if="hasNotes"/.test(panel), '「包含心得筆記」只在有心得時出現')
-  r.check(/朋友不用登入也能看，只能看、不能改/.test(panel), '一行說明')
-  r.check(/@click="openPanel"/.test(panel) && !/v-if="[^"]*hasNotes[^"]*"[^>]*@click="onShare"/.test(panel),
-    '按下圖示一律開面板，不依有無心得筆記直接分享')
+  r.check(/<h2[^>]*tabindex="-1"[^>]*>\s*分享紀錄\s*<\/h2>/.test(panel), '標題「分享紀錄」，tabindex="-1"')
+  r.check(/showModal\(\)\s*\n[\s\S]{0,300}?title\.value\?\.focus\(\)/.test(panel),
+    '開啟時焦點放在標題，不自動聚焦到開關或按鈕')
+  r.check(/<h2[^>]*class="[^"]*outline-none/.test(panel), '標題不畫焦點框（它不是互動元素）')
+  r.check(/\{\{ beanName \}\}/.test(panel) && /\{\{ brewDate \}\}/.test(panel), '主體：豆名與沖煮日期')
+  r.check(/pad\(d\.getMonth\(\) \+ 1\)\}\/\$\{pad\(d\.getDate\(\)\)\}/.test(panel)
+    && /pad\(d\.getMonth\(\) \+ 1\)\}\/\$\{pad\(d\.getDate\(\)\)\}/.test(read('components/BrewTimelineItem.vue')),
+    '日期格式與首頁時間軸相同（MM/DD）')
+  r.check(/<ToggleSwitch[\s\S]*?label="包含心得筆記"/.test(panel) && !/type="checkbox"/.test(panel),
+    '「包含心得筆記」是開關，不是勾選框')
+  r.check(/v-if="hasNotes"/.test(panel), '只在有心得時出現')
+  r.check(/修改未成功，請再試一次/.test(panel) && !/分享心得筆記|notesToggleFeedback/.test(panel),
+    '切換成功不顯示文字（開關本身就是回饋）；失敗才有紅字')
+  r.check(/\{\{ shareCode \? '完成' : '取消' \}\}/.test(panel), '次要按鈕：尚未分享「取消」、已分享過「完成」')
+  const actions = panel.match(/<div class="mt-6 flex gap-3">[\s\S]*?<\/dialog>/)?.[0] ?? ''
+  r.check(actions.indexOf("'取消'") > -1 && actions.indexOf("'取消'") < actions.indexOf('>\n          分享\n'),
+    '兩顆按鈕並排，次要在左、主要在右（與刪除確認對話框一致）')
+  r.check(/@click="openDialog"/.test(panel), '按下圖示一律開對話框，不依有無心得筆記直接分享')
+  r.check(!/朋友不用登入也能看|只能看、不能改/.test(panel), '沒有說明句')
+
+  r.section('按下「分享」之後（《02》§7.1）')
+  r.check(/startShare\([\s\S]*?\}\)\s*\n\s*close\(\)/.test(onShare), '先交出連結，再立刻關閉對話框')
+  r.check(/result === 'copied'/.test(onShare) && /COPIED_MS = 2000/.test(panel), '複製：頁面上顯示「已複製連結」，約兩秒後收起')
+  r.check(/result === 'failed'\) manualLink\.value = url/.test(onShare) && /無法複製，請長按連結手動複製/.test(panel),
+    '系統分享與複製都失敗：顯示連結本身與手動複製的說明')
+  const notices = panel.match(/<Teleport :to="portalTarget">[\s\S]*?<\/Teleport>/)?.[0] ?? ''
+  r.check(/分享沒有建立成功，剛才那個連結還不能用/.test(notices) && /再試一次/.test(notices),
+    '建立失敗的提示在頁面層級，附「再試一次」')
+  r.check(!/setTimeout[^\n]*createError/.test(panel), '建立失敗的提示不自動消失')
+  r.check(/env\(safe-area-inset-bottom\)/.test(notices) && /52px/.test(notices), '頁面層級的提示避開分頁列與底部安全區域')
 
   r.section('開啟事件只由讀取函式記')
   const rpcs = [...page.matchAll(/\.rpc\('([a-z_]+)'/g)].map(m => m[1])
@@ -111,7 +137,7 @@ export default function run() {
   r.section('紀錄詳情頁的入口')
   const detail = read('pages/brews/[id]/index.vue')
   const titleRow = detail.match(/<div class="mt-4 flex items-baseline gap-2">[\s\S]*?<\/div>/)?.[0] ?? ''
-  r.check(/<BrewShare /.test(titleRow), '分享圖示在標題列（豆名那一行）')
+  r.check(/<BrewShare\b/.test(titleRow), '分享圖示在標題列（豆名那一行）')
   r.check(titleRow.indexOf('<BrewShare') > titleRow.indexOf('<SampleBadge'), '在最右端')
   r.check(/aria-label="分享"[\s\S]*?self-center|self-center[\s\S]*?aria-label="分享"/.test(panel.split('<dialog')[0]),
     '圖示自己垂直置中，不跟著標題對齊基線')

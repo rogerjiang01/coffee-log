@@ -26,11 +26,13 @@ const emit = defineEmits<{ 'update:modelValue': [boolean] }>()
   >
     <span>{{ label }}</span>
 
-    <!-- 軌道與滑鈕。開啟時軌道填 --accent，滑鈕移到右側。 -->
+    <!-- 軌道與滑鈕。開啟時軌道填 --accent，滑鈕移到右側。
+         關閉的軌道用 --control-empty（未選取的輸入元件，《03》§2.2），不用 --border：
+         關閉時軌道就是全部的資訊，淡到看不見的話看不出這裡可以按 -->
     <span
       class="relative inline-block h-6 w-11 shrink-0 rounded-full"
       :style="{
-        background: modelValue ? 'var(--accent)' : 'var(--border)',
+        background: modelValue ? 'var(--accent)' : 'var(--control-empty)',
         transition: 'background var(--motion-duration) var(--motion-ease)',
       }"
       aria-hidden="true"

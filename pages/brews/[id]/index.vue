@@ -284,7 +284,12 @@ async function destroy() {
           {{ brew.beans?.name ?? '沒有指定豆子' }}
         </h1>
         <SampleBadge v-if="brew.is_sample" />
-        <BrewShare :brew-id="brew.id" :has-notes="!!brew.tasting_notes?.trim()" />
+        <BrewShare
+          :brew-id="brew.id"
+          :bean-name="brew.beans?.name ?? '沒有指定豆子'"
+          :brewed-at="brew.brewed_at"
+          :has-notes="!!brew.tasting_notes?.trim()"
+        />
       </div>
       <p class="mt-1 text-sm tabular-nums text-muted">{{ formatDate(brew.brewed_at) }}</p>
       <!-- 評分與收藏是兩個獨立欄位，分開顯示 -->

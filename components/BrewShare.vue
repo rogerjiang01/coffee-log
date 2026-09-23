@@ -1,23 +1,36 @@
 <script setup lang="ts">
-// 紀錄詳情頁的分享：標題列最右端的圖示，按下去一律出現面板（《02》§7.1、《03》§4.13）。
+// 紀錄詳情頁的分享：標題列最右端的圖示，按下去一律出現對話框（《02》§7.1、《03》§4.13）。
 //
-// 面板沿用 ConfirmDialog 那一套浮層：原生 <dialog> 的 showModal()、遮罩、
-// 佔一筆 history、返回鍵關閉。不另做一種新的彈窗。
-// 與 ConfirmDialog 不同的是點遮罩也會關：這個面板沒有要回答的問題，
-// 也沒有「取消」——加到主畫面之後沒有瀏覽器的返回鍵，遮罩是手機上唯一的出口。
+// 對話框沿用 ConfirmDialog 那一套：原生 <dialog> 的 showModal()、置中卡片、遮罩、
+// 佔一筆 history、返回鍵關閉，結構同樣是「標題 → 主體 → 動作」。
+// 按下「分享」之後對話框立刻關閉，後續的回饋（已複製、建立失敗、無法複製）
+// 都顯示在頁面層級，不留在對話框裡。
 
 const props = defineProps<{
   brewId: string
+  beanName: string
+  brewedAt: string
   /** 這筆紀錄有心得筆記。沒有時不出現「包含心得筆記」 */
   hasNotes: boolean
 }>()
 
 const supabase = useSupabaseClient()
 
-const FLASH_MS = 4000
+const COPIED_MS = 2000
 
 const open = ref(false)
 const dialog = ref<HTMLDialogElement | null>(null)
+const title = ref<HTMLElement | null>(null)
+const trigger = ref<HTMLElement | null>(null)
+// 頁面層級的提示送到哪裡：與其他浮層同一套規則（紀錄詳情頁上它會是 body）
+const portalTarget = usePortalTarget(trigger)
+
+// 日期格式與首頁時間軸相同（BrewTimelineItem）
+const brewDate = computed(() => {
+  const d = new Date(props.brewedAt)
+  const pad = (n: number) => String(n).padStart(2, '0')
+  return `${pad(d.getMonth() + 1)}/${pad(d.getDate())}`
+})
 
 // ── 分享的狀態 ───────────────────────────────────────────────
 /** 生效中的連結。null ＝ 還沒分享過 */
@@ -36,22 +49,19 @@ const includeNotes = ref(false)
 /** 資料庫裡目前的值（已經分享過時） */
 const savedNotes = ref(false)
 const savingNotes = ref(false)
-const notesMessage = ref<{ text: string, error: boolean } | null>(null)
+const notesError = ref(false)
 
+// ── 頁面層級的回饋 ───────────────────────────────────────────
 const copied = ref(false)
+/** 系統分享與複製都失敗：把連結本身顯示出來讓使用者自己複製 */
+const manualLink = ref<string | null>(null)
 
-const timers = new Set<ReturnType<typeof setTimeout>>()
-function flash(apply: () => void, clear: () => void) {
-  apply()
-  const timer = setTimeout(() => {
-    timers.delete(timer)
-    clear()
-  }, FLASH_MS)
-  timers.add(timer)
-}
-onBeforeUnmount(() => timers.forEach(clearTimeout))
+let copiedTimer: ReturnType<typeof setTimeout> | null = null
+onBeforeUnmount(() => {
+  if (copiedTimer) clearTimeout(copiedTimer)
+})
 
-// 頁面一載入就先讀：面板打開之後按「分享」是同步的，那時不能再等一趟查詢。
+// 頁面一載入就先讀：按「分享」是同步的，那時不能再等一趟查詢。
 // 讀不到就當作沒分享過——按下去時資料庫會回傳既有的代碼，走 mismatch 那條路
 async function loadShare() {
   const { data } = await supabase
@@ -67,12 +77,11 @@ async function loadShare() {
 }
 onMounted(loadShare)
 
-// ── 面板開關 ─────────────────────────────────────────────────
-function openPanel() {
-  // 還沒分享過時預設不勾，每次打開都重來：「包含心得筆記」的兩種錯代價不對等
+// ── 對話框開關 ───────────────────────────────────────────────
+function openDialog() {
+  // 還沒分享過時預設關閉，每次打開都重來：「包含心得筆記」的兩種錯代價不對等
   includeNotes.value = shareCode.value ? savedNotes.value : false
-  notesMessage.value = null
-  copied.value = false
+  notesError.value = false
   open.value = true
 }
 
@@ -84,7 +93,13 @@ useOverlayHistory(() => open.value, close)
 
 watch(open, (value) => {
   if (!dialog.value) return
-  if (value && !dialog.value.open) dialog.value.showModal()
+  if (value && !dialog.value.open) {
+    dialog.value.showModal()
+    // showModal() 會把焦點放在第一個可以聚焦的東西上（開關），觸控使用者因此
+    // 一打開就看到一圈焦點框。改放在標題：它不是互動元素，不畫焦點框，
+    // 螢幕閱讀器從標題開始讀，鍵盤使用者下一個 Tab 就到開關
+    title.value?.focus()
+  }
   if (!value && dialog.value.open) dialog.value.close()
 })
 
@@ -96,8 +111,8 @@ function onDialogClick(event: MouseEvent) {
 // ── 分享 ─────────────────────────────────────────────────────
 /**
  * 寫進剪貼簿。先試 Clipboard API；不支援或被拒（Android 的內建瀏覽器，例如 LINE）
- * 退回 execCommand。暫時的 textarea 要放在 dialog 裡：modal 開著時，
- * dialog 以外的東西都是 inert，放在 body 上選不到文字。
+ * 退回 execCommand。暫時的 textarea 在對話框還開著時要放在對話框裡：
+ * modal 開著時，dialog 以外的東西都是 inert，放在 body 上選不到文字。
  */
 function copyText(text: string): Promise<void> {
   const legacy = () => {
@@ -106,7 +121,7 @@ function copyText(text: string): Promise<void> {
     area.setAttribute('readonly', '')
     area.style.position = 'fixed'
     area.style.opacity = '0'
-    ;(dialog.value ?? document.body).appendChild(area)
+    ;(dialog.value?.open ? dialog.value : document.body).appendChild(area)
     area.select()
     const ok = document.execCommand('copy')
     area.remove()
@@ -120,25 +135,35 @@ function copyText(text: string): Promise<void> {
  * **這個 handler 裡不能有任何 await。** navigator.share() 必須在點擊的同一個事件裡
  * 同步呼叫，否則 iOS Safari 會拒絕，使用者按了沒反應（《02》§7.1）。
  * 所以代碼在這裡當場產生，建立請求發出去之後不等它。
+ * 交出連結之後立刻關掉對話框：系統分享選單本身就是回饋。
  */
 function onShare() {
   createError.value = null
   copied.value = false
+  manualLink.value = null
   const code = shareCode.value ?? pendingCode.value ?? generateShareCode()
   const alreadyCreated = shareCode.value !== null || creating.value
   if (!alreadyCreated) pendingCode.value = code
+  const url = shareUrl(window.location.origin, code)
 
   const { delivery } = startShare({
-    url: shareUrl(window.location.origin, code),
+    url,
     alreadyCreated,
-    deliver: url => deliverShareLink(url, {
+    deliver: link => deliverShareLink(link, {
       share: typeof navigator.share === 'function' ? data => navigator.share(data) : undefined,
       copy: copyText,
     }),
     create: () => createShare(code, includeNotes.value),
   })
+  close()
+
   delivery.then((result) => {
-    if (result === 'copied') flash(() => (copied.value = true), () => (copied.value = false))
+    if (result === 'copied') {
+      copied.value = true
+      if (copiedTimer) clearTimeout(copiedTimer)
+      copiedTimer = setTimeout(() => (copied.value = false), COPIED_MS)
+    }
+    if (result === 'failed') manualLink.value = url
   })
 }
 
@@ -156,13 +181,14 @@ async function createShare(code: string, notes: boolean) {
     createError.value = 'failed'
     return
   }
+  createError.value = null
   pendingCode.value = null
   shareCode.value = outcome.code
   if (outcome.kind === 'mismatch') {
-    // 別的裝置先分享過：面板改用既有的連結與它的設定，再按一次「分享」就對了
+    // 別的裝置先分享過：送出去的連結不會動。改用既有的連結與它的設定，
+    // 再打開對話框按一次「分享」送出的就是會動的連結
     createError.value = 'mismatch'
     await loadShare()
-    includeNotes.value = savedNotes.value
     return
   }
   savedNotes.value = notes
@@ -176,13 +202,13 @@ function retry() {
 }
 
 // ── 「包含心得筆記」 ──────────────────────────────────────────
-// 還沒分享過：只是面板上的狀態，按「分享」時跟著建立請求送出。
-// 已經分享過：一變更就立即儲存——使用者可能只是打開面板把心得關掉就走了，
-// 那時設定必須已經存好。失敗時改回原狀，不能讓畫面顯示勾了、資料庫沒勾。
-async function onNotesChange(event: Event) {
-  const value = (event.target as HTMLInputElement).checked
+// 還沒分享過：只是對話框上的狀態，按「分享」時跟著建立請求送出。
+// 已經分享過：一切換就立即儲存——使用者可能只是打開對話框把心得關掉就走了，
+// 那時設定必須已經存好。成功不顯示任何文字，開關的狀態本身就是回饋；
+// 失敗時改回原狀，不能讓畫面顯示開著、資料庫沒開。
+async function onNotesChange(value: boolean) {
   includeNotes.value = value
-  notesMessage.value = null
+  notesError.value = false
   if (!shareCode.value) return
 
   savingNotes.value = true
@@ -194,14 +220,10 @@ async function onNotesChange(event: Event) {
 
   if (error) {
     includeNotes.value = savedNotes.value
-    notesMessage.value = { text: '修改未成功，請再試一次', error: true }
+    notesError.value = true
     return
   }
   savedNotes.value = value
-  const text = notesToggleFeedback(value)
-  flash(() => (notesMessage.value = { text, error: false }), () => {
-    if (notesMessage.value?.text === text) notesMessage.value = null
-  })
 }
 </script>
 
@@ -210,11 +232,12 @@ async function onNotesChange(event: Event) {
        標題列對齊基線，這個按鈕自己垂直置中（《03》§4.13.1）：
        上下各 -2px 讓它的外框等於豆名一行的行高（2rem × 1.3），置中才對得準 -->
   <button
+    ref="trigger"
     type="button"
     aria-label="分享"
     class="-mr-3 -my-0.5 ml-auto flex shrink-0 items-center justify-center self-center"
     :style="{ minWidth: 'var(--touch-min)', minHeight: 'var(--touch-min)', color: 'var(--text)' }"
-    @click="openPanel"
+    @click="openDialog"
   >
     <ShareIcon />
   </button>
@@ -223,7 +246,7 @@ async function onNotesChange(event: Event) {
   <dialog
     ref="dialog"
     class="backdrop:bg-[var(--overlay-scrim)]"
-    aria-label="分享"
+    aria-labelledby="brew-share-title"
     @cancel.prevent="close"
     @click="onDialogClick"
   >
@@ -231,78 +254,116 @@ async function onNotesChange(event: Event) {
       class="w-full max-w-sm rounded-lg p-6"
       :style="{ background: 'var(--surface)', color: 'var(--text)', boxShadow: 'var(--overlay-shadow)' }"
     >
-      <p class="text-sm text-muted">朋友不用登入也能看，只能看、不能改</p>
+      <!-- 開啟時焦點在這裡。不是互動元素，不畫焦點框 -->
+      <h2 id="brew-share-title" ref="title" tabindex="-1" class="font-serif text-lg font-bold outline-none">
+        分享紀錄
+      </h2>
 
-      <div v-if="hasNotes" class="mt-3">
-        <label
-          class="flex cursor-pointer items-center gap-3"
-          :style="{ minHeight: 'var(--touch-min)' }"
-        >
-          <input
-            type="checkbox"
-            class="peer sr-only"
-            :checked="includeNotes"
-            :disabled="savingNotes || creating"
-            @change="onNotesChange"
-          >
-          <!-- 未勾的方框是可以點的目標，用 --control-empty（《03》§2.2），不用 --border -->
-          <span
-            aria-hidden="true"
-            class="flex h-5 w-5 shrink-0 items-center justify-center rounded-sm border-[1.5px] peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2"
-            :style="{
-              borderColor: includeNotes ? 'var(--accent)' : 'var(--control-empty)',
-              background: includeNotes ? 'var(--accent)' : 'transparent',
-              outlineColor: 'var(--accent)',
-            }"
-          >
-            <svg
-              v-if="includeNotes"
-              width="16" height="16" viewBox="0 0 24 24"
-              fill="none" stroke="var(--on-accent)" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round"
-            >
-              <path d="M20 6 9 17l-5-5" />
-            </svg>
-          </span>
-          包含心得筆記
-        </label>
-        <!-- 放在勾選框下方、對齊文字：回饋比「已儲存」長，375px 下擠不進勾選框那一列 -->
-        <p
-          aria-live="polite"
-          class="pl-8 text-sm"
-          :style="{ color: notesMessage?.error ? 'var(--danger)' : 'var(--text-muted)' }"
-        >
-          {{ notesMessage?.text }}
+      <!-- 分享的對象：讓使用者確認要送出去的是哪一筆 -->
+      <p class="mt-3 font-medium">{{ beanName }}</p>
+      <p class="text-sm tabular-nums text-muted">{{ brewDate }}</p>
+
+      <div v-if="hasNotes" class="mt-4">
+        <ToggleSwitch
+          :model-value="includeNotes"
+          label="包含心得筆記"
+          :busy="savingNotes || creating"
+          @update:model-value="onNotesChange"
+        />
+        <p v-if="notesError" role="alert" class="mt-2 text-sm" :style="{ color: 'var(--danger)' }">
+          修改未成功，請再試一次
         </p>
       </div>
 
-      <button
-        type="button"
-        class="mt-6 w-full rounded-sm px-4 py-3 font-medium"
-        :style="{ background: 'var(--accent)', color: 'var(--on-accent)', minHeight: 'var(--touch-min)' }"
-        @click="onShare"
-      >
-        分享
-      </button>
-
-      <p aria-live="polite" class="text-sm text-muted" :class="{ 'mt-3': copied }">
-        {{ copied ? '已複製連結' : '' }}
-      </p>
-
-      <template v-if="createError">
-        <p role="alert" class="mt-3 text-sm" :style="{ color: 'var(--danger)' }">
-          分享沒有建立成功，剛才那個連結還不能用
-        </p>
+      <!-- 排列與刪除確認對話框相同：次要在左、主要在右 -->
+      <div class="mt-6 flex gap-3">
         <button
-          v-if="createError === 'failed'"
           type="button"
-          :disabled="creating"
-          class="mt-3 w-full rounded-sm border px-4 py-3 disabled:opacity-60"
-          :style="{ borderColor: 'var(--border-strong)', minHeight: 'var(--touch-min)' }"
-          @click="retry"
+          class="flex-1 rounded-sm border px-4 py-3"
+          :style="{ borderColor: 'var(--border)', minHeight: 'var(--touch-min)' }"
+          @click="close"
         >
-          再試一次
+          <!-- 已分享過時設定是即時儲存的，按下去不是在放棄什麼 -->
+          {{ shareCode ? '完成' : '取消' }}
         </button>
-      </template>
+        <button
+          type="button"
+          class="flex-1 rounded-sm px-4 py-3 font-medium"
+          :style="{ background: 'var(--accent)', color: 'var(--on-accent)', minHeight: 'var(--touch-min)' }"
+          @click="onShare"
+        >
+          分享
+        </button>
+      </div>
     </div>
   </dialog>
+
+  <!-- 頁面層級的回饋：對話框已經關了，這些要在頁面上看得到。
+       疊在分頁列與 iPhone 底部安全區域之上（《03》§4.13.3） -->
+  <Teleport :to="portalTarget">
+    <div
+      class="pointer-events-none fixed inset-x-0 z-40 mx-auto flex flex-col gap-2 px-5"
+      :style="{ bottom: 'calc(52px + env(safe-area-inset-bottom) + 12px)', maxWidth: 'var(--content-max)' }"
+    >
+      <div
+        v-if="createError"
+        role="alert"
+        class="pointer-events-auto rounded-md p-4 text-sm"
+        :style="{ background: 'var(--surface)', boxShadow: 'var(--overlay-shadow)' }"
+      >
+        <p :style="{ color: 'var(--danger)' }">分享沒有建立成功，剛才那個連結還不能用</p>
+        <div class="mt-3 flex gap-3">
+          <button
+            type="button"
+            class="flex-1 rounded-sm border px-4 py-2"
+            :style="{ borderColor: 'var(--border)', minHeight: 'var(--touch-min)' }"
+            @click="createError = null"
+          >
+            關閉
+          </button>
+          <button
+            v-if="createError === 'failed'"
+            type="button"
+            :disabled="creating"
+            class="flex-1 rounded-sm border px-4 py-2 disabled:opacity-60"
+            :style="{ borderColor: 'var(--border-strong)', minHeight: 'var(--touch-min)' }"
+            @click="retry"
+          >
+            再試一次
+          </button>
+        </div>
+      </div>
+
+      <div
+        v-if="manualLink"
+        role="alert"
+        class="pointer-events-auto rounded-md p-4 text-sm"
+        :style="{ background: 'var(--surface)', boxShadow: 'var(--overlay-shadow)' }"
+      >
+        <p>無法複製，請長按連結手動複製</p>
+        <!-- 一般文字，不做成連結：點下去會離開這一頁。select-all 讓長按一次選到整串 -->
+        <p class="mt-2 select-all break-all tabular-nums" :style="{ color: 'var(--text)' }">{{ manualLink }}</p>
+        <button
+          type="button"
+          class="mt-3 w-full rounded-sm border px-4 py-2"
+          :style="{ borderColor: 'var(--border)', minHeight: 'var(--touch-min)' }"
+          @click="manualLink = null"
+        >
+          關閉
+        </button>
+      </div>
+
+      <!-- 約兩秒後自己收起來。不是錯誤，不用 role="alert" -->
+      <p
+        v-if="copied"
+        aria-hidden="true"
+        class="self-center rounded-md px-4 py-2 text-sm"
+        :style="{ background: 'var(--surface)', boxShadow: 'var(--overlay-shadow)' }"
+      >
+        已複製連結
+      </p>
+    </div>
+    <!-- 讀給螢幕閱讀器的那一份。live region 要一直在，內容變了才會被念出來 -->
+    <p aria-live="polite" class="sr-only">{{ copied ? '已複製連結' : '' }}</p>
+  </Teleport>
 </template>

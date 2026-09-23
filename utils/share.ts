@@ -150,22 +150,17 @@ export function startShare<T>(options: {
 }
 
 /**
- * 建立請求回來之後，面板該顯示什麼。
+ * 建立請求回來之後該顯示什麼（對話框已經關了，提示在頁面層級）。
  *
  *   ok        建立成功（或本來就有、而且就是這個代碼）
  *   failed    請求失敗：連結已經送出去但不會動。「再試一次」用同一個代碼重送
  *   mismatch  回來的代碼不是送出去的那個：這筆紀錄已經在別的裝置分享過。
  *             送出去的連結永遠不會動，重送也沒用——不給「再試一次」，
- *             面板改用既有的代碼，再按一次「分享」就對了
+ *             改用既有的代碼，再打開對話框按一次「分享」就對了
  */
 export function creationOutcome(sent: string, result: { code: string | null, error: unknown }):
   { kind: 'ok', code: string } | { kind: 'failed' } | { kind: 'mismatch', code: string } {
   if (result.error || !result.code) return { kind: 'failed' }
   if (result.code !== sent) return { kind: 'mismatch', code: result.code }
   return { kind: 'ok', code: sent }
-}
-
-/** 已經分享過時，切換「包含心得筆記」成功後的回饋（《04》十） */
-export function notesToggleFeedback(include: boolean): string {
-  return include ? '分享心得筆記' : '不分享心得筆記'
 }

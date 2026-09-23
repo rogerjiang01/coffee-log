@@ -7,7 +7,7 @@
 
 import {
   SHARE_CODE_PATTERN, SHARED_BREW_KEYS, creationOutcome, deliverShareLink, generateShareCode,
-  keyPaths, notesToggleFeedback, shareUrl, startShare,
+  keyPaths, shareUrl, startShare,
 } from '../../utils/share.ts'
 import { createReport } from '../helpers/report.mjs'
 
@@ -96,14 +96,11 @@ export default async function run() {
   r.section('建立請求回來之後')
   r.check(creationOutcome('abc', { code: 'abc', error: null }).kind === 'ok', '回同一個代碼：成功')
   r.check(creationOutcome('abc', { code: null, error: new Error('network') }).kind === 'failed',
-    '請求失敗：failed，面板給「再試一次」（同一個代碼）')
+    '請求失敗：failed，頁面提示給「再試一次」（同一個代碼）')
   r.check(creationOutcome('abc', { code: null, error: null }).kind === 'failed', '沒有錯誤也沒有代碼：當成失敗，不當成功')
   const mismatch = creationOutcome('abc', { code: 'xyz', error: null })
   r.check(mismatch.kind === 'mismatch' && mismatch.code === 'xyz',
     '回來的代碼不一樣（別的裝置先分享過）：mismatch，改用既有的代碼，不給「再試一次」')
-
-  r.section('切換「包含心得筆記」的回饋')
-  r.check(notesToggleFeedback(true) === '分享心得筆記' && notesToggleFeedback(false) === '不分享心得筆記', '說切換之後的狀態')
 
   r.section('回傳值的 key 路徑')
   const paths = keyPaths({ a: 1, b: { c: null }, steps: [{ x: 1 }, { x: 2 }], tags: ['一', '二'], empty: [] })
