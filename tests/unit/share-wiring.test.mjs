@@ -61,53 +61,64 @@ export default function run() {
     r.check(used, `${key}`)
   }
 
-  r.section('點擊「分享」：handler 裡沒有 await（iOS Safari，《02》§7.1）')
-  const onShare = functionBody(panel, 'onShare')
-  r.check(onShare.length > 0, '找得到 onShare')
-  r.check(!/\bawait\b/.test(onShare) && !/async function onShare/.test(panel), 'onShare 不是 async，也沒有 await')
-  r.check(/startShare\(/.test(onShare) && /deliverShareLink\(/.test(onShare), '交出連結與建立請求都走 startShare（先交出、再建立）')
-  r.check(/generateShareCode\(\)/.test(onShare), '代碼在點擊當下由用戶端產生')
-  r.check(/shareCode\.value \?\? pendingCode\.value \?\? generateShareCode\(\)/.test(onShare),
-    '已經送出去的代碼優先沿用：再按一次、再試一次都不會換代碼')
+  r.section('按下按鈕：系統分享與複製都在點擊事件中同步呼叫（iOS Safari，《02》§7.1）')
+  const send = functionBody(panel, 'send')
+  r.check(send.length > 0, '找得到 send（「分享」與「複製連結」共用）')
+  r.check(!/\bawait\b/.test(send) && !/async function send/.test(panel), 'send 不是 async，也沒有 await')
+  r.check(/@click="onShare"/.test(panel) && /function onShare\(\) \{\s*send\('share'\)/.test(panel), '「分享」直接呼叫 send')
+  r.check(/@click="onCopy"/.test(panel) && /function onCopy\(\) \{\s*send\('copy'\)/.test(panel), '「複製連結」直接呼叫 send')
+  r.check(/startShare\(/.test(send) && /deliverShareLink\(/.test(send) && /afterDeliver: close/.test(send),
+    '走 startShare：交出連結 → 關閉對話框 → 建立請求')
+  r.check(/const code = generateShareCode\(\)/.test(send), '每次都當場產生新代碼（傳送模型，不重複使用）')
+  r.check(/via === 'share' && typeof navigator\.share === 'function'/.test(send), '「複製連結」不叫系統分享，直接複製')
+  r.check(!/brew_shares|loadShare|shareCode/.test(panel), '不查、不記任何既有的分享')
   const retry = functionBody(panel, 'retry')
-  r.check(/createShare\(pendingCode\.value/.test(retry) && !/deliverShareLink|navigator\.share/.test(retry),
-    '「再試一次」用同一個代碼重送建立請求，不再叫一次系統選單')
+  r.check(/createShare\(failed\.code, failed\.notes\)/.test(retry) && !/deliverShareLink|navigator\.share/.test(retry),
+    '「再試一次」用同一個代碼與設定重送，不再叫一次系統選單')
 
-  r.section('對話框沿用刪除確認對話框：標題 → 主體 → 動作（《03》§4.13.2）')
+  r.section('對話框：標題 → 分享的對象 → 選項 → 動作（《03》§4.13.2）')
   r.check(/<dialog/.test(panel) && /showModal\(\)/.test(panel), '原生 <dialog> 的 showModal()')
   r.check(/backdrop:bg-\[var\(--overlay-scrim\)\]/.test(panel), '有遮罩')
   r.check(/useOverlayHistory\(/.test(panel), '佔一筆 history，返回鍵關閉')
   r.check(/@click="onDialogClick"/.test(panel) && /event\.target === dialog\.value/.test(panel), '點遮罩關閉')
   r.check(/<h2[^>]*tabindex="-1"[^>]*>\s*分享紀錄\s*<\/h2>/.test(panel), '標題「分享紀錄」，tabindex="-1"')
-  r.check(/showModal\(\)\s*\n[\s\S]{0,300}?title\.value\?\.focus\(\)/.test(panel),
-    '開啟時焦點放在標題，不自動聚焦到開關或按鈕')
-  r.check(/<h2[^>]*class="[^"]*outline-none/.test(panel), '標題不畫焦點框（它不是互動元素）')
-  r.check(/\{\{ beanName \}\}/.test(panel) && /\{\{ brewDate \}\}/.test(panel), '主體：豆名與沖煮日期')
-  r.check(/pad\(d\.getMonth\(\) \+ 1\)\}\/\$\{pad\(d\.getDate\(\)\)\}/.test(panel)
-    && /pad\(d\.getMonth\(\) \+ 1\)\}\/\$\{pad\(d\.getDate\(\)\)\}/.test(read('components/BrewTimelineItem.vue')),
-    '日期格式與首頁時間軸相同（MM/DD）')
-  r.check(/<ToggleSwitch[\s\S]*?label="包含心得筆記"/.test(panel) && !/type="checkbox"/.test(panel),
-    '「包含心得筆記」是開關，不是勾選框')
-  r.check(/v-if="hasNotes"/.test(panel), '只在有心得時出現')
-  r.check(/修改未成功，請再試一次/.test(panel) && !/分享心得筆記|notesToggleFeedback/.test(panel),
-    '切換成功不顯示文字（開關本身就是回饋）；失敗才有紅字')
-  r.check(/\{\{ shareCode \? '完成' : '取消' \}\}/.test(panel), '次要按鈕：尚未分享「取消」、已分享過「完成」')
+  r.check(/showModal\(\)\s*\n[\s\S]{0,300}?title\.value\?\.focus\(\)/.test(panel), '開啟時焦點放在標題')
+  r.check(/<p class="break-words">\{\{ beanName \}\}<\/p>/.test(panel) && /沖煮日期：\{\{ brewDate \}\}/.test(panel),
+    '分享的對象：豆名（16px、400）與「沖煮日期：MM/DD」')
+  r.check(/pad\(d\.getMonth\(\) \+ 1\)\}\/\$\{pad\(d\.getDate\(\)\)\}/.test(panel), '日期格式與時間軸相同')
+  r.check(/<img\s+v-if="photoUrl"/.test(panel) && !/v-else[^>]*size-24/.test(panel), '沒有照片時不放縮圖、不留空框')
+  r.check(/class="size-24 shrink-0[^"]*object-cover"/.test(panel), '縮圖 96×96（同豆子列表的規格）')
+  r.check(/signedUrl\(props\.photoPath\)/.test(panel), '照片網址走 useBeanPhotos 的快取')
+  r.check(/<fieldset v-if="hasNotes"/.test(panel) && /<legend class="text-sm text-muted">選項<\/legend>/.test(panel),
+    '沒有心得時「選項」整組不出現；小標是分組標題樣式')
+  r.check(/type="checkbox"/.test(panel) && /分享心得筆記/.test(panel) && !/<ToggleSwitch/.test(panel),
+    '「分享心得筆記」是勾選框，不是開關')
+  r.check(/function openDialog\(\) \{\s*includeNotes\.value = false/.test(panel), '每次打開都預設不勾，不記住上次的選擇')
+  r.check(!/localStorage|sessionStorage/.test(panel), '不把勾選狀態存起來')
+  r.check(/'var\(--control-empty\)'/.test(panel) && /'var\(--accent\)'/.test(panel), '未勾 --control-empty、勾選 --accent')
+  r.check(/<label class="[^"]*flex[^"]*"[^>]*minHeight: 'var\(--touch-min\)'/.test(panel), '整列是 label：點文字也能切換，44px 高')
+  r.check(/canShare\.value = typeof navigator\.share === 'function'/.test(panel) && !/userAgent|matchMedia/.test(panel),
+    '按鈕依瀏覽器能力決定，不依桌機或手機')
   const actions = panel.match(/<div class="mt-6 flex gap-3">[\s\S]*?<\/dialog>/)?.[0] ?? ''
-  r.check(actions.indexOf("'取消'") > -1 && actions.indexOf("'取消'") < actions.indexOf('>\n          分享\n'),
-    '兩顆按鈕並排，次要在左、主要在右（與刪除確認對話框一致）')
-  r.check(/@click="openDialog"/.test(panel), '按下圖示一律開對話框，不依有無心得筆記直接分享')
+  const both = actions.match(/<template v-if="canShare">[\s\S]*?<\/template>/)?.[0] ?? ''
+  r.check(both.indexOf('複製連結') > -1 && both.indexOf('複製連結') < both.indexOf('分享\n'),
+    '支援系統分享：「複製連結」次要在左、「分享」主要在右')
+  const only = actions.slice(actions.indexOf('v-else'))
+  r.check(/background: 'var\(--accent\)'/.test(only) && /複製連結/.test(only) && !/>\s*分享\s*</.test(only),
+    '不支援系統分享：只有「複製連結」一顆，而且是主要按鈕')
+  r.check(!/取消|完成|已分享過/.test(actions), '沒有「取消」「完成」，也沒有「已分享過」的狀態')
   r.check(!/朋友不用登入也能看|只能看、不能改/.test(panel), '沒有說明句')
 
-  r.section('按下「分享」之後（《02》§7.1）')
-  r.check(/startShare\([\s\S]*?\}\)\s*\n\s*close\(\)/.test(onShare), '先交出連結，再立刻關閉對話框')
-  r.check(/result === 'copied'/.test(onShare) && /COPIED_MS = 2000/.test(panel), '複製：頁面上顯示「已複製連結」，約兩秒後收起')
-  r.check(/result === 'failed'\) manualLink\.value = url/.test(onShare) && /無法複製，請長按連結手動複製/.test(panel),
+  r.section('按下按鈕之後（《02》§7.1）')
+  r.check(/result === 'copied'/.test(send) && /COPIED_MS = 2000/.test(panel), '複製：頁面上顯示「已複製連結」，約兩秒後收起')
+  r.check(/result === 'failed'\) manualLink\.value = url/.test(send) && /無法複製，請長按連結手動複製/.test(panel),
     '系統分享與複製都失敗：顯示連結本身與手動複製的說明')
   const notices = panel.match(/<Teleport :to="portalTarget">[\s\S]*?<\/Teleport>/)?.[0] ?? ''
-  r.check(/分享沒有建立成功，剛才那個連結還不能用/.test(notices) && /再試一次/.test(notices),
-    '建立失敗的提示在頁面層級，附「再試一次」')
-  r.check(!/setTimeout[^\n]*createError/.test(panel), '建立失敗的提示不自動消失')
+  r.check(/分享建立失敗，連結目前無法開啟/.test(notices) && /再試一次/.test(notices) && /關閉/.test(notices),
+    '建立失敗的提示在頁面層級，附「再試一次」與「關閉」')
+  r.check(!/setTimeout[^\n]*failedSend/.test(panel), '建立失敗的提示不自動消失')
   r.check(/env\(safe-area-inset-bottom\)/.test(notices) && /52px/.test(notices), '頁面層級的提示避開分頁列與底部安全區域')
+  r.check(!/mismatch/.test(panel), '沒有「別的裝置先分享過」的處理（傳送模型不會發生）')
 
   r.section('開啟事件只由讀取函式記')
   const rpcs = [...page.matchAll(/\.rpc\('([a-z_]+)'/g)].map(m => m[1])

@@ -52,13 +52,14 @@ EXECUTE FUNCTION rls_auto_enable();
 /**
  * 明確開放給用戶端呼叫的函式。
  * 加進來之前先問：它是 security definer 嗎？是的話它自己有沒有做完所有檢查？
- * 三支都是分享用的（《01》§14）。get_shared_brew 是匿名的人唯一的入口，
- * 只吃代碼、只回傳分享頁顯示的欄位；兩支寫入函式只給登入者，而且自己檢查擁有者。
+ * 兩支都是分享用的（《01》§14）。get_shared_brew 是匿名的人唯一的入口，
+ * 只吃代碼、只回傳分享頁顯示的欄位；create_brew_share 只給登入者，而且自己檢查擁有者。
+ * （set_brew_share_notes 在傳送模型裡移除了：include_notes 建立之後不能改）
  * 各自的安全測試在 tests/db/shares.test.mjs。
  */
 const ALLOWED = {
   anon: ['get_shared_brew'],
-  authenticated: ['get_shared_brew', 'create_brew_share', 'set_brew_share_notes'],
+  authenticated: ['get_shared_brew', 'create_brew_share'],
 }
 
 export default async function run() {

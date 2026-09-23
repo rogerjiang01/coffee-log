@@ -51,7 +51,9 @@ export default function run() {
 
   r.section('分享對話框的主體不比標題重')
   const share = stripComments(read('components/BrewShare.vue'))
-  r.check(/<p class="mt-3">\{\{ beanName \}\}<\/p>/.test(share), '豆名 16px、字重 400（不是 font-medium）')
+  const beanLine = share.match(/<p class="([^"]*)">\{\{ beanName \}\}<\/p>/)?.[1]
+  r.check(beanLine !== undefined && !/\bfont-(medium|semibold|bold)\b|\btext-(lg|xl)\b/.test(beanLine),
+    '豆名 16px、字重 400（不是 font-medium）')
 
   r.section('頁面的 h1、h2 維持襯線（依容器決定，不依字級決定）')
   const pageHeadings = files

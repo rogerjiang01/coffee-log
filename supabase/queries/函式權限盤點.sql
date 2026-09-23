@@ -38,18 +38,17 @@ with known(name, source) as (values
   ('handle_new_user',    'migration：20260831160400_profiles.sql'),
   ('set_updated_at',     'migration：20260831170100_updated_at_triggers.sql'),
   ('rls_auto_enable',    '後台：Authentication → Auto-enable RLS for new tables（event trigger ensure_rls）'),
-  ('get_shared_brew',      'migration：20260923110000_brew_shares.sql'),
-  ('create_brew_share',    'migration：20260923110000_brew_shares.sql'),
-  ('set_brew_share_notes', 'migration：20260923110000_brew_shares.sql')
+  ('get_shared_brew',    'migration：20260923110000_brew_shares.sql'),
+  ('create_brew_share',  'migration：20260923120000_brew_shares_send_model.sql')
 ),
 
--- 分享的三支函式（《01》§14）。get_shared_brew 是匿名的人唯一的入口；
--- 兩支寫入函式只給登入者。
+-- 分享的兩支函式（《01》§14）。get_shared_brew 是匿名的人唯一的入口；
+-- create_brew_share 只給登入者。set_brew_share_notes 已在傳送模型裡移除，
+-- 正式庫上還看得到它就代表 20260923120000 沒推上去（它會被標成「不在任何 migration 裡」）。
 allowed(name, role) as (values
-  ('get_shared_brew',      'anon'),
-  ('get_shared_brew',      'authenticated'),
-  ('create_brew_share',    'authenticated'),
-  ('set_brew_share_notes', 'authenticated')
+  ('get_shared_brew',   'anon'),
+  ('get_shared_brew',   'authenticated'),
+  ('create_brew_share', 'authenticated')
 ),
 
 fns as (

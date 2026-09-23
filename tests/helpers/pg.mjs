@@ -47,11 +47,16 @@ grant usage on schema auth, storage to anon, authenticated, service_role;
 grant all on storage.objects, storage.buckets to authenticated;
 `
 
-export async function createDatabase() {
+/**
+ * @param {{ skip?: string[] }} [options]
+ *   skip：不套用的 migration 檔名。用來重現「那支 migration 推上去之前」的正式庫，
+ *   先寫進舊資料，再由測試自己 exec 那支 migration，確認它不動既有資料。
+ */
+export async function createDatabase({ skip = [] } = {}) {
   const db = await new PGlite()
   await db.exec(STUB)
 
-  const files = fs.readdirSync(MIGRATIONS).filter(f => f.endsWith('.sql')).sort()
+  const files = fs.readdirSync(MIGRATIONS).filter(f => f.endsWith('.sql') && !skip.includes(f)).sort()
   for (const file of files) {
     try {
       await db.exec(fs.readFileSync(path.join(MIGRATIONS, file), 'utf8'))

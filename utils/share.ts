@@ -131,36 +131,30 @@ export function deliverShareLink(url: string, env: DeliveryEnv): Promise<Deliver
 }
 
 /**
- * 點擊「分享」的順序（《02》§7.1）：
- *   1. 同步把連結交出去（deliver）
- *   2. 同一個 handler 裡**不等待**地發出建立請求（create）
+ * 按下「分享」或「複製連結」的順序（《02》§7.1）：
+ *   1. 同步把連結交出去（deliver：系統分享或複製）
+ *   2. 關閉對話框（afterDeliver）
+ *   3. 同一個 handler 裡**不等待**地發出建立請求（create）
  *
- * 已經建立過（或建立請求還在路上）時不再建立：代碼已經在手上，
- * 按下去只是再叫一次系統選單。
+ * 傳送模型：每次都是一條新連結，所以每次都建立，沒有「已經建立過」這回事。
  */
 export function startShare<T>(options: {
   url: string
-  alreadyCreated: boolean
   deliver: (url: string) => Promise<DeliveryResult>
+  afterDeliver?: () => void
   create: () => Promise<T>
-}): { delivery: Promise<DeliveryResult>, creation: Promise<T> | null } {
+}): { delivery: Promise<DeliveryResult>, creation: Promise<T> } {
   const delivery = options.deliver(options.url)
-  const creation = options.alreadyCreated ? null : options.create()
+  options.afterDeliver?.()
+  const creation = options.create()
   return { delivery, creation }
 }
 
 /**
- * 建立請求回來之後該顯示什麼（對話框已經關了，提示在頁面層級）。
- *
- *   ok        建立成功（或本來就有、而且就是這個代碼）
- *   failed    請求失敗：連結已經送出去但不會動。「再試一次」用同一個代碼重送
- *   mismatch  回來的代碼不是送出去的那個：這筆紀錄已經在別的裝置分享過。
- *             送出去的連結永遠不會動，重送也沒用——不給「再試一次」，
- *             改用既有的代碼，再打開對話框按一次「分享」就對了
+ * 建立請求有沒有成功。回傳的代碼必須就是送出去的那一個——
+ * 送出去的連結用的是它，回來別的代碼等於那條連結沒建起來。
+ * 失敗時「再試一次」用同一個代碼重送（函式對同一個代碼的重送是冪等的）。
  */
-export function creationOutcome(sent: string, result: { code: string | null, error: unknown }):
-  { kind: 'ok', code: string } | { kind: 'failed' } | { kind: 'mismatch', code: string } {
-  if (result.error || !result.code) return { kind: 'failed' }
-  if (result.code !== sent) return { kind: 'mismatch', code: result.code }
-  return { kind: 'ok', code: sent }
+export function creationSucceeded(sent: string, result: { code: string | null, error: unknown }): boolean {
+  return !result.error && result.code === sent
 }

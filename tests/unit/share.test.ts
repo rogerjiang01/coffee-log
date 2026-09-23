@@ -6,7 +6,7 @@
 // 所以這裡用「呼叫的當下記錄順序」來驗，不靠實機。
 
 import {
-  SHARE_CODE_PATTERN, SHARED_BREW_KEYS, creationOutcome, deliverShareLink, generateShareCode,
+  SHARE_CODE_PATTERN, SHARED_BREW_KEYS, creationSucceeded, deliverShareLink, generateShareCode,
   keyPaths, shareUrl, startShare,
 } from '../../utils/share.ts'
 import { createReport } from '../helpers/report.mjs'
@@ -32,33 +32,31 @@ export default async function run() {
   r.check(shareUrl('https://coffee.example', 'abc') === 'https://coffee.example/s/abc', '/s/{代碼}')
   r.check(shareUrl('https://coffee.example/', 'abc') === 'https://coffee.example/s/abc', 'origin 結尾的 / 不會變成 //')
 
-  r.section('按下「分享」：先交出連結，再發建立請求，兩者都不等待')
+  r.section('按下「分享」或「複製連結」：交出連結 → 關閉對話框 → 建立請求，都不等待')
   const order: string[] = []
   let resolveCreate: (code: string) => void = () => {}
   const { delivery, creation } = startShare({
     url: 'https://x/s/abc',
-    alreadyCreated: false,
     deliver: (url) => {
       order.push(`deliver ${url}`)
       return new Promise(() => {})
     },
+    afterDeliver: () => order.push('close'),
     create: () => {
       order.push('create')
       return new Promise(resolve => (resolveCreate = resolve))
     },
   })
   order.push('handler 結束')
-  r.check(order.join(' → ') === 'deliver https://x/s/abc → create → handler 結束',
-    `系統分享在同一個事件裡、建立請求之前就被呼叫（${order.join(' → ')}）`)
+  r.check(order.join(' → ') === 'deliver https://x/s/abc → close → create → handler 結束',
+    `系統分享（或複製）在同一個事件裡最先被呼叫（${order.join(' → ')}）`)
   r.check(delivery instanceof Promise && creation instanceof Promise, '兩者都回傳 promise，handler 不等它們')
   resolveCreate('abc')
 
-  const again = startShare({
-    url: 'u', alreadyCreated: true,
-    deliver: () => Promise.resolve('shared' as const),
-    create: () => { throw new Error('不該呼叫') },
-  })
-  r.check(again.creation === null, '已經分享過：只叫系統選單，沒有任何網路請求')
+  let created = 0
+  startShare({ url: 'u', deliver: () => Promise.resolve('shared' as const), create: () => Promise.resolve(++created) })
+  startShare({ url: 'u', deliver: () => Promise.resolve('shared' as const), create: () => Promise.resolve(++created) })
+  r.check(created === 2, '傳送模型：每按一次都建立一次，沒有「已經分享過」的捷徑')
 
   r.section('交出連結的結果')
   const calls: string[] = []
@@ -94,13 +92,10 @@ export default async function run() {
   r.check(await deliverShareLink('L', env(undefined, () => Promise.reject(new Error('x')))) === 'failed', '複製也失敗：failed')
 
   r.section('建立請求回來之後')
-  r.check(creationOutcome('abc', { code: 'abc', error: null }).kind === 'ok', '回同一個代碼：成功')
-  r.check(creationOutcome('abc', { code: null, error: new Error('network') }).kind === 'failed',
-    '請求失敗：failed，頁面提示給「再試一次」（同一個代碼）')
-  r.check(creationOutcome('abc', { code: null, error: null }).kind === 'failed', '沒有錯誤也沒有代碼：當成失敗，不當成功')
-  const mismatch = creationOutcome('abc', { code: 'xyz', error: null })
-  r.check(mismatch.kind === 'mismatch' && mismatch.code === 'xyz',
-    '回來的代碼不一樣（別的裝置先分享過）：mismatch，改用既有的代碼，不給「再試一次」')
+  r.check(creationSucceeded('abc', { code: 'abc', error: null }), '回同一個代碼：成功')
+  r.check(!creationSucceeded('abc', { code: null, error: new Error('network') }), '請求失敗：失敗，頁面提示給「再試一次」（同一個代碼）')
+  r.check(!creationSucceeded('abc', { code: null, error: null }), '沒有錯誤也沒有代碼：當成失敗，不當成功')
+  r.check(!creationSucceeded('abc', { code: 'xyz', error: null }), '回來的代碼不是送出去的：當成失敗（送出去的那條沒建起來）')
 
   r.section('回傳值的 key 路徑')
   const paths = keyPaths({ a: 1, b: { c: null }, steps: [{ x: 1 }, { x: 2 }], tags: ['一', '二'], empty: [] })

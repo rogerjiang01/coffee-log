@@ -32,7 +32,7 @@ interface BrewDetail {
   is_sample: boolean
   tasting_notes: string | null
   intensity: Intensity | null
-  beans: { id: string; name: string; roast_date: string | null } | null
+  beans: { id: string; name: string; roast_date: string | null; photo_path: string | null } | null
   brew_methods: { name: string } | null
   grinder: EquipmentNameRow | null
   dripper: EquipmentNameRow | null
@@ -70,7 +70,7 @@ async function fetchBrew() {
       id, copied_from_brew_id, brew_method_id, grinder_id, dripper_id, kettle_id,
       dose, water_temp, grind_setting, total_time, brewed_at,
       rating, is_favorite, is_sample, tasting_notes, intensity,
-      beans ( id, name, roast_date ),
+      beans ( id, name, roast_date, photo_path ),
       brew_methods ( name ),
       grinder:grinder_id ( custom_name, equipment_catalog ( brand, model, variant ) ),
       dripper:dripper_id ( custom_name, equipment_catalog ( brand, model, variant ) ),
@@ -289,6 +289,7 @@ async function destroy() {
           :bean-name="brew.beans?.name ?? '沒有指定豆子'"
           :brewed-at="brew.brewed_at"
           :has-notes="!!brew.tasting_notes?.trim()"
+          :photo-path="brew.beans?.photo_path ?? null"
         />
       </div>
       <p class="mt-1 text-sm tabular-nums text-muted">{{ formatDate(brew.brewed_at) }}</p>

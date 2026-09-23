@@ -21,23 +21,27 @@ export default function run() {
   r.check(known.length > 0, `找得到 known 清單（${known.length} 支）`)
 
   // migration 建的每一支函式都要在 known 裡
+  // 依檔名順序重播：後面的 migration drop 掉的函式不算（例如 set_brew_share_notes）。
+  // 每一支記下建立（含 create or replace）過它的檔案
   const dir = 'supabase/migrations'
-  const created = new Set()
-  for (const file of readdirSync(new URL(dir, root)).filter(f => f.endsWith('.sql'))) {
-    for (const m of stripSqlComments(read(`${dir}/${file}`)).matchAll(/create\s+(?:or\s+replace\s+)?function\s+public\.([a-z_]+)/gi)) {
-      created.add(m[1])
+  const created = new Map()
+  for (const file of readdirSync(new URL(dir, root)).filter(f => f.endsWith('.sql')).sort()) {
+    const sql = stripSqlComments(read(`${dir}/${file}`))
+    for (const m of sql.matchAll(/(create\s+(?:or\s+replace\s+)?function|drop\s+function\s+(?:if\s+exists\s+)?)\s*public\.([a-z_]+)/gi)) {
+      if (/^drop/i.test(m[1])) created.delete(m[2])
+      else created.set(m[2], [...(created.get(m[2]) ?? []), file])
     }
   }
   r.section('migration 建的函式都在 known 裡')
-  for (const name of created) {
+  for (const name of created.keys()) {
     r.check(known.some(k => k.name === name), `${name}`)
   }
 
   r.section('known 裡標成 migration 的，都真的有 migration 建它')
   for (const k of known.filter(k => k.source.startsWith('migration'))) {
-    r.check(created.has(k.name), `${k.name}（${k.source}）`)
+    r.check(created.has(k.name), `${k.name}（${k.source}）：現在還存在，沒有被後面的 migration drop 掉`)
     const file = k.source.replace(/^migration：/, '')
-    r.check(readdirSync(new URL(dir, root)).includes(file), `${k.name} 註明的檔案 ${file} 存在`)
+    r.check((created.get(k.name) ?? []).includes(file), `${k.name} 註明的檔案 ${file} 確實建立過它`)
   }
 
   r.section('known 裡不是 migration 的，要說明來源')

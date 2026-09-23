@@ -2,13 +2,18 @@
 //
 // 這一組的核心約束：**匿名的人碰不到任何一張表**，讀取只有 get_shared_brew 一個入口，
 // 而它只回傳分享頁實際顯示的欄位。每一條都用「真的去做一次」驗，不看 policy 寫了什麼。
+//
+// 傳送模型（20260923120000_brew_shares_send_model.sql）：每次分享都是一條新連結，
+// include_notes 跟著那一次傳送固定，之後沒有任何寫入路徑能改。
 
+import { readFileSync } from 'node:fs'
 import { createDatabase } from '../helpers/pg.mjs'
 import { createReport } from '../helpers/report.mjs'
 import { SHARED_BREW_KEYS, keyPaths, generateShareCode } from '../../utils/share.ts'
 import { catalogDisplayName } from '../../utils/equipment.ts'
 
 const TABLES = ['brews', 'brew_steps', 'beans', 'user_equipment', 'brew_flavor_tags', 'brew_shares', 'brew_share_events']
+const SEND_MODEL = '20260923120000_brew_shares_send_model.sql'
 const UUID = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i
 
 export default async function run() {
@@ -113,8 +118,9 @@ export default async function run() {
   await asAnon()
   r.check(denied(await attempt(`select public.create_brew_share('${unshared}', '${generateShareCode()}', false)`)),
     'create_brew_share：沒有執行權')
-  await asAnon()
-  r.check(denied(await attempt(`select public.set_brew_share_notes('${brew}', true)`)), 'set_brew_share_notes：沒有執行權')
+  await pg.asSuperuser()
+  r.check((await pg.rows(`select to_regproc('public.set_brew_share_notes') is null as gone`))[0].gone,
+    'set_brew_share_notes 已經不存在（傳送模型沒有修改設定的路）')
 
   r.section('#5 匿名寫入每一張表')
   for (const table of TABLES) {
@@ -156,16 +162,20 @@ export default async function run() {
   r.check(!('tasting_notes' in anonView), '回傳值裡沒有心得筆記那個 key（不是空字串、不是 null）')
   r.check(!JSON.stringify(anonView).includes('今天心情不好'), '心得的內容一個字都不在回傳值裡')
 
-  r.section('#9 勾起來之後，朋友看到的是即時內容')
+  r.section('#9 同一筆紀錄可以有多條連結，include_notes 各自獨立')
   await pg.as(A)
-  await pg.exec(`select public.set_brew_share_notes('${brew}', true)`)
+  const withNotesCode = generateShareCode()
+  const secondCode = (await pg.rows(`select public.create_brew_share('${brew}', '${withNotesCode}', true) as c`))[0].c
+  r.check(secondCode === withNotesCode, '第二次分享回傳的是這一次送進去的新代碼，不是第一條的')
   await asAnon()
-  const withNotes = await read(code)
-  r.check(withNotes.tasting_notes === '私人的心得：今天心情不好', '含心得筆記')
-  await pg.as(A)
-  await pg.exec(`select public.set_brew_share_notes('${brew}', false)`)
-  await asAnon()
-  r.check(!('tasting_notes' in await read(code)), '再關掉：又不見了')
+  const withNotes = await read(withNotesCode)
+  r.check(withNotes.tasting_notes === '私人的心得：今天心情不好', '勾了心得的那一條：含心得筆記')
+  r.check(!('tasting_notes' in await read(code)), '第一條（沒勾）不受影響：仍然沒有心得')
+  await pg.asSuperuser()
+  const rows = await pg.rows(`select code, include_notes from brew_shares where brew_id = '${brew}' order by created_at, code`)
+  r.check(rows.length === 2, `brew_shares 兩列（${rows.length}）`)
+  r.check(rows.find(x => x.code === code).include_notes === false && rows.find(x => x.code === withNotesCode).include_notes === true,
+    '各自記著建立時的設定')
 
   r.section('#10 B 對 A 的紀錄')
   await pg.as(B)
@@ -173,13 +183,15 @@ export default async function run() {
     'create_brew_share（A 沒分享過的那筆）：raise')
   await pg.as(B)
   r.check(!!await attempt(`select public.create_brew_share('${brew}', '${generateShareCode()}', true)`),
-    'create_brew_share（A 已經分享的那筆）：raise，不會回傳 A 的代碼')
+    'create_brew_share（A 已經分享的那筆）：raise')
   await pg.as(B)
-  r.check(!!await attempt(`select public.set_brew_share_notes('${brew}', true)`), 'set_brew_share_notes：raise')
+  r.check(!!await attempt(`select public.create_brew_share('${brew}', '${code}', true)`),
+    '拿 A 的代碼重送：raise，不會被當成冪等的重送')
   await pg.asSuperuser()
-  const stateAfterB = await pg.rows(`select code, include_notes, user_id from brew_shares where brew_id in ('${brew}', '${unshared}')`)
-  r.check(stateAfterB.length === 1 && stateAfterB[0].code === code && stateAfterB[0].include_notes === false
-    && stateAfterB[0].user_id === A, 'A 的連結狀態不變，也沒有多出任何一列')
+  const stateAfterB = await pg.rows(`select code, include_notes, user_id from brew_shares where brew_id in ('${brew}', '${unshared}') order by created_at, code`)
+  r.check(stateAfterB.length === 2 && stateAfterB.every(x => x.user_id === A)
+    && stateAfterB.find(x => x.code === code).include_notes === false,
+  'A 的連結狀態不變，也沒有多出任何一列')
 
   r.section('#11 B 以 A 的代碼讀取')
   await pg.as(B)
@@ -187,21 +199,28 @@ export default async function run() {
   r.check(memberView?.bean?.name === '衣索比亞 耶加雪菲', '拿得到內容（那正是分享）')
   r.check(memberView.is_owner === false && !('brew_id' in memberView), 'is_owner 為 false，沒有 brew_id')
 
-  r.section('#12 同一筆紀錄連續兩次建立')
+  r.section('#12 「再試一次」用同一個代碼重送：冪等')
+  // 第一次其實成功了，只是回應沒回來。重送不能失敗，也不能多一列
   await pg.as(A)
-  const second = (await pg.rows(`select public.create_brew_share('${brew}', '${generateShareCode()}', true) as c`))[0].c
-  r.check(second === code, '第二次換了代碼，回傳的仍是第一個（前端靠這個發現不一致）')
   const retry = (await pg.rows(`select public.create_brew_share('${brew}', '${code}', true) as c`))[0].c
-  r.check(retry === code, '用同一個代碼重送（「再試一次」）：回傳同一個代碼')
+  r.check(retry === code, '回傳同一個代碼，不報錯')
   await pg.asSuperuser()
-  r.check((await pg.rows(`select count(*)::int n from brew_shares where brew_id = '${brew}'`))[0].n === 1, 'brew_shares 只有一列')
-  r.check((await pg.rows(`select include_notes from brew_shares where brew_id = '${brew}'`))[0].include_notes === false,
-    '重複建立不改 include_notes（那是勾選框自己的事）')
+  r.check((await pg.rows(`select count(*)::int n from brew_shares where brew_id = '${brew}'`))[0].n === 2, '沒有多出一列')
+  r.check((await pg.rows(`select include_notes from brew_shares where code = '${code}'`))[0].include_notes === false,
+    '重送帶的設定不覆蓋第一次建立的（那條連結建立之後就不能改）')
+
+  r.section('#16 沒有任何路徑能修改 include_notes')
+  const updaters = await pg.rows(`select p.proname from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+    where n.nspname = 'public' and p.prokind = 'f' and pg_get_functiondef(p.oid) ~* 'update\\s+public\\.brew_shares'`)
+  r.check(updaters.length === 0, `沒有任何函式 update brew_shares${updaters.length ? `：${updaters.map(w => w.proname).join('、')}` : ''}`)
+  for (const role of ['anon', 'authenticated']) {
+    const can = (await pg.rows(`select has_column_privilege('${role}', 'brew_shares', 'include_notes', 'update') as ok`))[0].ok
+    r.check(can === false, `${role} 對 include_notes 沒有 update 權限`)
+  }
 
   r.section('#14 回傳值的 key ＝ 分享頁顯示的欄位')
   await pg.as(A)
-  await pg.exec(`select public.set_brew_share_notes('${brew}', true)`)
-  const ownerView = await read(code)
+  const ownerView = await read(withNotesCode)
   const actual = [...new Set(keyPaths(ownerView))].sort()
   const expected = [...SHARED_BREW_KEYS].sort()
   r.check(JSON.stringify(actual) === JSON.stringify(expected),
@@ -257,23 +276,17 @@ export default async function run() {
   await pg.asSuperuser()
   r.check(await countEvents() === beforeMiss, '失效的開啟不記事件（沒有 share_id 可以掛）')
 
-  r.section('埋點：建立與切換')
-  const log = await events(code)
-  r.check(log.filter(e => e.event === 'create').length === 1 && log.find(e => e.event === 'create').include_notes === false,
-    'create 只有一筆（重複建立不寫），記下建立時的狀態')
-  const toggles = log.filter(e => e.event === 'toggle_notes').map(e => e.include_notes)
-  r.check(JSON.stringify(toggles) === '[true,false,true]', `toggle_notes 記改之後的狀態：${JSON.stringify(toggles)}`)
-
-  r.section('#16 設成跟現在一樣的值')
-  await pg.as(A)
-  await pg.exec(`select public.set_brew_share_notes('${brew}', true)`)
-  r.check((await events(code)).filter(e => e.event === 'toggle_notes').length === 3, '不寫事件')
-  await pg.as(A)
-  r.check(!!await attempt(`select public.set_brew_share_notes('${bean}', true)`), '不是紀錄的 id：raise')
+  r.section('埋點：每次分享一筆 create，不再有 toggle_notes')
+  const logFirst = await events(code)
+  const logSecond = await events(withNotesCode)
+  r.check(logFirst.filter(e => e.event === 'create').length === 1 && logFirst.find(e => e.event === 'create').include_notes === false,
+    '第一條：create 一筆（重送不寫），記下建立時的設定')
+  r.check(logSecond.filter(e => e.event === 'create').length === 1 && logSecond.find(e => e.event === 'create').include_notes === true,
+    '第二條：自己的 create 一筆')
   await pg.asSuperuser()
+  r.check((await pg.rows(`select count(*)::int n from brew_share_events where event = 'toggle_notes'`))[0].n === 0,
+    '沒有 toggle_notes 事件')
   const lonely = (await pg.rows(`insert into brews (user_id, bean_id, dose) values ('${A}', '${bean}', 10) returning id`))[0].id
-  await pg.as(A)
-  r.check(!!await attempt(`select public.set_brew_share_notes('${lonely}', true)`), '還沒分享過的紀錄：raise，不假裝成功')
 
   r.section('#17 第一版沒有停止分享的寫入路徑')
   await pg.asSuperuser()
@@ -310,5 +323,48 @@ export default async function run() {
   r.check((await pg.rows(`select count(*)::int n from brews where visibility <> 'private'`))[0].n === 0, '分享不改 visibility')
 
   await pg.close()
+
+  // ── 推上去之前已經有的資料（前一版：一筆一條、設定可改） ───────────────
+  // 正式庫可能已經有前一版建的分享與 toggle_notes 事件。這支 migration 一列都不能動它們
+  r.section('傳送模型的 migration 不動既有資料')
+  const old = await createDatabase({ skip: [SEND_MODEL] })
+  await old.asSuperuser()
+  const U = await old.createUser('share-old@test')
+  const oldBean = (await old.rows(`insert into beans (user_id, name) values ('${U}', '舊的豆子') returning id`))[0].id
+  const oldBrew = (await old.rows(`insert into brews (user_id, bean_id, dose, tasting_notes)
+    values ('${U}', '${oldBean}', 15, '舊的心得') returning id`))[0].id
+  const oldCode = generateShareCode()
+  await old.as(U)
+  await old.exec(`select public.create_brew_share('${oldBrew}', '${oldCode}', false)`)
+  await old.exec(`select public.set_brew_share_notes('${oldBrew}', true)`)
+  await old.asSuperuser()
+  const snapshot = async () => ({
+    shares: await old.rows(`select id, brew_id, user_id, code, include_notes, revoked_at, created_at from brew_shares order by id`),
+    events: await old.rows(`select id, share_id, event, include_notes, viewer, occurred_at from brew_share_events order by id`),
+  })
+  const before = await snapshot()
+  r.check(before.events.some(e => e.event === 'toggle_notes'), '前提：舊資料裡有 toggle_notes 事件')
+
+  await old.exec(readFileSync(new URL(`../../supabase/migrations/${SEND_MODEL}`, import.meta.url), 'utf8'))
+  const after = await snapshot()
+  r.check(JSON.stringify(after) === JSON.stringify(before), 'brew_shares 與 brew_share_events 一列不少、一個值都沒變')
+  r.check(!!(await old.rows(`select 1 from pg_constraint where conname like 'brew_share_events_event_check%'
+    and pg_get_constraintdef(oid) like '%toggle_notes%'`)).length, "event 的 check 仍然收 'toggle_notes'（舊資料不違反限制）")
+  await old.asSuperuser()
+  await old.exec(`select set_config('test.uid', '', false)`)
+  await old.exec('set role anon')
+  const oldView = (await old.rows(`select public.get_shared_brew('${oldCode}') as v`))[0].v
+  r.check(oldView?.tasting_notes === '舊的心得', '舊連結照樣開得起來，設定是最後一次存的（含心得）')
+  await old.as(U)
+  const newCode = generateShareCode()
+  await old.exec(`select public.create_brew_share('${oldBrew}', '${newCode}', false)`)
+  await old.asSuperuser()
+  r.check((await old.rows(`select count(*)::int n from brew_shares where brew_id = '${oldBrew}'`))[0].n === 2,
+    '推上去之後，同一筆舊紀錄可以再分享出第二條連結')
+  r.check((await old.rows(`select to_regproc('public.set_brew_share_notes') is null as gone`))[0].gone, 'set_brew_share_notes 已移除')
+  r.check((await old.rows(`select has_function_privilege('anon', 'public.create_brew_share(uuid, text, boolean)', 'execute') as ok`))[0].ok === false,
+    'create_brew_share 仍然不給 anon')
+  await old.close()
+
   return r.finish()
 }
