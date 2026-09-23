@@ -76,7 +76,7 @@ export default function run() {
     '紀錄詳情也要清——養豆天數是拿豆子的 roast_date 算的')
 
   r.section('刪除豆子會連帶刪掉它的紀錄')
-  // 外鍵是 cascade，確認對話框上就寫著「連同這支豆子的 N 筆紀錄一起刪掉」。
+  // 外鍵是 cascade，確認對話框上就寫著「這支豆子的 N 筆沖煮紀錄會一併刪除」。
   r.check(cleared(cacheKeys.brewPage(0), bean), '時間軸不能留著已經不存在的紀錄')
   r.check(cleared(cacheKeys.brewCounts(), bean), '次數統計')
   r.check(cleared(cacheKeys.brewsByBean(BEAN), bean), '該豆子的紀錄列表')

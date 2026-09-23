@@ -92,7 +92,7 @@ export default async function run() {
 
   r.section('刪掉範例之後不會重建')
   // 豆子底下還有範例紀錄：刪豆子會連帶刪掉紀錄（brews.bean_id on delete cascade），
-  // 介面的刪除確認也寫明「連同這支豆子的 N 筆沖煮紀錄一起刪掉」
+  // 介面的刪除確認也寫明「這支豆子的 N 筆沖煮紀錄會一併刪除」
   r.check((await pg.query(`delete from beans where id='${beans[0].id}'`)).affectedRows === 1, '刪得掉範例豆子')
   await pg.asSuperuser()
   r.check((await pg.rows(`select count(*)::int n from brews where user_id='${A}'`))[0].n === 0,

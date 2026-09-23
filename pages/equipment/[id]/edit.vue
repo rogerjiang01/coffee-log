@@ -183,8 +183,8 @@ async function destroy() {
       <ConfirmDialog
         :open="confirmOpen"
         title="刪除這個器材？"
-        body="刪掉之後沒辦法復原。已經記錄過的沖煮不會消失，只是那筆紀錄上的器材欄位會變成空的。"
-        confirm-label="刪除這個器材"
+        body="刪除後無法復原。相關沖煮紀錄會保留，但不再顯示這個器材。"
+        confirm-label="刪除"
         :busy="deleting"
         @cancel="confirmOpen = false"
         @confirm="destroy"

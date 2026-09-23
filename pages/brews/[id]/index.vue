@@ -455,8 +455,8 @@ async function destroy() {
       <ConfirmDialog
         :open="confirmOpen"
         title="刪除這筆紀錄？"
-        body="連同分段一起刪掉，沒辦法復原。豆子不會被刪。"
-        confirm-label="刪除這筆紀錄"
+        body="刪除後無法復原。分段會一併刪除，豆子會保留。"
+        confirm-label="刪除"
         :busy="deleting"
         @cancel="confirmOpen = false"
         @confirm="destroy"

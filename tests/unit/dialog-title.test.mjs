@@ -58,7 +58,15 @@ export default function run() {
       r.check(/\btext-xl\b/.test(cls) && !/\btext-(lg|2xl|base|sm)\b/.test(cls), `${path}：--text-xl`)
       r.check(/\bfont-normal\b/.test(cls) && !/\bfont-(bold|medium|semibold)\b/.test(cls), `${path}：字重 400`)
       r.check(/\btext-balance\b/.test(cls), `${path}：text-wrap: balance（不在詞中間斷行）`)
+      r.check(/\btabindex="-1"/.test(tag) && /\boutline-none\b/.test(cls), `${path}：標題 tabindex="-1"、不畫焦點框`)
     }
+  }
+
+  r.section('置中對話框開啟時，焦點放在標題（觸控開啟不出現焦點框、按 Enter 不會誤按）')
+  for (const [path, ref] of [['components/ConfirmDialog.vue', 'heading'], ['components/DraftOverlay.vue', 'heading'], ['components/BrewShare.vue', 'title']]) {
+    const src = read(path)
+    r.check(new RegExp(`<h2 ref="${ref}"`).test(src) || new RegExp(`<h2[^>]*ref="${ref}"`).test(src), `${path}：標題有 ref`)
+    r.check(new RegExp(`showModal\\(\\);?\\s*\\n[\\s\\S]{0,300}?${ref}\\.value\\?\\.focus\\(\\)`).test(src), `${path}：showModal() 之後聚焦標題`)
   }
 
   r.section('全螢幕浮層不適用：器材選擇器的標題維持襯線、18px、700')

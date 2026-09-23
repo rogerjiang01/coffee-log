@@ -18,19 +18,28 @@
     // 下次進來再問一次。
 
     const dialog = ref<HTMLDialogElement | null>(null);
+    const heading = ref<HTMLElement | null>(null);
+
+    // showModal() 預設聚焦第一個按鈕（重新開始），觸控開啟也會出現焦點框。
+    // 改放在標題：它不是互動元素，不畫焦點框（《03》§4.8）
+    function show() {
+        if (!dialog.value || dialog.value.open) return;
+        dialog.value.showModal();
+        heading.value?.focus();
+    }
 
     watch(
         () => props.open,
         (value) => {
             if (!dialog.value) return;
-            if (value && !dialog.value.open) dialog.value.showModal();
+            if (value) show();
             if (!value && dialog.value.open) dialog.value.close();
         },
         { immediate: true },
     );
 
     onMounted(() => {
-        if (props.open && dialog.value && !dialog.value.open) dialog.value.showModal();
+        if (props.open) show();
     });
 </script>
 
@@ -38,7 +47,7 @@
     <!-- dialog 本身是滿版的置中容器（樣式在 main.css），卡片是內層這一個 -->
     <dialog ref="dialog" class="backdrop:bg-[var(--overlay-scrim)]" @cancel.prevent>
         <div class="w-full max-w-sm rounded-lg p-6" :style="{ background: 'var(--surface)', color: 'var(--text)', boxShadow: 'var(--overlay-shadow)' }">
-            <h2 class="text-xl font-normal text-balance">上次的內容尚未儲存</h2>
+            <h2 ref="heading" tabindex="-1" class="text-xl font-normal text-balance outline-none">上次的內容尚未儲存</h2>
             <p v-if="note" class="mt-3 text-sm text-muted text-pretty">{{ note }}</p>
 
             <div class="mt-6 flex gap-3">

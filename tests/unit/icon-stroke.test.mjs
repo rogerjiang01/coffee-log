@@ -130,7 +130,6 @@ export default function run() {
     ['components/BrewForm.vue', '收藏愛心（表單）'],
     ['components/IntensityPicker.vue', '強度圓點'],
     ['components/SharedBrewView.vue', '星等（分享頁）'],
-    ['components/ToggleSwitch.vue', '開關的關閉軌道（已喝完）'],
     ['components/BrewShare.vue', '勾選框（分享對話框）'],
   ]
   for (const [file, name] of empty) {
@@ -140,6 +139,10 @@ export default function run() {
       `${name}：沒有退回 --border`)
     r.check(/--control-empty/.test(src), `${name}：檔案裡確實引用了 --control-empty`)
   }
+  // 開關是例外：尺寸大，圓鈕與軌道的形狀就說明它可以操作，關閉維持 --border（《03》§2.2）
+  const toggle = read('components/ToggleSwitch.vue')
+  r.check(/modelValue \? 'var\(--accent\)' : 'var\(--border\)'/.test(toggle) && !/--control-empty/.test(toggle.replace(/<!--[\s\S]*?-->/g, '')),
+    '開關（ToggleSwitch）不適用：關閉的軌道是 --border')
   const tokenCss = read('assets/css/tokens.css')
   r.check(/--control-empty:\s*var\(--sand-400\);/.test(tokenCss),
     '--control-empty 是 sand-400（白底 2.48:1，刻意低於 3:1，《03》§2.2）')

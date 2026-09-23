@@ -365,9 +365,9 @@ async function destroy() {
         :open="confirmOpen"
         title="刪除這支豆子？"
         :body="brewCount > 0
-          ? `連同這支豆子的 ${brewCount} 筆沖煮紀錄一起刪掉，沒辦法復原。`
-          : '刪掉之後沒辦法復原。'"
-        confirm-label="刪除這支豆子"
+          ? `刪除後無法復原。這支豆子的 ${brewCount} 筆沖煮紀錄會一併刪除。`
+          : '刪除後無法復原。'"
+        confirm-label="刪除"
         :busy="deleting"
         @cancel="confirmOpen = false"
         @confirm="destroy"
