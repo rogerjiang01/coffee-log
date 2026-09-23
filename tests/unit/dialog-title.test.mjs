@@ -1,8 +1,11 @@
-// 浮層標題的字型（《03》§4.8、§2.4）。
+// 置中對話框的標題（《03》§4.8、§2.4）。
 //
-// 規則依所在的容器決定，不依字級決定：對話框與全螢幕浮層的標題是無襯線、
-// --text-xl、字重 400；頁面裡的 h1、h2 維持襯線。同樣 24px 兩種字型是刻意的，
+// 規則依所在的容器決定，不依字級決定：置中對話框的標題是無襯線、--text-xl、
+// 字重 400；頁面裡的 h1、h2 維持襯線。同樣 24px 兩種字型是刻意的，
 // 最容易被當成不一致而「統一」掉——哪一邊被改過去，這裡都會失敗。
+//
+// **全螢幕浮層（<dialog class="sheet">）不適用**：器材選擇器鋪滿整個畫面，
+// 它的標題列扮演的是頁面標題的角色，維持襯線、18px、700。
 
 import { readFileSync, readdirSync, statSync } from 'node:fs'
 import { createReport } from '../helpers/report.mjs'
@@ -21,10 +24,18 @@ function vueFiles(dir) {
   return out
 }
 
-/** <dialog>…</dialog> 裡所有標題元素的開頭標籤 */
+/** 置中對話框（不是 class="sheet" 的 <dialog>）的內容 */
+function centeredDialogs(text) {
+  // 只看 template：script 的註解裡也會寫到「<dialog>」
+  const template = text.slice(Math.max(0, text.indexOf('<template>')))
+  return [...stripComments(template).matchAll(/<dialog\b([^>]*)>([\s\S]*?)<\/dialog>/g)]
+    .filter(m => !/class="[^"]*\bsheet\b/.test(m[1]))
+    .map(m => m[2])
+}
+
+/** 置中對話框裡所有標題元素的開頭標籤 */
 function dialogHeadings(text) {
-  return [...stripComments(text).matchAll(/<dialog[\s\S]*?<\/dialog>/g)]
-    .flatMap(m => [...m[0].matchAll(/<h[1-6]\b[^>]*>/g)].map(h => h[0]))
+  return centeredDialogs(text).flatMap(body => [...body.matchAll(/<h[1-6]\b[^>]*>/g)].map(h => h[0]))
 }
 
 const classOf = tag => tag.match(/\sclass="([^"]*)"/)?.[1] ?? ''
@@ -33,10 +44,10 @@ export default function run() {
   const r = createReport('浮層標題的字型')
   const files = [...vueFiles('components'), ...vueFiles('pages'), 'app.vue', 'error.vue']
 
-  r.section('對話框與全螢幕浮層的標題：無襯線、--text-xl、字重 400')
+  r.section('置中對話框的標題：無襯線、--text-xl、字重 400、text-wrap: balance')
   const withDialog = files.filter(path => /<dialog\b/.test(read(path)))
   r.check(withDialog.length >= 5, `有 ${withDialog.length} 個檔案用 <dialog>`)
-  const expected = ['components/ConfirmDialog.vue', 'components/DraftOverlay.vue', 'components/BrewShare.vue', 'components/EquipmentPicker.vue']
+  const expected = ['components/ConfirmDialog.vue', 'components/DraftOverlay.vue', 'components/BrewShare.vue']
   for (const path of expected) {
     r.check(dialogHeadings(read(path)).length > 0, `${path} 的標題在 <dialog> 裡`)
   }
@@ -46,7 +57,25 @@ export default function run() {
       r.check(!/\bfont-serif\b/.test(cls), `${path}：不用 font-serif`)
       r.check(/\btext-xl\b/.test(cls) && !/\btext-(lg|2xl|base|sm)\b/.test(cls), `${path}：--text-xl`)
       r.check(/\bfont-normal\b/.test(cls) && !/\bfont-(bold|medium|semibold)\b/.test(cls), `${path}：字重 400`)
+      r.check(/\btext-balance\b/.test(cls), `${path}：text-wrap: balance（不在詞中間斷行）`)
     }
+  }
+
+  r.section('全螢幕浮層不適用：器材選擇器的標題維持襯線、18px、700')
+  const picker = stripComments(read('components/EquipmentPicker.vue'))
+  r.check(/<dialog[^>]*class="sheet"/.test(picker), '器材選擇器是全螢幕浮層（class="sheet"）')
+  r.check(/<h2 class="flex-1 truncate font-serif text-lg font-bold">/.test(picker), '標題是襯線、--text-lg、700')
+  r.check(dialogHeadings(read('components/EquipmentPicker.vue')).length === 0, '不被當成置中對話框檢查')
+
+  r.section('置中對話框的內文：text-wrap: pretty（最後一個字不單獨落到下一行）')
+  const bodies = [
+    ['components/ConfirmDialog.vue', /<p class="([^"]*)">\{\{ body \}\}<\/p>/],
+    ['components/DraftOverlay.vue', /<p v-if="note" class="([^"]*)">\{\{ note \}\}<\/p>/],
+    ['components/BrewShare.vue', /<p class="([^"]*)">\{\{ beanName \}\}<\/p>/],
+  ]
+  for (const [path, pattern] of bodies) {
+    const cls = stripComments(read(path)).match(pattern)?.[1] ?? ''
+    r.check(/\btext-pretty\b/.test(cls), `${path}：text-pretty`)
   }
 
   r.section('分享對話框的主體不比標題重')

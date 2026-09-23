@@ -83,7 +83,7 @@ export default function run() {
   r.check(/@click="onDialogClick"/.test(panel) && /event\.target === dialog\.value/.test(panel), '點遮罩關閉')
   r.check(/<h2[^>]*tabindex="-1"[^>]*>\s*分享紀錄\s*<\/h2>/.test(panel), '標題「分享紀錄」，tabindex="-1"')
   r.check(/showModal\(\)\s*\n[\s\S]{0,300}?title\.value\?\.focus\(\)/.test(panel), '開啟時焦點放在標題')
-  r.check(/<p class="break-words">\{\{ beanName \}\}<\/p>/.test(panel) && /沖煮日期：\{\{ brewDate \}\}/.test(panel),
+  r.check(/<p class="break-words text-pretty">\{\{ beanName \}\}<\/p>/.test(panel) && /沖煮日期：\{\{ brewDate \}\}/.test(panel),
     '分享的對象：豆名（16px、400）與「沖煮日期：MM/DD」')
   r.check(/pad\(d\.getMonth\(\) \+ 1\)\}\/\$\{pad\(d\.getDate\(\)\)\}/.test(panel), '日期格式與時間軸相同')
   r.check(/<img\s+v-if="photoUrl"/.test(panel) && !/v-else[^>]*size-24/.test(panel), '沒有照片時不放縮圖、不留空框')

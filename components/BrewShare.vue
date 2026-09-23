@@ -217,7 +217,7 @@ async function retry() {
       :style="{ background: 'var(--surface)', color: 'var(--text)', boxShadow: 'var(--overlay-shadow)' }"
     >
       <!-- 開啟時焦點在這裡。不是互動元素，不畫焦點框 -->
-      <h2 id="brew-share-title" ref="title" tabindex="-1" class="text-xl font-normal outline-none">
+      <h2 id="brew-share-title" ref="title" tabindex="-1" class="text-xl font-normal text-balance outline-none">
         分享紀錄
       </h2>
 
@@ -225,7 +225,7 @@ async function retry() {
            沒有照片就不放縮圖、不留空框，文字佔滿整個寬度 -->
       <div class="mt-4 flex items-start gap-3">
         <div class="min-w-0 flex-1">
-          <p class="break-words">{{ beanName }}</p>
+          <p class="break-words text-pretty">{{ beanName }}</p>
           <p class="text-sm tabular-nums text-muted">沖煮日期：{{ brewDate }}</p>
         </div>
         <!-- 縮圖規格同豆子列表（《03》§4.5.2）。豆名就在旁邊，替代文字留空不重複唸 -->
