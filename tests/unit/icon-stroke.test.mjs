@@ -112,9 +112,11 @@ export default function run() {
       `${file}：${marker.slice(0, 12)}… 的 viewBox 是 24`)
   }
 
-  r.section('未選取的輸入元件輪廓要過 3:1（《03》§7）')
+  r.section('未選取的輸入元件輪廓用 --control-empty，不得退回 --border')
   // --border 是分隔線的顏色（sand-100，白底 1.23:1）。畫在「可以按」的東西上
-  // 就低於非文字元素的門檻，使用者看不出那裡還有五個可點的目標
+  // 淡到看不見，使用者看不出那裡還有五個可點的目標。
+  // --control-empty 本身是 sand-400（2.48:1），刻意低於 3:1——那是《03》§2.2
+  // 寫明的取捨，這裡守的是「不要再往下退」，不是 3:1
   const empty = [
     ['components/StarRating.vue', '星等（表單）'],
     ['pages/brews/[id]/index.vue', '星等（紀錄詳情）'],
@@ -128,8 +130,12 @@ export default function run() {
       `${name}：沒有退回 --border`)
     r.check(/--control-empty/.test(src), `${name}：檔案裡確實引用了 --control-empty`)
   }
-  r.check(/--control-empty:\s*var\(--sand-500\);/.test(read('assets/css/tokens.css')),
-    '--control-empty 是 sand-500（白底 3.53:1，唯一過得了 3:1 的淺色階）')
+  const tokenCss = read('assets/css/tokens.css')
+  r.check(/--control-empty:\s*var\(--sand-400\);/.test(tokenCss),
+    '--control-empty 是 sand-400（白底 2.48:1，刻意低於 3:1，《03》§2.2）')
+  r.check(!/--control-empty:\s*var\(--(border|sand-100|sand-50)\)/.test(tokenCss), '--control-empty 沒有指回 --border 的色階')
+  r.check(/^\| `--control-empty` \|[^\n]*`sand-400`[^\n]*刻意低於 3:1/m.test(read('docs/03-介面規範.md')),
+    '《03》§2.2 寫明這是刻意的取捨，不會被當成缺陷改回去')
 
   r.section('圖示來源有記在 repo 裡')
   const notice = read('NOTICE.md')
