@@ -277,12 +277,14 @@ async function destroy() {
     </template>
 
     <template v-else-if="brew">
-      <!-- 對齊基線不置中：長豆名換成兩行時，置中的標籤會飄在兩行之間 -->
+      <!-- 對齊基線不置中：長豆名換成兩行時，置中的標籤會飄在兩行之間。
+           最右端是分享（《03》§4.13.1）：它自己垂直置中，不跟著對齊基線 -->
       <div class="mt-4 flex items-baseline gap-2">
         <h1 class="min-w-0 font-serif text-2xl font-bold">
           {{ brew.beans?.name ?? '沒有指定豆子' }}
         </h1>
         <SampleBadge v-if="brew.is_sample" />
+        <BrewShare :brew-id="brew.id" :has-notes="!!brew.tasting_notes?.trim()" />
       </div>
       <p class="mt-1 text-sm tabular-nums text-muted">{{ formatDate(brew.brewed_at) }}</p>
       <!-- 評分與收藏是兩個獨立欄位，分開顯示 -->

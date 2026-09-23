@@ -10,8 +10,10 @@ useHead({
 
 // 分頁列在這裡統一放，依頁面宣告的畫面類型（definePageMeta 的 screen）決定，
 // 不由各頁自己放（《03》§3）。放在錯誤邊界外面：頁內算繪出錯時它還在，仍然是出口。
+// 分享頁例外：分頁列由登入狀態決定（utils/navigation.ts）
 const route = useRoute()
-const tabBar = computed(() => showsTabBar(route.meta.screen))
+const userId = useCurrentUserId()
+const tabBar = computed(() => showsTabBar(route.meta.screen, userId.value !== null))
 </script>
 
 <template>

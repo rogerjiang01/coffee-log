@@ -48,10 +48,13 @@ const suites = [
   ['unit/interaction-time-wiring.test.mjs', '記錄時間的接線'],
   ['unit/save-event.test.ts', '每次儲存都記一筆耗時'],
   ['unit/sample-badge-wiring.test.mjs', '範例標籤的接線'],
+  ['unit/share.test.ts', '分享的用戶端邏輯'],
+  ['unit/share-wiring.test.mjs', '分享的接線'],
   ['unit/glossary.test.mjs', '介面用詞'],
   ['db/schema.test.mjs', 'Schema、RLS 與 seed'],
   ['db/sample-data.test.mjs', '新使用者的範例資料'],
   ['db/function-grants.test.mjs', 'public schema 的函式執行權'],
+  ['db/shares.test.mjs', '分享沖煮紀錄（資料庫）'],
   ['db/brews.test.mjs', '分段與複製（資料庫）'],
 ]
 

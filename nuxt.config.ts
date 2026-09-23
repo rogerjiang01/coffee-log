@@ -30,10 +30,12 @@ export default defineNuxtConfig({
 
     // 階段 2 起恢復模組預設的自動導向：未登入者一律導向 /login。
     // exclude 需自行加上 /signup，否則還沒有帳號的人會被導走、無法註冊。
+    // /s/* 是分享頁（《02》§7.2）：朋友不論有沒有登入都能看。
+    // 模組把 * 換成 .*，所以 '/s/*' 只放行 /s/ 底下，不會放行其他路徑。
     redirectOptions: {
       login: '/login',
       callback: '/confirm',
-      exclude: ['/signup'],
+      exclude: ['/signup', '/s/*'],
     },
 
     cookieOptions: {

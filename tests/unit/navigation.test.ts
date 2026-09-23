@@ -10,12 +10,16 @@ export default function run() {
   r.check(showsTabBar('browse') && showsTabBar('view'), '瀏覽型、檢視型：有')
   r.check(!showsTabBar('flow'), '流程型：沒有（底部是儲存按鈕）')
   r.check(!showsTabBar(undefined), '沒宣告（登入、註冊）：沒有')
+  r.check(!showsTabBar('share', false), '分享頁、未登入：沒有（分頁列只會把他帶到登入頁）')
+  r.check(showsTabBar('share', true), '分享頁、已登入：有')
+  r.check(showsTabBar('view', false) && !showsTabBar('flow', true), '其他畫面不看登入狀態')
 
   r.section('分頁列亮哪一項')
   r.check(tabSection('/') === '/' && tabSection('/settings') === '/', '首頁、設定（從首頁進）：首頁')
   r.check(tabSection('/beans') === '/beans' && tabSection('/beans/b1') === '/beans', '豆子列表與詳情：豆子（有列表頁，是真的父層）')
   r.check(tabSection('/brews/r1') === '/', '紀錄詳情：首頁——紀錄沒有自己的列表頁，它出現在時間軸')
   r.check(tabSection('/equipment') === '/equipment', '器材列表：器材')
+  r.check(tabSection('/s/abc') === null, '分享頁：不亮任何一項（那筆紀錄不屬於看的人）')
 
   r.section('紀錄詳情的 ‹ 是歷史式')
   r.check(historyBack('/beans/b1') === 'back', '從豆子的比較表進來：回豆子')

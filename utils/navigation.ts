@@ -5,11 +5,19 @@
 //   流程型  所有表單                      左上 ‹ 離開（暫存保留），沒有分頁列
 //
 // 登入、註冊不屬於任何一種：還沒進到產品裡，沒有分頁列、也沒有上一層。
+//
+// 第四種是分享頁（《03》§3、《02》§7.2）：它的觀眾不一定是使用者。
+//   分享頁  /s/[code]                     沒有 ‹，分頁列由登入狀態決定
 
-export type ScreenKind = 'browse' | 'view' | 'flow'
+export type ScreenKind = 'browse' | 'view' | 'flow' | 'share'
 
-/** 分頁列只在瀏覽型與檢視型出現。流程型的底部是儲存按鈕 */
-export function showsTabBar(screen: unknown): boolean {
+/**
+ * 分頁列只在瀏覽型與檢視型出現。流程型的底部是儲存按鈕。
+ * 分享頁是全站唯一由**登入狀態**決定的：未登入的人看到分頁列只會被帶到登入頁，
+ * 已登入的人則確實可以從這裡回到自己的東西。
+ */
+export function showsTabBar(screen: unknown, signedIn = false): boolean {
+  if (screen === 'share') return signedIn
   return screen === 'browse' || screen === 'view'
 }
 
@@ -18,6 +26,7 @@ export function showsTabBar(screen: unknown): boolean {
  *   豆子詳情屬於豆子（有列表頁，‹ 也是回那裡）
  *   紀錄詳情沒有自己的列表頁，它出現在首頁時間軸——‹ 沒有歷史時也是回首頁
  *   設定從首頁的齒輪進去
+ *   分享頁不亮任何一項：那筆紀錄不屬於看的人，亮「首頁」會暗示它在他的首頁上
  */
 export function tabSection(path: string): '/' | '/beans' | '/equipment' | null {
   if (path === '/' || path.startsWith('/settings') || path.startsWith('/brews')) return '/'

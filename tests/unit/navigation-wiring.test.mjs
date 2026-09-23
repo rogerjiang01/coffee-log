@@ -36,6 +36,7 @@ const screens = {
   'pages/beans/[id]/edit.vue': 'flow',
   'pages/equipment/new.vue': 'flow',
   'pages/equipment/[id]/edit.vue': 'flow',
+  'pages/s/[code].vue': 'share',
 }
 // 還沒進到產品裡，不屬於三種畫面
 const outside = ['pages/login.vue', 'pages/signup.vue']
@@ -55,7 +56,7 @@ export default function run() {
 
   r.section('分頁列只由 app.vue 決定')
   const app = read('app.vue')
-  r.check(/<BottomNav \/>/.test(app) && /showsTabBar\(route\.meta\.screen\)/.test(app), 'app.vue 依畫面類型放分頁列')
+  r.check(/<BottomNav \/>/.test(app) && /showsTabBar\(route\.meta\.screen, userId\.value !== null\)/.test(app), 'app.vue 依畫面類型（分享頁再看登入狀態）放分頁列')
   const pagesWithNav = pages.filter(path => /<BottomNav/.test(read(path)))
   r.check(pagesWithNav.length === 0, `頁面不自己放分頁列${pagesWithNav.length ? `：${pagesWithNav.join('、')}` : ''}`)
 

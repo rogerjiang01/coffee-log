@@ -37,16 +37,19 @@ with known(name, source) as (values
   ('create_sample_data', 'migration：20260922110000_sample_data.sql'),
   ('handle_new_user',    'migration：20260831160400_profiles.sql'),
   ('set_updated_at',     'migration：20260831170100_updated_at_triggers.sql'),
-  ('rls_auto_enable',    '後台：Authentication → Auto-enable RLS for new tables（event trigger ensure_rls）')
+  ('rls_auto_enable',    '後台：Authentication → Auto-enable RLS for new tables（event trigger ensure_rls）'),
+  ('get_shared_brew',      'migration：20260923110000_brew_shares.sql'),
+  ('create_brew_share',    'migration：20260923110000_brew_shares.sql'),
+  ('set_brew_share_notes', 'migration：20260923110000_brew_shares.sql')
 ),
 
--- 目前沒有任何函式對用戶端開放（前端沒有 .rpc() 呼叫）。
--- 之後加的格式：('get_shared_brew', 'anon'), ('get_shared_brew', 'authenticated'),
-allowed(name, role) as (
-  select * from (values
-    (null::text, null::text)
-  ) v(name, role)
-  where v.name is not null
+-- 分享的三支函式（《01》§14）。get_shared_brew 是匿名的人唯一的入口；
+-- 兩支寫入函式只給登入者。
+allowed(name, role) as (values
+  ('get_shared_brew',      'anon'),
+  ('get_shared_brew',      'authenticated'),
+  ('create_brew_share',    'authenticated'),
+  ('set_brew_share_notes', 'authenticated')
 ),
 
 fns as (

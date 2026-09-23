@@ -56,6 +56,10 @@ const ICONS = [
   // 換成 Lucide 之前兩處都寫 1.5，詳情頁那個實際只有 1.25
   ['星等（表單）', 'components/StarRating.vue', STAR, 1.5, 1],
   ['星等（紀錄詳情）', 'pages/brews/[id]/index.vue', STAR, 1.5, 1],
+  // 分享頁與紀錄詳情頁同一組尺寸；分享面板的勾選框是內容區的小圖示
+  ['星等（分享頁）', 'components/SharedBrewView.vue', STAR, 1.5, 1],
+  ['愛心（分享頁）', 'components/SharedBrewView.vue', HEART, 1.5, 1],
+  ['勾選框的打勾（分享面板）', 'components/BrewShare.vue', 'M20 6 9 17l-5-5', 1.5, 1],
 ]
 
 export default function run() {
@@ -99,6 +103,9 @@ export default function run() {
     ['components/StarRating.vue', STAR],
     ['pages/brews/[id]/index.vue', STAR],
     ['components/DraftStatus.vue', 'M20 6 9 17l-5-5'],
+    ['components/BrewShare.vue', 'M20 6 9 17l-5-5'],
+    ['components/SharedBrewView.vue', STAR],
+    ['components/SharedBrewView.vue', HEART],
     ['components/CollapsibleSection.vue', 'm6 9 6 6 6-6'],
     ['components/SelectField.vue', 'm6 9 6 6 6-6'],
     ['components/BeanSelect.vue', 'm6 9 6 6 6-6'],
@@ -122,6 +129,8 @@ export default function run() {
     ['pages/brews/[id]/index.vue', '星等（紀錄詳情）'],
     ['components/BrewForm.vue', '收藏愛心（表單）'],
     ['components/IntensityPicker.vue', '強度圓點'],
+    ['components/SharedBrewView.vue', '星等（分享頁）'],
+    ['components/BrewShare.vue', '勾選框（分享面板）'],
   ]
   for (const [file, name] of empty) {
     const src = read(file)
