@@ -47,6 +47,13 @@ Supabase（Auth / Postgres / Storage）
      Supabase CLI 是專案的 devDependency，沒有全域安裝：指令一律寫成 `pnpm exec supabase …`
   推上去之後才發現搬錯，能救回來的只有備份——遠端沒有復原點，
   而這個專案的資料是一筆一筆手動記的，重建不回來。
+- **每次 `db push` 前後，在 SQL Editor 各跑一次 `supabase/queries/函式權限盤點.sql`。**
+  推之前有列是正常的（那正是這次要修的），用來確認 migration 有涵蓋到；
+  **推之後必須是 0 列**，有列就停下來查，先不要推程式。
+  理由：`tests/db/function-grants.test.mjs` 跑在 migration 建出來的本機資料庫上，
+  看不到後台建的東西——`rls_auto_enable()` 就是後台設定建的，只存在於正式庫，
+  本機的測試全綠也抓不到它。新增函式時要同步改那支查詢裡的 `known`／`allowed`
+  （`tests/unit/function-audit-query.test.mjs` 會擋）。
 - **新增或修改任何面向使用者的文案前，先查 `docs/04-詞彙表.md`。** 表裡沒有的詞先問，
   不要自己挑一個同義詞；要換用詞，先改詞彙表再改介面。第三欄「刻意不用的同義詞」
   每一個都「也通」，所以最容易被順手改回去（`tests/unit/glossary.test.mjs` 會擋）

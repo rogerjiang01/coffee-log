@@ -9,8 +9,45 @@
 // authenticated 叫得動而又不在白名單上，就失敗。新函式忘了寫 revoke 時，
 // 失敗的是這裡，不是上線之後。
 
+import { readFileSync } from 'node:fs'
 import { createDatabase } from '../helpers/pg.mjs'
 import { createReport } from '../helpers/report.mjs'
+
+const MIGRATION = readFileSync(
+  new URL('../../supabase/migrations/20260923100000_function_grants.sql', import.meta.url), 'utf8')
+
+// 部署前後在正式庫跑的那支查詢。這裡拿它在本機的資料庫上跑，確認它本身算得對
+const AUDIT = readFileSync(
+  new URL('../../supabase/queries/函式權限盤點.sql', import.meta.url), 'utf8')
+
+// Supabase 後台「Auto-enable RLS for new tables」建立的函式與 event trigger，
+// 照 Supabase 文件（Database → Postgres → Event triggers）的原文，只拿掉 RAISE LOG。
+// 它只存在於正式庫，不在任何 migration 裡，所以測試要自己建一支來重現。
+const DASHBOARD_RLS_AUTO_ENABLE = `
+CREATE OR REPLACE FUNCTION rls_auto_enable()
+RETURNS EVENT_TRIGGER
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = pg_catalog
+AS $$
+DECLARE
+  cmd record;
+BEGIN
+  FOR cmd IN
+    SELECT * FROM pg_event_trigger_ddl_commands()
+    WHERE command_tag IN ('CREATE TABLE', 'CREATE TABLE AS', 'SELECT INTO')
+      AND object_type IN ('table', 'partitioned table')
+  LOOP
+    IF cmd.schema_name IS NOT NULL AND cmd.schema_name IN ('public') THEN
+      EXECUTE format('alter table if exists %s enable row level security', cmd.object_identity);
+    END IF;
+  END LOOP;
+END;
+$$;
+CREATE EVENT TRIGGER ensure_rls ON ddl_command_end
+WHEN TAG IN ('CREATE TABLE', 'CREATE TABLE AS', 'SELECT INTO')
+EXECUTE FUNCTION rls_auto_enable();
+`
 
 /**
  * 明確開放給用戶端呼叫的函式。
@@ -107,6 +144,74 @@ export default async function run() {
   await pg.asSuperuser()
   r.check(denied, 'anon 呼叫 create_sample_data 是 permission denied')
 
+  r.section('盤點查詢（supabase/queries/函式權限盤點.sql）在乾淨的資料庫上是 0 列')
+  const clean = await pg.rows(AUDIT)
+  r.check(clean.length === 0,
+    clean.length === 0 ? '0 列' : `多出來的：${clean.map(x => `${x['函式']} ${x['問題']}`).join('；')}`)
+
   await pg.close()
+
+  // ── 後台建立的 rls_auto_enable() ───────────────────────────────────
+  // 上面那個資料庫是 migration 建出來的，看不到後台建的東西。這裡另開一個，
+  // 先照文件原文建出那支函式（重現正式庫的狀態），再把 function_grants
+  // 那支 migration 整支重跑一次——revoke 是冪等的，重跑等於「在已經有這支
+  // 函式的資料庫上推這支 migration」，也就是正式庫實際會發生的事。
+  const live = await createDatabase()
+  await live.asSuperuser()
+  await live.exec(DASHBOARD_RLS_AUTO_ENABLE)
+  const exec = async role => (await live.rows(
+    `select has_function_privilege('${role}', 'public.rls_auto_enable()', 'execute') as ok`))[0].ok
+
+  r.section('後台的 rls_auto_enable()：推 migration 之前（重現正式庫）')
+  r.check(await exec('anon') === true && await exec('authenticated') === true,
+    '與正式庫一致：anon 與 authenticated 都有執行權')
+
+  const before = await live.rows(AUDIT)
+  r.check(before.length === 2 && before.every(x => x['函式'] === 'rls_auto_enable()'),
+    `盤點查詢在推之前抓得到它（anon、authenticated 各一列，實際 ${before.length} 列）`)
+  r.check(before.every(x => x['擁有者'] === 'postgres'), '盤點查詢列出擁有者')
+
+  r.section('後台的 rls_auto_enable()：推 migration 之後')
+  await live.exec(MIGRATION)
+  const after = await live.rows(AUDIT)
+  r.check(after.length === 0,
+    after.length === 0 ? '盤點查詢：0 列' : `盤點查詢還有：${after.map(x => `${x['函式']} ${x['問題']}`).join('；')}`)
+  r.check(await exec('anon') === false, 'anon 不能執行')
+  r.check(await exec('authenticated') === false, 'authenticated 不能執行')
+
+  r.section('收回執行權之後，新表照樣自動開啟 RLS')
+  // 最嚴格的情況：建表的人不是函式擁有者、不是超級使用者、也沒有執行權。
+  // event trigger 觸發時要是會檢查 EXECUTE，這裡就會失敗
+  await live.exec(`create role table_maker nologin; grant usage, create on schema public to table_maker;`)
+  r.check((await live.rows(
+    `select has_function_privilege('table_maker', 'public.rls_auto_enable()', 'execute') as ok`))[0].ok === false,
+    '前提：建表的角色對這支函式沒有執行權')
+  await live.exec(`create table public.probe_by_owner (i int)`)
+  await live.exec(`set role table_maker`)
+  await live.exec(`create table public.probe_by_maker (i int)`)
+  await live.exec(`create table public.probe_as as select 1 as i`)
+  await live.exec(`reset role`)
+  const rls = Object.fromEntries((await live.rows(`
+    select relname, relrowsecurity from pg_class
+    where relname in ('probe_by_owner', 'probe_by_maker', 'probe_as')`)).map(row => [row.relname, row.relrowsecurity]))
+  r.check(rls.probe_by_owner === true, '擁有者建的表：RLS 自動開啟')
+  r.check(rls.probe_by_maker === true, '沒有執行權的角色建的表：RLS 仍然自動開啟')
+  r.check(rls.probe_as === true, 'create table as：RLS 仍然自動開啟')
+
+  r.section('沒有這支函式的環境，migration 照樣推得過去')
+  // 最前面那個資料庫就是這種環境（本機、測試、還沒開後台設定的專案）。
+  // 走到這裡代表它已經套用成功；這一條只是把那件事明講出來
+  r.check(/to_regprocedure\('public\.rls_auto_enable\(\)'\)\s+is not null/.test(MIGRATION),
+    'revoke 包在存在與否的檢查裡')
+
+  r.section('盤點查詢抓得到下一支後台建的函式')
+  // 下一次有人在 SQL Editor 建了函式：它會同時是「來路不明」與「對用戶端開放」
+  await live.exec(`create function public.mystery() returns int language sql security definer as 'select 1'`)
+  const mystery = (await live.rows(AUDIT)).filter(x => x['函式'] === 'mystery()').map(x => x['問題'])
+  r.check(mystery.includes('不在任何 migration 裡，也不是已知的後台物件'), '標成來路不明')
+  r.check(mystery.includes('對 anon 開放，但不在白名單上'), '標成對 anon 開放')
+  r.check(mystery.includes('security definer 卻沒有鎖 search_path'), '標成沒鎖 search_path')
+
+  await live.close()
   return r.finish()
 }
