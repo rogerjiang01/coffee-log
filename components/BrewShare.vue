@@ -255,12 +255,12 @@ async function onNotesChange(value: boolean) {
       :style="{ background: 'var(--surface)', color: 'var(--text)', boxShadow: 'var(--overlay-shadow)' }"
     >
       <!-- 開啟時焦點在這裡。不是互動元素，不畫焦點框 -->
-      <h2 id="brew-share-title" ref="title" tabindex="-1" class="font-serif text-lg font-bold outline-none">
+      <h2 id="brew-share-title" ref="title" tabindex="-1" class="text-xl font-normal outline-none">
         分享紀錄
       </h2>
 
       <!-- 分享的對象：讓使用者確認要送出去的是哪一筆 -->
-      <p class="mt-3 font-medium">{{ beanName }}</p>
+      <p class="mt-3">{{ beanName }}</p>
       <p class="text-sm tabular-nums text-muted">{{ brewDate }}</p>
 
       <div v-if="hasNotes" class="mt-4">

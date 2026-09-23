@@ -274,7 +274,7 @@ const inputStyle = { minHeight: 'var(--touch-min)' }
           </svg>
         </button>
 
-        <h2 class="flex-1 truncate font-serif text-lg font-bold">
+        <h2 class="flex-1 truncate text-xl font-normal">
           {{ mode === 'create' ? `新增${equipmentLabels[type]}` : title }}
         </h2>
 

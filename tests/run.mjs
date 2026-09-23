@@ -27,6 +27,7 @@ const suites = [
   ['unit/draft-status.test.ts', '暫存狀態指示'],
   ['unit/draft-status-wiring.test.mjs', '暫存狀態指示的接線'],
   ['unit/icon-stroke.test.mjs', '圖示的實際線寬與字級下限'],
+  ['unit/dialog-title.test.mjs', '浮層標題的字型'],
   ['unit/function-audit-query.test.mjs', '函式權限盤點查詢的清單'],
   ['unit/form-draft-unmount.test.ts', '離開表單時的暫存'],
   ['unit/inline-draft.test.ts', '就地新增的暫存'],

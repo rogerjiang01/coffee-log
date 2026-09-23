@@ -36,7 +36,7 @@ watch(() => props.open, (value) => {
       class="w-full max-w-sm rounded-lg p-6"
       :style="{ background: 'var(--surface)', color: 'var(--text)', boxShadow: 'var(--overlay-shadow)' }"
     >
-      <h2 class="font-serif text-lg font-bold">{{ title }}</h2>
+      <h2 class="text-xl font-normal">{{ title }}</h2>
       <p class="mt-3 text-sm">{{ body }}</p>
 
       <div class="mt-6 flex gap-3">

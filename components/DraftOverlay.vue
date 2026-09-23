@@ -38,7 +38,7 @@
     <!-- dialog 本身是滿版的置中容器（樣式在 main.css），卡片是內層這一個 -->
     <dialog ref="dialog" class="backdrop:bg-[var(--overlay-scrim)]" @cancel.prevent>
         <div class="w-full max-w-sm rounded-lg p-6" :style="{ background: 'var(--surface)', color: 'var(--text)', boxShadow: 'var(--overlay-shadow)' }">
-            <h2 class="font-serif text-lg font-bold">上次有一筆沒存完，要繼續填寫嗎？</h2>
+            <h2 class="text-xl font-normal">上次有一筆沒存完，要繼續填寫嗎？</h2>
             <p v-if="note" class="mt-3 text-sm text-muted">{{ note }}</p>
 
             <div class="mt-6 flex gap-3">
