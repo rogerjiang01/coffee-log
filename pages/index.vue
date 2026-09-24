@@ -348,7 +348,7 @@ const newBrewLink = computed(() =>
         <h2 class="text-sm text-muted">沖煮紀錄</h2>
 
         <p v-if="!timeline.length" class="mt-3 text-muted">
-          記下第一次沖煮，之後就能比較每次的調整。
+          記錄沖煮後，可以比較每次的調整。
         </p>
 
         <ul v-else class="mt-1">

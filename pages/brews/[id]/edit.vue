@@ -161,7 +161,7 @@ async function onSubmit(payload: {
     const { error: stepError } = await supabase.from('brew_steps').insert(stepRows as never)
     if (stepError) {
       saving.value = false
-      error.value = `紀錄存好了，但分段沒存進去：${errorText(stepError)}`
+      error.value = `紀錄已儲存，分段儲存失敗。請再按一次儲存。（${errorText(stepError)}）`
       return
     }
   }

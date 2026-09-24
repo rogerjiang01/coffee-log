@@ -310,7 +310,7 @@ function selectStyle(value: unknown) {
           :class="{ 'date-empty': !values.roast_date }"
           :style="inputStyle"
         >
-        <p class="mt-1 text-xs text-muted">填了才會顯示養豆天數</p>
+        <p class="mt-1 text-xs text-muted">填寫後顯示養豆天數</p>
       </FormRow>
 
       <FormRow>

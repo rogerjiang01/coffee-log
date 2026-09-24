@@ -67,8 +67,11 @@ export default function run() {
   r.section('確認鈕與錯誤訊息')
   r.check(/確認裁切/.test(template) && !/使用這張/.test(template), '按鈕是「確認裁切」')
   r.check(/:disabled="!imageReady \|\| working"/.test(template), '照片載入完成前確認鈕不可按——那時裁切必然是空的')
-  r.check(/照片還沒載入完成/.test(script), '照片未載入：講出原因')
-  r.check(/裁切框的大小是 0/.test(script), '框是 0×0：講出原因（這正是這次的症狀）')
+  // 畫面上給動作（重新選擇），實際原因寫進 console 供除錯——原因還是要分得出來
+  r.check(/cannotCrop\('照片尚未載入完成'\)/.test(script), '照片未載入：原因寫進 console')
+  r.check(/cannotCrop\('裁切範圍為空'\)/.test(script), '框是 0×0：原因寫進 console（這正是當初的症狀）')
+  r.check(/console\.warn\(`\[photo-cropper\] \$\{reason\}`\)/.test(script), 'console 裡有具體原因')
+  r.check(/error\.value = '無法裁切這張照片，請重新選擇'/.test(script), '畫面上是使用者能採取的動作')
   r.check(!/'裁切沒有成功'/.test(script), '不再只說「裁切沒有成功」——那句話沒有說為什麼')
 
   r.section('雙指：以兩指中點為錨點，自己處理')

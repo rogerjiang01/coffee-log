@@ -40,10 +40,10 @@ async function submit() {
     <template v-if="mailSent">
       <h1 class="font-serif text-xl font-bold">確認信寄出了</h1>
       <p class="mt-4">
-        我們寄了一封信到 {{ email }}，點裡面的連結就完成註冊。
+        確認信已寄到 {{ email }}。
       </p>
       <p class="mt-2 text-sm text-muted">
-        確認完再回來登入。
+        點信中的連結完成註冊後，再回來登入。
       </p>
       <NuxtLink
         to="/login"

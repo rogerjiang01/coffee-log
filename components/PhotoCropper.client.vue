@@ -106,7 +106,7 @@ onMounted(async () => {
     imageReady.value = true
   }
   catch {
-    error.value = '這張照片讀不進來，換一張試試'
+    error.value = '無法讀取這張照片，請換一張'
   }
 })
 
@@ -241,20 +241,16 @@ async function confirm() {
   if (working.value) return
   error.value = ''
 
-  // 每一種失敗都講出實際發生了什麼，不只說「沒有成功」
-  if (!imageReady.value) {
-    error.value = '照片還沒載入完成'
-    return
+  // 這三種都是不該發生的狀態（確認鈕在照片載入前是停用的），使用者能做的
+  // 只有一件事：重新選一張。所以畫面上同一句話、給動作；實際原因寫進 console 供除錯
+  const cannotCrop = (reason: string) => {
+    console.warn(`[photo-cropper] ${reason}`)
+    error.value = '無法裁切這張照片，請重新選擇'
   }
+  if (!imageReady.value) return cannotCrop('照片尚未載入完成')
   const sel = selection.value
-  if (!sel) {
-    error.value = '裁切框還沒準備好'
-    return
-  }
-  if (!(sel.width > 0 && sel.height > 0)) {
-    error.value = '裁切框的大小是 0，沒有範圍可以輸出'
-    return
-  }
+  if (!sel) return cannotCrop('裁切框尚未就緒')
+  if (!(sel.width > 0 && sel.height > 0)) return cannotCrop('裁切範圍為空')
 
   working.value = true
   try {

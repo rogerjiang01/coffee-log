@@ -37,10 +37,12 @@ function reload() {
 
     <p class="mt-3 text-sm">
       <template v-if="notFound">
-        網址可能打錯了，或這筆資料已經被刪除。
+        網址可能有誤，或這筆資料已被刪除。
       </template>
       <template v-else>
-        已經記錄的資料沒有受影響。重試通常就會好；如果一直出現同一組代碼，把它回報給我們。
+        <!-- 開發者直接跟使用者說話：保留溝通語氣（《03》§5.5 的例外）。主旨帶上錯誤代碼 -->
+        已記錄的資料不受影響，重試通常可以解決。如果一直出現同一組代碼，歡迎來信
+        <a :href="supportMailto(code)" class="whitespace-nowrap underline" :style="{ color: 'var(--accent)' }">{{ SUPPORT_EMAIL }}</a>。
       </template>
     </p>
 

@@ -29,8 +29,14 @@ const tabBar = computed(() => showsTabBar(route.meta.screen, userId.value !== nu
         :style="{ maxWidth: 'var(--content-max-narrow)' }"
       >
         <h1 class="font-serif text-xl font-bold">這一頁沒有顯示成功</h1>
+        <!-- 與 error.vue 同一句：開發者直接跟使用者說話，保留溝通語氣（《03》§5.5 的例外） -->
         <p class="mt-3 text-sm">
-          已經記錄的資料沒有受影響。回上一頁或回首頁都可以繼續使用。
+          已記錄的資料不受影響，重試通常可以解決。如果一直出現同一組代碼，歡迎來信
+          <a
+            :href="supportMailto(errorReportCode(error))"
+            class="whitespace-nowrap underline"
+            :style="{ color: 'var(--accent)' }"
+          >{{ SUPPORT_EMAIL }}</a>。
         </p>
 
         <div class="mt-8 flex flex-col gap-3">
@@ -53,7 +59,7 @@ const tabBar = computed(() => showsTabBar(route.meta.screen, userId.value !== nu
         </div>
 
         <p class="mt-8 text-xs text-muted">
-          錯誤代碼 {{ String((error as Error)?.name || 'Error') }}
+          錯誤代碼 {{ errorReportCode(error) }}
         </p>
       </main>
     </template>

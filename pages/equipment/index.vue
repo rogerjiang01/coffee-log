@@ -96,7 +96,7 @@
             </section>
         </div>
 
-        <p v-else-if="!items.length && !loadError" class="mt-6 text-muted">設定常用器材，之後新增紀錄時會自動帶入。</p>
+        <p v-else-if="!items.length && !loadError" class="mt-6 text-muted">設為常用的器材，新增紀錄時會自動帶入。</p>
 
         <div v-else class="mt-6 space-y-6">
             <section v-for="group in grouped" :key="group.type">

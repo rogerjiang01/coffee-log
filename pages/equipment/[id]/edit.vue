@@ -182,7 +182,7 @@ async function destroy() {
 
       <ConfirmDialog
         :open="confirmOpen"
-        title="刪除這個器材？"
+        :title="`刪除「${currentName ?? ''}」`"
         body="刪除後無法復原。相關沖煮紀錄會保留，但不再顯示這個器材。"
         confirm-label="刪除"
         :busy="deleting"

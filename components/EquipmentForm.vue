@@ -83,7 +83,7 @@ function submit() {
   // 型錄與自訂名稱至少要有一個（DB 的 name_or_catalog check 也擋，
   // 但不該讓使用者看到資料庫的錯誤訊息）
   if (!values.catalog_id && !values.custom_name.trim()) {
-    summaryError.value = '選一個型號，或直接填名稱'
+    summaryError.value = '選擇型號，或填寫名稱'
     return
   }
   summaryError.value = ''
@@ -187,7 +187,7 @@ const inputStyle = {
           :style="inputStyle"
         >
         <p class="mt-1 text-xs text-muted">
-          {{ values.catalog_id ? "已選型號，用型錄的名稱" : "型錄裡沒有的直接填名稱" }}
+          {{ values.catalog_id ? "已選型號，用型錄的名稱" : "型錄沒有的器材，請填寫名稱" }}
         </p>
       </FormRow>
 

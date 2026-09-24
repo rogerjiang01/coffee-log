@@ -61,7 +61,7 @@ export function useRecordStepTimes() {
     saving.value = false
     if (updateError || !data) {
       enabled.value = previous
-      error.value = `沒有存到：${updateError ? errorText(updateError) : '找不到你的帳號資料'}`
+      error.value = `沒有存到：${updateError ? errorText(updateError) : '找不到帳號資料'}`
       return
     }
     cache.set(cacheKeys.profilePrefs(), { record_step_times: next })

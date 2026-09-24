@@ -55,7 +55,7 @@ export async function compressBeanPhoto(file: Blob): Promise<CompressedImage> {
     if (retry) blob = retry
   }
   if (blob.size > MAX_BYTES) {
-    throw new Error('這張照片壓縮後還是超過 2MB，換一張或先裁切一下')
+    throw new Error('這張照片壓縮後仍超過 2MB，請換一張或先裁切')
   }
 
   return { blob, ext, width, height }

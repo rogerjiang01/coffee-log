@@ -66,7 +66,7 @@ async function onSubmit({ values, photo }: { values: BeanFormValues; photo: Comp
       form.value?.clearDraft()
       // 豆子已經建立，只有照片失敗。兩個分支講同一件事，
       // 差別只在錯誤原因取不取得到。
-      error.value = `照片上傳失敗：${errorText(e)}。豆子已儲存，可以到編輯頁再上傳一次`
+      error.value = `照片上傳失敗：${errorText(e)}。豆子已儲存，可在編輯頁重新上傳照片`
       return
     }
   }

@@ -57,6 +57,7 @@ const suites = [
   ['db/function-grants.test.mjs', 'public schema 的函式執行權'],
   ['db/shares.test.mjs', '分享沖煮紀錄（資料庫）'],
   ['db/brews.test.mjs', '分段與複製（資料庫）'],
+  ['db/brew-save.test.mjs', '新增紀錄：分段失敗後再按儲存'],
 ]
 
 let totalPass = 0

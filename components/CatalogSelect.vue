@@ -190,7 +190,7 @@ function pick(row: CatalogRow | null) {
             </button>
           </li>
           <li v-if="!matches.length" class="px-3 py-3 text-sm text-muted">
-            型錄裡沒有，用下面的自訂名稱
+            型錄沒有這個型號，請填寫下方的自訂名稱
           </li>
         </ul>
       </div>

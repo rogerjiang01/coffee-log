@@ -109,6 +109,12 @@ onMounted(async () => {
   }
 })
 
+/**
+ * 上一次儲存建好了紀錄、但分段沒寫進去時的那筆 id。
+ * 有值時再按儲存會補寫這一筆，不再新增（utils/brewSave.ts）
+ */
+const pendingBrewId = ref<string | null>(null)
+
 async function onSubmit(payload: {
   values: BrewFormValues
   steps: StepInput[]
@@ -152,33 +158,42 @@ async function onSubmit(payload: {
     tasting_duration_seconds: tastingDurationSeconds,
   }
 
-  const { data, error: insertError } = await supabase
-    .from('brews')
-    .insert(row as never)
-    .select('id')
-    .single()
+  // 分段：填什麼存什麼，沒有換算；最後一段的停留由 toStepRows 設成 null
+  const result = await saveNewBrew({
+    insertBrew: async (brewRow) => {
+      const { data, error } = await supabase.from('brews').insert(brewRow as never).select('id').single()
+      return { id: (data as { id: string } | null)?.id ?? null, error }
+    },
+    updateBrew: async (brewId, brewRow) => {
+      const { error } = await supabase.from('brews').update(brewRow as never).eq('id', brewId)
+      return { error }
+    },
+    writeSteps: async (brewId, replace) => {
+      if (replace) {
+        const { error } = await supabase.from('brew_steps').delete().eq('brew_id', brewId)
+        if (error) return { error }
+      }
+      const stepRows = toStepRows(steps).map(step => ({ ...step, brew_id: brewId, user_id: userId.value }))
+      if (!stepRows.length) return { error: null }
+      const { error } = await supabase.from('brew_steps').insert(stepRows as never)
+      return { error }
+    },
+  }, pendingBrewId.value, row)
 
-  if (insertError || !data) {
+  if (!result.ok && result.stage === 'brew') {
     saving.value = false
-    error.value = `儲存失敗：${errorText(insertError)}`
+    error.value = `儲存失敗：${errorText(result.error)}`
     return
   }
-  const brewId = (data as unknown as { id: string }).id
-
-  // 分段：填什麼存什麼，沒有換算；最後一段的停留由 toStepRows 設成 null
-  const stepRows = toStepRows(steps).map(step => ({
-    ...step,
-    brew_id: brewId,
-    user_id: userId.value,
-  }))
-  if (stepRows.length) {
-    const { error: stepError } = await supabase.from('brew_steps').insert(stepRows as never)
-    if (stepError) {
-      saving.value = false
-      error.value = `紀錄存好了，但分段沒存進去：${errorText(stepError)}`
-      return
-    }
+  if (!result.ok) {
+    // 紀錄已經建好了：記住它，再按一次儲存就補寫這一筆，不會多出一筆重複的紀錄
+    pendingBrewId.value = result.id
+    saving.value = false
+    error.value = `紀錄已儲存，分段儲存失敗。請再按一次儲存。（${errorText(result.error)}）`
+    return
   }
+  const brewId = result.id
+  pendingBrewId.value = null
 
   if (flavorTagIds.length) {
     await supabase.from('brew_flavor_tags').insert(

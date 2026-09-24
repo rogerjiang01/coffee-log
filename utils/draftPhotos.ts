@@ -21,7 +21,7 @@ import { DRAFT_TTL_MS } from './draft.ts'
 import type { CompressedImage } from './image.ts'
 
 /** 文字暫存說本來有照片，照片卻讀不回來。講發生了什麼與下一步，不只講結果 */
-export const PHOTO_NOT_RESTORED = '上次選的照片沒能還原，請重新選一張'
+export const PHOTO_NOT_RESTORED = '上次選擇的照片無法還原，請重新選擇'
 
 export interface StoredPhoto {
   savedAt: number

@@ -301,7 +301,7 @@ async function destroy() {
       <section v-if="compareRows.length" class="mt-8">
         <h2 class="font-serif text-lg font-bold">每次怎麼沖的</h2>
         <p v-if="compareRows.length === 1" class="mt-2 text-muted">
-          再記一筆就能開始比較——改動的數值會標出來。
+          記錄第二筆後可以比較，改動的數值會標示出來。
         </p>
         <div class="mt-3">
           <BeanCompareTable :rows="compareRows" />
@@ -363,7 +363,7 @@ async function destroy() {
 
       <ConfirmDialog
         :open="confirmOpen"
-        title="刪除這支豆子？"
+        :title="`刪除「${bean.name}」`"
         :body="brewCount > 0
           ? `刪除後無法復原。這支豆子的 ${brewCount} 筆沖煮紀錄會一併刪除。`
           : '刪除後無法復原。'"
