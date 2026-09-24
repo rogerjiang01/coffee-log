@@ -86,6 +86,9 @@ export default async function run() {
   r.check(/紀錄已儲存，分段儲存失敗。請再按一次儲存。/.test(page)
     && /紀錄已儲存，分段儲存失敗。請再按一次儲存。/.test(readFileSync(new URL('../../pages/brews/[id]/edit.vue', import.meta.url), 'utf8')),
   '新增頁與編輯頁同一句文案')
+  r.check(/errorCause\(result\.error\)/.test(page)
+    && /errorCause\(stepError\)/.test(readFileSync(new URL('../../pages/brews/[id]/edit.vue', import.meta.url), 'utf8')),
+  '括號裡只附原因（errorCause），同一則訊息不會出現兩個「請」')
 
   await pg.close()
   return r.finish()

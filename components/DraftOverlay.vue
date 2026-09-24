@@ -47,7 +47,7 @@
     <!-- dialog 本身是滿版的置中容器（樣式在 main.css），卡片是內層這一個 -->
     <dialog ref="dialog" class="backdrop:bg-[var(--overlay-scrim)]" @cancel.prevent>
         <div class="w-full max-w-sm rounded-lg p-6" :style="{ background: 'var(--surface)', color: 'var(--text)', boxShadow: 'var(--overlay-shadow)' }">
-            <h2 ref="heading" tabindex="-1" class="text-xl font-normal text-balance outline-none">上次的內容尚未儲存</h2>
+            <h2 ref="heading" tabindex="-1" class="text-xl font-normal text-balance break-keep wrap-anywhere outline-none">上次的內容尚未儲存</h2>
             <p v-if="note" class="mt-3 text-sm text-muted text-pretty">{{ note }}</p>
 
             <div class="mt-6 flex gap-3">

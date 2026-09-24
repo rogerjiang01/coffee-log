@@ -34,7 +34,7 @@ const BY_CODE: Record<string, string> = {
   signup_disabled: '這個站台目前關閉註冊',
   email_provider_disabled: '這個站台目前關閉以電子郵件註冊',
   weak_password: '密碼至少 6 個字元',
-  validation_failed: '電子郵件格式不對',
+  validation_failed: '電子郵件格式錯誤',
   over_request_rate_limit: '嘗試次數過多，請稍後再試',
   over_email_send_rate_limit: '寄信次數過多，請幾分鐘後再試',
   session_expired: SESSION_EXPIRED,
@@ -49,7 +49,7 @@ const BY_CODE: Record<string, string> = {
   '23503': '關聯的資料已不存在，請重新選擇',
   '23505': '這筆資料已經存在',
   '23514': '填的值超出允許範圍',
-  '22P02': '欄位格式不對',
+  '22P02': '欄位格式錯誤',
   '42501': '沒有權限存取這筆資料，請確認登入的帳號',
   '57014': '查詢逾時，請再試一次',
 }
@@ -64,7 +64,7 @@ const BY_TEXT: [RegExp, string][] = [
   [/already registered|User already registered/i, '這個信箱已經註冊，請直接登入'],
   [/Email signups are disabled|Signups not allowed/i, '這個站台目前關閉註冊'],
   [/Password should be at least/i, '密碼至少 6 個字元'],
-  [/invalid format|Unable to validate email/i, '電子郵件格式不對'],
+  [/invalid format|Unable to validate email/i, '電子郵件格式錯誤'],
   [/Too many requests|rate limit/i, '嘗試次數過多，請稍後再試'],
   [/row-level security policy/i, '沒有權限存取這筆資料，請確認登入的帳號'],
   [/violates foreign key constraint/i, '關聯的資料已不存在，請重新選擇'],
@@ -117,6 +117,15 @@ export function errorText(error: unknown): string {
   if (/[一-鿿]/.test(text)) return text
 
   return `${text}。${REPORT_HINT}`
+}
+
+/**
+ * 只留原因、不附動作：接在另一句已經說了要做什麼的訊息後面用（例如括號裡的技術原因），
+ * 同一則訊息才不會出現兩個「請」。
+ * 「無法連線到伺服器，請檢查網路」→「無法連線到伺服器」；「原文。請截圖回報」→「原文」
+ */
+export function errorCause(error: unknown): string {
+  return errorText(error).replace(/[，。]請[^，。]*$/, '')
 }
 
 /**

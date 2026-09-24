@@ -3,7 +3,7 @@
 // 這裡的關鍵不是「有沒有翻譯」，而是**對不上的時候要保留原文**。
 // 把未知錯誤換成「發生錯誤」這種萬用句，使用者回報時就什麼線索都沒有了。
 
-import { errorText, toError, errorReportCode, SUPPORT_EMAIL, supportMailto } from '../../utils/errorMessage.ts'
+import { errorText, errorCause, toError, errorReportCode, SUPPORT_EMAIL, supportMailto } from '../../utils/errorMessage.ts'
 import { createReport } from '../helpers/report.mjs'
 
 export default function run() {
@@ -61,6 +61,14 @@ export default function run() {
   const thrown = toError({ code: '42501', message: 'new row violates row-level security policy' })
   r.check(thrown instanceof Error, '回傳的是 Error，catch 端的 instanceof 判斷仍然成立')
   r.check(thrown.message.includes('沒有權限'), 'message 已經是中文，catch 端直接用就對了')
+
+  r.section('只留原因、不附動作（接在另一句說了動作的訊息後面）')
+  r.check(errorCause({ message: 'Failed to fetch' }) === '無法連線到伺服器', '去掉「，請檢查網路」')
+  r.check(errorCause({ code: '42501' }) === '沒有權限存取這筆資料', '去掉「，請確認登入的帳號」')
+  r.check(errorCause({ message: 'something odd' }) === 'something odd', '對不上的原文：去掉「。請截圖回報」')
+  r.check(errorCause({ code: 'invalid_credentials' }) === '電子郵件或密碼錯誤', '本來就沒有動作的原樣保留')
+  r.check(errorCause({ code: '22P02' }) === '欄位格式錯誤' && errorCause({ code: 'validation_failed' }) === '電子郵件格式錯誤',
+    '格式錯誤的兩句（不用「不對」）')
 
   r.section('錯誤回報的 mailto 連結')
   const mail = supportMailto('E500-1A2B3C')

@@ -43,7 +43,7 @@ watch(() => props.open, (value) => {
       class="w-full max-w-sm rounded-lg p-6"
       :style="{ background: 'var(--surface)', color: 'var(--text)', boxShadow: 'var(--overlay-shadow)' }"
     >
-      <h2 ref="heading" tabindex="-1" class="text-xl font-normal text-balance outline-none">{{ title }}</h2>
+      <h2 ref="heading" tabindex="-1" class="text-xl font-normal text-balance break-keep wrap-anywhere outline-none">{{ title }}</h2>
       <p class="mt-3 text-sm text-pretty">{{ body }}</p>
 
       <div class="mt-6 flex gap-3">

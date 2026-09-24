@@ -57,7 +57,9 @@ export default function run() {
       r.check(!/\bfont-serif\b/.test(cls), `${path}：不用 font-serif`)
       r.check(/\btext-xl\b/.test(cls) && !/\btext-(lg|2xl|base|sm)\b/.test(cls), `${path}：--text-xl`)
       r.check(/\bfont-normal\b/.test(cls) && !/\bfont-(bold|medium|semibold)\b/.test(cls), `${path}：字重 400`)
-      r.check(/\btext-balance\b/.test(cls), `${path}：text-wrap: balance（不在詞中間斷行）`)
+      r.check(/\btext-balance\b/.test(cls), `${path}：text-wrap: balance（行長平均）`)
+      r.check(/\bbreak-keep\b/.test(cls) && /\bwrap-anywhere\b/.test(cls),
+        `${path}：word-break: keep-all ＋ overflow-wrap: anywhere（只在空格與標點斷行，放不下才從中間斷）`)
       r.check(/\btabindex="-1"/.test(tag) && /\boutline-none\b/.test(cls), `${path}：標題 tabindex="-1"、不畫焦點框`)
     }
   }

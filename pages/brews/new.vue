@@ -189,7 +189,7 @@ async function onSubmit(payload: {
     // 紀錄已經建好了：記住它，再按一次儲存就補寫這一筆，不會多出一筆重複的紀錄
     pendingBrewId.value = result.id
     saving.value = false
-    error.value = `紀錄已儲存，分段儲存失敗。請再按一次儲存。（${errorText(result.error)}）`
+    error.value = `紀錄已儲存，分段儲存失敗。請再按一次儲存。（${errorCause(result.error)}）`
     return
   }
   const brewId = result.id
