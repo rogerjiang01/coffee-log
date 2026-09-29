@@ -7,22 +7,29 @@
 import type { H3Event } from 'h3'
 import { serverSupabaseServiceRole } from '#supabase/server'
 import type { SharedPhotoStore } from './sharedPhoto'
+import { currentTiming } from './tempTiming' // TEMP-TIMING
 
 const BUCKET = 'bean-photos'
 
 export function sharedPhotoStore(event: H3Event): SharedPhotoStore {
   const client = serverSupabaseServiceRole(event)
+  const timing = currentTiming(event) // TEMP-TIMING
+  const timed = <T>(name: string, run: () => Promise<T>, describe?: (value: T) => string) => // TEMP-TIMING
+    timing ? timing.time(name, run, describe) : run() // TEMP-TIMING
   return {
     async photoPath(code) {
-      const { data, error } = await client.rpc('get_shared_bean_photo_path' as never, { share_code: code } as never)
+      const { data, error } = await timed('rpc', async () => client.rpc('get_shared_bean_photo_path' as never, { share_code: code } as never)) // TEMP-TIMING（原本直接 await client.rpc）
       // 查詢本身出錯不能當成「沒有照片」吞掉：那會讓設定錯誤（金鑰、函式沒推）永遠查不出來
       if (error) throw error
       return typeof data === 'string' && data ? data : null
     },
     async download(path) {
-      const { data, error } = await client.storage.from(BUCKET).download(path)
-      if (error || !data) return null
-      return { bytes: new Uint8Array(await data.arrayBuffer()), type: data.type }
+      const kind = path.endsWith('.thumb') ? 'thumb' : 'full' // TEMP-TIMING
+      return timed(`dl_${kind}`, async () => { // TEMP-TIMING（包住原本的內容）
+        const { data, error } = await client.storage.from(BUCKET).download(path)
+        if (error || !data) return null
+        return { bytes: new Uint8Array(await data.arrayBuffer()), type: data.type }
+      }, file => (file ? `${file.bytes.length}B` : 'miss')) // TEMP-TIMING
     },
   }
 }

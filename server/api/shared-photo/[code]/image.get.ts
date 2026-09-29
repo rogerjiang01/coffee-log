@@ -3,11 +3,14 @@
 
 import { loadSharedPhoto } from '../../../utils/sharedPhoto'
 import { sharedPhotoSecret, sharedPhotoStore } from '../../../utils/sharedPhotoStore'
+import { startTiming } from '../../../utils/tempTiming' // TEMP-TIMING
 
 export default defineEventHandler(async (event) => {
   const code = getRouterParam(event, 'code') ?? ''
+  const timing = startTiming(event, `image-${String(getQuery(event).v)}`) // TEMP-TIMING
   const file = await loadSharedPhoto(
     sharedPhotoStore(event), sharedPhotoSecret(event), code, getQuery(event), Date.now() / 1000)
+  timing.finish() // TEMP-TIMING
   if (!file) {
     setResponseHeader(event, 'Cache-Control', 'no-store')
     throw createError({ statusCode: 404 })
