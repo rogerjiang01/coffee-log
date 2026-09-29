@@ -62,6 +62,13 @@ const ALLOWED = {
   authenticated: ['get_shared_brew', 'create_brew_share'],
 }
 
+/**
+ * 只給伺服器端（service_role）的函式：刻意不在 ALLOWED 裡，anon 與 authenticated 都叫不動。
+ * get_shared_bean_photo_path 回傳儲存路徑，路徑的第一段就是 user_id（《01》§14.5）。
+ * 安全測試在 tests/db/shared-photo.test.mjs。
+ */
+const SERVER_ONLY = ['get_shared_bean_photo_path']
+
 export default async function run() {
   const r = createReport('public schema 的函式執行權')
   const pg = await createDatabase()
@@ -94,6 +101,18 @@ export default async function run() {
       }
       r.check(fn[role] === false, `${role} 不能執行 ${fn.name}`)
     }
+  }
+
+  r.section('只給伺服器端的函式：service_role 叫得動，用戶端叫不動')
+  for (const name of SERVER_ONLY) {
+    const fn = fns.find(f => f.name === name)
+    r.check(!!fn, `${name} 存在`)
+    if (!fn) continue
+    const service = (await pg.rows(`select has_function_privilege('service_role', p.oid, 'execute') as ok
+      from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+      where n.nspname = 'public' and p.proname = '${name}'`))[0].ok
+    r.check(service === true, `service_role 可以執行 ${name}`)
+    r.check(!ALLOWED.anon.includes(name) && !ALLOWED.authenticated.includes(name), `${name} 不在 ALLOWED 裡`)
   }
 
   r.section('security definer 的函式一律要鎖住 search_path')

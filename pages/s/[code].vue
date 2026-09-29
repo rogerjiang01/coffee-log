@@ -18,16 +18,37 @@ const userId = useCurrentUserId()
 const code = computed(() => String(route.params.code))
 
 const brew = ref<SharedBrew | null>(null)
+const photoUrl = ref<string | null>(null)
 const loading = ref(true)
 const gone = ref(false)
 const loadError = ref('')
 
+/**
+ * 豆袋照片的網址（《01》§14.5）。由伺服器端發，每次開啟重新要一次，不快取。
+ * 拿不到就當作沒有照片：照片是輔助，不能讓整頁因為它讀取失敗
+ */
+async function loadPhotoUrl(): Promise<string | null> {
+  if (!SHARE_CODE_PATTERN.test(code.value)) return null
+  try {
+    const { url } = await $fetch<{ url: string | null }>(sharedPhotoEndpoint(code.value))
+    return typeof url === 'string' ? url : null
+  }
+  catch {
+    return null
+  }
+}
+
 // **一次開啟只呼叫一次。** 開啟事件由 get_shared_brew 自己寫（《01》§14.2），
-// 多呼叫一次就多記一次開啟
+// 多呼叫一次就多記一次開啟。
+// 照片網址與它同時要、一起等：照片晚一步才出現的話，日期那一列會被擠動一次
 async function load() {
   loading.value = true
   loadError.value = ''
-  const { data, error } = await supabase.rpc('get_shared_brew' as never, { share_code: code.value } as never)
+  const [{ data, error }, photo] = await Promise.all([
+    supabase.rpc('get_shared_brew' as never, { share_code: code.value } as never),
+    loadPhotoUrl(),
+  ])
+  photoUrl.value = photo
   loading.value = false
   if (error) {
     loadError.value = `讀不到資料：${errorText(error)}`
@@ -70,6 +91,6 @@ onMounted(load)
       </div>
     </div>
 
-    <SharedBrewView v-else-if="brew" :brew="brew" />
+    <SharedBrewView v-else-if="brew" :brew="brew" :photo-url="photoUrl" />
   </main>
 </template>

@@ -39,12 +39,17 @@ with known(name, source) as (values
   ('set_updated_at',     'migration：20260831170100_updated_at_triggers.sql'),
   ('rls_auto_enable',    '後台：Authentication → Auto-enable RLS for new tables（event trigger ensure_rls）'),
   ('get_shared_brew',    'migration：20260923110000_brew_shares.sql'),
-  ('create_brew_share',  'migration：20260923120000_brew_shares_send_model.sql')
+  ('create_brew_share',  'migration：20260923120000_brew_shares_send_model.sql'),
+  ('get_shared_bean_photo_path', 'migration：20260929100000_shared_bean_photo.sql')
 ),
 
 -- 分享的兩支函式（《01》§14）。get_shared_brew 是匿名的人唯一的入口；
 -- create_brew_share 只給登入者。set_brew_share_notes 已在傳送模型裡移除，
 -- 正式庫上還看得到它就代表 20260923120000 沒推上去（它會被標成「不在任何 migration 裡」）。
+--
+-- get_shared_bean_photo_path 不在這份清單上：它只給 service_role（分享頁的照片由伺服器端讀，
+-- 《01》§14.5），anon 與 authenticated 都不該叫得動。它要是出現在結果裡，
+-- 就是「對 anon／authenticated 開放，但不在白名單上」——revoke 沒推上去。
 allowed(name, role) as (values
   ('get_shared_brew',   'anon'),
   ('get_shared_brew',   'authenticated'),

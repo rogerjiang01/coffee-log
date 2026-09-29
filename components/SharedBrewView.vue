@@ -5,10 +5,17 @@
 // 回傳了卻沒顯示的，開發者工具裡看得到，等於不知不覺多公開了資料。
 // tests/unit/share-wiring.test.mjs 逐一確認 SHARED_BREW_KEYS 的每一個 key 在這裡都有用到。
 //
-// 抽成元件、只吃一個 prop，是為了讓頁面本身只管讀取與失效——
+// 抽成元件，是為了讓頁面本身只管讀取與失效——
 // 也讓這一塊能不經過資料庫就算繪出來檢查。
+//
+// 豆袋照片不在 get_shared_brew 的回傳值裡：那支函式在資料庫裡，產生不了圖片網址。
+// 照片網址由伺服器端另外發（server/api/shared-photo，《01》§14.5），頁面拿到之後傳進來。
 
-const props = defineProps<{ brew: SharedBrew }>()
+const props = defineProps<{
+  brew: SharedBrew
+  /** 這一次開啟用的豆袋照片網址。沒有照片時是 null：不放縮圖、不留空框 */
+  photoUrl?: string | null
+}>()
 
 const brew = computed(() => props.brew)
 
@@ -82,30 +89,38 @@ function formatDate(iso: string) {
       </NuxtLink>
     </div>
 
+    <!-- 標題是整頁的定位點，維持全寬、不為照片讓出寬度 -->
     <h1 class="mt-6 font-serif text-2xl font-bold">{{ brew.bean.name }}</h1>
-    <p class="mt-1 text-sm tabular-nums text-muted">{{ formatDate(brew.brewed_at) }}</p>
-    <div v-if="brew.rating !== null || brew.is_favorite" class="mt-3 flex items-center gap-3">
-      <span v-if="brew.rating !== null" class="flex" :aria-label="`評分 ${brew.rating} 顆星`">
-        <svg
-          v-for="level in 5" :key="level"
-          width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"
-          stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"
-          :fill="brew.rating >= level ? 'var(--favorite)' : 'transparent'"
-          :stroke="brew.rating >= level ? 'var(--favorite)' : 'var(--control-empty)'"
-        >
-          <path d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.123 2.123 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.123 2.123 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.122 2.122 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.122 2.122 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.122 2.122 0 0 0 1.597-1.16z" />
-        </svg>
-      </span>
-      <span v-if="brew.is_favorite" class="flex items-center gap-1 text-sm" :style="{ color: 'var(--favorite)' }">
-        <svg
-          width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"
-          fill="var(--favorite)" stroke="var(--favorite)"
-          stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
-        >
-          <path d="M2 9.5a5.5 5.5 0 0 1 9.591-3.676.56.56 0 0 0 .818 0A5.49 5.49 0 0 1 22 9.5c0 2.29-1.5 4-3 5.5l-5.492 5.313a2 2 0 0 1-3 .019L5 15c-1.5-1.5-3-3.2-3-5.5" />
-        </svg>
-        收藏
-      </span>
+    <!-- 日期與星等在左、豆袋照片在右，垂直置中（《03》§4.13.4）。
+         沒有照片時只剩左邊一欄，與加入照片之前的版面相同 -->
+    <div class="mt-1 flex items-center gap-4">
+      <div class="min-w-0 flex-1">
+        <p class="text-sm tabular-nums text-muted">{{ formatDate(brew.brewed_at) }}</p>
+        <div v-if="brew.rating !== null || brew.is_favorite" class="mt-3 flex items-center gap-3">
+          <span v-if="brew.rating !== null" class="flex" :aria-label="`評分 ${brew.rating} 顆星`">
+            <svg
+              v-for="level in 5" :key="level"
+              width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"
+              stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"
+              :fill="brew.rating >= level ? 'var(--favorite)' : 'transparent'"
+              :stroke="brew.rating >= level ? 'var(--favorite)' : 'var(--control-empty)'"
+            >
+              <path d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.123 2.123 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.123 2.123 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.122 2.122 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.122 2.122 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.122 2.122 0 0 0 1.597-1.16z" />
+            </svg>
+          </span>
+          <span v-if="brew.is_favorite" class="flex items-center gap-1 text-sm" :style="{ color: 'var(--favorite)' }">
+            <svg
+              width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"
+              fill="var(--favorite)" stroke="var(--favorite)"
+              stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+            >
+              <path d="M2 9.5a5.5 5.5 0 0 1 9.591-3.676.56.56 0 0 0 .818 0A5.49 5.49 0 0 1 22 9.5c0 2.29-1.5 4-3 5.5l-5.492 5.313a2 2 0 0 1-3 .019L5 15c-1.5-1.5-3-3.2-3-5.5" />
+            </svg>
+            收藏
+          </span>
+        </div>
+      </div>
+      <PhotoZoom v-if="photoUrl" :src="photoUrl" :alt="brew.bean.name" />
     </div>
 
     <dl class="mt-6">

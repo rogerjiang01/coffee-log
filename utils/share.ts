@@ -25,6 +25,15 @@ export function shareUrl(origin: string, code: string): string {
   return `${origin.replace(/\/+$/, '')}/s/${code}`
 }
 
+/**
+ * 分享頁向伺服器要豆袋照片網址的地方（server/api/shared-photo，《01》§14.5）。
+ * 回傳 { url }：這一次開啟用的圖片網址，沒有照片時是 null。
+ * 照片不經過 get_shared_brew：那支函式在資料庫裡，產生不了圖片網址
+ */
+export function sharedPhotoEndpoint(code: string): string {
+  return `/api/shared-photo/${encodeURIComponent(code)}`
+}
+
 // ══════════════════════════════════════════════════════════════
 // get_shared_brew 的回傳值
 // ══════════════════════════════════════════════════════════════
