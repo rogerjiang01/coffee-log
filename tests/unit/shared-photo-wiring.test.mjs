@@ -54,7 +54,13 @@ export default function run() {
   const load = page.slice(page.indexOf('async function load()'))
   r.check(!/Promise\.all/.test(load) && !/await loadPhoto/.test(page) && /void loadPhoto\(\)/.test(load),
     '頁面不等照片：拿到紀錄就顯示，照片網址另外非同步要')
-  r.check(/if \(brew\.value\.bean\.has_photo\) void loadPhoto\(\)/.test(load), '只有 has_photo 時才要照片網址')
+  r.check(load.indexOf('void loadPhoto()') >= 0 && load.indexOf('void loadPhoto()') < load.indexOf('get_shared_brew'),
+    '照片網址與 get_shared_brew 同時發，不等紀錄回來')
+
+  r.section('function 區域與 Supabase 同在東京（CLAUDE.md）')
+  const vercel = JSON.parse(read('vercel.json'))
+  r.check(JSON.stringify(vercel.regions) === '["hnd1"]', 'vercel.json 的 regions 是 hnd1')
+  r.check(read('CLAUDE.md').includes('hnd1'), 'CLAUDE.md 記下 function 區域與理由')
   r.check((page.match(/get_shared_brew/g) ?? []).length === 1, 'get_shared_brew 仍然只呼叫一次（開啟事件只記一列）')
 
   r.section('版面：標題全寬，照片在日期與星等的右邊')

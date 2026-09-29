@@ -27,6 +27,8 @@ const loadError = ref('')
 /**
  * 豆袋照片的網址（《01》§14.5）。由伺服器端發，每次開啟重新要一次。
  * **頁面不等它**：拿到紀錄就顯示，縮圖的位置已經留好（has_photo），網址到了才填進去。
+ * **也不等紀錄**：與 get_shared_brew 同時發，省掉一次手機到資料庫的來回。
+ * 沒有照片的分享也會多這一次請求，伺服器回兩個 null，成本很低。
  * 要不到就把位置收掉：照片是輔助，不能讓整頁因為它出錯
  */
 async function loadPhoto() {
@@ -47,6 +49,8 @@ async function loadPhoto() {
 async function load() {
   loading.value = true
   loadError.value = ''
+  // 不 await：縮圖的位置由 has_photo 決定，網址先到、後到都一樣
+  void loadPhoto()
   const { data, error } = await supabase.rpc('get_shared_brew' as never, { share_code: code.value } as never)
   loading.value = false
   if (error) {
@@ -58,7 +62,6 @@ async function load() {
     return
   }
   brew.value = data as SharedBrew
-  if (brew.value.bean.has_photo) void loadPhoto()
 }
 
 onMounted(load)

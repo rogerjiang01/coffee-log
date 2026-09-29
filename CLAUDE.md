@@ -17,6 +17,11 @@ Nuxt 3 + Vue 3 + TypeScript + Tailwind CSS
 Supabase（Auth / Postgres / Storage）
 部署於 Vercel
 
+**Vercel function 的區域固定在 hnd1（東京）**，設定在 `vercel.json` 的 `regions`，不要移除或改回預設。
+理由：Supabase 專案在東京（ap-northeast-1）。function 放在其他區域的話，每次查資料庫與讀 Storage
+都要跨海——預設的 iad1（美國東岸）量過：每次查詢約 200–250 ms、重新建立連線時 600 ms 以上，
+分享頁的縮圖因此在手機上要約 4 秒才出現（2026-09-29 量測）。
+
 ## 硬性規則
 
 1. 不得新增規格未定義的資料表、欄位、頁面、功能
@@ -180,6 +185,9 @@ pnpm test
   新增頁的重按儲存已經改成補寫同一筆（`utils/brewSave.ts`），不會多出重複紀錄；
   但半成功的狀態本身還在。做法是一支 `security definer` 函式一次寫完紀錄與分段。
   **條件**：觀察到實際發生，或之後要改動儲存流程時。
+- **分享頁要照片網址時直接附上縮圖內容**（2026-09-29 記）。`/api/shared-photo/[code]` 的回應
+  直接帶縮圖（base64，約 13 KB），省掉第二個請求（縮圖本身）。代價是 API 形狀改變、縮圖吃不到瀏覽器快取。
+  **條件**：function 移到 hnd1、要網址改成與 `get_shared_brew` 同時發之後，手機上仍明顯感覺縮圖慢。
 
 ### V2 待辦（階段 10 之後，不在本輪範圍）
 
