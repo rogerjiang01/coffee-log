@@ -52,13 +52,28 @@ Supabase（Auth / Postgres / Storage）
      Supabase CLI 是專案的 devDependency，沒有全域安裝：指令一律寫成 `pnpm exec supabase …`
   推上去之後才發現搬錯，能救回來的只有備份——遠端沒有復原點，
   而這個專案的資料是一筆一筆手動記的，重建不回來。
-- **每次 `db push` 前後，在 SQL Editor 各跑一次 `supabase/queries/函式權限盤點.sql`。**
+- **每次 `db push` 前後，在 SQL Editor 各跑一次 `supabase/queries/函式權限盤點.sql` 與 `supabase/queries/資料表權限盤點.sql`。**
   推之前有列是正常的（那正是這次要修的），用來確認 migration 有涵蓋到；
   **推之後必須是 0 列**，有列就停下來查，先不要推程式。
   理由：`tests/db/function-grants.test.mjs` 跑在 migration 建出來的本機資料庫上，
   看不到後台建的東西——`rls_auto_enable()` 就是後台設定建的，只存在於正式庫，
   本機的測試全綠也抓不到它。新增函式時要同步改那支查詢裡的 `known`／`allowed`
-  （`tests/unit/function-audit-query.test.mjs` 會擋）。
+  （`tests/unit/function-audit-query.test.mjs` 會擋）。新增資料表時同理，改資料表那支的
+  `known`／`allowed` 與 `tests/helpers/table-grants.mjs`（`tests/unit/table-audit-query.test.mjs` 會擋）。
+- **建立資料表的 migration，必須在同一支裡寫完它的權限：**
+  1. **啟用 RLS**（`alter table … enable row level security`）。正式庫有後台的自動啟用，
+     但本機與測試資料庫沒有，不寫的話兩邊行為不一致
+  2. **先 `revoke all on table … from anon, authenticated, service_role`，再逐一 `grant`**
+     每個角色需要的權限，只給介面真的用到的
+  3. **anon 預設不給。** 匿名的人讀資料走 security definer 函式（例如 `get_shared_brew`），不開表
+  4. **service_role 只在伺服器端程式需要直接存取這張表時才給**
+  5. **不要照抄 Supabase 通知信裡的範例**，那段會 `grant select … to anon`
+
+  新表預設沒有任何權限（`20261001100000_table_default_privileges.sql` 收回了 default privileges；
+  Supabase 從 2026-10-30 起也不再自動授權新表），漏寫 grant 的話查詢是 permission denied。
+  `tests/db/table-grants.test.mjs` 用 `tests/helpers/table-grants.mjs` 的白名單逐表逐角色比對，
+  多一項、少一項都失敗；新表要同時加進白名單與 `資料表權限盤點.sql`。
+  函式的 default privileges 沒有收回，函式的規則見《01》§14.3 與 `20260923100000_function_grants.sql`。
 - **新增或修改任何面向使用者的文案前，先查 `docs/04-詞彙表.md`。** 表裡沒有的詞先問，
   不要自己挑一個同義詞；要換用詞，先改詞彙表再改介面。第三欄「刻意不用的同義詞」
   每一個都「也通」，所以最容易被順手改回去（`tests/unit/glossary.test.mjs` 會擋）
@@ -188,6 +203,14 @@ pnpm test
 - **分享頁要照片網址時直接附上縮圖內容**（2026-09-29 記）。`/api/shared-photo/[code]` 的回應
   直接帶縮圖（base64，約 13 KB），省掉第二個請求（縮圖本身）。代價是 API 形狀改變、縮圖吃不到瀏覽器快取。
   **條件**：function 移到 hnd1、要網址改成與 `get_shared_brew` 同時發之後，手機上仍明顯感覺縮圖慢。
+- **收斂 authenticated 多給的權限（truncate、references、trigger 以及介面用不到的寫入）**（2026-09-29 記）。
+  既有的表大多是 `grant all`：truncate、references、trigger 介面用不到（Data API 也叫不到）；
+  `countries`、`equipment_catalog` 的寫入沒有 policy，實際改不動；以下是 RLS 允許、API 做得到但介面沒有用到的：
+  `brew_methods` 的新增／修改／刪除（管理頁是 V2）、`profiles` 的新增與刪除、
+  `flavor_tags`／`processing_methods`／`varieties` 的修改與刪除（介面只新增）、
+  `brew_steps`／`brew_flavor_tags` 的修改（介面是刪掉再新增）。
+  收斂時白名單（`tests/helpers/table-grants.mjs`）與 `資料表權限盤點.sql` 的 `allowed` 一起改。
+  **條件**：下一次做權限相關的改動時。
 
 ### V2 待辦（階段 10 之後，不在本輪範圍）
 
