@@ -18,37 +18,36 @@ const userId = useCurrentUserId()
 const code = computed(() => String(route.params.code))
 
 const brew = ref<SharedBrew | null>(null)
-const photoUrl = ref<string | null>(null)
+const photo = ref<{ thumb: string | null, full: string | null } | null>(null)
+const photoFailed = ref(false)
 const loading = ref(true)
 const gone = ref(false)
 const loadError = ref('')
 
 /**
- * 豆袋照片的網址（《01》§14.5）。由伺服器端發，每次開啟重新要一次，不快取。
- * 拿不到就當作沒有照片：照片是輔助，不能讓整頁因為它讀取失敗
+ * 豆袋照片的網址（《01》§14.5）。由伺服器端發，每次開啟重新要一次。
+ * **頁面不等它**：拿到紀錄就顯示，縮圖的位置已經留好（has_photo），網址到了才填進去。
+ * 要不到就把位置收掉：照片是輔助，不能讓整頁因為它出錯
  */
-async function loadPhotoUrl(): Promise<string | null> {
-  if (!SHARE_CODE_PATTERN.test(code.value)) return null
+async function loadPhoto() {
+  photo.value = null
+  photoFailed.value = false
   try {
-    const { url } = await $fetch<{ url: string | null }>(sharedPhotoEndpoint(code.value))
-    return typeof url === 'string' ? url : null
+    const urls = await $fetch<{ thumb: string | null, full: string | null }>(sharedPhotoEndpoint(code.value))
+    if (typeof urls?.thumb !== 'string') photoFailed.value = true
+    else photo.value = { thumb: urls.thumb, full: typeof urls.full === 'string' ? urls.full : null }
   }
   catch {
-    return null
+    photoFailed.value = true
   }
 }
 
 // **一次開啟只呼叫一次。** 開啟事件由 get_shared_brew 自己寫（《01》§14.2），
-// 多呼叫一次就多記一次開啟。
-// 照片網址與它同時要、一起等：照片晚一步才出現的話，日期那一列會被擠動一次
+// 多呼叫一次就多記一次開啟
 async function load() {
   loading.value = true
   loadError.value = ''
-  const [{ data, error }, photo] = await Promise.all([
-    supabase.rpc('get_shared_brew' as never, { share_code: code.value } as never),
-    loadPhotoUrl(),
-  ])
-  photoUrl.value = photo
+  const { data, error } = await supabase.rpc('get_shared_brew' as never, { share_code: code.value } as never)
   loading.value = false
   if (error) {
     loadError.value = `讀不到資料：${errorText(error)}`
@@ -59,6 +58,7 @@ async function load() {
     return
   }
   brew.value = data as SharedBrew
+  if (brew.value.bean.has_photo) void loadPhoto()
 }
 
 onMounted(load)
@@ -91,6 +91,6 @@ onMounted(load)
       </div>
     </div>
 
-    <SharedBrewView v-else-if="brew" :brew="brew" :photo-url="photoUrl" />
+    <SharedBrewView v-else-if="brew" :brew="brew" :photo="photo" :photo-failed="photoFailed" />
   </main>
 </template>

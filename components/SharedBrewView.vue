@@ -8,13 +8,16 @@
 // 抽成元件，是為了讓頁面本身只管讀取與失效——
 // 也讓這一塊能不經過資料庫就算繪出來檢查。
 //
-// 豆袋照片不在 get_shared_brew 的回傳值裡：那支函式在資料庫裡，產生不了圖片網址。
-// 照片網址由伺服器端另外發（server/api/shared-photo，《01》§14.5），頁面拿到之後傳進來。
+// 豆袋照片的網址不在 get_shared_brew 的回傳值裡：那支函式在資料庫裡，產生不了圖片網址，
+// 它只回傳 bean.has_photo。有照片時縮圖的位置先留好，網址由伺服器端另外發
+// （server/api/shared-photo，《01》§14.5），頁面拿到之後傳進來。
 
 const props = defineProps<{
   brew: SharedBrew
-  /** 這一次開啟用的豆袋照片網址。沒有照片時是 null：不放縮圖、不留空框 */
-  photoUrl?: string | null
+  /** 縮圖與原圖的網址。還在要的時候是 null */
+  photo?: { thumb: string | null, full: string | null } | null
+  /** 網址要不到（或這支豆子其實沒有照片了）：縮圖的位置收掉 */
+  photoFailed?: boolean
 }>()
 
 const brew = computed(() => props.brew)
@@ -92,6 +95,7 @@ function formatDate(iso: string) {
     <!-- 標題是整頁的定位點，維持全寬、不為照片讓出寬度 -->
     <h1 class="mt-6 font-serif text-2xl font-bold">{{ brew.bean.name }}</h1>
     <!-- 日期與星等在左、豆袋照片在右，垂直置中（《03》§4.13.4）。
+         有照片時縮圖的位置一開始就在（has_photo），網址晚到也不跳動。
          沒有照片時只剩左邊一欄，與加入照片之前的版面相同 -->
     <div class="mt-1 flex items-center gap-4">
       <div class="min-w-0 flex-1">
@@ -120,7 +124,12 @@ function formatDate(iso: string) {
           </span>
         </div>
       </div>
-      <PhotoZoom v-if="photoUrl" :src="photoUrl" :alt="brew.bean.name" />
+      <PhotoZoom
+        v-if="brew.bean.has_photo && !photoFailed"
+        :thumb="photo?.thumb ?? null"
+        :full="photo?.full ?? null"
+        :alt="brew.bean.name"
+      />
     </div>
 
     <dl class="mt-6">

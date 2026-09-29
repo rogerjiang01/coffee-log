@@ -19,7 +19,7 @@ const props = defineProps<{
 }>()
 
 const supabase = useSupabaseClient()
-const { signedUrl } = useBeanPhotos()
+const { thumbnailUrl } = useBeanPhotos()
 
 const COPIED_MS = 2000
 
@@ -37,12 +37,14 @@ const brewDate = computed(() => {
   return `${pad(d.getMonth() + 1)}/${pad(d.getDate())}`
 })
 
-// 豆袋照片：簽名網址走 useBeanPhotos 的快取——從首頁或豆子列表進來時已經有了，
-// 不另外發請求；快取沒有才換一次。載不到或載入失敗就當作沒有照片
+// 豆袋照片用縮圖（沒有縮圖檔時退回原圖）。打開對話框時才要：紀錄詳情頁的縮圖已經要過
+// 同一個網址，這時一定在 useBeanPhotos 的快取裡，不另外發請求（掛載時就要的話，
+// 兩邊同時發，快取還來不及接住）。載不到或載入失敗就當作沒有照片
 const photoUrl = ref<string | null>(null)
-onMounted(async () => {
-  if (props.photoPath) photoUrl.value = await signedUrl(props.photoPath).catch(() => null)
-})
+async function loadPhoto() {
+  if (!props.photoPath || photoUrl.value) return
+  photoUrl.value = await thumbnailUrl(props.photoPath).catch(() => null)
+}
 
 /**
  * 瀏覽器能不能叫出系統分享選單。依能力判斷，不依桌機或手機判斷。
@@ -74,6 +76,7 @@ onBeforeUnmount(() => {
 // ── 對話框開關 ───────────────────────────────────────────────
 function openDialog() {
   includeNotes.value = false
+  void loadPhoto()
   open.value = true
 }
 

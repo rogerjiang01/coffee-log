@@ -27,8 +27,8 @@ export function shareUrl(origin: string, code: string): string {
 
 /**
  * 分享頁向伺服器要豆袋照片網址的地方（server/api/shared-photo，《01》§14.5）。
- * 回傳 { url }：這一次開啟用的圖片網址，沒有照片時是 null。
- * 照片不經過 get_shared_brew：那支函式在資料庫裡，產生不了圖片網址
+ * 回傳 { thumb, full }：縮圖與原圖的網址，沒有照片時都是 null。
+ * 照片不經過 get_shared_brew：那支函式在資料庫裡，產生不了圖片網址（它只回傳 has_photo）
  */
 export function sharedPhotoEndpoint(code: string): string {
   return `/api/shared-photo/${encodeURIComponent(code)}`
@@ -49,6 +49,7 @@ export function sharedPhotoEndpoint(code: string): string {
 export const SHARED_BREW_KEYS = [
   'is_owner',
   'bean.name', 'bean.roaster', 'bean.roast_level', 'bean.roast_date',
+  'bean.has_photo', // 只是有沒有照片：先留好縮圖的位置。照片網址另外要（sharedPhotoEndpoint）
   'brewed_at', 'dose', 'water_temp', 'grind_setting', 'total_time', 'method',
   'grinder', 'dripper', 'kettle',
   'steps[].step_index', 'steps[].step_type', 'steps[].cumulative_water', 'steps[].hold_seconds', 'steps[].note',
@@ -84,6 +85,8 @@ export interface SharedBrew {
     roaster: string | null
     roast_level: 'light' | 'medium_light' | 'medium' | 'medium_dark' | 'dark' | null
     roast_date: string | null
+    /** 有沒有豆袋照片。沒有路徑，照片網址另外向伺服器要 */
+    has_photo: boolean
   }
   brewed_at: string
   dose: number | null

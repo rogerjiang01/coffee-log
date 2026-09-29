@@ -53,6 +53,7 @@ const suites = [
   ['unit/share-wiring.test.mjs', '分享的接線'],
   ['unit/shared-photo.test.ts', '分享頁的豆袋照片（伺服器端）'],
   ['unit/shared-photo-wiring.test.mjs', '分享頁豆袋照片的接線'],
+  ['unit/bean-thumbnail.test.mjs', '豆袋照片的縮圖檔'],
   ['unit/glossary.test.mjs', '介面用詞'],
   ['db/schema.test.mjs', 'Schema、RLS 與 seed'],
   ['db/sample-data.test.mjs', '新使用者的範例資料'],

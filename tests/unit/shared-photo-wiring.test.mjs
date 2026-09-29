@@ -51,7 +51,10 @@ export default function run() {
   const view = stripComments(read('components/SharedBrewView.vue'))
   r.check(!/storage|useBeanPhotos|signedUrl|createSignedUrl/.test(page + view), '分享頁與 SharedBrewView 不碰 Storage')
   r.check(/sharedPhotoEndpoint\(code\.value\)/.test(page), '照片網址向伺服器要（sharedPhotoEndpoint）')
-  r.check(/Promise\.all\(\[[\s\S]*get_shared_brew[\s\S]*loadPhotoUrl\(\)/.test(page), '與 get_shared_brew 同時要、一起等')
+  const load = page.slice(page.indexOf('async function load()'))
+  r.check(!/Promise\.all/.test(load) && !/await loadPhoto/.test(page) && /void loadPhoto\(\)/.test(load),
+    '頁面不等照片：拿到紀錄就顯示，照片網址另外非同步要')
+  r.check(/if \(brew\.value\.bean\.has_photo\) void loadPhoto\(\)/.test(load), '只有 has_photo 時才要照片網址')
   r.check((page.match(/get_shared_brew/g) ?? []).length === 1, 'get_shared_brew 仍然只呼叫一次（開啟事件只記一列）')
 
   r.section('版面：標題全寬，照片在日期與星等的右邊')
@@ -62,8 +65,8 @@ export default function run() {
   r.check(h1 >= 0 && row > h1 && photo > row, '順序：標題 → 左右兩欄（日期與星等、照片）')
   r.check(!template.slice(h1, row).includes('PhotoZoom') && !/<div[^>]*flex[^>]*>\s*<h1/.test(template),
     '標題不在任何與照片並排的容器裡')
-  r.check(/<PhotoZoom v-if="photoUrl" :src="photoUrl" :alt="brew\.bean\.name" \/>/.test(template),
-    '沒有照片時整個不放；放大後的替代文字是豆名')
+  r.check(/<PhotoZoom\s+v-if="brew\.bean\.has_photo && !photoFailed"[\s\S]*?:alt="brew\.bean\.name"/.test(template),
+    '依 has_photo 先留好縮圖的位置；沒有照片時整個不放；放大後的替代文字是豆名')
   r.check(template.indexOf('formatDate(brew.brewed_at)') > row && template.indexOf('formatDate(brew.brewed_at)') < photo
     && template.indexOf('brew.rating !== null') > row && template.indexOf('brew.rating !== null') < photo,
   '日期與星等在左欄')
@@ -79,7 +82,29 @@ export default function run() {
   r.check(/<dialog[^>]*@cancel\.prevent="close"/.test(zoomTemplate), 'Esc 關閉')
   r.check(/<dialog[^>]*@click="close"/.test(zoomTemplate), '點任何地方關閉')
   r.check(/useOverlayHistory\(\(\) => open\.value, close\)/.test(zoom), '佔一筆 history，返回鍵關閉')
-  r.check(/backdrop:bg-\[var\(--overlay-scrim\)\]/.test(zoomTemplate), '背景是遮罩（--overlay-scrim）')
+  r.check(/backdrop:bg-\[var\(--media-scrim\)\]/.test(zoomTemplate) && !/overlay-scrim/.test(zoomTemplate),
+    '背景是看照片專用的 --media-scrim，不是對話框共用的 --overlay-scrim')
+  const tokens = read('assets/css/tokens.css')
+  r.check(/--media-scrim:\s*rgb\(0 0 0 \/ 0\.8\)/.test(tokens), '--media-scrim 是黑色 80%')
+  r.check(/--overlay-scrim:\s*rgb\(0 0 0 \/ 0\.4\)/.test(tokens), '--overlay-scrim 沒有被改動（40%）')
+  r.check(!/\bp-0\b/.test(zoomTemplate) && /max\(1\.25rem, env\(safe-area-inset-top\)\)/.test(zoom)
+    && /max\(1\.25rem, env\(safe-area-inset-bottom\)\)/.test(zoom),
+  '照片不貼邊：四周 20px（與頁面邊距相同），並避開安全區域')
+
+  r.section('縮圖與原圖分開')
+  r.check(/<button[\s\S]*?<img[\s\S]*?:src="thumb"[\s\S]*?<\/button>/.test(zoomTemplate), '縮圖按鈕只載縮圖')
+  r.check(/:disabled="!thumbReady"/.test(zoomTemplate), '縮圖還沒載好時按鈕不能按')
+  r.check(/watch\(\[thumbReady, \(\) => props\.full\]/.test(zoom) && /new Image\(\)/.test(zoom), '縮圖載好之後才在背景預先載入原圖')
+  r.check(/fullReady\.value && props\.full \? props\.full : props\.thumb/.test(zoom), '點開時原圖還沒到：先顯示放大的縮圖，到了再換上')
+
+  r.section('紀錄詳情頁：同一個元件，走登入者自己的簽名網址')
+  const detail = stripComments(read('pages/brews/[id]/index.vue'))
+  const detailTemplate = detail.slice(detail.indexOf('<template>'))
+  r.check(/<PhotoZoom\s+v-if="brew\.beans\?\.photo_path && !photoFailed"/.test(detailTemplate), '有照片才放；位置一開始就留好')
+  r.check(/photoUrls\(path\)/.test(detail) && !/shared-photo|sharedPhotoEndpoint/.test(detail), '用 useBeanPhotos 的 photoUrls，不經過分享的轉送')
+  const dRow = detailTemplate.indexOf('<div class="mt-1 flex items-center gap-4">')
+  r.check(detailTemplate.indexOf('<h1') < dRow && dRow < detailTemplate.indexOf('<PhotoZoom')
+    && detailTemplate.indexOf('formatDate(brew.brewed_at)') > dRow, '版面同分享頁：標題列在上，日期與星等在左、照片在右')
 
   return r.finish()
 }

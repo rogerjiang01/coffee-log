@@ -15,7 +15,7 @@ interface BeanRow {
 }
 
 const supabase = useSupabaseClient()
-const { signedUrls } = useBeanPhotos()
+const { thumbnailUrls } = useBeanPhotos()
 
 const beans = ref<BeanRow[]>([])
 const photoUrls = ref<Map<string, string>>(new Map())
@@ -45,11 +45,11 @@ function apply(rows: BeanRow[]) {
   loadPhotos(rows)
 }
 
-// 簽名網址有時效，不進快取。但它只依賴 photo_path，
+// 列表用縮圖（沒有縮圖檔時退回原圖，utils/beanPhoto.ts）。只依賴 photo_path，
 // 可以與主查詢並行，不必等資料回來才開始。
 async function loadPhotos(rows: BeanRow[]) {
   try {
-    photoUrls.value = await signedUrls(rows.map(bean => bean.photo_path))
+    photoUrls.value = await thumbnailUrls(rows.map(bean => bean.photo_path))
   }
   catch {
     photoUrls.value = new Map()

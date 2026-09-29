@@ -8,7 +8,7 @@
 definePageMeta({ screen: 'browse' })
 
 const supabase = useSupabaseClient()
-const { signedUrls } = useBeanPhotos()
+const { thumbnailUrls } = useBeanPhotos()
 
 const PAGE_SIZE = 20
 
@@ -181,10 +181,10 @@ function applyBeans(rows: ActiveBean[]) {
   loadPhotos(rows)
 }
 
-// 簽名網址有時效，不快取。與主查詢並行，不串在後面
+// 卡片用縮圖（沒有縮圖檔時退回原圖，utils/beanPhoto.ts）。與主查詢並行，不串在後面
 async function loadPhotos(rows: ActiveBean[]) {
   try {
-    photoUrls.value = await signedUrls(rows.map(bean => bean.photo_path))
+    photoUrls.value = await thumbnailUrls(rows.map(bean => bean.photo_path))
   }
   catch {
     photoUrls.value = new Map()

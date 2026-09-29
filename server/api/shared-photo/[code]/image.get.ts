@@ -1,4 +1,5 @@
-// 豆袋照片本身（server/utils/sharedPhoto.ts）。簽章、到期、代碼任何一關沒過都是 404，不分原因。
+// 豆袋照片本身（server/utils/sharedPhoto.ts）。v=thumb 是縮圖（沒有縮圖檔時退回原圖），v=full 是原圖。
+// 簽章、版本、到期、代碼任何一關沒過都是 404，不分原因。
 
 import { loadSharedPhoto } from '../../../utils/sharedPhoto'
 import { sharedPhotoSecret, sharedPhotoStore } from '../../../utils/sharedPhotoStore'
@@ -13,7 +14,8 @@ export default defineEventHandler(async (event) => {
   }
   setResponseHeaders(event, {
     'Content-Type': file.type,
-    // private：只存在看的人自己的瀏覽器，CDN 不留。效期不超過網址本身
+    // private：只存在看的人自己的瀏覽器，CDN 不留。效期與網址到期時間一致。
+    // 代價：分享者在這段時間內換了照片，已經看過的人要等快取到期才看到新的那張（最多 1 小時 15 分）
     'Cache-Control': `private, max-age=${file.maxAge}`,
     'X-Content-Type-Options': 'nosniff',
     // 圖片不需要執行任何東西；萬一被當成文件直接打開，也什麼都載不進來

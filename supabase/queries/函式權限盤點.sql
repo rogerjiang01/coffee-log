@@ -38,7 +38,7 @@ with known(name, source) as (values
   ('handle_new_user',    'migration：20260831160400_profiles.sql'),
   ('set_updated_at',     'migration：20260831170100_updated_at_triggers.sql'),
   ('rls_auto_enable',    '後台：Authentication → Auto-enable RLS for new tables（event trigger ensure_rls）'),
-  ('get_shared_brew',    'migration：20260923110000_brew_shares.sql'),
+  ('get_shared_brew',    'migration：20260930100000_shared_brew_has_photo.sql'),
   ('create_brew_share',  'migration：20260923120000_brew_shares_send_model.sql'),
   ('get_shared_bean_photo_path', 'migration：20260929100000_shared_bean_photo.sql')
 ),

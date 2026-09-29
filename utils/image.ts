@@ -2,6 +2,8 @@
 // 依《01-資料庫規格》§7 與《03-介面規範》§8：長邊 1600px、品質 0.8、
 // 轉 WebP、單檔上限 2MB。壓縮在上傳前完成，避免手機原圖直接進 Storage。
 
+import { thumbSize } from './beanPhoto.ts'
+
 const MAX_EDGE = 1600
 const QUALITY = 0.8
 const MAX_BYTES = 2 * 1024 * 1024
@@ -15,6 +17,29 @@ export interface CompressedImage {
 
 function toBlob(canvas: HTMLCanvasElement, type: string, quality: number) {
   return new Promise<Blob | null>(resolve => canvas.toBlob(resolve, type, quality))
+}
+
+/** WebP 優先。少數瀏覽器（Safari）不支援 WebP 編碼，toBlob 會回 null 或退回 png，此時改用 JPEG */
+async function encode(canvas: HTMLCanvasElement) {
+  let blob = await toBlob(canvas, 'image/webp', QUALITY)
+  let ext = 'webp'
+  if (!blob || blob.type !== 'image/webp') {
+    blob = await toBlob(canvas, 'image/jpeg', QUALITY)
+    ext = 'jpg'
+  }
+  if (!blob) throw new Error('圖片轉檔沒有成功')
+  return { blob, ext }
+}
+
+function drawScaled(bitmap: ImageBitmap, width: number, height: number) {
+  const canvas = document.createElement('canvas')
+  canvas.width = width
+  canvas.height = height
+  const ctx = canvas.getContext('2d')
+  if (!ctx) throw new Error('這台裝置無法處理圖片')
+  ctx.imageSmoothingQuality = 'high'
+  ctx.drawImage(bitmap, 0, 0, width, height)
+  return canvas
 }
 
 /**
@@ -32,22 +57,12 @@ export async function compressBeanPhoto(file: Blob): Promise<CompressedImage> {
   const width = Math.max(1, Math.round(bitmap.width * scale))
   const height = Math.max(1, Math.round(bitmap.height * scale))
 
-  const canvas = document.createElement('canvas')
-  canvas.width = width
-  canvas.height = height
-  const ctx = canvas.getContext('2d')
-  if (!ctx) throw new Error('這台裝置無法處理圖片')
-  ctx.drawImage(bitmap, 0, 0, width, height)
+  const canvas = drawScaled(bitmap, width, height)
   bitmap.close?.()
 
-  // 少數瀏覽器不支援 WebP 編碼，toBlob 會回 null 或退回 png，此時改用 JPEG
-  let blob = await toBlob(canvas, 'image/webp', QUALITY)
-  let ext = 'webp'
-  if (!blob || blob.type !== 'image/webp') {
-    blob = await toBlob(canvas, 'image/jpeg', QUALITY)
-    ext = 'jpg'
-  }
-  if (!blob) throw new Error('圖片轉檔沒有成功')
+  const encoded = await encode(canvas)
+  let blob = encoded.blob
+  const ext = encoded.ext
 
   // 極端情況（例如超大尺寸的照片牆）再降一次品質
   if (blob.size > MAX_BYTES) {
@@ -58,5 +73,18 @@ export async function compressBeanPhoto(file: Blob): Promise<CompressedImage> {
     throw new Error('這張照片壓縮後仍超過 2MB，請換一張或先裁切')
   }
 
+  return { blob, ext, width, height }
+}
+
+/**
+ * 縮圖（utils/beanPhoto.ts）：從壓縮過的原圖再縮一次，長邊 THUMB_MAX_EDGE。
+ * 格式規則與原圖相同（WebP 優先，不支援時 JPEG）
+ */
+export async function makeBeanThumbnail(source: Blob): Promise<CompressedImage> {
+  const bitmap = await createImageBitmap(source)
+  const { width, height } = thumbSize(bitmap.width, bitmap.height)
+  const canvas = drawScaled(bitmap, width, height)
+  bitmap.close?.()
+  const { blob, ext } = await encode(canvas)
   return { blob, ext, width, height }
 }

@@ -88,7 +88,7 @@ export default function run() {
   r.check(/pad\(d\.getMonth\(\) \+ 1\)\}\/\$\{pad\(d\.getDate\(\)\)\}/.test(panel), '日期格式與時間軸相同')
   r.check(/<img\s+v-if="photoUrl"/.test(panel) && !/v-else[^>]*size-24/.test(panel), '沒有照片時不放縮圖、不留空框')
   r.check(/class="size-24 shrink-0[^"]*object-cover"/.test(panel), '縮圖 96×96（同豆子列表的規格）')
-  r.check(/signedUrl\(props\.photoPath\)/.test(panel), '照片網址走 useBeanPhotos 的快取')
+  r.check(/thumbnailUrl\(props\.photoPath\)/.test(panel), '照片用縮圖，網址走 useBeanPhotos 的快取')
   r.check(/<fieldset v-if="hasNotes"/.test(panel) && /<legend class="text-sm text-muted">選項<\/legend>/.test(panel),
     '沒有心得時「選項」整組不出現；小標是分組標題樣式')
   r.check(/type="checkbox"/.test(panel) && /分享心得筆記/.test(panel) && !/<ToggleSwitch/.test(panel),

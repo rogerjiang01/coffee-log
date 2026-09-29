@@ -44,6 +44,22 @@ interface EquipmentNameRow {
 }
 
 const brew = ref<BrewDetail | null>(null)
+
+// 豆袋照片：縮圖與原圖一次要（useBeanPhotos 的簽名網址快取，不經過分享的轉送）。
+// 有 photo_path 時縮圖的位置一開始就留好，網址晚到也不跳動（PhotoZoom）
+const { photoUrls } = useBeanPhotos()
+const photo = ref<{ thumb: string, full: string } | null>(null)
+const photoFailed = ref(false)
+watch(() => brew.value?.beans?.photo_path ?? null, async (path) => {
+  photo.value = null
+  photoFailed.value = false
+  if (!path) return
+  const urls = await photoUrls(path).catch(() => null)
+  // 要的途中換了一筆（或照片被移除）：這個結果已經不是現在這張
+  if ((brew.value?.beans?.photo_path ?? null) !== path) return
+  if (urls) photo.value = urls
+  else photoFailed.value = true
+}, { immediate: true })
 const steps = ref<StepInput[]>([])
 // 差異計算吃的是原始列（含 step_index），介面用的是轉換後的 StepInput，兩者分開留著
 const rawSteps = ref<StepRow[]>([])
@@ -292,30 +308,42 @@ async function destroy() {
           :photo-path="brew.beans?.photo_path ?? null"
         />
       </div>
-      <p class="mt-1 text-sm tabular-nums text-muted">{{ formatDate(brew.brewed_at) }}</p>
-      <!-- 評分與收藏是兩個獨立欄位，分開顯示 -->
-      <div v-if="brew.rating !== null || brew.is_favorite" class="mt-3 flex items-center gap-3">
-        <span v-if="brew.rating !== null" class="flex" :aria-label="`評分 ${brew.rating} 顆星`">
-          <svg
-            v-for="level in 5" :key="level"
-            width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"
-            stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"
-            :fill="brew.rating >= level ? 'var(--favorite)' : 'transparent'"
-            :stroke="brew.rating >= level ? 'var(--favorite)' : 'var(--control-empty)'"
-          >
-            <path d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.123 2.123 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.123 2.123 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.122 2.122 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.122 2.122 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.122 2.122 0 0 0 1.597-1.16z" />
-          </svg>
-        </span>
-        <span v-if="brew.is_favorite" class="flex items-center gap-1 text-sm" :style="{ color: 'var(--favorite)' }">
-          <svg
-            width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"
-            fill="var(--favorite)" stroke="var(--favorite)"
-            stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
-          >
-            <path d="M2 9.5a5.5 5.5 0 0 1 9.591-3.676.56.56 0 0 0 .818 0A5.49 5.49 0 0 1 22 9.5c0 2.29-1.5 4-3 5.5l-5.492 5.313a2 2 0 0 1-3 .019L5 15c-1.5-1.5-3-3.2-3-5.5" />
-          </svg>
-          收藏
-        </span>
+      <!-- 日期與星等在左、豆袋照片在右，垂直置中，與分享頁同一個版面（《03》§4.14）。
+           標題列不動、維持全寬；沒有照片時只剩左邊一欄 -->
+      <div class="mt-1 flex items-center gap-4">
+        <div class="min-w-0 flex-1">
+          <p class="text-sm tabular-nums text-muted">{{ formatDate(brew.brewed_at) }}</p>
+          <!-- 評分與收藏是兩個獨立欄位，分開顯示 -->
+          <div v-if="brew.rating !== null || brew.is_favorite" class="mt-3 flex items-center gap-3">
+            <span v-if="brew.rating !== null" class="flex" :aria-label="`評分 ${brew.rating} 顆星`">
+              <svg
+                v-for="level in 5" :key="level"
+                width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"
+                stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"
+                :fill="brew.rating >= level ? 'var(--favorite)' : 'transparent'"
+                :stroke="brew.rating >= level ? 'var(--favorite)' : 'var(--control-empty)'"
+              >
+                <path d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.123 2.123 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.123 2.123 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.122 2.122 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.122 2.122 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.122 2.122 0 0 0 1.597-1.16z" />
+              </svg>
+            </span>
+            <span v-if="brew.is_favorite" class="flex items-center gap-1 text-sm" :style="{ color: 'var(--favorite)' }">
+              <svg
+                width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"
+                fill="var(--favorite)" stroke="var(--favorite)"
+                stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+              >
+                <path d="M2 9.5a5.5 5.5 0 0 1 9.591-3.676.56.56 0 0 0 .818 0A5.49 5.49 0 0 1 22 9.5c0 2.29-1.5 4-3 5.5l-5.492 5.313a2 2 0 0 1-3 .019L5 15c-1.5-1.5-3-3.2-3-5.5" />
+              </svg>
+              收藏
+            </span>
+          </div>
+        </div>
+        <PhotoZoom
+          v-if="brew.beans?.photo_path && !photoFailed"
+          :thumb="photo?.thumb ?? null"
+          :full="photo?.full ?? null"
+          :alt="brew.beans.name"
+        />
       </div>
 
       <dl class="mt-6">

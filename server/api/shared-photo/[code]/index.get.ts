@@ -1,12 +1,12 @@
-// 分享頁要這一次開啟用的豆袋照片網址（server/utils/sharedPhoto.ts）。
-// 回傳 { url }，只有這一個 key：代碼無效、紀錄已刪除、沒有照片，一律 { url: null }，不分原因。
+// 分享頁要豆袋照片的網址（server/utils/sharedPhoto.ts）。
+// 回傳 { thumb, full }，只有這兩個 key：代碼無效、紀錄已刪除、沒有照片，一律兩個都是 null，不分原因。
 
-import { resolveSharedPhotoUrl } from '../../../utils/sharedPhoto'
+import { resolveSharedPhotoUrls } from '../../../utils/sharedPhoto'
 import { sharedPhotoSecret, sharedPhotoStore } from '../../../utils/sharedPhotoStore'
 
 export default defineEventHandler(async (event) => {
-  // 網址每次開啟重新產生，這個回應不能被任何一層快取住
+  // 每次開啟重新簽一次（簽出來的網址在同一段時間內相同，圖片才吃得到快取），這個回應本身不快取
   setResponseHeaders(event, { 'Cache-Control': 'no-store', 'X-Robots-Tag': 'noindex' })
   const code = getRouterParam(event, 'code') ?? ''
-  return resolveSharedPhotoUrl(sharedPhotoStore(event), sharedPhotoSecret(event), code, Date.now() / 1000)
+  return resolveSharedPhotoUrls(sharedPhotoStore(event), sharedPhotoSecret(event), code, Date.now() / 1000)
 })

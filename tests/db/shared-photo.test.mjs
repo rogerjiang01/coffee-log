@@ -11,7 +11,8 @@
 import { createDatabase } from '../helpers/pg.mjs'
 import { createReport } from '../helpers/report.mjs'
 import { generateShareCode } from '../../utils/share.ts'
-import { loadSharedPhoto, resolveSharedPhotoUrl } from '../../server/utils/sharedPhoto.ts'
+import { loadSharedPhoto, resolveSharedPhotoUrls } from '../../server/utils/sharedPhoto.ts'
+import { beanThumbPath } from '../../utils/beanPhoto.ts'
 
 const FN = 'public.get_shared_bean_photo_path(text)'
 
@@ -83,6 +84,19 @@ export default async function run() {
   await pg.exec(`update beans set photo_path = '  ' where id = '${plainBean}'`)
   r.check(await photoPath(noPhoto.code) === null, '路徑是空白字串：當作沒有照片')
 
+  r.section('get_shared_brew 的 has_photo：只有是非值，沒有路徑')
+  const shared = async code => {
+    await asRole('anon')
+    const value = (await pg.rows(`select public.get_shared_brew('${code}') as v`))[0].v
+    await pg.asSuperuser()
+    return value
+  }
+  const sharedWith = await shared(withPhoto.code)
+  r.check(sharedWith.bean.has_photo === true, '豆子有照片：true')
+  r.check((await shared(noPhoto.code)).bean.has_photo === false, '沒有照片（或路徑是空白字串）：false')
+  const text = JSON.stringify(sharedWith)
+  r.check(!text.includes(path) && !text.includes('.webp') && !text.includes(A), '回傳值裡沒有儲存路徑，也沒有 user_id')
+
   r.section('不寫開啟事件（開啟只由 get_shared_brew 記）')
   const count = async () => (await pg.rows(`select count(*)::int n from brew_share_events where event = 'open'`))[0].n
   const before = await count()
@@ -111,40 +125,44 @@ export default async function run() {
   // ── 伺服器端的流程接到這個資料庫上 ──────────────────────────────
   const SECRET = 'test-secret'
   const bytes = new Uint8Array([1, 2, 3])
+  const thumbBytes = new Uint8Array([4])
   const store = {
     photoPath: code => photoPath(code),
-    download: async p => (p === path ? { bytes, type: 'image/webp' } : null),
+    download: async p => (p === path ? { bytes, type: 'image/webp' } : p === beanThumbPath(path) ? { bytes: thumbBytes, type: 'image/webp' } : null),
   }
   const now = 1_790_000_000
   const params = url => Object.fromEntries(new URL(url, 'https://x.test').searchParams)
+  const noLeak = url => typeof url === 'string' && !url.includes(A) && !url.includes(bean) && !url.includes('.webp') && !url.includes('.thumb')
 
   r.section('從頭到尾：有效的分享')
-  const { url } = await resolveSharedPhotoUrl(store, SECRET, withPhoto.code, now)
-  r.check(typeof url === 'string' && !url.includes(A) && !url.includes(bean) && !url.includes('.webp'),
-    '網址裡沒有儲存路徑、user_id、bean_id')
-  r.check((await loadSharedPhoto(store, SECRET, withPhoto.code, params(url), now + 1))?.bytes === bytes, '拿得到圖片')
+  const urls = await resolveSharedPhotoUrls(store, SECRET, withPhoto.code, now)
+  r.check(noLeak(urls.thumb) && noLeak(urls.full), '縮圖與原圖的網址裡都沒有儲存路徑、user_id、bean_id')
+  r.check((await loadSharedPhoto(store, SECRET, withPhoto.code, params(urls.thumb), now + 1))?.bytes === thumbBytes, '縮圖網址拿到縮圖')
+  r.check((await loadSharedPhoto(store, SECRET, withPhoto.code, params(urls.full), now + 1))?.bytes === bytes, '原圖網址拿到原圖')
 
   r.section('從頭到尾：無效的代碼')
   const fake = generateShareCode()
-  r.check((await resolveSharedPhotoUrl(store, SECRET, fake, now)).url === null, '不存在的代碼：拿不到網址')
-  r.check(await loadSharedPhoto(store, SECRET, fake, params(url), now + 1) === null, '拿別人的簽章配不存在的代碼：拿不到圖片')
+  const fakeUrls = await resolveSharedPhotoUrls(store, SECRET, fake, now)
+  r.check(fakeUrls.thumb === null && fakeUrls.full === null, '不存在的代碼：拿不到網址')
+  r.check(await loadSharedPhoto(store, SECRET, fake, params(urls.thumb), now + 1) === null, '拿別人的簽章配不存在的代碼：拿不到圖片')
 
   r.section('從頭到尾：網址發出去之後，紀錄被刪除')
   await pg.as(A)
   await pg.exec(`delete from brews where id = '${withPhoto.brew}'`)
   await pg.asSuperuser()
-  r.check(await loadSharedPhoto(store, SECRET, withPhoto.code, params(url), now + 1) === null,
-    '網址還沒過期，但拿不到圖片')
-  r.check((await resolveSharedPhotoUrl(store, SECRET, withPhoto.code, now + 2)).url === null, '重新開啟：拿不到網址')
+  r.check(await loadSharedPhoto(store, SECRET, withPhoto.code, params(urls.thumb), now + 1) === null
+    && await loadSharedPhoto(store, SECRET, withPhoto.code, params(urls.full), now + 1) === null,
+  '網址還沒過期，但縮圖與原圖都拿不到')
+  r.check((await resolveSharedPhotoUrls(store, SECRET, withPhoto.code, now + 2)).thumb === null, '重新開啟：拿不到網址')
 
   r.section('從頭到尾：豆子被刪除（紀錄跟著 cascade）')
   const other = await share(bean)
-  const second = await resolveSharedPhotoUrl(store, SECRET, other.code, now)
-  r.check(second.url !== null, '前提：刪除之前拿得到')
+  const second = await resolveSharedPhotoUrls(store, SECRET, other.code, now)
+  r.check(second.thumb !== null, '前提：刪除之前拿得到')
   await pg.as(A)
   await pg.exec(`delete from beans where id = '${bean}'`)
   await pg.asSuperuser()
-  r.check(await loadSharedPhoto(store, SECRET, other.code, params(second.url), now + 1) === null, '刪除之後拿不到圖片')
+  r.check(await loadSharedPhoto(store, SECRET, other.code, params(second.thumb), now + 1) === null, '刪除之後拿不到圖片')
 
   await pg.close()
   return r.finish()
