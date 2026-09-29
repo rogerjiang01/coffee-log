@@ -3,14 +3,10 @@
 
 import { resolveSharedPhotoUrls } from '../../../utils/sharedPhoto'
 import { sharedPhotoSecret, sharedPhotoStore } from '../../../utils/sharedPhotoStore'
-import { startTiming } from '../../../utils/tempTiming' // TEMP-TIMING
 
 export default defineEventHandler(async (event) => {
   // 每次開啟重新簽一次（簽出來的網址在同一段時間內相同，圖片才吃得到快取），這個回應本身不快取
   setResponseHeaders(event, { 'Cache-Control': 'no-store', 'X-Robots-Tag': 'noindex' })
   const code = getRouterParam(event, 'code') ?? ''
-  const timing = startTiming(event, 'photo-urls') // TEMP-TIMING
-  const result = await resolveSharedPhotoUrls(sharedPhotoStore(event), sharedPhotoSecret(event), code, Date.now() / 1000)
-  timing.finish() // TEMP-TIMING
-  return result
+  return resolveSharedPhotoUrls(sharedPhotoStore(event), sharedPhotoSecret(event), code, Date.now() / 1000)
 })
