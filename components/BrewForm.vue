@@ -15,6 +15,11 @@ const props = defineProps<{
   error?: string
   /** 自動暫存的 key。沒給就不做暫存。 */
   draftKey?: string
+  /**
+   * 帶入常用器材（utils/defaultEquipment.ts）。新增（空白、指定豆子）才給；
+   * 複製沿用來源那一筆、編輯不覆蓋當初的選擇，都不給
+   */
+  defaultEquipment?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -116,8 +121,9 @@ const beanError = ref('')
 const doseError = ref('')
 const summaryError = ref('')
 
-// 器材：新增時各類型的常用器材自動帶入
+// 器材：新增時各類型的常用器材自動帶入（規則見 utils/defaultEquipment.ts）
 const equipment = ref<UserEquipmentRow[]>([])
+const defaultEquipment = createDefaultEquipment({ enabled: props.defaultEquipment === true, values })
 const methods = ref<{ id: string; name: string }[]>([])
 
 // 欄位與排序都走 utils/equipment.ts 的共用定義：這個查詢與器材管理頁
@@ -175,17 +181,8 @@ async function loadLookups() {
     cache.swr(cacheKeys.lookup('brew_methods'), fetchMethods, { apply: applyMethods }).settled,
   ])
 
-  // 只在新增（沒有初始值）時帶入常用器材，編輯既有紀錄不覆蓋使用者當初的選擇
-  if (!props.initial) {
-    for (const item of equipment.value) {
-      if (!item.is_default) continue
-      if (item.type === 'grinder' && !values.grinder_id) values.grinder_id = item.id
-      if (item.type === 'dripper' && !values.dripper_id) values.dripper_id = item.id
-      if (item.type === 'kettle' && !values.kettle_id) values.kettle_id = item.id
-      if (item.type === 'filter' && !values.filter_id) values.filter_id = item.id
-      if (item.type === 'server' && !values.server_id) values.server_id = item.id
-    }
-  }
+  // 要不要帶入由頁面決定，不看有沒有初始值：指定豆子新增有初始值（豆子），器材仍要帶入
+  defaultEquipment.apply(equipment.value)
 }
 
 const selectedGrinder = computed(() =>
@@ -354,6 +351,8 @@ const draft = draftStorageKey
         duration: interactionTime.snapshot(),
       }),
       restore: (data) => {
+        // 以暫存內容為準：器材清單晚到也不再帶入常用器材，暫存裡沒選的欄位維持沒選
+        defaultEquipment.draftRestored()
         // 接著累積，不是從零開始。放在 writeBack 外面：它與表單狀態無關
         if (data.duration) interactionTime.carryOver(data.duration)
         writeBack(() => {

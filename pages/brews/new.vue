@@ -49,6 +49,7 @@ onMounted(async () => {
   const copyId = typeof route.query.copy === 'string' ? route.query.copy : null
 
   if (!copyId) {
+    // 只帶豆子。常用器材由表單帶入（下面的 default-equipment），不靠「沒有初始值」
     if (beanId) initial.value = { bean_id: beanId }
     ready.value = true
     return
@@ -245,6 +246,7 @@ async function onSubmit(payload: {
         :draft-key="draftKey"
         :initial="initial"
         :initial-steps="initialSteps"
+        :default-equipment="!copiedFrom"
         submit-label="儲存"
         :busy="saving"
         :error="error"

@@ -267,8 +267,10 @@ async function create() {
       :style="{ minHeight: 'var(--touch-min)' }"
       @click="toggle"
     >
+      <!-- 豆子是必填（《02》§0），不寫「選填」：那是選填欄位還沒選時的字，
+           與標籤上的 * 互相矛盾（tests/unit/required-placeholder.test.mjs） -->
       <span :style="{ color: selected ? 'var(--text)' : 'var(--text-muted)' }">
-        {{ selected?.name ?? '選填' }}
+        {{ selected?.name ?? '選擇豆子' }}
       </span>
       <svg
         width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"
