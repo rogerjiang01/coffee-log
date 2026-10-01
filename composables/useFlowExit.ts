@@ -1,18 +1,36 @@
 /**
- * 離開流程：儲存、刪除之後的跳轉，與流程型畫面的 ‹ 離開（utils/navigation.ts 的 exitMethod）。
+ * 離開流程：儲存、刪除之後的跳轉（utils/navigation.ts 的 exitMethod）。
  * 表單頁不留在 history 裡——儲存後按返回不會回到表單，刪除後不會看到「找不到」。
  */
 export function useFlowExit() {
-  const router = useRouter()
   const goBack = useHistoryBack()
   return async function exitTo(target: string) {
-    const previous = import.meta.client ? (window.history.state?.back as string | null | undefined) : null
-    if (exitMethod(previous, target) === 'back') {
+    if (exitMethod(previousPage(), target) === 'back') {
       await goBack()
       return
     }
     await navigateTo(target, { replace: true })
   }
+}
+
+/**
+ * 流程型畫面的 ‹ 離開（utils/navigation.ts 的 leaveMethod）：站內有上一頁就退回上一頁，
+ * 沒有才取代成 fallback。direct 是編輯頁找不到那一筆時用的，不看上一頁。
+ */
+export function useFlowLeave() {
+  const goBack = useHistoryBack()
+  return async function leaveTo(fallback: string, direct = false) {
+    if (leaveMethod(previousPage(), fallback, direct) === 'back') {
+      await goBack()
+      return
+    }
+    await navigateTo(fallback, { replace: true })
+  }
+}
+
+/** 路由器記在 history.state.back 的站內上一頁；從外部連結直接打開時沒有 */
+function previousPage(): string | null | undefined {
+  return import.meta.client ? (window.history.state?.back as string | null | undefined) : null
 }
 
 /**

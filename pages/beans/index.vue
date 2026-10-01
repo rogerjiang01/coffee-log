@@ -80,7 +80,7 @@ onMounted(load)
 <template>
   <!-- 底部留白避開浮動按鈕，否則最後一筆會被永久遮住；分頁列的高度由 app.vue 讓出 -->
   <main class="mx-auto px-5 pt-10 pb-24" :style="{ maxWidth: 'var(--content-max)' }">
-    <!-- 瀏覽型：頂部只有標題。回首頁是分頁列的事，這裡不放第二個入口 -->
+    <!-- 瀏覽型：頂部只有標題。回總覽是分頁列的事，這裡不放第二個入口 -->
     <PageHeader title="豆子" />
 
     <p v-if="loadError" role="alert" class="mt-4 text-sm" :style="{ color: 'var(--danger)' }">

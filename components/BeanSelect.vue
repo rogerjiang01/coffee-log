@@ -240,7 +240,7 @@ async function create() {
   draftPhoto.value = null
   photoNotice.value = ''
   beans.value = [created, ...beans.value]
-  // 就地新增的豆子要出現在豆子列表與首頁上區
+  // 就地新增的豆子要出現在豆子列表與總覽的沖煮中的豆子
   cache.invalidateAfter({ kind: 'bean' })
   pick(created.id)
 }

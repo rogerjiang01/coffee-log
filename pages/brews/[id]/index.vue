@@ -4,7 +4,7 @@
 // 這階段只做內容顯示：差異區塊與「照這次再沖一次」屬於階段 6。
 // 衍生值在此頁完整顯示，全部即時計算，不存資料庫（§8）。
 //
-// 檢視型畫面（《03》§3）：左上 ‹ 回上一頁（歷史式），分頁列保留，編輯與刪除在內容區。
+// 檢視型畫面（《03》§3）：左上 ‹ 回上一頁（歷史式），分頁列保留（亮「紀錄」），編輯與刪除在內容區。
 
 definePageMeta({ screen: 'view' })
 
@@ -253,17 +253,17 @@ async function destroy() {
     return
   }
   cache.invalidateAfter({ kind: 'brew' })
+  // 回到這筆紀錄原本所在的列表（紀錄分頁）。
   // 不留在 history 裡：刪除後按返回不會看到「找不到」（useFlowExit）
-  await exitTo('/')
+  await exitTo(BREW_BACK_FALLBACK)
 }
 </script>
 
 <template>
   <main class="mx-auto px-5 pt-10 pb-16" :style="{ maxWidth: 'var(--content-max)' }">
     <!-- ‹ 在所有狀態判斷之外：讀取中、讀取失敗、找不到都要看得到。
-         歷史式：回到使用者實際來的地方，沒有上一頁（外部連結直接打開）才回首頁。
-         紀錄沒有自己的列表頁，任何「上一層」都是猜的——從時間軸點進來的人
-         不認為紀錄屬於豆子，‹ 卻帶他到一個沒去過的豆子詳情（《03》§3、BREW_BACK_FALLBACK） -->
+         歷史式：回到使用者實際來的地方（紀錄分頁、豆子的比較表、分享頁的「前往紀錄」），
+         沒有上一頁（外部連結直接打開）才回紀錄分頁（《03》§3、BREW_BACK_FALLBACK） -->
     <PageHeader :back="BREW_BACK_FALLBACK" back-history />
 
     <p v-if="loadError" role="alert" class="mt-4 text-sm" :style="{ color: 'var(--danger)' }">{{ loadError }}</p>
@@ -297,7 +297,15 @@ async function destroy() {
            最右端是分享（《03》§4.13.1）：它自己垂直置中，不跟著對齊基線 -->
       <div class="mt-4 flex items-baseline gap-2">
         <h1 class="min-w-0 font-serif text-2xl font-bold">
-          {{ brew.beans?.name ?? '沒有指定豆子' }}
+          <!-- 豆名通往豆子詳情（《02》§7.2）。連結樣式照《03》：--accent、底線。
+               行內元素的上下內距不影響行高，只把可點範圍加到 44px -->
+          <NuxtLink
+            v-if="brew.beans"
+            :to="`/beans/${brew.beans.id}`"
+            class="py-1.5 underline underline-offset-4"
+            :style="{ color: 'var(--accent)' }"
+          >{{ brew.beans.name }}</NuxtLink>
+          <template v-else>沒有指定豆子</template>
         </h1>
         <SampleBadge v-if="brew.is_sample" />
         <BrewShare

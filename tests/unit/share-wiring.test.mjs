@@ -138,7 +138,7 @@ export default function run() {
   const banner = view.match(/v-if="brew\.is_owner[\s\S]*?<\/div>/)?.[0] ?? ''
   r.check(/text-sm/.test(banner) && !/text-(base|lg|xl)/.test(banner), '本人橫幅用最小一級字（14px）')
   r.check(/>這筆分享已經無法查看</.test(gone) && /<SharedBrewGone v-if="gone" :signed-in="userId !== null"/.test(page), '失效畫面的文案')
-  r.check(/v-if="signedIn"[\s\S]{0,200}回首頁/.test(gone), '失效畫面：登入時才有「回首頁」')
+  r.check(/v-if="signedIn"[\s\S]{0,200}回總覽/.test(gone) && /to="\/"/.test(gone), '失效畫面：登入時才有「回總覽」，目的地是 /')
   r.check(!/<PageHeader|<BackButton/.test(page + view), '沒有 ‹')
   r.check(!/\.rpc\(|useSupabaseClient/.test(view + gone), '內容與失效畫面不碰資料庫，讀取只在頁面做一次')
   r.check(!/NuxtLink[^>]*>\s*手沖咖啡紀錄/.test(page) && /手沖咖啡紀錄/.test(page), '頂部的產品名不是連結')

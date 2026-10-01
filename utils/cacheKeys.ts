@@ -1,7 +1,7 @@
 // 客戶端快取的 key 規則與失效對應。
 //
 // 抽成純函式是刻意的：**失效漏掉一條的後果是使用者看到不一致的畫面，
-// 而那種 bug 極難重現**——存完紀錄回首頁少一筆，重新整理又正常了。
+// 而那種 bug 極難重現**——存完紀錄回到時間軸少一筆，重新整理又正常了。
 // 放在這裡才有辦法用測試把每一條對應關係釘住。
 //
 // key 一律是「命名空間:細節」。同一個命名空間下的東西一起失效，
@@ -10,7 +10,7 @@
 export const cacheKeys = {
   /** 豆子列表頁：含已喝完 */
   beanList: () => 'beans:list',
-  /** 首頁上區：只有未喝完 */
+  /** 總覽的沖煮中的豆子（紀錄分頁的浮動新增按鈕也用）：只有未喝完 */
   beanActive: () => 'beans:active',
   bean: (id: string) => `beans:item:${id}`,
   /** 沖煮表單的豆子選單。欄位與列表頁不同，所以是獨立的 key */
@@ -23,7 +23,7 @@ export const cacheKeys = {
   brewTags: (id: string) => `brews:tags:${id}`,
   /** 某支豆子的全部紀錄。豆子詳情的次數統計與比較表都靠它 */
   brewsByBean: (beanId: string) => `brews:bean:${beanId}`,
-  /** 首頁豆子卡片的沖煮次數與收藏次數 */
+  /** 總覽豆子卡片的沖煮次數與收藏次數 */
   brewCounts: () => 'brews:counts',
 
   equipment: (type: string) => `equipment:${type}`,
@@ -84,9 +84,9 @@ export type Mutation =
  * 詳情頁會顯示錯的養豆天數。
  *
  * **但「已喝完」不必清 `brews:`**：is_finished 沒有被內嵌到任何沖煮查詢，
- * 它只影響豆子列表的分組與首頁上區的收錄。
+ * 它只影響豆子列表的分組與總覽「沖煮中的豆子」的收錄。
  *
- * **已喝完與編輯豆子清一樣的東西**：它同時影響列表的分組、首頁上區
+ * **已喝完與編輯豆子清一樣的東西**：它同時影響列表的分組、總覽「沖煮中的豆子」
  * 的收錄與詳情頁自己的狀態，三個都在 `beans:` 底下。
  */
 export function invalidationsFor(mutation: Mutation): string[] {

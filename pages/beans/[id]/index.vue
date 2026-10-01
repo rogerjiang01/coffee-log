@@ -4,7 +4,7 @@
 // 此頁的重點是該豆子所有沖煮紀錄的並排比較——這是本產品「幫助使用者進步」
 // 的核心價值落點。
 //
-// 檢視型畫面（《03》§3）：左上 ‹ 返回豆子列表，分頁列保留，編輯與刪除在內容區。
+// 檢視型畫面（《03》§3）：左上 ‹ 回上一頁（歷史式），分頁列保留，編輯與刪除在內容區。
 
 definePageMeta({ screen: 'view' })
 
@@ -176,7 +176,7 @@ async function toggleFinished(next: boolean) {
     return
   }
   bean.value.is_finished = next
-  // 影響列表的分組與首頁上區的收錄。不清的話回上一頁還看得到它在「沖煮中」
+  // 影響列表的分組與總覽「沖煮中的豆子」的收錄。不清的話回上一頁還看得到它在「沖煮中」
   cache.invalidateAfter({ kind: 'bean-finished' })
 }
 
@@ -195,15 +195,16 @@ async function destroy() {
   cache.invalidateAfter({ kind: 'bean' })
   if (path) await remove(path)
   // 不留在 history 裡：刪除後按返回不會看到「找不到」（useFlowExit）
-  await exitTo('/beans')
+  await exitTo(BEAN_BACK_FALLBACK)
 }
 </script>
 
 <template>
   <main class="mx-auto px-5 py-10" :style="{ maxWidth: 'var(--content-max)' }">
     <!-- ‹ 在所有狀態判斷之外：讀取中、讀取失敗、找不到都要看得到。
-         返回上一層依內容階層，不依來源：豆子的上一層永遠是豆子列表 -->
-    <PageHeader back="/beans" />
+         歷史式：回到使用者實際來的地方（總覽的沖煮中的豆子、豆子列表、紀錄詳情的豆名），
+         沒有上一頁（外部連結直接打開）才回豆子列表（《03》§3、BEAN_BACK_FALLBACK） -->
+    <PageHeader :back="BEAN_BACK_FALLBACK" back-history />
 
     <p v-if="loadError" role="alert" class="mt-4 text-sm" :style="{ color: 'var(--danger)' }">{{ loadError }}</p>
     <!-- 整頁都讀不到時才給重試；豆子已經顯示（例如只有紀錄讀不到）時，紅字就夠了 -->

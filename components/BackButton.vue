@@ -2,22 +2,24 @@
 // 左上角的 ‹（《03》§3）。icon 封閉清單之一。
 //
 // 同一個圖示，三種去處：
-//   檢視型、階層式（豆子詳情、設定）  「返回」：一般連結，到上一層
-//   檢視型、歷史式（紀錄詳情）        「返回」：回上一頁，沒有上一頁才去 to
-//   流程型（表單）                    「離開」：暫存保留；上一頁就是目的地時退回去，
-//                                              否則取代這一頁——表單不留在 history 裡
+//   檢視型、階層式（設定）                「返回」：一般連結，到上一層
+//   檢視型、歷史式（紀錄詳情、豆子詳情）  「返回」：回上一頁，沒有上一頁才去 to
+//   流程型（表單）                        「離開」：暫存保留；回上一頁，沒有上一頁才取代成 to
+//                                                  ——兩種走法都不把表單留在 history 裡
 // 三者都不丟東西。會丟東西的動作一律用「取消」文字，不用圖示（《04》）。
 
 const props = defineProps<{
-  /** 目的地。歷史式時是沒有上一頁時的 fallback */
+  /** 目的地。歷史式的返回與離開，是沒有上一頁時的 fallback */
   to: string
   label: '返回' | '離開'
-  /** 歷史式：回上一頁 */
+  /** 歷史式的返回：回上一頁 */
   history?: boolean
+  /** 離開時不看上一頁，直接去 to（編輯頁找不到那一筆：上一頁多半是它的詳情） */
+  direct?: boolean
 }>()
 
 const router = useRouter()
-const exitTo = useFlowExit()
+const leaveTo = useFlowLeave()
 const goBack = useHistoryBack()
 const href = computed(() => router.resolve(props.to).href)
 
@@ -26,7 +28,7 @@ function onClick(event: MouseEvent) {
   if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || event.button !== 0) return
   event.preventDefault()
   if (props.label === '離開') {
-    void exitTo(props.to)
+    void leaveTo(props.to, props.direct)
     return
   }
   if (historyBack(window.history.state?.back) === 'back') void goBack()

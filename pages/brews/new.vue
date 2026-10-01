@@ -34,7 +34,8 @@ const entry = {
   bean: typeof route.query.bean === 'string' ? route.query.bean : null,
 }
 const draftKey = newBrewDraftKey(entry)
-// ‹ 離開到哪裡只看網址（utils/navigation.ts）：複製回來源紀錄、指定豆子回那支豆子
+// ‹ 離開：有上一頁就退回上一頁；沒有上一頁時才看網址（utils/navigation.ts）——
+// 複製回來源紀錄、指定豆子回那支豆子、都沒有回總覽
 const leaveTo = newBrewLeaveTarget(entry)
 
 onMounted(async () => {

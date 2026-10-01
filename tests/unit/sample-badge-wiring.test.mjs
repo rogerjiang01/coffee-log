@@ -11,8 +11,8 @@ export default function run() {
   r.section('四個位置都顯示')
   const places = [
     ['components/BeanCard.vue', '豆子卡片（列表）'],
-    ['components/HomeBeanCard.vue', '豆子卡片（首頁橫向）'],
-    ['components/BrewTimelineItem.vue', '紀錄卡片（首頁時間軸）'],
+    ['components/HomeBeanCard.vue', '豆子卡片（總覽橫向）'],
+    ['components/BrewTimelineItem.vue', '紀錄卡片（紀錄分頁的時間軸）'],
     ['pages/equipment/index.vue', '器材卡片'],
     ['pages/beans/[id]/index.vue', '豆子詳情頁'],
     ['pages/brews/[id]/index.vue', '紀錄詳情頁'],
@@ -32,7 +32,8 @@ export default function run() {
   r.section('查詢要把 is_sample 帶回來')
   const queries = [
     ['pages/beans/index.vue', '豆子列表'],
-    ['pages/index.vue', '首頁'],
+    ['composables/useActiveBeans.ts', '總覽（沖煮中的豆子）'],
+    ['pages/brews/index.vue', '紀錄分頁'],
     ['pages/beans/[id]/index.vue', '豆子詳情'],
     ['pages/brews/[id]/index.vue', '紀錄詳情'],
     ['utils/equipment.ts', '器材（共用的欄位定義）'],

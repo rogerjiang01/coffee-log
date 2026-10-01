@@ -53,7 +53,7 @@ function reload() {
         :style="{ background: 'var(--accent)', color: 'var(--on-accent)', minHeight: 'var(--touch-min)' }"
         @click="goHome"
       >
-        回首頁
+        回總覽
       </button>
       <button
         v-if="!notFound"

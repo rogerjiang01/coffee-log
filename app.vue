@@ -46,7 +46,7 @@ const tabBar = computed(() => showsTabBar(route.meta.screen, userId.value !== nu
             :style="{ background: 'var(--accent)', color: 'var(--on-accent)', minHeight: 'var(--touch-min)' }"
             @click="clearError"
           >
-            回首頁
+            回總覽
           </NuxtLink>
           <button
             type="button"

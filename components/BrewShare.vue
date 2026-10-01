@@ -30,7 +30,7 @@ const trigger = ref<HTMLElement | null>(null)
 // 頁面層級的提示送到哪裡：與其他浮層同一套規則（紀錄詳情頁上它會是 body）
 const portalTarget = usePortalTarget(trigger)
 
-// 日期格式與首頁時間軸相同（BrewTimelineItem）
+// 日期格式與紀錄分頁的時間軸相同（BrewTimelineItem）
 const brewDate = computed(() => {
   const d = new Date(props.brewedAt)
   const pad = (n: number) => String(n).padStart(2, '0')

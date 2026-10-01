@@ -107,7 +107,7 @@ export default function run() {
   const photoSites = [
     ['components/PhotoField.vue', '豆子表單與就地新增的預覽'],
     ['components/BeanCard.vue', '豆子列表縮圖'],
-    ['components/HomeBeanCard.vue', '首頁的豆子卡片'],
+    ['components/HomeBeanCard.vue', '總覽的豆子卡片'],
     ['pages/beans/[id]/index.vue', '豆子詳情'],
   ]
   for (const [path, label] of photoSites) {
@@ -118,7 +118,7 @@ export default function run() {
   }
   const home = read('components/HomeBeanCard.vue')
   r.check((home.match(/\bsize-40\b/g) || []).length >= 3,
-    '首頁卡片：照片區、照片、無照片的色塊都是 160×160——有照片與無照片等高')
+    '總覽卡片：照片區、照片、無照片的色塊都是 160×160——有照片與無照片等高')
 
   r.section('層級：沿用 usePortalTarget')
   r.check(/usePortalTarget\(root\)/.test(cropper) && /<Teleport :to="portalTarget">/.test(cropper),

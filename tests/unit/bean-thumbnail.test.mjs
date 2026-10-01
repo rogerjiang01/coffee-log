@@ -41,7 +41,7 @@ export default function run() {
   r.check(beanThumbPath(`${U}/b1.webp`).startsWith(`${U}/`), '縮圖在同一個使用者資料夾：Storage 的 policy 不用改')
 
   r.section('縮圖尺寸')
-  r.check(THUMB_MAX_EDGE === 384, '長邊 384px（160px 的首頁卡片在 2x 螢幕上要 320px）')
+  r.check(THUMB_MAX_EDGE === 384, '長邊 384px（160px 的總覽卡片在 2x 螢幕上要 320px）')
   r.check(JSON.stringify(thumbSize(1600, 1600)) === '{"width":384,"height":384}', '1600×1600 → 384×384')
   r.check(JSON.stringify(thumbSize(1200, 1600)) === '{"width":288,"height":384}', '直式：長邊 384，等比')
   r.check(JSON.stringify(thumbSize(300, 200)) === '{"width":300,"height":200}', '本來就比較小的不放大')

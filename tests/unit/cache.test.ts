@@ -28,12 +28,12 @@ export default function run() {
   r.section('key 的形狀')
   r.check(cacheKeys.bean(BEAN) === 'beans:item:bean-1', '個別豆子')
   r.check(cacheKeys.beanList() === 'beans:list', '豆子列表')
-  r.check(cacheKeys.beanActive() === 'beans:active', '首頁的沖煮中豆子')
+  r.check(cacheKeys.beanActive() === 'beans:active', '總覽的沖煮中豆子')
   r.check(cacheKeys.brewPage(20) === 'brews:page:20', '時間軸分頁帶 range 起點')
   r.check(cacheKeys.brewsByBean(BEAN) === 'brews:bean:bean-1', '某支豆子的全部紀錄')
   r.check(cacheKeys.lookup('varieties') === 'lookup:varieties', '查表')
   r.check(cacheKeys.beanList() !== cacheKeys.beanActive(),
-    '列表與首頁上區是兩個 key——查詢條件不同（後者只取未喝完）')
+    '列表與總覽的沖煮中豆子是兩個 key——查詢條件不同（後者只取未喝完）')
 
   r.section('前綴比對')
   r.check(matchesPattern('brews:item:x', 'brews:*'), '星號結尾是前綴')
@@ -44,7 +44,7 @@ export default function run() {
   // ── 沖煮紀錄 ────────────────────────────────────────────
   r.section('新增／編輯／刪除沖煮紀錄')
   const brew = { kind: 'brew' } as const
-  r.check(cleared(cacheKeys.brewPage(0), brew), '首頁時間軸第一頁')
+  r.check(cleared(cacheKeys.brewPage(0), brew), '紀錄分頁時間軸第一頁')
   r.check(cleared(cacheKeys.brewPage(20), brew), '時間軸的其他頁也要清，不然接下來會接到舊資料')
   r.check(cleared(cacheKeys.brewsByBean(BEAN), brew), '該豆子的紀錄列表')
   r.check(cleared(cacheKeys.brewsByBean(OTHER_BEAN), brew),
@@ -65,7 +65,7 @@ export default function run() {
   r.section('新增／編輯豆子')
   const bean = { kind: 'bean' } as const
   r.check(cleared(cacheKeys.beanList(), bean), '豆子列表')
-  r.check(cleared(cacheKeys.beanActive(), bean), '首頁的沖煮中豆子區')
+  r.check(cleared(cacheKeys.beanActive(), bean), '總覽的沖煮中豆子區')
   r.check(cleared(cacheKeys.bean(BEAN), bean), '該豆子詳情')
   r.check(cleared(cacheKeys.beanOptions(), bean), '沖煮表單的豆子選單')
   // 豆子的欄位被內嵌在沖煮查詢裡：時間軸帶 beans(name)，
@@ -84,7 +84,7 @@ export default function run() {
   r.section('標記已喝完')
   const finished = { kind: 'bean-finished' } as const
   r.check(cleared(cacheKeys.beanList(), finished), '豆子列表的分組（未喝完在前）')
-  r.check(cleared(cacheKeys.beanActive(), finished), '首頁的沖煮中豆子區要把它移掉')
+  r.check(cleared(cacheKeys.beanActive(), finished), '總覽的沖煮中豆子區要把它移掉')
   r.check(cleared(cacheKeys.bean(BEAN), finished), '詳情頁自己的開關狀態')
   r.check(cleared(cacheKeys.beanOptions(), finished), '豆子選單的分組（已喝完排後面）')
   r.check(!cleared(cacheKeys.brewPage(0), finished),

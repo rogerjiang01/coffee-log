@@ -72,7 +72,7 @@ async function onSubmit({ values, photo }: { values: BeanFormValues; photo: Comp
   }
 
   form.value?.clearDraft()
-  // 新的豆子要出現在列表與首頁上區
+  // 新的豆子要出現在列表與總覽的沖煮中的豆子
   cache.invalidateAfter({ kind: 'bean' })
   // 取代表單那一筆：儲存後按返回不會回到表單（useFlowExit）
   await exitTo(`/beans/${beanId}`)

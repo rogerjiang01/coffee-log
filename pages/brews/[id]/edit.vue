@@ -196,11 +196,13 @@ async function onSubmit(payload: {
 <template>
   <main class="mx-auto px-5 pt-10 pb-16" :style="{ maxWidth: 'var(--content-max)' }">
     <!-- ‹ 在所有狀態判斷之外。它是「離開」不是「取消」：暫存留著，回來還在（《04》）。
-         找不到這一筆時回首頁（紀錄出現的地方）——回到它的詳情頁只會再看到一次「找不到」 -->
+         有上一頁就退回上一頁，沒有才去那筆紀錄。
+         找不到這一筆時直接去紀錄分頁，不看上一頁——回到它的詳情頁只會再看到一次「找不到」 -->
     <PageHeader
       :title="view === 'notFound' ? '找不到這筆紀錄' : '編輯紀錄'"
       :back="view === 'notFound' ? BREW_BACK_FALLBACK : `/brews/${id}`"
       back-label="離開"
+      :back-direct="view === 'notFound'"
     />
 
     <template v-if="view !== 'notFound'">

@@ -1,177 +1,30 @@
 <script setup lang="ts">
-// 首頁（《02-功能規格》§4）。
+// 總覽（《02-功能規格》§4）。
 //
-// **首頁不是「新增入口」，是「查閱起點」。** 兩種使用情境都是先看既有紀錄，
-// 不是從零開始填表。上下兩區並存，不做視角切換——切換器會把決策成本
-// 丟給使用者，而兩區並存已經同時滿足兩種需求。
+// 首頁改版的第一階段只改導覽結構：這一頁目前只有「沖煮中的豆子」。
+// 看板內容（目標環、總記錄數）在後續階段加入；時間軸已經搬到紀錄分頁（pages/brews/index.vue）。
+//
+// **沒有空狀態**（《02》§9）：沒有未喝完的豆子時只剩標題、齒輪與浮動新增按鈕，
+// 不放任何佔位文字。
 
 definePageMeta({ screen: 'browse' })
 
 const supabase = useSupabaseClient()
 const { thumbnailUrls } = useBeanPhotos()
-
-const PAGE_SIZE = 20
-
-interface ActiveBean {
-  id: string
-  name: string
-  photo_path: string | null
-  roast_date: string | null
-  roast_level: RoastLevel | null
-  is_sample: boolean
-}
-
-interface TimelineEntry {
-  id: string
-  brewedAt: string
-  beanName: string | null
-  dose: number | null
-  waterTemp: number | null
-  grindSetting: number | null
-  isFavorite: boolean
-  isSample: boolean
-  totalWater: number | null
-  diffs: BrewDiff[]
-}
+const fetchActiveBeans = useActiveBeans()
 
 const beans = ref<ActiveBean[]>([])
 const photoUrls = ref<Map<string, string>>(new Map())
 const brewCounts = ref<Map<string, number>>(new Map())
 const favoriteCounts = ref<Map<string, number>>(new Map())
-const timeline = ref<TimelineEntry[]>([])
-const hasMore = ref(false)
 const loading = ref(true)
-const loadingMore = ref(false)
 const loadError = ref('')
 
-// 一筆紀錄要算差異，需要它自己與來源的參數、器材名稱與分段
-const BREW_SELECT = `
-  id, brewed_at, dose, water_temp, grind_setting, total_time, is_favorite, is_sample, copied_from_brew_id,
-  brew_method_id, grinder_id, dripper_id, kettle_id,
-  beans ( name ),
-  brew_methods ( name ),
-  grinder:grinder_id ( custom_name, equipment_catalog ( brand, model, variant ) ),
-  dripper:dripper_id ( custom_name, equipment_catalog ( brand, model, variant ) ),
-  kettle:kettle_id ( custom_name, equipment_catalog ( brand, model, variant ) )
-`
-
-type BrewRow = Record<string, unknown>
-
-function toSubject(row: BrewRow, steps: StepRow[]): DiffSubject {
-  const equipmentName = (value: unknown) =>
-    value ? equipmentOptionName(value as { custom_name: string | null, equipment_catalog: { brand: string, model: string, variant: string | null } | null }) : null
-  return {
-    dose: (row.dose as number | null) ?? null,
-    water_temp: (row.water_temp as number | null) ?? null,
-    grind_setting: (row.grind_setting as number | null) ?? null,
-    total_time: (row.total_time as number | null) ?? null,
-    grinder_id: (row.grinder_id as string | null) ?? null,
-    dripper_id: (row.dripper_id as string | null) ?? null,
-    kettle_id: (row.kettle_id as string | null) ?? null,
-    brew_method_id: (row.brew_method_id as string | null) ?? null,
-    grinderName: equipmentName(row.grinder),
-    dripperName: equipmentName(row.dripper),
-    kettleName: equipmentName(row.kettle),
-    methodName: (row.brew_methods as { name: string } | null)?.name ?? null,
-    steps,
-  }
-}
-
-/**
- * 先把一頁紀錄變成時間軸項目。
- *
- * 差異與總水量都還沒有——它們需要來源紀錄與分段，那是另一趟來回。
- * 列表先畫出來，那兩樣稍後補上：使用者要看的「哪天沖了哪支豆子」
- * 在第一趟就已經到手，沒有理由陪著差異一起等。
- */
-function toEntries(rows: BrewRow[]): TimelineEntry[] {
-  return rows.map(row => ({
-    id: row.id as string,
-    brewedAt: row.brewed_at as string,
-    beanName: (row.beans as { name: string } | null)?.name ?? null,
-    dose: (row.dose as number | null) ?? null,
-    waterTemp: (row.water_temp as number | null) ?? null,
-    grindSetting: (row.grind_setting as number | null) ?? null,
-    isFavorite: (row.is_favorite as boolean | null) ?? false,
-    isSample: (row.is_sample as boolean | null) ?? false,
-    totalWater: null,
-    diffs: [],
-  }))
-}
-
-/** 補上總水量與差異。就地改寫已經在畫面上的項目，不重排列表。 */
-async function enrichEntries(rows: BrewRow[]) {
-  if (!rows.length) return
-  const sourceIds = [...new Set(
-    rows.map(row => row.copied_from_brew_id as string | null).filter((id): id is string => !!id),
-  )]
-
-  // 來源紀錄與所有分段各用一次查詢取回，不要每筆各查一次
-  const [sourceResult, stepResult] = await Promise.all([
-    sourceIds.length
-      ? supabase.from('brews').select(BREW_SELECT).in('id', sourceIds)
-      : Promise.resolve({ data: [] }),
-    supabase
-      .from('brew_steps')
-      .select('brew_id, step_index, hold_seconds, cumulative_water, step_type, note')
-      .in('brew_id', [...rows.map(row => row.id as string), ...sourceIds])
-      .order('step_index'),
-  ])
-
-  const sources = new Map(
-    ((sourceResult.data ?? []) as unknown as BrewRow[]).map(row => [row.id as string, row]),
-  )
-  const stepsByBrew = new Map<string, StepRow[]>()
-  for (const row of (stepResult.data ?? []) as unknown as (StepRow & { brew_id: string })[]) {
-    if (!stepsByBrew.has(row.brew_id)) stepsByBrew.set(row.brew_id, [])
-    stepsByBrew.get(row.brew_id)!.push(row)
-  }
-
-  const byId = new Map(timeline.value.map(entry => [entry.id, entry]))
-  for (const row of rows) {
-    const id = row.id as string
-    const entry = byId.get(id)
-    if (!entry) continue
-    const ownSteps = stepsByBrew.get(id) ?? []
-    const sourceId = row.copied_from_brew_id as string | null
-    const source = sourceId ? sources.get(sourceId) : undefined
-
-    entry.totalWater = ownSteps.length
-      ? Math.max(...ownSteps.map(step => Number(step.cumulative_water)))
-      : null
-    entry.diffs = source
-      ? computeBrewDiff(toSubject(row, ownSteps), toSubject(source, stepsByBrew.get(sourceId!) ?? []))
-      : []
-  }
-}
-
 const cache = useQueryCache()
-
-async function fetchActiveBeans() {
-  const { data, error } = await supabase
-    .from('beans')
-    .select('id, name, photo_path, roast_date, roast_level, is_sample')
-    .eq('is_finished', false)
-    .order('created_at', { ascending: false })
-    .order('id', { ascending: false })
-  if (error) throw toError(error)
-  return (data ?? []) as unknown as ActiveBean[]
-}
 
 async function fetchCounts() {
   const { data } = await supabase.from('brews').select('bean_id, is_favorite')
   return (data ?? []) as unknown as { bean_id: string, is_favorite: boolean }[]
-}
-
-async function fetchBrewPage(from: number) {
-  const { data, error } = await supabase
-    .from('brews')
-    .select(BREW_SELECT)
-    .order('brewed_at', { ascending: false })
-    .order('id', { ascending: false })
-    .range(from, from + PAGE_SIZE - 1)
-  if (error) throw toError(error)
-  return (data ?? []) as unknown as BrewRow[]
 }
 
 function applyBeans(rows: ActiveBean[]) {
@@ -210,50 +63,23 @@ async function load() {
     onError: (e) => { loadError.value = `讀不到資料：${errorText(e)}` },
   })
   const countQuery = cache.swr(cacheKeys.brewCounts(), fetchCounts, { apply: applyCounts })
-  const pageQuery = cache.swr(cacheKeys.brewPage(0), () => fetchBrewPage(0), {
-    apply: (rows) => {
-      timeline.value = toEntries(rows)
-      hasMore.value = rows.length === PAGE_SIZE
-      // 差異與總水量需要另一趟來回，不擋這一頁
-      void enrichEntries(rows).catch(e => console.warn('[home] 差異算不出來', e))
-    },
-    onError: (e) => { loadError.value = `讀不到資料：${errorText(e)}` },
-  })
 
-  // 三個都命中才算完全命中：任何一個要等，就先給骨架
-  loading.value = !(beanQuery.hit && countQuery.hit && pageQuery.hit)
-  await Promise.all([beanQuery.settled, countQuery.settled, pageQuery.settled])
+  // 兩個都命中才算完全命中：任何一個要等，就先給骨架
+  loading.value = !(beanQuery.hit && countQuery.hit)
+  await Promise.all([beanQuery.settled, countQuery.settled])
   loading.value = false
-}
-
-async function loadMore() {
-  loadingMore.value = true
-  const from = timeline.value.length
-  await cache.swr(cacheKeys.brewPage(from), () => fetchBrewPage(from), {
-    apply: (rows) => {
-      timeline.value = [...timeline.value, ...toEntries(rows)]
-      hasMore.value = rows.length === PAGE_SIZE
-      void enrichEntries(rows).catch(e => console.warn('[home] 差異算不出來', e))
-    },
-    onError: (e) => { loadError.value = `讀不到更多紀錄：${errorText(e)}` },
-  }).settled
-  loadingMore.value = false
 }
 
 onMounted(load)
 
-const isEmpty = computed(() => !loading.value && !loadError.value && !beans.value.length && !timeline.value.length)
-
-// 只有一支未喝完的豆子時直接帶入，少一步選擇
-const newBrewLink = computed(() =>
-  beans.value.length === 1 ? `/brews/new?bean=${beans.value[0]!.id}` : '/brews/new',
-)
+// 只有一支未喝完的豆子時直接帶入，少一步選擇。紀錄分頁的按鈕是同一條規則（utils/navigation.ts）
+const newBrewLink = computed(() => newBrewEntry(beans.value))
 </script>
 
 <template>
   <!-- 底部留白避開浮動按鈕；分頁列的高度由 app.vue 讓出 -->
   <main class="mx-auto px-5 pt-10 pb-24" :style="{ maxWidth: 'var(--content-max)' }">
-    <PageHeader title="手沖咖啡紀錄">
+    <PageHeader title="總覽">
       <template #end>
         <!-- 設定只從這裡進（《03》§3）。icon 封閉清單的三個之一 -->
         <NuxtLink
@@ -292,100 +118,33 @@ const newBrewLink = computed(() =>
           </ul>
         </div>
       </section>
-      <section class="mt-10">
-        <SkeletonBlock width="4rem" height="0.875rem" />
-        <ul class="mt-4 space-y-6">
-          <li v-for="n in 4" :key="n">
-            <SkeletonBlock width="7rem" height="0.75rem" />
-            <SkeletonBlock width="65%" height="1.125rem" class="mt-2" />
-            <SkeletonBlock width="45%" height="0.875rem" class="mt-2" />
-          </li>
-        </ul>
-      </section>
     </div>
 
-    <!-- 空狀態是邀請行動的時機，不是說明現況的時機 -->
-    <section v-else-if="isEmpty" class="mt-10">
-      <h2 class="font-serif text-lg font-bold">從一支豆子開始</h2>
-      <NuxtLink
-        to="/beans/new"
-        class="mt-6 block w-full rounded-sm px-4 py-3 text-center font-medium"
-        :style="{ background: 'var(--accent)', color: 'var(--on-accent)', minHeight: 'var(--touch-min)' }"
-      >
-        新增豆子
-      </NuxtLink>
-    </section>
-
-    <template v-else>
-      <!-- 上區：沖煮中的豆子。沒有未喝完的豆子時整區不顯示，不放空狀態佔位。 -->
-      <section v-if="beans.length" class="mt-8">
-        <h2 class="text-sm text-muted">沖煮中的豆子</h2>
-        <!-- 負邊距讓卡片列可以捲到螢幕邊緣，不被頁面內距切斷。
-             內距放在 ul 而不是捲動容器上：捲動容器的 padding-right
-             不一定會被算進可捲動範圍，最後一張卡片會貼死在螢幕邊緣。
-             放在 ul 上就是它自己寬度的一部分，左右必然對稱。 -->
-        <div class="-mx-5 mt-2 overflow-x-auto">
-          <ul class="flex gap-3 px-5">
-            <li v-for="bean in beans" :key="bean.id">
-              <NuxtLink :to="`/beans/${bean.id}`" class="block">
-                <HomeBeanCard
-                  :name="bean.name"
-                  :photo-url="bean.photo_path ? (photoUrls.get(bean.photo_path) ?? null) : null"
-                  :roast-level="bean.roast_level"
-                  :roast-date="bean.roast_date"
-                  :brew-count="brewCounts.get(bean.id) ?? 0"
-                  :favorite-count="favoriteCounts.get(bean.id) ?? 0"
-                  :is-sample="bean.is_sample"
-                />
-              </NuxtLink>
-            </li>
-          </ul>
-        </div>
-      </section>
-
-      <!-- 下區：沖煮紀錄時間軸 -->
-      <section class="mt-8">
-        <h2 class="text-sm text-muted">沖煮紀錄</h2>
-
-        <p v-if="!timeline.length" class="mt-3 text-muted">
-          記錄沖煮後，可以比較每次的調整。
-        </p>
-
-        <ul v-else class="mt-1">
-          <li
-            v-for="entry in timeline"
-            :key="entry.id"
-            class="border-t"
-            :style="{ borderColor: 'var(--border)' }"
-          >
-            <NuxtLink :to="`/brews/${entry.id}`" class="block">
-              <BrewTimelineItem
-                :bean-name="entry.beanName"
-                :brewed-at="entry.brewedAt"
-                :dose="entry.dose"
-                :total-water="entry.totalWater"
-                :water-temp="entry.waterTemp"
-                :grind-setting="entry.grindSetting"
-                :is-favorite="entry.isFavorite"
-                :is-sample="entry.isSample"
-                :diffs="entry.diffs"
+    <!-- 沖煮中的豆子。沒有未喝完的豆子時整區不顯示，不放空狀態佔位（《02》§9）。 -->
+    <section v-else-if="beans.length" class="mt-8">
+      <h2 class="text-sm text-muted">沖煮中的豆子</h2>
+      <!-- 負邊距讓卡片列可以捲到螢幕邊緣，不被頁面內距切斷。
+           內距放在 ul 而不是捲動容器上：捲動容器的 padding-right
+           不一定會被算進可捲動範圍，最後一張卡片會貼死在螢幕邊緣。
+           放在 ul 上就是它自己寬度的一部分，左右必然對稱。 -->
+      <div class="-mx-5 mt-2 overflow-x-auto">
+        <ul class="flex gap-3 px-5">
+          <li v-for="bean in beans" :key="bean.id">
+            <NuxtLink :to="`/beans/${bean.id}`" class="block">
+              <HomeBeanCard
+                :name="bean.name"
+                :photo-url="bean.photo_path ? (photoUrls.get(bean.photo_path) ?? null) : null"
+                :roast-level="bean.roast_level"
+                :roast-date="bean.roast_date"
+                :brew-count="brewCounts.get(bean.id) ?? 0"
+                :favorite-count="favoriteCounts.get(bean.id) ?? 0"
+                :is-sample="bean.is_sample"
               />
             </NuxtLink>
           </li>
         </ul>
-
-        <button
-          v-if="hasMore"
-          type="button"
-          :disabled="loadingMore"
-          class="mt-4 w-full rounded-sm border px-4 py-3 disabled:opacity-60"
-          :style="{ borderColor: 'var(--border)', color: 'var(--accent)', minHeight: 'var(--touch-min)' }"
-          @click="loadMore"
-        >
-          {{ loadingMore ? '載入中' : '載入更多' }}
-        </button>
-      </section>
-    </template>
+      </div>
+    </section>
 
     <!-- 列表頁的新增入口一律是右下角浮動按鈕（§3 導覽） -->
     <NuxtLink

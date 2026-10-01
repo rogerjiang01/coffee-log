@@ -138,11 +138,13 @@ async function onSubmit(
 <template>
   <main class="mx-auto px-5 py-10" :style="{ maxWidth: 'var(--content-max)' }">
     <!-- ‹ 在所有狀態判斷之外。它是「離開」不是「取消」：暫存留著，回來還在（《04》）。
-         找不到這一筆時回上一層的列表——回到它的詳情頁只會再看到一次「找不到」 -->
+         有上一頁就退回上一頁，沒有才去那支豆子。
+         找不到這一筆時直接去豆子列表，不看上一頁——回到它的詳情頁只會再看到一次「找不到」 -->
     <PageHeader
       :title="view === 'notFound' ? '找不到這支豆子' : '編輯豆子'"
-      :back="view === 'notFound' ? '/beans' : `/beans/${id}`"
+      :back="view === 'notFound' ? BEAN_BACK_FALLBACK : `/beans/${id}`"
       back-label="離開"
+      :back-direct="view === 'notFound'"
     />
 
     <template v-if="view !== 'notFound'">

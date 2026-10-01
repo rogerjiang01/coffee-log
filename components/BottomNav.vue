@@ -1,19 +1,13 @@
 <script setup lang="ts">
-// 底部固定的分頁列（《03》§3）。三項：首頁、豆子、器材。
-// 設定不放這裡，是首頁右上角的齒輪。
+// 底部固定的分頁列（《03》§3）。四格：總覽、紀錄、豆子、器材。
+// 設定不放這裡，是總覽右上角的齒輪。
 //
 // 出現在哪些頁面由 app.vue 依畫面類型決定：瀏覽型與檢視型有，流程型沒有——
 // 表單的底部是儲存按鈕，再壓一條分頁列會搶掉主要動作的位置。
 
 const route = useRoute()
 
-const items = [
-  { to: '/', label: '首頁' },
-  { to: '/beans', label: '豆子' },
-  { to: '/equipment', label: '器材' },
-] as const
-
-// 亮哪一項依內容階層（utils/navigation.ts）：紀錄詳情亮首頁，它出現在首頁時間軸（《03》§3）
+// 四格與亮哪一格都在 utils/navigation.ts：紀錄詳情亮「紀錄」，設定亮「總覽」（《03》§3）
 const isActive = (to: string) => tabSection(route.path) === to
 </script>
 
@@ -27,7 +21,7 @@ const isActive = (to: string) => tabSection(route.path) === to
     }"
   >
     <NuxtLink
-      v-for="item in items"
+      v-for="item in TABS"
       :key="item.to"
       :to="item.to"
       class="flex flex-1 items-center justify-center py-3 text-sm"
