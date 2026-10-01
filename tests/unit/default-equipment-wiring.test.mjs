@@ -23,6 +23,20 @@ export default function run() {
   r.check(/restore:\s*\(data\)\s*=>\s*\{[\s\S]{0,300}?defaultEquipment\.draftRestored\(\)/.test(form),
     '暫存還原時通知它：之後不再帶入')
 
+  r.section('表單：帶入的常用器材屬於初始狀態（《03》§4.11）')
+  r.check(/function initialValues\(\): BrewFormValues \{\s*return defaultEquipment\.initialFields\(/.test(form),
+    '初始狀態 ＝ 頁面給的初始值加上帶入的常用器材')
+  r.check(/initial:\s*\(\)\s*=>\s*\(\{\s*values: initialValues\(\),/.test(form),
+    '暫存拿它判斷有沒有動過，而且每次現算（器材清單晚到）')
+  r.check(/reset:\s*\(\)\s*=>\s*writeBack\(\(\)\s*=>\s*\{\s*Object\.assign\(values, initialValues\(\)\)\s*defaultEquipment\.reset\(\)/.test(form),
+    '全部清除退回同一個初始狀態')
+  // 沖煮日期的預設是「現在」：每次重算的話，清完的表單會和基準差一分鐘而被當成有改動
+  r.check(/const baseValues: BrewFormValues = \{/.test(form) && !/function baseValues/.test(form),
+    '頁面給的初始值只算一次')
+  const draftComposable = read('composables/useFormDraft.ts')
+  r.check(/const baseline = \(\) => \(options\.initial \? fingerprint\(options\.initial\(\)\) : mountedState\)/.test(draftComposable),
+    'useFormDraft：有給 initial 就拿它當基準')
+
   r.section('新增頁：空白與指定豆子帶入，複製不帶入')
   r.check(/:default-equipment="!copiedFrom"/.test(newPage), '沒有複製來源才帶入')
   r.check(/initial\.value = \{ bean_id: beanId \}/.test(newPage), '指定豆子時初始值只有豆子，器材交給表單帶入')

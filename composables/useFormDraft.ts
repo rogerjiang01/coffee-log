@@ -18,6 +18,14 @@ export function useFormDraft<T>(key: string, options: {
   restore: (data: T) => void
   /** 把表單還原成初始狀態，供「全部清除」使用 */
   reset?: () => void
+  /**
+   * 表單的初始狀態。沒給就用掛載當下 read() 的結果。
+   *
+   * 初始狀態在掛載之後才確定時要給：沖煮表單帶入的常用器材要等器材清單讀回來，
+   * 而它屬於初始狀態、不算使用者的改動（《03》§4.11）。每次比對都現算，
+   * 所以清單讀到之後，「只有常用器材」的表單就是沒動過的表單，不寫入暫存。
+   */
+  initial?: () => T
   /** 還原前的處理，例如把指向已刪除資料的 id 清掉 */
   sanitize?: (data: T) => Promise<T> | T
   /** 暫存被清掉時（儲存成功、重新開始、全部清除）。放在 localStorage 以外的東西（照片）跟著清 */
@@ -40,11 +48,14 @@ export function useFormDraft<T>(key: string, options: {
   const status = ref<DraftSaveStatus>(null)
 
   const armed = ref(false)
-  let baseline: string | null = null
+  let mountedState: string | null = null
 
   /** 拿來比對「與初始狀態相同嗎」的字串 */
   const fingerprint = (value: T) =>
     JSON.stringify(options.identity ? options.identity(value) : value)
+
+  /** 初始狀態的指紋。有給 initial 就現算，否則是掛載當下的樣子 */
+  const baseline = () => (options.initial ? fingerprint(options.initial()) : mountedState)
 
   const writer = createDraftWriter<T>({
     write: (value) => {
@@ -86,7 +97,7 @@ export function useFormDraft<T>(key: string, options: {
   }
 
   onMounted(async () => {
-    baseline = fingerprint(options.read())
+    mountedState = fingerprint(options.read())
 
     let envelope: { savedAt: number, data: T } | null = null
     try {
@@ -99,7 +110,7 @@ export function useFormDraft<T>(key: string, options: {
       return
     }
     // 與初始狀態相同的暫存沒有還原價值
-    if (fingerprint(envelope.data) === baseline) {
+    if (fingerprint(envelope.data) === baseline()) {
       clear()
       armed.value = true
       return
@@ -129,7 +140,7 @@ export function useFormDraft<T>(key: string, options: {
     // 橫幅模式不受此限——內容已經填進去了。
     if (!armed.value || pending.value !== null) return
     // 沒動過的空白表單不值得存，存了下次進來就會被問一次
-    if (fingerprint(value) === baseline) return
+    if (fingerprint(value) === baseline()) return
     writer.schedule(value)
   }, { deep: true })
 

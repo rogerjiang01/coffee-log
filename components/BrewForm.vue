@@ -41,8 +41,9 @@ const cache = useQueryCache()
 // 只有新增流程會寫入，編輯頁收到也不用（見 edit.vue）
 const interactionTime = useInteractionTime()
 
-function initialValues(): BrewFormValues {
-  return {
+// 頁面給的初始值。**只算一次**：沖煮日期的預設是「現在」，每次重算會跟著時間變，
+// 「全部清除」退回的值與判斷「有沒有動過」的基準就會對不起來
+const baseValues: BrewFormValues = {
   bean_id: props.initial?.bean_id ?? null,
   brew_method_id: props.initial?.brew_method_id ?? null,
   dose: props.initial?.dose ?? null,
@@ -59,10 +60,9 @@ function initialValues(): BrewFormValues {
   is_favorite: props.initial?.is_favorite ?? false,
   tasting_notes: props.initial?.tasting_notes ?? '',
   intensity: props.initial?.intensity ?? {},
-  }
 }
 
-const values = reactive<BrewFormValues>(initialValues())
+const values = reactive<BrewFormValues>({ ...baseValues, intensity: { ...baseValues.intensity } })
 
 const steps = ref<StepInput[]>(props.initialSteps ?? initialSteps())
 
@@ -124,6 +124,15 @@ const summaryError = ref('')
 // 器材：新增時各類型的常用器材自動帶入（規則見 utils/defaultEquipment.ts）
 const equipment = ref<UserEquipmentRow[]>([])
 const defaultEquipment = createDefaultEquipment({ enabled: props.defaultEquipment === true, values })
+
+/**
+ * 這個入口的初始狀態：頁面給的初始值，加上帶入的常用器材（《03》§4.11）。
+ * 常用器材不算使用者的改動——只有它們的表單是沒動過的表單，不寫入暫存；
+ * 「全部清除」退回的也是這個狀態。器材清單讀到之前，就是頁面給的初始值。
+ */
+function initialValues(): BrewFormValues {
+  return defaultEquipment.initialFields({ ...baseValues, intensity: { ...baseValues.intensity } })
+}
 const methods = ref<{ id: string; name: string }[]>([])
 
 // 欄位與排序都走 utils/equipment.ts 的共用定義：這個查詢與器材管理頁
@@ -361,9 +370,17 @@ const draft = draftStorageKey
           flavorTagIds.value = data.flavorTagIds ?? []
         })
       },
-      // 全部清除是還原，不是改參數：分段退回初始值，不依手法重算
+      // 沒動過的表單不寫入暫存。初始狀態含帶入的常用器材，所以每次現算（useFormDraft 的 initial）
+      initial: () => ({
+        values: initialValues(),
+        steps: props.initialSteps ?? initialSteps(),
+        flavorTagIds: props.initialFlavorTagIds ?? [],
+      }),
+      // 全部清除是還原，不是改參數：分段退回初始值，不依手法重算。
+      // 退回的是這個入口的初始狀態，包含常用器材
       reset: () => writeBack(() => {
         Object.assign(values, initialValues())
+        defaultEquipment.reset()
         steps.value = props.initialSteps ?? initialSteps()
         flavorTagIds.value = props.initialFlavorTagIds ?? []
         methodNotice.value = ''
