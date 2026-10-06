@@ -54,7 +54,8 @@ with known(name, source) as (values
   ('brew_flavor_tags',   'migration：20260831160800_brew_steps_flavor_tags.sql'),
   ('brew_save_events',   'migration：20260922100000_brew_save_events.sql'),
   ('brew_shares',        'migration：20260923110000_brew_shares.sql'),
-  ('brew_share_events',  'migration：20260923110000_brew_shares.sql')
+  ('brew_share_events',  'migration：20260923110000_brew_shares.sql'),
+  ('weekly_goals',       'migration：20261006100000_weekly_goals.sql')
 ),
 
 -- anon 一列都沒有：匿名的人只透過 get_shared_brew 讀資料，不碰表
@@ -87,7 +88,8 @@ allowed(tbl, role, privs) as (values
   ('brew_save_events',   'service_role',  'all'),
   ('brew_shares',        'authenticated', 'select'),
   ('brew_shares',        'service_role',  'all'),
-  ('brew_share_events',  'service_role',  'all')
+  ('brew_share_events',  'service_role',  'all'),
+  ('weekly_goals',       'authenticated', 'select,insert')
 ),
 
 privs(p, o) as (

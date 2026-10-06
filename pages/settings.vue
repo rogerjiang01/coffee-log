@@ -6,7 +6,7 @@
 // 改行為要記得改兩次，而「使用者不在填表時為什麼會想關掉時間欄位」
 // 這個情境想不出來。
 //
-// 檢視型畫面（《03》§3）：左上 ‹ 回總覽（設定只從總覽的齒輪進來），分頁列保留。
+// 檢視型畫面（《03》§3）：左上 ‹ 回上一頁，沒有上一頁時回總覽（父層），分頁列保留。
 
 definePageMeta({ screen: 'view' })
 
@@ -41,7 +41,7 @@ async function signOut() {
 
 <template>
   <main class="mx-auto px-5 py-10" :style="{ maxWidth: 'var(--content-max)' }">
-    <PageHeader title="設定" back="/" />
+    <PageHeader title="設定" :back="SETTINGS_BACK_FALLBACK" />
 
     <section class="mt-8">
       <h2 class="text-sm text-muted">帳號</h2>

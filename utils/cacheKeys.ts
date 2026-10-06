@@ -23,8 +23,13 @@ export const cacheKeys = {
   brewTags: (id: string) => `brews:tags:${id}`,
   /** 某支豆子的全部紀錄。豆子詳情的次數統計與比較表都靠它 */
   brewsByBean: (beanId: string) => `brews:bean:${beanId}`,
-  /** 總覽豆子卡片的沖煮次數與收藏次數 */
-  brewCounts: () => 'brews:counts',
+  /**
+   * 總覽卡片與結算頁的統計：所有非範例紀錄的沖煮日期、評分、粉重與豆子（含是否已喝完）。
+   * 放在 brews: 底下，新增、編輯、刪除紀錄與編輯豆子都會清掉；已喝完另外清（invalidationsFor）
+   */
+  brewStats: () => 'brews:stats',
+  /** 每週記錄目標的修改歷程（weekly_goals） */
+  goals: () => 'goals',
 
   equipment: (type: string) => `equipment:${type}`,
   /**
@@ -63,6 +68,7 @@ export type Mutation =
   | { kind: 'bean-finished' }
   | { kind: 'equipment' }
   | { kind: 'lookup', table: string }
+  | { kind: 'goal' }
 
 /**
  * 一次寫入要清掉哪些快取。回傳的是**樣式**，結尾的 `*` 代表前綴比對。
@@ -100,13 +106,17 @@ export function invalidationsFor(mutation: Mutation): string[] {
       return ['beans:*', 'brews:*']
 
     case 'bean-finished':
-      return ['beans:*']
+      // 總覽的「上一杯」只算未喝完的豆子：統計要跟著重算
+      return ['beans:*', cacheKeys.brewStats()]
 
     case 'equipment':
       return ['equipment:*']
 
     case 'lookup':
       return [cacheKeys.lookup(mutation.table)]
+
+    case 'goal':
+      return [cacheKeys.goals()]
   }
 }
 

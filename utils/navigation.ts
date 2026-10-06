@@ -70,15 +70,15 @@ export function newBrewLeaveTarget(query: { copy?: string | null, bean?: string 
 }
 
 /**
- * 兩個詳情頁的 ‹ 沒有上一頁時回到哪裡：各自的列表。
+ * 檢視型畫面的 ‹ 沒有上一頁時回到哪裡：父層。紀錄詳情回紀錄分頁、豆子詳情回豆子列表、設定回總覽。
  *
- * 兩個詳情頁的 ‹ 都是**歷史式**（《03》§3）：它們各有不只一個入口——
- * 紀錄詳情從紀錄分頁、豆子的比較表、分享頁的「前往紀錄」進來；
- * 豆子詳情從總覽的沖煮中的豆子、豆子列表、紀錄詳情的豆名進來。
- * 固定回列表的話，從其他入口進來的人會被帶離原本的脈絡。
+ * 檢視型的 ‹ **一律是歷史式**（2026-10-06，《03》§3）：回上一頁，沒有上一頁才回父層。
+ * 原本是「入口不只一個用歷史式、只有一個入口用階層式」，但那要每次新增入口都重新數，很容易漏；
+ * 只有一個入口的頁面，上一頁本來就是父層，行為不變。
  */
 export const BREW_BACK_FALLBACK = '/brews'
 export const BEAN_BACK_FALLBACK = '/beans'
+export const SETTINGS_BACK_FALLBACK = '/'
 
 /**
  * 歷史式的 ‹：有上一頁就回上一頁，沒有（從外部連結直接打開）就去 fallback。
@@ -122,4 +122,28 @@ export function leaveMethod(
  */
 export function exitMethod(previous: string | null | undefined, target: string): 'back' | 'replace' {
   return previous === target ? 'back' : 'replace'
+}
+
+/**
+ * 結算頁（《02》§5.2）。只在新增紀錄儲存成功後出現（空白、指定豆子、複製都算），
+ * 用取代的方式進入，返回時不會回到表單。
+ */
+export function summaryPath(brewId: string): string {
+  return `/brews/${brewId}/summary`
+}
+
+/**
+ * 結算頁只在剛建立時出現。新增頁存好之後把那一筆的 id 記成 ticket（只在記憶體裡），
+ * 結算頁進來時用掉它。直接打開網址、重新整理、之後再進來都沒有 ticket：導向那筆紀錄的詳情。
+ */
+export function summaryAccess(ticket: string | null | undefined, brewId: string): 'show' | 'detail' {
+  return ticket === brewId ? 'show' : 'detail'
+}
+
+/**
+ * 離開結算頁（onBeforeRouteLeave）：按勾勾、點摘要是頁面自己發的導覽，照常走；
+ * 其他的離開只有返回鍵與返回手勢（這一頁沒有分頁列、沒有其他連結），效果和按勾勾一樣——去總覽。
+ */
+export function summaryLeave(byPage: boolean): true | '/' {
+  return byPage ? true : '/'
 }

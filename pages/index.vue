@@ -1,79 +1,74 @@
 <script setup lang="ts">
-// 總覽（《02-功能規格》§4）。
+// 總覽（《02-功能規格》§4.1）。
 //
-// 首頁改版的第一階段只改導覽結構：這一頁目前只有「沖煮中的豆子」。
-// 看板內容（目標環、總記錄數）在後續階段加入；時間軸已經搬到紀錄分頁（pages/brews/index.vue）。
+// 目的是讓使用者持續記錄，用可視化製造成就感。由上到下、由左到右：
+//   目標環（全寬）  上一杯  本週最高分  累計  本月（半寬，兩張一排）
+// 每張卡片的資料與顯示條件在 utils/dashboard.ts。有卡片不顯示時，後面的卡片往前遞補，
+// 不留空位、不放任何佔位文字。**所有統計都排除範例資料。**
 //
-// **沒有空狀態**（《02》§9）：沒有未喝完的豆子時只剩標題、齒輪與浮動新增按鈕，
-// 不放任何佔位文字。
+// 本週、本月都以沖煮日期計算，週一開始，瀏覽器的本地時間。
+// 顏色一律用語意 token（品牌色會更換）。
 
 definePageMeta({ screen: 'browse' })
 
-const supabase = useSupabaseClient()
 const { thumbnailUrls } = useBeanPhotos()
 const fetchActiveBeans = useActiveBeans()
-
-const beans = ref<ActiveBean[]>([])
-const photoUrls = ref<Map<string, string>>(new Map())
-const brewCounts = ref<Map<string, number>>(new Map())
-const favoriteCounts = ref<Map<string, number>>(new Map())
-const loading = ref(true)
-const loadError = ref('')
-
+const { fetchStats, fetchGoals } = useBrewStats()
 const cache = useQueryCache()
 
-async function fetchCounts() {
-  const { data } = await supabase.from('brews').select('bean_id, is_favorite')
-  return (data ?? []) as unknown as { bean_id: string, is_favorite: boolean }[]
-}
+const stats = ref<StatBrew[]>([])
+const goals = ref<GoalRow[]>([])
+const activeBeans = ref<ActiveBean[]>([])
+const lastPhoto = ref<string | null>(null)
+const loading = ref(true)
+const loadError = ref('')
+const editing = ref(false)
 
-function applyBeans(rows: ActiveBean[]) {
-  beans.value = rows
-  // 詳情頁的標題與照片這裡已經查到了，先放進去省下那一趟
-  for (const row of rows) cache.prime(cacheKeys.bean(row.id), row)
-  loadPhotos(rows)
-}
+// 「本週」「本月」看的是打開這一頁的當下；重新進來時重算
+const now = ref(new Date())
 
-// 卡片用縮圖（沒有縮圖檔時退回原圖，utils/beanPhoto.ts）。與主查詢並行，不串在後面
-async function loadPhotos(rows: ActiveBean[]) {
-  try {
-    photoUrls.value = await thumbnailUrls(rows.map(bean => bean.photo_path))
-  }
-  catch {
-    photoUrls.value = new Map()
-  }
-}
+const week = computed(() => weekCard(stats.value, goals.value, now.value))
+const last = computed(() => lastBeanCard(stats.value))
+const top = computed(() => weekTopCard(stats.value, now.value))
+const totals = computed(() => totalsCard(stats.value))
+const month = computed(() => monthCard(stats.value, now.value))
 
-function applyCounts(rows: { bean_id: string, is_favorite: boolean }[]) {
-  const counts = new Map<string, number>()
-  const favorites = new Map<string, number>()
-  for (const row of rows) {
-    counts.set(row.bean_id, (counts.get(row.bean_id) ?? 0) + 1)
-    if (row.is_favorite) favorites.set(row.bean_id, (favorites.get(row.bean_id) ?? 0) + 1)
-  }
-  brewCounts.value = counts
-  favoriteCounts.value = favorites
-}
+const WEEKDAYS = ['一', '二', '三', '四', '五', '六', '日']
+const barMax = computed(() => Math.max(1, ...(week.value?.days ?? [])))
+
+// 上一杯的縮圖：長邊 384px 的縮圖檔（《01》§7.1），沒有縮圖檔時退回原圖
+watch(() => last.value?.bean.photo_path ?? null, async (path) => {
+  lastPhoto.value = null
+  if (!path) return
+  const urls = await thumbnailUrls([path]).catch(() => new Map<string, string>())
+  if ((last.value?.bean.photo_path ?? null) === path) lastPhoto.value = urls.get(path) ?? null
+})
 
 async function load() {
   loadError.value = ''
+  now.value = new Date()
+  const fail = (e: unknown) => { loadError.value = `讀不到資料：${errorText(e)}` }
+  const statQuery = cache.swr(cacheKeys.brewStats(), fetchStats, { apply: (rows) => { stats.value = rows }, onError: fail })
+  const goalQuery = cache.swr(cacheKeys.goals(), fetchGoals, { apply: (rows) => { goals.value = rows }, onError: fail })
+  // 只用來決定浮動新增按鈕要不要帶入豆子，不擋畫面
+  cache.swr(cacheKeys.beanActive(), fetchActiveBeans, { apply: (rows) => { activeBeans.value = rows } })
 
-  const beanQuery = cache.swr(cacheKeys.beanActive(), fetchActiveBeans, {
-    apply: applyBeans,
-    onError: (e) => { loadError.value = `讀不到資料：${errorText(e)}` },
-  })
-  const countQuery = cache.swr(cacheKeys.brewCounts(), fetchCounts, { apply: applyCounts })
-
-  // 兩個都命中才算完全命中：任何一個要等，就先給骨架
-  loading.value = !(beanQuery.hit && countQuery.hit)
-  await Promise.all([beanQuery.settled, countQuery.settled])
+  loading.value = !(statQuery.hit && goalQuery.hit)
+  await Promise.all([statQuery.settled, goalQuery.settled])
   loading.value = false
 }
 
 onMounted(load)
 
+async function onGoalSaved() {
+  editing.value = false
+  // 新增了一列目標：重查之後環立刻重算
+  goals.value = await fetchGoals().catch(() => goals.value)
+  cache.set(cacheKeys.goals(), goals.value)
+}
+
 // 只有一支未喝完的豆子時直接帶入，少一步選擇。紀錄分頁的按鈕是同一條規則（utils/navigation.ts）
-const newBrewLink = computed(() => newBrewEntry(beans.value))
+const newBrewLink = computed(() => newBrewEntry(activeBeans.value))
 </script>
 
 <template>
@@ -104,47 +99,113 @@ const newBrewLink = computed(() => newBrewEntry(beans.value))
       {{ loadError }}
     </p>
 
-    <!-- 骨架：先把版面結構畫出來，資料回來再填。
-         §6 不做進場動畫，所以這裡是靜態色塊，沒有閃爍效果。 -->
-    <div v-if="loading" aria-busy="true" aria-label="讀取中">
-      <section class="mt-8">
-        <SkeletonBlock width="6rem" height="0.875rem" />
-        <div class="-mx-5 mt-2 overflow-hidden">
-          <ul class="flex gap-3 px-5">
-            <li v-for="n in 2" :key="n">
-              <!-- 與 HomeBeanCard 同尺寸（實測 160×258）：照片 160 見方＋資訊 96＋上下框線各 1 -->
-              <SkeletonBlock width="10rem" height="16.125rem" radius="4px" />
-            </li>
-          </ul>
-        </div>
-      </section>
+    <!-- 骨架：目標環一張全寬、兩張半寬。§6 不做進場動畫，靜態色塊 -->
+    <div v-if="loading" aria-busy="true" aria-label="讀取中" class="mt-6 grid grid-cols-2 gap-3">
+      <SkeletonBlock class="col-span-2" height="13rem" radius="var(--radius-md)" />
+      <SkeletonBlock height="13rem" radius="var(--radius-md)" />
+      <SkeletonBlock height="13rem" radius="var(--radius-md)" />
     </div>
 
-    <!-- 沖煮中的豆子。沒有未喝完的豆子時整區不顯示，不放空狀態佔位（《02》§9）。 -->
-    <section v-else-if="beans.length" class="mt-8">
-      <h2 class="text-sm text-muted">沖煮中的豆子</h2>
-      <!-- 負邊距讓卡片列可以捲到螢幕邊緣，不被頁面內距切斷。
-           內距放在 ul 而不是捲動容器上：捲動容器的 padding-right
-           不一定會被算進可捲動範圍，最後一張卡片會貼死在螢幕邊緣。
-           放在 ul 上就是它自己寬度的一部分，左右必然對稱。 -->
-      <div class="-mx-5 mt-2 overflow-x-auto">
-        <ul class="flex gap-3 px-5">
-          <li v-for="bean in beans" :key="bean.id">
-            <NuxtLink :to="`/beans/${bean.id}`" class="block">
-              <HomeBeanCard
-                :name="bean.name"
-                :photo-url="bean.photo_path ? (photoUrls.get(bean.photo_path) ?? null) : null"
-                :roast-level="bean.roast_level"
-                :roast-date="bean.roast_date"
-                :brew-count="brewCounts.get(bean.id) ?? 0"
-                :favorite-count="favoriteCounts.get(bean.id) ?? 0"
-                :is-sample="bean.is_sample"
+    <!-- 半寬卡片兩張一排；不顯示的卡片不渲染，後面的自然往前遞補 -->
+    <div v-else class="mt-6 grid grid-cols-2 gap-3">
+      <!-- 1. 目標環：有目標就一定顯示，0 杯也顯示。點了修改目標 -->
+      <button
+        v-if="week"
+        type="button"
+        class="col-span-2 rounded-md border p-4 text-left"
+        :style="{ borderColor: 'var(--border)', background: 'var(--surface)' }"
+        @click="editing = true"
+      >
+        <div class="flex items-center gap-5">
+          <GoalRing :count="week.count" :goal="week.goal" />
+          <p class="font-serif text-2xl font-bold tabular-nums">本週 {{ week.count }}／{{ week.goal }}</p>
+        </div>
+        <!-- 週一到週日的每日長條圖（每天的杯數） -->
+        <div class="mt-4 flex items-end gap-2" aria-hidden="true">
+          <div v-for="(cups, day) in week.days" :key="day" class="flex flex-1 flex-col items-center gap-1">
+            <div class="flex h-12 w-full items-end">
+              <div
+                class="w-full rounded-sm"
+                :style="{
+                  height: cups ? `${(cups / barMax) * 100}%` : '2px',
+                  background: cups ? 'var(--accent)' : 'var(--border)',
+                }"
               />
-            </NuxtLink>
-          </li>
-        </ul>
+            </div>
+            <span class="text-xs text-muted">{{ WEEKDAYS[day] }}</span>
+          </div>
+        </div>
+      </button>
+
+      <!-- 2. 上一杯：點了進豆子詳情。卡片上不放任何按鈕 -->
+      <NuxtLink
+        v-if="last"
+        :to="`/beans/${last.beanId}`"
+        class="block overflow-hidden rounded-md border"
+        :style="{ borderColor: 'var(--border)', background: 'var(--surface)' }"
+      >
+        <BeanThumb :photo-url="lastPhoto" :roast-level="last.bean.roast_level" :alt="last.bean.name" />
+        <div class="p-3">
+          <p class="text-sm text-muted">上一杯</p>
+          <p class="mt-1 line-clamp-2 font-medium">{{ last.bean.name }}</p>
+          <p class="mt-1 text-sm tabular-nums text-muted">第 {{ last.count }} 杯</p>
+        </div>
+      </NuxtLink>
+
+      <!-- 3. 本週最高分：點了進紀錄詳情 -->
+      <NuxtLink
+        v-if="top"
+        :to="`/brews/${top.id}`"
+        class="block rounded-md border p-3"
+        :style="{ borderColor: 'var(--border)', background: 'var(--surface)' }"
+      >
+        <p class="text-sm text-muted">本週最高分</p>
+        <p class="mt-2 line-clamp-2 font-medium">{{ top.beans?.name ?? '沒有指定豆子' }}</p>
+        <span class="mt-2 flex" :aria-label="`評分 ${top.rating} 顆星`">
+          <svg
+            v-for="level in 5" :key="level"
+            width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"
+            stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+            :fill="top.rating! >= level ? 'var(--favorite)' : 'transparent'"
+            :stroke="top.rating! >= level ? 'var(--favorite)' : 'var(--control-empty)'"
+          >
+            <path d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.123 2.123 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.123 2.123 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.122 2.122 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.122 2.122 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.122 2.122 0 0 0 1.597-1.16z" />
+          </svg>
+        </span>
+        <p class="mt-2 text-sm tabular-nums text-muted">{{ monthDay(top.brewed_at) }}</p>
+      </NuxtLink>
+
+      <!-- 4. 累計：點了進紀錄分頁 -->
+      <NuxtLink
+        v-if="totals"
+        to="/brews"
+        class="block rounded-md border p-3"
+        :style="{ borderColor: 'var(--border)', background: 'var(--surface)' }"
+      >
+        <p class="text-sm text-muted">累計</p>
+        <p class="mt-2 tabular-nums"><span class="font-serif text-2xl font-bold">{{ totals.records }}</span> 筆紀錄</p>
+        <p class="mt-1 tabular-nums">喝過 <span class="font-serif text-2xl font-bold">{{ totals.beans }}</span> 支豆子</p>
+      </NuxtLink>
+
+      <!-- 5. 本月：卡片不能點 -->
+      <div
+        v-if="month"
+        class="rounded-md border p-3"
+        :style="{ borderColor: 'var(--border)', background: 'var(--surface)' }"
+      >
+        <p class="text-sm text-muted">本月</p>
+        <p class="mt-2 tabular-nums"><span class="font-serif text-2xl font-bold">{{ month.cups }}</span> 杯</p>
+        <p class="mt-1 tabular-nums"><span class="font-serif text-2xl font-bold">{{ month.dose }}</span> g</p>
       </div>
-    </section>
+    </div>
+
+    <GoalDialog
+      v-if="week"
+      :open="editing"
+      :current="week.goal"
+      @close="editing = false"
+      @saved="onGoalSaved"
+    />
 
     <!-- 列表頁的新增入口一律是右下角浮動按鈕（§3 導覽） -->
     <NuxtLink

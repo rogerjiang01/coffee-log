@@ -1,4 +1,4 @@
-// 相對上一版的差異。即時計算，不存資料庫。
+// 和比較對象的差異（「和 M/D 那一杯相比」）。即時計算，不存資料庫。
 
 import * as brewSteps from '../../utils/brewSteps.ts'
 // brewDiff 依賴 brewSteps 的 secondsToClock 與 toStepInputs，
@@ -8,7 +8,7 @@ Object.assign(globalThis, {
   toStepInputs: brewSteps.toStepInputs,
   hasStepTiming: brewSteps.hasStepTiming,
 })
-const { computeBrewDiff } = await import('../../utils/brewDiff.ts')
+const { computeBrewDiff, ratingDiff } = await import('../../utils/brewDiff.ts')
 import { createReport } from '../helpers/report.mjs'
 
 type Subject = Parameters<typeof computeBrewDiff>[0]
@@ -25,7 +25,7 @@ const base = (over: Partial<Subject> = {}): Subject => ({
 })
 
 export default function run() {
-  const r = createReport('相對上一版的差異')
+  const r = createReport('和比較對象的差異')
 
   r.section('沒改與改一項')
   r.check(computeBrewDiff(base(), base()).length === 0, '複製後完全沒改時差異為空，詳情頁不顯示區塊')
@@ -48,9 +48,23 @@ export default function run() {
   r.check(computeBrewDiff(base({ grinderName: '換了個顯示名稱' }), base()).length === 0,
     '同一台器材只是名稱字串不同時不算差異')
 
-  r.section('空值')
-  r.check(computeBrewDiff(base({ water_temp: null }), base())[0]!.after === '沒填', '有值改成沒填')
-  r.check(computeBrewDiff(base(), base({ grind_setting: null }))[0]!.before === '沒填', '沒填後來填了')
+  r.section('一邊沒填就略過（2026-10-06）')
+  r.check(computeBrewDiff(base({ water_temp: null }), base()).length === 0, '這一筆沒填水溫：不列')
+  r.check(computeBrewDiff(base(), base({ grind_setting: null })).length === 0, '比較對象沒填刻度：不列')
+  r.check(computeBrewDiff(base({ dose: null, water_temp: 90 }), base()).map(d => d.field).join() === 'water_temp',
+    '其他兩邊都有的照常比')
+  r.check(computeBrewDiff(base({ grinder_id: null, grinderName: null }), base()).length === 0, '一邊沒選磨豆機：不列')
+  r.check(computeBrewDiff(base({ brew_method_id: 'm1', methodName: '四六法' }), base()).length === 0,
+    '比較對象沒選手法、這一筆選了：不列（不是調整，是記得比較詳細）')
+  r.check(computeBrewDiff(base({ total_time: null }), base()).length === 0, '一邊沒填沖煮時間：不列')
+  r.check(computeBrewDiff(base({ steps: [] }), base()).length === 0, '一邊沒有分段：段數、水量、停水時間都不列')
+  r.check(!JSON.stringify(computeBrewDiff(base({ dose: null, steps: [] }), base({ water_temp: null }))).includes('沒填'),
+    '畫面上不再出現「沒填」')
+
+  r.section('評分那一列')
+  r.check(JSON.stringify(ratingDiff(3, 4)) === JSON.stringify({ field: 'rating', label: '評分', before: '3', after: '4' }), '3 → 4')
+  r.check(ratingDiff(4, 4)?.before === '4' && ratingDiff(4, 4)?.after === '4', '相同也列出（參數相同時評分那一列照樣顯示）')
+  r.check(ratingDiff(null, 4) === null && ratingDiff(4, null) === null && ratingDiff(undefined, 3) === null, '一邊沒有評分：沒有這一列')
 
   r.section('分段結構')
   const fewer = computeBrewDiff(base({ steps: [step(1, 45, 40), step(2, 30, 160), step(3, null, 260)] }), base())
@@ -79,9 +93,7 @@ export default function run() {
   r.check(untimedFewer.some(d => d.field === 'step_count') && !untimedFewer.some(d => d.field === 'step_time'),
     '兩邊都沒記錄、段數不同：比出段數，不比停留秒數')
   const oneSide = computeBrewDiff(base({ steps: untimed }), base())
-  const oneSideRow = oneSide.find(d => d.field === 'step_time')
-  r.check(oneSideRow?.before === '45 / 30 / 30' && oneSideRow.after === '沒記錄',
-    `只有一邊有記錄：另一邊顯示「沒記錄」（${oneSideRow?.before} → ${oneSideRow?.after}）`)
+  r.check(!oneSide.some(d => d.field === 'step_time'), '只有一邊有記錄：略過停水時間（一邊沒填就略過）')
   const bloomOnly = [step(1, null, 40)]
   r.check(!computeBrewDiff(base({ steps: bloomOnly, total_time: 120 }), base({ steps: bloomOnly }))
     .some(d => d.field === 'step_time'),

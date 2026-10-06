@@ -32,9 +32,9 @@ const loading = ref(true)
 const loadingMore = ref(false)
 const loadError = ref('')
 
-// 一筆紀錄要算差異，需要它自己與來源的參數、器材名稱與分段
+// 一筆紀錄要算差異，需要它自己與比較對象的參數、器材名稱與分段
 const BREW_SELECT = `
-  id, brewed_at, dose, water_temp, grind_setting, total_time, is_favorite, is_sample, copied_from_brew_id,
+  id, bean_id, brewed_at, dose, water_temp, grind_setting, total_time, is_favorite, is_sample, copied_from_brew_id,
   brew_method_id, grinder_id, dripper_id, kettle_id,
   beans ( name ),
   brew_methods ( name ),
@@ -44,26 +44,6 @@ const BREW_SELECT = `
 `
 
 type BrewRow = Record<string, unknown>
-
-function toSubject(row: BrewRow, steps: StepRow[]): DiffSubject {
-  const equipmentName = (value: unknown) =>
-    value ? equipmentOptionName(value as { custom_name: string | null, equipment_catalog: { brand: string, model: string, variant: string | null } | null }) : null
-  return {
-    dose: (row.dose as number | null) ?? null,
-    water_temp: (row.water_temp as number | null) ?? null,
-    grind_setting: (row.grind_setting as number | null) ?? null,
-    total_time: (row.total_time as number | null) ?? null,
-    grinder_id: (row.grinder_id as string | null) ?? null,
-    dripper_id: (row.dripper_id as string | null) ?? null,
-    kettle_id: (row.kettle_id as string | null) ?? null,
-    brew_method_id: (row.brew_method_id as string | null) ?? null,
-    grinderName: equipmentName(row.grinder),
-    dripperName: equipmentName(row.dripper),
-    kettleName: equipmentName(row.kettle),
-    methodName: (row.brew_methods as { name: string } | null)?.name ?? null,
-    steps,
-  }
-}
 
 /**
  * 先把一頁紀錄變成時間軸項目。
@@ -87,30 +67,47 @@ function toEntries(rows: BrewRow[]): TimelineEntry[] {
   }))
 }
 
-/** 補上總水量與差異。就地改寫已經在畫面上的項目，不重排列表。 */
+/**
+ * 補上總水量與差異。就地改寫已經在畫面上的項目，不重排列表。
+ *
+ * 差異的比較對象與紀錄詳情同一條規則（utils/compareTarget.ts）：複製來的比複製來源，
+ * 不是的比同一支豆子在它之前的最近一筆。**一頁最多四個請求、兩趟來回，不是每一列各發一次**：
+ *   1. 這一頁的豆子的所有紀錄（只要 id、豆子、沖煮日期）＋這一頁的分段，一起發
+ *   2. 選出比較對象之後，不在這一頁裡的那些對象與它們的分段，一起發
+ * 比較對象多半就是同一頁裡的下一列，那些不必再要。
+ */
 async function enrichEntries(rows: BrewRow[]) {
   if (!rows.length) return
-  const sourceIds = [...new Set(
-    rows.map(row => row.copied_from_brew_id as string | null).filter((id): id is string => !!id),
+  const pageIds = rows.map(row => row.id as string)
+  const beanIds = [...new Set(
+    rows.filter(row => !row.copied_from_brew_id).map(row => row.bean_id as string | null).filter((id): id is string => !!id),
   )]
 
-  // 來源紀錄與所有分段各用一次查詢取回，不要每筆各查一次
-  const [sourceResult, stepResult] = await Promise.all([
-    sourceIds.length
-      ? supabase.from('brews').select(BREW_SELECT).in('id', sourceIds)
+  const stepSelect = 'brew_id, step_index, hold_seconds, cumulative_water, step_type, note'
+  const [candidateResult, ownStepResult] = await Promise.all([
+    beanIds.length
+      ? supabase.from('brews').select('id, bean_id, brewed_at').in('bean_id', beanIds)
       : Promise.resolve({ data: [] }),
-    supabase
-      .from('brew_steps')
-      .select('brew_id, step_index, hold_seconds, cumulative_water, step_type, note')
-      .in('brew_id', [...rows.map(row => row.id as string), ...sourceIds])
-      .order('step_index'),
+    supabase.from('brew_steps').select(stepSelect).in('brew_id', pageIds).order('step_index'),
   ])
+  const candidates = (candidateResult.data ?? []) as unknown as CompareCandidate[]
+  const targetOf = new Map(rows.map(row => [
+    row.id as string,
+    compareTargetId(row as unknown as CompareCandidate, candidates),
+  ]))
 
-  const sources = new Map(
-    ((sourceResult.data ?? []) as unknown as BrewRow[]).map(row => [row.id as string, row]),
-  )
+  const known = new Map(rows.map(row => [row.id as string, row]))
+  const missing = [...new Set([...targetOf.values()].filter((id): id is string => !!id && !known.has(id)))]
+  const [targetResult, targetStepResult] = missing.length
+    ? await Promise.all([
+        supabase.from('brews').select(BREW_SELECT).in('id', missing),
+        supabase.from('brew_steps').select(stepSelect).in('brew_id', missing).order('step_index'),
+      ])
+    : [{ data: [] }, { data: [] }]
+  for (const row of (targetResult.data ?? []) as unknown as BrewRow[]) known.set(row.id as string, row)
+
   const stepsByBrew = new Map<string, StepRow[]>()
-  for (const row of (stepResult.data ?? []) as unknown as (StepRow & { brew_id: string })[]) {
+  for (const row of [...(ownStepResult.data ?? []), ...(targetStepResult.data ?? [])] as unknown as (StepRow & { brew_id: string })[]) {
     if (!stepsByBrew.has(row.brew_id)) stepsByBrew.set(row.brew_id, [])
     stepsByBrew.get(row.brew_id)!.push(row)
   }
@@ -121,14 +118,14 @@ async function enrichEntries(rows: BrewRow[]) {
     const entry = byId.get(id)
     if (!entry) continue
     const ownSteps = stepsByBrew.get(id) ?? []
-    const sourceId = row.copied_from_brew_id as string | null
-    const source = sourceId ? sources.get(sourceId) : undefined
+    const targetId = targetOf.get(id)
+    const target = targetId ? known.get(targetId) : undefined
 
     entry.totalWater = ownSteps.length
       ? Math.max(...ownSteps.map(step => Number(step.cumulative_water)))
       : null
-    entry.diffs = source
-      ? computeBrewDiff(toSubject(row, ownSteps), toSubject(source, stepsByBrew.get(sourceId!) ?? []))
+    entry.diffs = target
+      ? computeBrewDiff(toDiffSubject(row, ownSteps), toDiffSubject(target, stepsByBrew.get(targetId!) ?? []))
       : []
   }
 }

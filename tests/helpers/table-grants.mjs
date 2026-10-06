@@ -42,4 +42,6 @@ export const TABLE_GRANTS = {
   // 分享：寫入只走函式，本人只讀自己的列（《01》§14.4）
   brew_shares:        { authenticated: ['select'], service_role: ALL },
   brew_share_events:  { service_role: ALL },
+  // 每週記錄目標：修改歷程，只讀與新增自己的列，不改不刪（《01》§15）
+  weekly_goals:       { authenticated: ['select', 'insert'] },
 }

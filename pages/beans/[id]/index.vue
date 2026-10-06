@@ -204,7 +204,7 @@ async function destroy() {
     <!-- ‹ 在所有狀態判斷之外：讀取中、讀取失敗、找不到都要看得到。
          歷史式：回到使用者實際來的地方（總覽的沖煮中的豆子、豆子列表、紀錄詳情的豆名），
          沒有上一頁（外部連結直接打開）才回豆子列表（《03》§3、BEAN_BACK_FALLBACK） -->
-    <PageHeader :back="BEAN_BACK_FALLBACK" back-history />
+    <PageHeader :back="BEAN_BACK_FALLBACK" />
 
     <p v-if="loadError" role="alert" class="mt-4 text-sm" :style="{ color: 'var(--danger)' }">{{ loadError }}</p>
     <!-- 整頁都讀不到時才給重試；豆子已經顯示（例如只有紀錄讀不到）時，紅字就夠了 -->

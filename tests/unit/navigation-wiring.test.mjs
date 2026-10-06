@@ -32,6 +32,8 @@ const screens = {
   'pages/brews/[id]/index.vue': 'view',
   'pages/settings.vue': 'view',
   'pages/brews/new.vue': 'flow',
+  'pages/brews/[id]/summary.vue': 'flow',
+  'pages/goal.vue': 'flow',
   'pages/brews/[id]/edit.vue': 'flow',
   'pages/beans/new.vue': 'flow',
   'pages/beans/[id]/edit.vue': 'flow',
@@ -41,6 +43,8 @@ const screens = {
 }
 // 還沒進到產品裡，不屬於三種畫面
 const outside = ['pages/login.vue', 'pages/signup.vue']
+// 全螢幕的流程型：沒有分頁列、沒有 ‹（目標設定頁、結算頁，《03》§3）
+const fullscreen = ['pages/goal.vue', 'pages/brews/[id]/summary.vue']
 
 export default function run() {
   const r = createReport('導覽架構的接線')
@@ -86,21 +90,44 @@ export default function run() {
   r.check(/\{ to: '\/', label: '總覽' \},\s*\{ to: '\/brews', label: '紀錄' \},\s*\{ to: '\/beans', label: '豆子' \},\s*\{ to: '\/equipment', label: '器材' \},/.test(navRules),
     '依序：總覽（/）、紀錄（/brews）、豆子（/beans）、器材（/equipment）')
 
-  r.section('總覽：這一階段只有沖煮中的豆子')
+  r.section('總覽：卡片')
+  const homeScript = read('pages/index.vue')
   const homeTemplate = stripComments(home)
-  r.check(/<PageHeader title="總覽">/.test(homeTemplate), '標題是「總覽」')
-  r.check(/沖煮中的豆子/.test(homeTemplate) && /<HomeBeanCard/.test(homeTemplate), '保留「沖煮中的豆子」')
-  r.check(!/BrewTimelineItem|載入更多|brewPage/.test(read('pages/index.vue')), '時間軸不在這裡（搬到紀錄分頁）')
-  r.check(!/從一支豆子開始|to="\/beans\/new"/.test(homeTemplate), '沒有空狀態「從一支豆子開始」')
-  r.check(/<section v-else-if="beans\.length"/.test(homeTemplate), '沒有未喝完的豆子時整區不顯示')
-  // 載入完成、沒有豆子時，畫面上只剩標題、齒輪與浮動新增按鈕：不放任何佔位文字
+  r.check(/<PageHeader title="總覽">/.test(homeTemplate), '標題是「總覽」，保留齒輪')
+  r.check(!/沖煮中的豆子|HomeBeanCard/.test(homeTemplate), '「沖煮中的豆子」拿掉了，由「上一杯」取代')
+  r.check(!/BrewTimelineItem|載入更多|brewPage/.test(homeScript), '時間軸不在這裡（紀錄分頁）')
+  const cardOrder = ['v-if="week"', 'v-if="last"', 'v-if="top"', 'v-if="totals"', 'v-if="month"'].map(marker => homeTemplate.indexOf(marker))
+  r.check(cardOrder.every((at, i) => at > 0 && (i === 0 || at > cardOrder[i - 1])), '由上到下：目標環、上一杯、本週最高分、累計、本月')
+  r.check(/class="mt-6 grid grid-cols-2 gap-3"/.test(homeTemplate) && /v-if="week"[\s\S]{0,40}class="col-span-2/.test(homeTemplate),
+    '目標環全寬、其餘半寬兩張一排；不顯示的卡片不渲染，後面的往前遞補')
+  r.check(/本週 \{\{ week\.count \}\}／\{\{ week\.goal \}\}/.test(homeTemplate), '文字「本週 N／M」')
+  r.check(/@click="editing = true"/.test(homeTemplate) && /<GoalDialog/.test(homeTemplate), '點目標環卡片打開修改目標的對話框')
+  r.check(/:to="`\/beans\/\$\{last\.beanId\}`"/.test(homeTemplate), '上一杯：點了進豆子詳情')
+  const lastCard = homeTemplate.match(/v-if="last"[\s\S]*?<\/NuxtLink>/)?.[0] ?? ''
+  r.check(!/<button/.test(lastCard), '上一杯：卡片上不放任何按鈕')
+  r.check(/<BeanThumb :photo-url="lastPhoto"/.test(lastCard) && /thumbnailUrls\(\[path\]\)/.test(homeScript), '上一杯：縮圖檔，沒有照片時用烘焙度色塊')
+  r.check(/第 \{\{ last\.count \}\} 杯/.test(lastCard), '上一杯：「第 N 杯」')
+  r.check(/:to="`\/brews\/\$\{top\.id\}`"/.test(homeTemplate), '本週最高分：點了進紀錄詳情')
+  r.check(/v-if="totals"\s+to="\/brews"/.test(homeTemplate), '累計：點了進紀錄分頁')
+  r.check(/<div\s+v-if="month"/.test(homeTemplate), '本月：卡片不能點')
+  r.check(/\{\{ totals\.records \}\}<\/span> 筆紀錄/.test(homeTemplate) && /喝過 <span[^>]*>\{\{ totals\.beans \}\}<\/span> 支豆子/.test(homeTemplate),
+    '累計：「N 筆紀錄」「喝過 N 支豆子」')
+  r.check(/\{\{ month\.cups \}\}<\/span> 杯/.test(homeTemplate) && /\{\{ month\.dose \}\}<\/span> g/.test(homeTemplate), '本月：「N 杯」「N g」')
+  r.check(/weekCard\(stats\.value, goals\.value, now\.value\)/.test(homeScript) && /lastBeanCard\(stats\.value\)/.test(homeScript)
+    && /weekTopCard\(stats\.value, now\.value\)/.test(homeScript) && /totalsCard\(stats\.value\)/.test(homeScript)
+    && /monthCard\(stats\.value, now\.value\)/.test(homeScript), '每張卡片的資料與顯示條件都在 utils/dashboard.ts')
+  r.check(/\.eq\('is_sample', false\)/.test(read('composables/useBrewStats.ts')), '統計的查詢排除範例紀錄')
+  r.check(/newBrewEntry\(activeBeans\.value\)/.test(homeScript), '浮動新增按鈕：只有一支未喝完的豆子時帶入')
+  // 規定以外的文案：卡片名稱、規格寫明的文字、星期的單字以外，不放任何字
   const homeText = homeTemplate
-    .replace(/<section v-else-if="beans\.length"[\s\S]*?<\/section>/, '')
-    .replace(/<div v-if="loading"[\s\S]*?<\/div>\s*<\/section>\s*<\/div>/, '')
-    .replace(/<p v-if="loadError"[\s\S]*?<\/p>/, '')
-    .replace(/<[^>]+>/g, '').replace(/\s+/g, '')
-  r.check(homeText === '', `沒有未喝完的豆子時不放任何佔位文字${homeText ? `：${homeText}` : ''}`)
-  r.check(/newBrewEntry\(beans\.value\)/.test(read('pages/index.vue')), '浮動新增按鈕：只有一支未喝完的豆子時帶入')
+    .replace(/<PageHeader[\s\S]*?<\/PageHeader>/, '')
+    .replace(/\{\{[\s\S]*?\}\}/g, '')
+    .replace(/<(?:[^>"']|"[^"]*"|'[^']*')*>/g, ' ').split(/\s+/).filter(Boolean)
+  const allowed = new Set(['本週', '／', '上一杯', '第', '杯', '本週最高分', '累計', '筆紀錄', '喝過', '支豆子', '本月', 'g'])
+  const extra = homeText.filter(word => !allowed.has(word))
+  r.check(extra.length === 0, `總覽沒有規定以外的文案${extra.length ? `：${extra.join('、')}` : ''}`)
+  r.check(!/#[0-9a-f]{3,6}\b/i.test(homeTemplate + read('components/GoalRing.vue') + read('components/GoalStepper.vue') + read('components/BeanThumb.vue')),
+    '沒有寫死的色碼（品牌色會更換）')
 
   r.section('紀錄分頁：時間軸原樣搬過來')
   const brews = read('pages/brews/index.vue')
@@ -108,7 +135,12 @@ export default function run() {
   r.check(/<PageHeader title="紀錄" \/>/.test(brewsTemplate), '標題是「紀錄」')
   r.check(/const PAGE_SIZE = 20/.test(brews) && /\.range\(from, from \+ PAGE_SIZE - 1\)/.test(brews), '一次 20 筆')
   r.check(/\.order\('brewed_at', \{ ascending: false \}\)\s*\.order\('id', \{ ascending: false \}\)/.test(brews), '依沖煮日期新到舊')
-  r.check(!/\.eq\(|\.ilike\(|\.filter\(|type="search"|<select/.test(brews.replace(/sourceIds|\.filter\(\(id\)/g, '')), '沒有篩選、排序、搜尋')
+  const brewsQuery = brews.slice(brews.indexOf('async function fetchBrewPage'), brews.indexOf('async function load()'))
+  r.check(!/\.eq\(|\.ilike\(|\.filter\(|\.in\(/.test(brewsQuery) && !/type="search"|<select/.test(brewsTemplate), '沒有篩選、排序、搜尋')
+  r.check(/compareTargetId\(/.test(brews) && !/supabase[\s\S]{0,40}for \(const row of rows\)/.test(brews), '差異提示用同一條比較規則')
+  const enrich = brews.slice(brews.indexOf('async function enrichEntries'), brews.indexOf('const cache = useQueryCache()'))
+  r.check((enrich.match(/supabase\.from\(/g) || []).length === 4 && !/for \([^)]*\)\s*\{[^}]*supabase/.test(enrich),
+    '一頁最多四個請求，不是每一列各發一次')
   r.check(/<NuxtLink :to="`\/brews\/\$\{entry\.id\}`" class="block">\s*<BrewTimelineItem/.test(brewsTemplate), '整列點進紀錄詳情，沿用 BrewTimelineItem')
   r.check(/:diffs="entry\.diffs"/.test(brewsTemplate) && /computeBrewDiff\(/.test(brews), '每一列帶差異提示')
   r.check(/載入更多/.test(brewsTemplate) && /v-if="hasMore"/.test(brewsTemplate), '「載入更多」')
@@ -134,13 +166,13 @@ export default function run() {
   }
   const brewDetail = read('pages/brews/[id]/index.vue')
   const beanDetail = read('pages/beans/[id]/index.vue')
-  r.check(/<PageHeader :back="BREW_BACK_FALLBACK" back-history \/>/.test(brewDetail),
-    '紀錄詳情的 ‹ 是歷史式，沒有上一頁回紀錄分頁')
-  r.check(/<PageHeader :back="BEAN_BACK_FALLBACK" back-history \/>/.test(beanDetail),
-    '豆子詳情的 ‹ 是歷史式，沒有上一頁回豆子列表')
-  r.check(/<PageHeader title="設定" back="\/" \/>/.test(read('pages/settings.vue')), '設定的 ‹ 維持階層式，回總覽')
-  r.check(/historyBack\(window\.history\.state\?\.back\) === 'back'\) void goBack\(\)\s*else void navigateTo\(props\.to\)/.test(read('components/BackButton.vue')),
-    '歷史式的返回：有上一頁回上一頁，沒有才去退回目標')
+  r.check(/<PageHeader :back="BREW_BACK_FALLBACK" \/>/.test(brewDetail), '紀錄詳情：沒有上一頁時回紀錄分頁')
+  r.check(/<PageHeader :back="BEAN_BACK_FALLBACK" \/>/.test(beanDetail), '豆子詳情：沒有上一頁時回豆子列表')
+  r.check(/<PageHeader title="設定" :back="SETTINGS_BACK_FALLBACK" \/>/.test(read('pages/settings.vue')), '設定：沒有上一頁時回總覽')
+  const backButton = read('components/BackButton.vue')
+  r.check(/historyBack\(window\.history\.state\?\.back\) === 'back'\) void goBack\(\)\s*else void navigateTo\(props\.to\)/.test(backButton),
+    '檢視型的 ‹ 一律是歷史式：有上一頁回上一頁，沒有才回父層')
+  r.check(!/<NuxtLink/.test(backButton) && !/history\?: boolean/.test(backButton), '沒有階層式的一般連結了')
 
   r.section('紀錄詳情：豆名是通往豆子詳情的連結')
   const brewDetailTemplate = stripComments(templateOf(brewDetail))
@@ -161,13 +193,75 @@ export default function run() {
     '找不到時不看上一頁（上一頁多半是那一筆的詳情）')
   r.check(/BREW_BACK_FALLBACK = '\/brews'/.test(navRules) && /BEAN_BACK_FALLBACK = '\/beans'/.test(navRules), '兩個退回目標定義在 utils/navigation.ts')
 
+  r.section('全螢幕的流程型：沒有 ‹（目標設定頁、結算頁）')
+  for (const path of fullscreen) {
+    const template = stripComments(templateOf(read(path)))
+    r.check(!/<PageHeader|<BackButton/.test(template) && !/略過/.test(template), `${path}：沒有 ‹、沒有「略過」`)
+  }
+
   r.section('流程型：左上 ‹ 離開，沒有「取消」連結')
-  for (const path of Object.keys(screens).filter(path => screens[path] === 'flow')) {
+  for (const path of Object.keys(screens).filter(path => screens[path] === 'flow' && !fullscreen.includes(path))) {
     const template = stripComments(templateOf(read(path)))
     r.check(/<PageHeader[\s\S]*?back-label="離開"/.test(template), `${path}：‹ 叫「離開」`)
     r.check(!/>\s*取消\s*</.test(template), `${path}：沒有「取消」——這裡離開不丟東西，暫存留著`)
     r.check(!/aria-label="新增/.test(template), `${path}：沒有新增按鈕`)
   }
+
+  r.section('結算頁：只在新增紀錄儲存成功後出現')
+  const newPage = stripComments(read('pages/brews/new.vue'))
+  r.check(/summaryTicket\.value = brewId\s*await navigateTo\(summaryPath\(brewId\), \{ replace: true \}\)/.test(newPage),
+    '新增紀錄存好之後：記下 ticket，用取代的方式進結算頁（返回時不會回到表單）')
+  r.check(!/exitTo\(`\/brews\/\$\{brewId\}`\)/.test(newPage) && (newPage.match(/navigateTo\(/g) || []).length === 1,
+    '只有存好的那一條路會去結算頁（分段失敗後重按、補寫成功也走同一條）')
+  r.check(/pendingBrewId\.value = null[\s\S]*summaryPath\(brewId\)/.test(newPage), '補寫成功也走到結算頁')
+  r.check(/await exitTo\(`\/brews\/\$\{id\.value\}`\)/.test(read('pages/brews/[id]/edit.vue')) && !/summary/.test(read('pages/brews/[id]/edit.vue')),
+    '編輯儲存後照舊回紀錄詳情')
+  const summary = read('pages/brews/[id]/summary.vue')
+  const summaryTemplate = stripComments(templateOf(summary))
+  r.check(/const access = summaryAccess\(ticket\.value, id\)/.test(summary) && /await navigateTo\(`\/brews\/\$\{id\}`, \{ replace: true \}\)/.test(summary),
+    '直接打開網址、重新整理、之後再進來：導向這筆紀錄的詳情')
+  r.check(/ticket\.value = null/.test(summary), '進來時用掉 ticket：只出現這一次')
+  r.check(/let leavingByPage = access === 'detail'/.test(summary), '導向詳情是頁面自己發的，不會被攔成去總覽')
+  r.check(/onBeforeRouteLeave\(\(\) => \{\s*const result = summaryLeave\(leavingByPage\)/.test(summary), '返回鍵與返回手勢：效果和按勾勾一樣')
+  r.check(/async function done\(\) \{\s*leavingByPage = true\s*await navigateTo\('\/', \{ replace: true \}\)/.test(summary), '勾勾：用取代的方式去總覽')
+  r.check(/async function openDetail\(\) \{\s*leavingByPage = true\s*await navigateTo\(`\/brews\/\$\{id\}`, \{ replace: true \}\)/.test(summary),
+    '摘要：用取代的方式進紀錄詳情，返回時不會回到結算頁')
+  r.check(/aria-label="完成"[\s\S]{0,600}<path d="M20 6 9 17l-5-5" \/>/.test(summaryTemplate) && /rounded-full/.test(summaryTemplate), '右上角是圓形按鈕，中間放勾勾（完成）')
+  r.check(/\{\{ brew\.beans\?\.name \?\? '沒有指定豆子' \}\}・\{\{ monthDay\(brew\.brewed_at\) \}\}/.test(summaryTemplate)
+    && /<path d="m9 18 6-6-6-6" \/>/.test(summaryTemplate), '摘要：「豆名・M/D ›」')
+  r.check(/<GoalRing :count="ring\.after" :from="ring\.before"/.test(summaryTemplate), '目標環從存檔前的杯數前進到存檔後的杯數')
+  r.check(/本週目標達成/.test(summaryTemplate) && /\{\{ ring\.goal \}\} 杯/.test(summaryTemplate) && /v-if="ring\.crossed && filled"/.test(summaryTemplate),
+    '剛好跨過目標：補滿之後換成「本週目標達成」與「M 杯」')
+  r.check(/第 \{\{ records \}\} 筆紀錄/.test(summaryTemplate) && /<div v-if="ring"/.test(summaryTemplate), '不在本週時只留「第 N 筆紀錄」')
+  r.check(/和 \{\{ monthDay\(comparison\.target\.brewed_at\) \}\} 那一杯相比/.test(summaryTemplate)
+    && /參數和 \{\{ monthDay\(comparison\.target\.brewed_at\) \}\} 那一杯相同/.test(summaryTemplate)
+    && /恭喜開箱新豆子。/.test(summaryTemplate), '比較區的三種狀態')
+  r.check(/feedbackLine\(compared\.diffs, compared\.target\?\.rating, row\.rating, !!compared\.target\)/.test(summary), '回饋句：有比較對象、兩筆都有評分才出現')
+  const summaryText = summaryTemplate.replace(/\{\{[\s\S]*?\}\}/g, '').replace(/<(?:[^>"']|"[^"]*"|'[^']*')*>/g, ' ').split(/\s+/).filter(Boolean)
+  // → 是差異的資料，與紀錄詳情相同
+  const summaryAllowed = new Set(['→', '・', '本週目標達成', '杯', '本週', '／', '第', '筆紀錄', '和', '那一杯相比', '參數和', '那一杯相同', '恭喜開箱新豆子。'])
+  const summaryExtra = summaryText.filter(word => !summaryAllowed.has(word))
+  r.check(summaryExtra.length === 0, `結算頁沒有規定以外的文案${summaryExtra.length ? `：${summaryExtra.join('、')}` : ''}`)
+  r.check(!/#[0-9a-f]{3,6}\b/i.test(summaryTemplate) && !/from ['"](gsap|animejs|motion|framer|@vueuse\/motion)/.test(summary), '沒有寫死的色碼、沒有動畫函式庫')
+  r.check(/prefers-reduced-motion/.test(read('components/GoalRing.vue')), '減少動態效果時不播動畫')
+
+  r.section('目標設定頁')
+  const goalPage = read('pages/goal.vue')
+  const goalTemplate = stripComments(templateOf(goalPage))
+  r.check(/<h1[^>]*>設定每週記錄目標<\/h1>/.test(goalTemplate) && /<GoalStepper v-model="cups" \/>/.test(goalTemplate), '標題與加減按鈕')
+  r.check(/之後可以在總覽修改。/.test(goalTemplate) && />\s*開始\s*</.test(goalTemplate), '說明一行、按鈕「開始」')
+  r.check(/const cups = ref\(GOAL_DEFAULT\)/.test(goalPage), '預設 3 杯')
+  r.check(/await navigateTo\('\/', \{ replace: true \}\)/.test(goalPage), '開始之後用取代的方式去總覽，返回時不會再回到這一頁')
+  const middleware = read('middleware/goal-setup.global.ts')
+  r.check(/needsGoalSetup\(to\.path, userId !== null, false\)/.test(middleware) && /navigateTo\(GOAL_SETUP_PATH, \{ replace: true \}\)/.test(middleware),
+    '已登入、沒有任何目標時，先到目標設定頁（全站的 middleware）')
+  r.check(/if \(error\) return/.test(middleware), '查詢失敗不擋')
+  const stepper = read('components/GoalStepper.vue')
+  r.check(/:disabled="atMin"/.test(stepper) && /:disabled="atMax"/.test(stepper) && /<span>杯<\/span>/.test(stepper), '加減按鈕：到邊界時停用，數字旁是「杯」')
+  const goalDialog = read('components/GoalDialog.vue')
+  r.check(/>每週記錄目標</.test(goalDialog) && /useOverlayHistory\(/.test(goalDialog), '修改目標的對話框：標題「每週記錄目標」，返回鍵等同取消')
+  r.check(/from\('weekly_goals'\)\s*\.insert\(/.test(goalDialog) && !/\.update\(|\.delete\(/.test(goalDialog) && /invalidateAfter\(\{ kind: 'goal' \}\)/.test(goalDialog),
+    '儲存是新增一列（不改舊的），清掉目標的快取')
 
   r.section('頂部角落只放 ‹ 與總覽的齒輪')
   const header = read('components/PageHeader.vue')
@@ -192,7 +286,7 @@ export default function run() {
 
   r.section('儲存與刪除後的跳轉不留下表單頁')
   for (const path of [
-    'pages/brews/new.vue', 'pages/brews/[id]/edit.vue', 'pages/brews/[id]/index.vue',
+    'pages/brews/[id]/edit.vue', 'pages/brews/[id]/index.vue',
     'pages/beans/new.vue', 'pages/beans/[id]/edit.vue', 'pages/beans/[id]/index.vue',
     'pages/equipment/new.vue', 'pages/equipment/[id]/edit.vue',
   ]) {

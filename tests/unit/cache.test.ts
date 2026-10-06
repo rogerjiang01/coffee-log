@@ -49,7 +49,8 @@ export default function run() {
   r.check(cleared(cacheKeys.brewsByBean(BEAN), brew), '該豆子的紀錄列表')
   r.check(cleared(cacheKeys.brewsByBean(OTHER_BEAN), brew),
     '別支豆子的也清——編輯時可能把紀錄改掛到另一支豆子上')
-  r.check(cleared(cacheKeys.brewCounts(), brew), '豆子卡片的沖煮次數與收藏次數')
+  r.check(cleared(cacheKeys.brewStats(), brew), '總覽與結算頁的統計')
+  r.check(!cleared(cacheKeys.goals(), brew), '不動每週目標')
   r.check(cleared(cacheKeys.equipmentLastUsed(), brew),
     '器材的上次使用時間——它從 brews 反查，所以掛在 brews: 底下')
   r.check(cleared(cacheKeys.brew(BREW), brew), '該筆紀錄本身')
@@ -78,7 +79,7 @@ export default function run() {
   r.section('刪除豆子會連帶刪掉它的紀錄')
   // 外鍵是 cascade，確認對話框上就寫著「這支豆子的 N 筆沖煮紀錄會一併刪除」。
   r.check(cleared(cacheKeys.brewPage(0), bean), '時間軸不能留著已經不存在的紀錄')
-  r.check(cleared(cacheKeys.brewCounts(), bean), '次數統計')
+  r.check(cleared(cacheKeys.brewStats(), bean), '總覽的統計（豆名、照片、烘焙度都在「上一杯」上）')
   r.check(cleared(cacheKeys.brewsByBean(BEAN), bean), '該豆子的紀錄列表')
 
   r.section('標記已喝完')
@@ -88,7 +89,13 @@ export default function run() {
   r.check(cleared(cacheKeys.bean(BEAN), finished), '詳情頁自己的開關狀態')
   r.check(cleared(cacheKeys.beanOptions(), finished), '豆子選單的分組（已喝完排後面）')
   r.check(!cleared(cacheKeys.brewPage(0), finished),
-    '不動時間軸——is_finished 沒有被內嵌到任何沖煮查詢裡')
+    '不動時間軸——is_finished 沒有被內嵌到時間軸的查詢裡')
+  r.check(cleared(cacheKeys.brewStats(), finished), '總覽的「上一杯」只算未喝完的豆子：統計要重算')
+
+  r.section('修改每週目標')
+  const goal = { kind: 'goal' } as const
+  r.check(cleared(cacheKeys.goals(), goal), '目標的修改歷程')
+  r.check(!cleared(cacheKeys.brewStats(), goal) && !cleared(cacheKeys.brewPage(0), goal), '紀錄的統計不動')
 
   r.section('新增／刪除器材')
   const equip = { kind: 'equipment' } as const

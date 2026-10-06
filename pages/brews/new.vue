@@ -16,7 +16,7 @@ const route = useRoute()
 const supabase = useSupabaseClient()
 const cache = useQueryCache()
 const saveEvent = useBrewSaveEvent()
-const exitTo = useFlowExit()
+const summaryTicket = useSummaryTicket()
 const userId = useCurrentUserId()
 
 const form = ref<{ clearDraft: () => void } | null>(null)
@@ -215,8 +215,10 @@ async function onSubmit(payload: {
   // 存成功了，這份暫存沒有用了
   form.value?.clearDraft()
   cache.invalidateAfter({ kind: 'brew' })
-  // 取代表單那一筆：儲存後按返回不會回到表單（useFlowExit）
-  await exitTo(`/brews/${brewId}`)
+  // 結算頁（《02》§5.2）：取代表單那一筆，返回時不會回到表單。
+  // ticket 讓結算頁知道這一筆是剛建立的；分段失敗後重按儲存、補寫成功也走到這裡
+  summaryTicket.value = brewId
+  await navigateTo(summaryPath(brewId), { replace: true })
 }
 </script>
 

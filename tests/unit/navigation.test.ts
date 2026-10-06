@@ -1,8 +1,8 @@
 // 導覽規則（《03》§3、utils/navigation.ts）。
 
 import {
-  BEAN_BACK_FALLBACK, BREW_BACK_FALLBACK, TABS,
-  exitMethod, historyBack, leaveMethod, newBrewEntry, newBrewLeaveTarget, showsTabBar, tabSection,
+  BEAN_BACK_FALLBACK, BREW_BACK_FALLBACK, SETTINGS_BACK_FALLBACK, TABS,
+  exitMethod, historyBack, leaveMethod, newBrewEntry, newBrewLeaveTarget, showsTabBar, summaryAccess, summaryLeave, summaryPath, tabSection,
 } from '../../utils/navigation.ts'
 import { createReport } from '../helpers/report.mjs'
 
@@ -153,6 +153,30 @@ export default function run() {
   r.check(top(leave(['/brews/r1/edit'], BREW_BACK_FALLBACK, true)) === '/brews', '直接開網址也一樣')
   r.check(top(leave(['/beans', '/beans/b1', '/beans/b1/edit'], BEAN_BACK_FALLBACK, true)) === '/beans', '編輯豆子找不到：豆子列表（不變）')
   r.check(leaveMethod('/brews', BREW_BACK_FALLBACK, true) === 'back', '上一頁剛好就是列表：退回去，不多一筆')
+
+  r.section('設定的 ‹：同一個機制，沒有上一頁時回總覽')
+  r.check(SETTINGS_BACK_FALLBACK === '/', '退回目標是總覽（父層）')
+  r.check(top(back(['/', '/settings'], SETTINGS_BACK_FALLBACK)) === '/', '從總覽的齒輪進來：退回上一頁，就是總覽（行為不變）')
+  r.check(top(back(['/settings'], SETTINGS_BACK_FALLBACK)) === '/', '直接開網址：回總覽')
+
+  r.section('結算頁')
+  r.check(summaryPath('r9') === '/brews/r9/summary', '網址')
+  r.check(summaryAccess('r9', 'r9') === 'show', '剛存好的那一筆：顯示')
+  r.check(summaryAccess(null, 'r9') === 'detail', '直接打開網址、重新整理（記憶體裡沒有 ticket）：導向詳情')
+  r.check(summaryAccess('r8', 'r9') === 'detail', '別筆的 ticket：導向詳情')
+  r.check(summaryLeave(true) === true && summaryLeave(false) === '/', '頁面自己發的導覽照常走；返回鍵與返回手勢去總覽')
+
+  // 結算頁的 history：用取代的方式進入；勾勾取代成總覽；返回手勢退回上一頁後被導去總覽（push）
+  const save = (stack: Stack, id: string) => [...stack.slice(0, -1), summaryPath(id)]
+  const tick = (stack: Stack) => [...stack.slice(0, -1), '/']
+  const gesture = (stack: Stack) => [...stack.slice(0, -1), summaryLeave(false) as string]
+  const fromBrews = save(['/brews', '/brews/new'], 'r9')
+  r.check(fromBrews.join() === '/brews,/brews/r9/summary', '從紀錄分頁新增 → 儲存：表單那一筆換成結算頁')
+  r.check(tick(fromBrews).join() === '/brews,/', '按勾勾：結算頁那一筆換成總覽，返回時不會回到結算頁或表單')
+  r.check(gesture(fromBrews).join() === tick(fromBrews).join(), '返回手勢：結果和按勾勾一樣')
+  r.check([...fromBrews.slice(0, -1), '/brews/r9'].join() === '/brews,/brews/r9', '點摘要：結算頁那一筆換成紀錄詳情')
+  r.check(!tick(save(['/', '/beans/b1', '/brews/new?bean=b1'], 'r9')).some(path => path.startsWith('/brews/new') || path.endsWith('/summary')),
+    '指定豆子新增也一樣：表單與結算頁都不留在 history 裡')
 
   return r.finish()
 }

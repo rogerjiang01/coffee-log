@@ -13,6 +13,8 @@ const suites = [
   ['unit/default-equipment.test.ts', '新增紀錄時帶入常用器材'],
   ['unit/default-equipment-wiring.test.mjs', '帶入常用器材的接線'],
   ['unit/brew-diff.test.ts', '差異計算'],
+  ['unit/compare-feedback.test.ts', '比較對象與回饋句'],
+  ['unit/weekly-goal.test.ts', '每週記錄目標與總覽卡片'],
   ['unit/bean-compare.test.ts', '豆子比較表'],
   ['unit/lookup.test.ts', '查表欄位的比對'],
   ['unit/countries.test.ts', '產國的洲別分組'],
@@ -67,6 +69,7 @@ const suites = [
   ['db/shared-photo.test.mjs', '分享頁的豆袋照片（資料庫）'],
   ['db/brews.test.mjs', '分段與複製（資料庫）'],
   ['db/brew-save.test.mjs', '新增紀錄：分段失敗後再按儲存'],
+  ['db/weekly-goals.test.mjs', '每週記錄目標（資料庫）'],
 ]
 
 let totalPass = 0

@@ -1,7 +1,6 @@
 <script setup lang="ts">
 // 沖煮紀錄詳情。
 //
-// 這階段只做內容顯示：差異區塊與「照這次再沖一次」屬於階段 6。
 // 衍生值在此頁完整顯示，全部即時計算，不存資料庫（§8）。
 //
 // 檢視型畫面（《03》§3）：左上 ‹ 回上一頁（歷史式），分頁列保留（亮「紀錄」），編輯與刪除在內容區。
@@ -17,6 +16,7 @@ const id = computed(() => String(route.params.id))
 
 interface BrewDetail {
   id: string
+  bean_id: string | null
   copied_from_brew_id: string | null
   brew_method_id: string | null
   grinder_id: string | null
@@ -83,7 +83,7 @@ async function fetchBrew() {
   const { data, error } = await supabase
     .from('brews')
     .select(`
-      id, copied_from_brew_id, brew_method_id, grinder_id, dripper_id, kettle_id,
+      id, bean_id, copied_from_brew_id, brew_method_id, grinder_id, dripper_id, kettle_id,
       dose, water_temp, grind_setting, total_time, brewed_at,
       rating, is_favorite, is_sample, tasting_notes, intensity,
       beans ( id, name, roast_date, photo_path ),
@@ -150,57 +150,21 @@ async function load() {
 
 onMounted(load)
 
-// ── 相對上一版的差異（§8）────────────────────────────────
-// 即時計算，不存資料庫——存下來會在來源紀錄被編輯時失準。
-const diffs = ref<BrewDiff[]>([])
-
-const DIFF_SELECT = `
-  brew_method_id, grinder_id, dripper_id, kettle_id,
-  dose, water_temp, grind_setting, total_time,
-  brew_methods ( name ),
-  grinder:grinder_id ( custom_name, equipment_catalog ( brand, model, variant ) ),
-  dripper:dripper_id ( custom_name, equipment_catalog ( brand, model, variant ) ),
-  kettle:kettle_id ( custom_name, equipment_catalog ( brand, model, variant ) )
-`
-
-function toSubject(row: Record<string, unknown>, rows: StepRow[]): DiffSubject {
-  const equipmentName = (value: unknown) =>
-    value ? equipmentOptionName(value as EquipmentNameRow) : null
-  return {
-    dose: (row.dose as number | null) ?? null,
-    water_temp: (row.water_temp as number | null) ?? null,
-    grind_setting: (row.grind_setting as number | null) ?? null,
-    total_time: (row.total_time as number | null) ?? null,
-    grinder_id: (row.grinder_id as string | null) ?? null,
-    dripper_id: (row.dripper_id as string | null) ?? null,
-    kettle_id: (row.kettle_id as string | null) ?? null,
-    brew_method_id: (row.brew_method_id as string | null) ?? null,
-    grinderName: equipmentName(row.grinder),
-    dripperName: equipmentName(row.dripper),
-    kettleName: equipmentName(row.kettle),
-    methodName: (row.brew_methods as { name: string } | null)?.name ?? null,
-    steps: rows,
-  }
-}
+// ── 和 M/D 那一杯相比（《02》§7）────────────────────────
+// 比較對象：複製來的比複製來源，不是的比同一支豆子在它之前的最近一筆（utils/compareTarget.ts）。
+// 即時計算，不存資料庫——存下來會在比較對象被編輯時失準。
+const compare = useBrewComparison()
+const comparison = ref<Comparison | null>(null)
+const compareRows = computed(() => {
+  const c = comparison.value
+  if (!c?.target) return []
+  return c.rating ? [...c.diffs, c.rating] : c.diffs
+})
 
 async function loadDiff() {
   const current = brew.value
-  const sourceId = current?.copied_from_brew_id
-  // 來源被刪除時外鍵會被設成 null，此區塊自然不顯示
-  if (!current || !sourceId) return
-
-  // 本筆的參數與分段在 load() 已經拿到了，不再重抓——
-  // 主查詢的欄位是 DIFF_SELECT 的超集合。只有來源那一邊需要去問。
-  const [sourceRow, sourceStepRows] = await Promise.all([
-    supabase.from('brews').select(DIFF_SELECT).eq('id', sourceId).maybeSingle(),
-    fetchSteps(sourceId),
-  ])
-  if (!sourceRow.data) return
-
-  diffs.value = computeBrewDiff(
-    toSubject(current as unknown as Record<string, unknown>, rawSteps.value),
-    toSubject(sourceRow.data as unknown as Record<string, unknown>, sourceStepRows),
-  )
+  if (!current) return
+  comparison.value = await compare(current as unknown as Parameters<typeof compare>[0], rawSteps.value)
 }
 
 const water = computed(() => totalWater(steps.value))
@@ -264,7 +228,7 @@ async function destroy() {
     <!-- ‹ 在所有狀態判斷之外：讀取中、讀取失敗、找不到都要看得到。
          歷史式：回到使用者實際來的地方（紀錄分頁、豆子的比較表、分享頁的「前往紀錄」），
          沒有上一頁（外部連結直接打開）才回紀錄分頁（《03》§3、BREW_BACK_FALLBACK） -->
-    <PageHeader :back="BREW_BACK_FALLBACK" back-history />
+    <PageHeader :back="BREW_BACK_FALLBACK" />
 
     <p v-if="loadError" role="alert" class="mt-4 text-sm" :style="{ color: 'var(--danger)' }">{{ loadError }}</p>
     <!-- 整頁都讀不到時才給重試；已經有內容（例如只有分段讀不到）時，紅字就夠了 -->
@@ -435,12 +399,12 @@ async function destroy() {
         <p class="mt-2 whitespace-pre-line">{{ brew.tasting_notes }}</p>
       </section>
 
-      <!-- 相對上一次。差異為空或來源已刪除時整個區塊不顯示。 -->
-      <section v-if="diffs.length" class="mt-8">
-        <h2 class="font-serif text-lg font-bold">相對上一次</h2>
+      <!-- 和 M/D 那一杯相比。沒有比較對象、或沒有任何一列（參數相同、沒有兩邊的評分）時整個區塊不顯示 -->
+      <section v-if="comparison?.target && compareRows.length" class="mt-8">
+        <h2 class="font-serif text-lg font-bold">和 {{ monthDay(comparison.target.brewed_at) }} 那一杯相比</h2>
         <dl class="mt-3">
           <div
-            v-for="diff in diffs"
+            v-for="diff in compareRows"
             :key="diff.field"
             class="flex items-baseline justify-between gap-3 border-t py-3"
             :style="{ borderColor: 'var(--border)' }"
