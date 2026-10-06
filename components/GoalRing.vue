@@ -81,7 +81,7 @@ onMounted(() => {
 </template>
 
 <style scoped>
-/* 補滿的瞬間：環放大一下再回來。簡單版本，預覽時再定案 */
+/* 補滿的瞬間：環放大一下再回來。暫定的簡單版本，品牌色定案時與第二圈的顏色一起決定（《03》§4.17） */
 .goal-ring-pulse {
   animation: goal-ring-pulse 600ms ease-out 1;
   transform-origin: center;
