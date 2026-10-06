@@ -99,31 +99,54 @@ export default function run() {
   const cardOrder = ['v-if="week"', 'v-if="last"', 'v-if="top"', 'v-if="totals"', 'v-if="month"'].map(marker => homeTemplate.indexOf(marker))
   r.check(cardOrder.every((at, i) => at > 0 && (i === 0 || at > cardOrder[i - 1])), '由上到下：目標環、上一杯、本週最高分、累計、本月')
   r.check(/class="mt-6 grid grid-cols-2 gap-3"/.test(homeTemplate) && /v-if="week"[\s\S]{0,40}class="col-span-2/.test(homeTemplate),
-    '目標環全寬、其餘半寬兩張一排；不顯示的卡片不渲染，後面的往前遞補')
-  r.check(/本週 \{\{ week\.count \}\}／\{\{ week\.goal \}\}/.test(homeTemplate), '文字「本週 N／M」')
+    '目標環全寬，永遠在最上面')
+  r.check(/dashboardRows\(\{ last: !!last\.value, top: !!top\.value, totals: !!totals\.value, month: !!month\.value \}\)/.test(homeScript),
+    '下面固定兩排，排列由 dashboardRows 決定（不往前遞補）')
+  for (const card of ['last', 'top', 'totals', 'month']) {
+    r.check(new RegExp(`v-if="${card}"[\\s\\S]{0,200}:class="\\{ 'col-span-2': spanOf\\('${card}'\\) === 2 \\}"`).test(homeTemplate),
+      `${card}：同一排只剩它時改成全寬`)
+  }
+  // 每張卡片的第一個元素都是標題，靠左上，樣式相同
+  const cards = [...homeTemplate.matchAll(/v-if="(week|last|top|totals|month)"[\s\S]*?>\s*<h2 class="([^"]+)">([\s\S]*?)<\/h2>/g)]
+  r.check(cards.length === 5 && cards.every(m => m[2] === 'font-serif text-lg font-bold'), '五張卡片的第一個元素都是標題，樣式相同')
+  const titles = Object.fromEntries(cards.map(m => [m[1], m[3].trim()]))
+  r.check(titles.week === '本週目標' && titles.last === '上一杯' && titles.totals === '累計' && titles.month === '本月'
+    && titles.top === "{{ top.week === 'this' ? '本週最高分' : '上週最高分' }}", '標題文字：本週目標、上一杯、本週最高分／上週最高分、累計、本月')
+  r.check(/\{\{ week\.count \}\}／\{\{ week\.goal \}\}<\/span>\s*<span[^>]*>杯<\/span>/.test(homeTemplate) && !/本週 \{\{/.test(homeTemplate),
+    '「N／M 杯」，不和標題重複「本週」')
+  // 字級：標題 lg、主要數字 xl（不大過頁面標題的 xl）、單位與次要文字 sm
+  r.check(!/text-2xl|text-3xl|text-4xl/.test(homeTemplate), '卡片上的數字不大過頁面標題（text-xl）')
+  const numbers = [...homeTemplate.matchAll(/<span class="([^"]*)">\{\{ (week\.count|totals\.records|totals\.beans|month\.cups|month\.dose)/g)]
+  r.check(numbers.length === 5 && numbers.every(m => /font-serif text-xl font-bold/.test(m[1])), '主要數字同一級：--text-xl')
+  r.check(/>杯<\/span>/.test(homeTemplate) && [...homeTemplate.matchAll(/<span class="([^"]*)">(杯|筆紀錄|喝過|支豆子|g)<\/span>/g)].every(m => /text-sm text-muted/.test(m[1])),
+    '單位與次要文字同一級：--text-sm')
   r.check(/@click="editing = true"/.test(homeTemplate) && /<GoalDialog/.test(homeTemplate), '點目標環卡片打開修改目標的對話框')
   r.check(/:to="`\/beans\/\$\{last\.beanId\}`"/.test(homeTemplate), '上一杯：點了進豆子詳情')
   const lastCard = homeTemplate.match(/v-if="last"[\s\S]*?<\/NuxtLink>/)?.[0] ?? ''
   r.check(!/<button/.test(lastCard), '上一杯：卡片上不放任何按鈕')
-  r.check(/<BeanThumb :photo-url="lastPhoto"/.test(lastCard) && /thumbnailUrls\(\[path\]\)/.test(homeScript), '上一杯：縮圖檔，沒有照片時用烘焙度色塊')
+  r.check(/<span class="block size-16 shrink-0[^"]*">\s*<BeanThumb :photo-url="photoOf\(last\.bean\.photo_path\)"/.test(lastCard) && /thumbnailUrls\(paths\)/.test(homeScript),
+    '上一杯：64px 縮圖（縮圖檔，沒有照片時用烘焙度色塊），不是全寬照片')
+  const topCard = homeTemplate.match(/v-if="top"[\s\S]*?<\/NuxtLink>/)?.[0] ?? ''
+  r.check(/<span class="block size-16 shrink-0[^"]*">\s*<BeanThumb/.test(topCard) && /評分 \$\{top\.brew\.rating\} 顆星/.test(topCard)
+    && /monthDay\(top\.brew\.brewed_at\)/.test(topCard) && !/・/.test(topCard), '最高分：同樣的縮圖，右邊分行是豆名、評分、沖煮日期，不用中間點')
   r.check(/第 \{\{ last\.count \}\} 杯/.test(lastCard), '上一杯：「第 N 杯」')
-  r.check(/:to="`\/brews\/\$\{top\.id\}`"/.test(homeTemplate), '本週最高分：點了進紀錄詳情')
+  r.check(/:to="`\/brews\/\$\{top\.brew\.id\}`"/.test(homeTemplate), '最高分：點了進紀錄詳情')
   r.check(/v-if="totals"\s+to="\/brews"/.test(homeTemplate), '累計：點了進紀錄分頁')
   r.check(/<div\s+v-if="month"/.test(homeTemplate), '本月：卡片不能點')
-  r.check(/\{\{ totals\.records \}\}<\/span> 筆紀錄/.test(homeTemplate) && /喝過 <span[^>]*>\{\{ totals\.beans \}\}<\/span> 支豆子/.test(homeTemplate),
+  r.check(/\{\{ totals\.records \}\}<\/span><span[^>]*>筆紀錄<\/span>/.test(homeTemplate) && /喝過<\/span><span[^>]*>\{\{ totals\.beans \}\}<\/span><span[^>]*>支豆子/.test(homeTemplate),
     '累計：「N 筆紀錄」「喝過 N 支豆子」')
-  r.check(/\{\{ month\.cups \}\}<\/span> 杯/.test(homeTemplate) && /\{\{ month\.dose \}\}<\/span> g/.test(homeTemplate), '本月：「N 杯」「N g」')
+  r.check(/\{\{ month\.cups \}\}<\/span><span[^>]*>杯<\/span>/.test(homeTemplate) && /\{\{ month\.dose \}\}<\/span><span[^>]*>g<\/span>/.test(homeTemplate), '本月：「N 杯」「N g」')
   r.check(/weekCard\(stats\.value, goals\.value, now\.value\)/.test(homeScript) && /lastBeanCard\(stats\.value\)/.test(homeScript)
-    && /weekTopCard\(stats\.value, now\.value\)/.test(homeScript) && /totalsCard\(stats\.value\)/.test(homeScript)
+    && /topRatedCard\(stats\.value, now\.value\)/.test(homeScript) && /totalsCard\(stats\.value\)/.test(homeScript)
     && /monthCard\(stats\.value, now\.value\)/.test(homeScript), '每張卡片的資料與顯示條件都在 utils/dashboard.ts')
   r.check(/\.eq\('is_sample', false\)/.test(read('composables/useBrewStats.ts')), '統計的查詢排除範例紀錄')
   r.check(/newBrewEntry\(activeBeans\.value\)/.test(homeScript), '浮動新增按鈕：只有一支未喝完的豆子時帶入')
-  // 規定以外的文案：卡片名稱、規格寫明的文字、星期的單字以外，不放任何字
+  // 規定以外的文案：卡片標題、規格寫明的文字、星期的單字以外，不放任何字（標題不算說明句，《02》§4.1）
   const homeText = homeTemplate
     .replace(/<PageHeader[\s\S]*?<\/PageHeader>/, '')
     .replace(/\{\{[\s\S]*?\}\}/g, '')
     .replace(/<(?:[^>"']|"[^"]*"|'[^']*')*>/g, ' ').split(/\s+/).filter(Boolean)
-  const allowed = new Set(['本週', '／', '上一杯', '第', '杯', '本週最高分', '累計', '筆紀錄', '喝過', '支豆子', '本月', 'g'])
+  const allowed = new Set(['本週目標', '／', '上一杯', '第', '杯', '累計', '筆紀錄', '喝過', '支豆子', '本月', 'g'])
   const extra = homeText.filter(word => !allowed.has(word))
   r.check(extra.length === 0, `總覽沒有規定以外的文案${extra.length ? `：${extra.join('、')}` : ''}`)
   r.check(!/#[0-9a-f]{3,6}\b/i.test(homeTemplate + read('components/GoalRing.vue') + read('components/GoalStepper.vue') + read('components/BeanThumb.vue')),

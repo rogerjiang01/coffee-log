@@ -7,7 +7,7 @@ import {
   GOAL_DEFAULT, GOAL_MAX, GOAL_MIN, clampGoal, currentGoal, goalForWeek, monthRange, needsGoalSetup,
   ringLaps, weekEnd, weekStart, weekdayIndex,
 } from '../../utils/weeklyGoal.ts'
-import { lastBeanCard, monthCard, recordCount, summaryRing, totalsCard, weekCard, weekTopCard, type StatBrew } from '../../utils/dashboard.ts'
+import { dashboardRows, lastBeanCard, monthCard, recordCount, summaryRing, topRatedCard, totalsCard, weekCard, type StatBrew } from '../../utils/dashboard.ts'
 import { createReport } from '../helpers/report.mjs'
 
 const at = (y: number, m: number, d: number, h = 9, min = 0) => new Date(y, m - 1, d, h, min)
@@ -98,14 +98,29 @@ export default function run() {
   r.check(lastBeanCard([brew(WED, { bean_id: 'b3', beans: finished })]) === null, '只有已喝完的豆子：不顯示')
   r.check(lastBeanCard([brew(WED, { is_sample: true })]) === null, '只有範例紀錄：不顯示')
 
-  r.section('本週最高分')
+  r.section('本週最高分：本週沒有就看上週')
   const t1 = brew(MON, { rating: 4 })
   const t2 = brew(WED, { rating: 4 })
   const t3 = brew(at(2026, 10, 6), { rating: 3 })
-  r.check(weekTopCard([t1, t2, t3], SUN)?.id === t2.id, '同分取最近的一筆')
-  r.check(weekTopCard([t1, t3, brew(at(2026, 10, 1), { rating: 5 })], SUN)?.id === t1.id, '上週的 5 星不算（以沖煮日期計算）')
-  r.check(weekTopCard([brew(WED)], SUN) === null, '本週沒有任何有評分的紀錄：不顯示')
-  r.check(weekTopCard([brew(WED, { rating: 5, is_sample: true }), t3], SUN)?.id === t3.id, '範例紀錄不算')
+  const lastWeek5 = brew(at(2026, 10, 1), { rating: 5 })
+  r.check(topRatedCard([t1, t2, t3], SUN)?.brew.id === t2.id && topRatedCard([t1, t2, t3], SUN)?.week === 'this', '本週：評分最高，同分取最近的一筆')
+  r.check(topRatedCard([t1, t3, lastWeek5], SUN)?.brew.id === t1.id, '本週有評分時不看上週（上週的 5 星不算）')
+  const fallback = topRatedCard([brew(WED), lastWeek5, brew(at(2026, 9, 29), { rating: 5 }), brew(at(2026, 9, 30), { rating: 2 })], SUN)
+  r.check(fallback?.week === 'last' && fallback.brew.id === lastWeek5.id, '本週沒有評分、上週有：上週評分最高的一筆，同分取最近的（標題「上週最高分」）')
+  r.check(topRatedCard([lastWeek5], at(2026, 10, 5, 0, 1))?.week === 'last', '週一 00:01、本週還沒有紀錄：顯示上週的')
+  r.check(topRatedCard([brew(WED), brew(at(2026, 9, 27), { rating: 5 })], SUN) === null, '兩週都沒有（更早的不算）：不顯示')
+  r.check(topRatedCard([brew(WED, { rating: 5, is_sample: true }), brew(at(2026, 10, 1), { rating: 5, is_sample: true })], SUN) === null,
+    '範例紀錄不算')
+
+  r.section('卡片排成固定的兩排')
+  const all = { last: true, top: true, totals: true, month: true }
+  const layout = (v: typeof all) => dashboardRows(v).map(row => row.map(c => `${c.card}:${c.span}`).join(' ')).join(' | ')
+  r.check(layout(all) === 'last:1 top:1 | totals:1 month:1', '第一排上一杯、本週最高分；第二排累計、本月')
+  r.check(layout({ ...all, top: false }) === 'last:2 | totals:1 month:1', '本週最高分不顯示：上一杯改成全寬，累計不往前遞補')
+  r.check(layout({ ...all, last: false }) === 'top:2 | totals:1 month:1', '上一杯不顯示：本週最高分全寬')
+  r.check(layout({ ...all, month: false }) === 'last:1 top:1 | totals:2', '本月不顯示：累計全寬')
+  r.check(layout({ last: false, top: false, totals: true, month: true }) === 'totals:1 month:1', '第一排兩張都不顯示：整排不出現')
+  r.check(layout({ last: false, top: false, totals: false, month: false }) === '', '全都不顯示：只剩目標環')
 
   r.section('累計')
   r.check(JSON.stringify(totalsCard([brew(MON), brew(WED), brew(WED, { bean_id: 'b2' }), brew(SUN, { is_sample: true, bean_id: 'b9' })]))
