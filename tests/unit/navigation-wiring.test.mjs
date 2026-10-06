@@ -227,8 +227,11 @@ export default function run() {
   r.check(/async function openDetail\(\) \{\s*leavingByPage = true\s*await navigateTo\(`\/brews\/\$\{id\}`, \{ replace: true \}\)/.test(summary),
     '摘要：用取代的方式進紀錄詳情，返回時不會回到結算頁')
   r.check(/aria-label="完成"[\s\S]{0,600}<path d="M20 6 9 17l-5-5" \/>/.test(summaryTemplate) && /rounded-full/.test(summaryTemplate), '右上角是圓形按鈕，中間放勾勾（完成）')
-  r.check(/\{\{ brew\.beans\?\.name \?\? '沒有指定豆子' \}\}・\{\{ monthDay\(brew\.brewed_at\) \}\}/.test(summaryTemplate)
-    && /<path d="m9 18 6-6-6-6" \/>/.test(summaryTemplate), '摘要：「豆名・M/D ›」')
+  const summaryRow = summaryTemplate.match(/<a\s+:href="`\/brews\/\$\{id\}`"[\s\S]*?<\/a>/)?.[0] ?? ''
+  r.check(/<span class="block font-medium">\{\{ brew\.beans\?\.name \?\? '沒有指定豆子' \}\}<\/span>\s*<span class="block[^"]*">\{\{ monthDay\(brew\.brewed_at\) \}\}<\/span>/.test(summaryRow),
+    '摘要：縮圖右邊兩行，豆名與沖煮日期')
+  r.check(!/・|<svg|chevron|m9 18 6-6-6-6/.test(summaryRow) && /@click\.prevent="openDetail"/.test(summaryRow),
+    '摘要：不用中間點、不加 ›，整列可點（《03》§1）')
   r.check(/<GoalRing :count="ring\.after" :from="ring\.before"/.test(summaryTemplate), '目標環從存檔前的杯數前進到存檔後的杯數')
   r.check(/本週目標達成/.test(summaryTemplate) && /\{\{ ring\.goal \}\} 杯/.test(summaryTemplate) && /v-if="ring\.crossed && filled"/.test(summaryTemplate),
     '剛好跨過目標：補滿之後換成「本週目標達成」與「M 杯」')
@@ -239,7 +242,7 @@ export default function run() {
   r.check(/feedbackLine\(compared\.diffs, compared\.target\?\.rating, row\.rating, !!compared\.target\)/.test(summary), '回饋句：有比較對象、兩筆都有評分才出現')
   const summaryText = summaryTemplate.replace(/\{\{[\s\S]*?\}\}/g, '').replace(/<(?:[^>"']|"[^"]*"|'[^']*')*>/g, ' ').split(/\s+/).filter(Boolean)
   // → 是差異的資料，與紀錄詳情相同
-  const summaryAllowed = new Set(['→', '・', '本週目標達成', '杯', '本週', '／', '第', '筆紀錄', '和', '那一杯相比', '參數和', '那一杯相同', '恭喜開箱新豆子。'])
+  const summaryAllowed = new Set(['→', '本週目標達成', '杯', '本週', '／', '第', '筆紀錄', '和', '那一杯相比', '參數和', '那一杯相同', '恭喜開箱新豆子。'])
   const summaryExtra = summaryText.filter(word => !summaryAllowed.has(word))
   r.check(summaryExtra.length === 0, `結算頁沒有規定以外的文案${summaryExtra.length ? `：${summaryExtra.join('、')}` : ''}`)
   r.check(!/#[0-9a-f]{3,6}\b/i.test(summaryTemplate) && !/from ['"](gsap|animejs|motion|framer|@vueuse\/motion)/.test(summary), '沒有寫死的色碼、沒有動畫函式庫')

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 // 結算頁（《02》§5「結算頁」）。新增紀錄儲存成功後出現，只出現這一次。
 //
-// 由上到下：摘要（縮圖、豆名・M/D ›）→ 目標環 → 比較區 → 回饋句。
+// 由上到下：摘要（縮圖、豆名、沖煮日期）→ 目標環 → 比較區 → 回饋句。
 // 右上角的勾勾是「完成」：用取代的方式去總覽。返回鍵與返回手勢效果相同（onBeforeRouteLeave）。
 // 直接打開網址、重新整理、之後再進來：導向這筆紀錄的詳情（summaryAccess）。
 //
@@ -134,7 +134,8 @@ async function openDetail() {
     </div>
 
     <template v-else-if="brew">
-      <!-- 1. 摘要：點了用取代的方式進紀錄詳情，返回時不會回到結算頁 -->
+      <!-- 1. 摘要：縮圖右邊兩行，豆名與沖煮日期。整列可點、沒有 ›——app 裡可點的卡片與列都沒有箭頭（《03》§1）。
+           點了用取代的方式進紀錄詳情，返回時不會回到結算頁 -->
       <a
         :href="`/brews/${id}`"
         class="mt-4 flex items-center gap-3"
@@ -143,13 +144,10 @@ async function openDetail() {
         <span class="block w-14 shrink-0 overflow-hidden rounded-md">
           <BeanThumb :photo-url="photo" :roast-level="brew.beans?.roast_level ?? null" :alt="brew.beans?.name ?? ''" />
         </span>
-        <span class="min-w-0 flex-1 font-medium">{{ brew.beans?.name ?? '沒有指定豆子' }}・{{ monthDay(brew.brewed_at) }}</span>
-        <svg
-          width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" class="shrink-0" :style="{ color: 'var(--text-muted)' }"
-          fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round"
-        >
-          <path d="m9 18 6-6-6-6" />
-        </svg>
+        <span class="min-w-0 flex-1">
+          <span class="block font-medium">{{ brew.beans?.name ?? '沒有指定豆子' }}</span>
+          <span class="block text-sm tabular-nums text-muted">{{ monthDay(brew.brewed_at) }}</span>
+        </span>
       </a>
 
       <!-- 2. 目標環。這一筆不在本週時只留「第 N 筆紀錄」 -->

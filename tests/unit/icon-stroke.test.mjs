@@ -47,7 +47,6 @@ const ICONS = [
   ['⌄ 型號下拉', 'components/CatalogSelect.vue', 'm6 9 6 6 6-6', 1.5, 1],
   ['⌄ 處理法／品種下拉', 'components/LookupSelect.vue', 'm6 9 6 6 6-6', 1.5, 1],
   ['› 器材欄位', 'components/EquipmentTrigger.vue', 'm9 18 6-6-6-6', 1.5, 1],
-  ['› 結算頁的摘要', 'pages/brews/[id]/summary.vue', 'm9 18 6-6-6-6', 1.5, 1],
   ['攪拌標記', 'components/StirIcon.vue', 'M12 14v7', 1.5, 1],
   ['暫存中（sync）', 'components/DraftStatus.vue', 'M18 3v4h-4', 1.5, 1],
   ['已暫存（打勾）', 'components/DraftStatus.vue', 'M20 6 9 17l-5-5', 1.5, 1],
