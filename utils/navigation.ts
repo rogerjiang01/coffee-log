@@ -125,7 +125,7 @@ export function exitMethod(previous: string | null | undefined, target: string):
 }
 
 /**
- * 結算頁（《02》§5.2）。只在新增紀錄儲存成功後出現（空白、指定豆子、複製都算），
+ * 結算頁（《02》§5「結算頁」）。只在新增紀錄儲存成功後出現（空白、指定豆子、複製都算），
  * 用取代的方式進入，返回時不會回到表單。
  */
 export function summaryPath(brewId: string): string {

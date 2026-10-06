@@ -215,7 +215,7 @@ async function onSubmit(payload: {
   // 存成功了，這份暫存沒有用了
   form.value?.clearDraft()
   cache.invalidateAfter({ kind: 'brew' })
-  // 結算頁（《02》§5.2）：取代表單那一筆，返回時不會回到表單。
+  // 結算頁（《02》§5「結算頁」）：取代表單那一筆，返回時不會回到表單。
   // ticket 讓結算頁知道這一筆是剛建立的；分段失敗後重按儲存、補寫成功也走到這裡
   summaryTicket.value = brewId
   await navigateTo(summaryPath(brewId), { replace: true })
