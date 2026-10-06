@@ -42,6 +42,12 @@ const spanOf = (card: DashboardCard) => rows.value.flat().find(item => item.card
 
 const WEEKDAYS = ['一', '二', '三', '四', '五', '六', '日']
 const barMax = computed(() => Math.max(1, ...(week.value?.days ?? [])))
+// 本週全部 0 杯時長條區只剩底線，不保留空白
+const barMaxCups = computed(() => Math.max(0, ...(week.value?.days ?? [])))
+const barStyle = (cups: number) => ({
+  height: cups ? `${(cups / barMax.value) * 100}%` : '2px',
+  background: cups ? 'var(--accent)' : 'var(--border)',
+})
 
 // 上一杯與最高分的縮圖：長邊 384px 的縮圖檔（《01》§7.1），沒有縮圖檔時退回原圖
 const photoPaths = computed(() => [last.value?.bean.photo_path, top.value?.brew.beans?.photo_path].filter((p): p is string => !!p))
@@ -127,28 +133,26 @@ const newBrewLink = computed(() => newBrewEntry(activeBeans.value))
         @click="editing = true"
       >
         <h2 class="font-serif text-lg font-bold">本週目標</h2>
-        <div class="mt-3 flex items-center gap-5">
-          <GoalRing :count="week.count" :goal="week.goal" />
-          <p class="tabular-nums">
-            <span class="font-serif text-xl font-bold">{{ week.count }}／{{ week.goal }}</span>
-            <span class="ml-1 text-sm text-muted">杯</span>
-          </p>
-        </div>
-        <!-- 週一到週日的每日長條圖（每天的杯數） -->
-        <div class="mt-4 flex items-end gap-2" aria-hidden="true">
-          <div v-for="(cups, day) in week.days" :key="day" class="flex flex-1 flex-col items-center gap-1">
-            <div class="flex h-12 w-full items-end">
-              <div
-                class="w-full rounded-sm"
-                :style="{
-                  height: cups ? `${(cups / barMax) * 100}%` : '2px',
-                  background: cups ? 'var(--accent)' : 'var(--border)',
-                }"
-              />
+
+        <!-- 環在左；右邊上方是「N／M 杯」，下方是長條圖（《03》§4.16） -->
+        <div class="mt-3 flex items-center gap-4">
+          <GoalRing :count="week.count" :goal="week.goal" :size="80" />
+          <div class="min-w-0 flex-1">
+            <p class="tabular-nums">
+              <span class="font-serif text-xl font-bold">{{ week.count }}／{{ week.goal }}</span>
+              <span class="ml-1 text-sm text-muted">杯</span>
+            </p>
+            <div class="mt-2 flex items-end gap-1.5" aria-hidden="true">
+              <div v-for="(cups, day) in week.days" :key="day" class="flex flex-1 flex-col items-center gap-1">
+                <div class="flex w-full items-end" :class="barMaxCups ? 'h-7' : 'h-0.5'">
+                  <div class="w-full rounded-sm" :style="barStyle(cups)" />
+                </div>
+                <span class="text-sm leading-none text-muted">{{ WEEKDAYS[day] }}</span>
+              </div>
             </div>
-            <span class="text-sm text-muted">{{ WEEKDAYS[day] }}</span>
           </div>
         </div>
+
       </button>
 
       <!-- 第一排：上一杯。點了進豆子詳情，卡片上不放任何按鈕 -->

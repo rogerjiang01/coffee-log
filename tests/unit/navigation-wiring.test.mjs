@@ -112,6 +112,8 @@ export default function run() {
   const titles = Object.fromEntries(cards.map(m => [m[1], m[3].trim()]))
   r.check(titles.week === '本週目標' && titles.last === '上一杯' && titles.totals === '累計' && titles.month === '本月'
     && titles.top === "{{ top.week === 'this' ? '本週最高分' : '上週最高分' }}", '標題文字：本週目標、上一杯、本週最高分／上週最高分、累計、本月')
+  r.check(/<GoalRing :count="week\.count" :goal="week\.goal" :size="80" \/>\s*<div class="min-w-0 flex-1">\s*<p class="tabular-nums">/.test(homeTemplate) && !/RING_LAYOUT/.test(homeScript),
+    '目標環卡片：環在左，右邊上方是數字、下方是長條圖（方案 A）')
   r.check(/\{\{ week\.count \}\}／\{\{ week\.goal \}\}<\/span>\s*<span[^>]*>杯<\/span>/.test(homeTemplate) && !/本週 \{\{/.test(homeTemplate),
     '「N／M 杯」，不和標題重複「本週」')
   // 字級：標題 lg、主要數字 xl（不大過頁面標題的 xl）、單位與次要文字 sm
