@@ -20,11 +20,16 @@ const fills: Record<RoastLevel, { background: string; color: string }> = {
 }
 
 /**
- * 烘焙度未填時的填充。規格只定義了五級對應，沒有定義「沒有照片也沒有烘焙度」
- * 的情況，但那正是只填豆名存檔後的常見狀態，因此給一個中性底，
- * 不假裝它是淺焙。
+ * 沒有照片、也沒填烘焙度時的填充（《03》§4.5，2026-10-10）。規格只定義了五級對應，
+ * 而只填豆名存檔正是常見狀態，所以給一個中性的灰，不假裝它是淺焙。
+ *
+ * 原本是 --surface（白）：放在白色卡片上看不見，豆名看起來像莫名其妙往右縮排。
+ * 改用 --field-border（sand-200）——token 裡沒有中性灰，這是既有語意 token 裡
+ * 在白色卡片與頁面底色上都看得出邊界、又不會被當成某一級烘焙度的那一個。
+ * 不用 --border：骨架（載入中）用的就是它，佔位會被看成還在讀取。
+ * 全站共用：豆子列表、豆子詳情、總覽的上一杯與最高分、結算頁的摘要。
  */
-const unknownFill = { background: 'var(--surface)', color: 'var(--text)' }
+const unknownFill = { background: 'var(--field-border)', color: 'var(--text)' }
 
 export function roastFill(level: RoastLevel | null | undefined) {
   return level ? fills[level] : unknownFill

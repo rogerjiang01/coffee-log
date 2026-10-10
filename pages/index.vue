@@ -40,14 +40,6 @@ const month = computed(() => monthCard(stats.value, now.value))
 const rows = computed(() => dashboardRows({ last: !!last.value, top: !!top.value, totals: !!totals.value, month: !!month.value }))
 const spanOf = (card: DashboardCard) => rows.value.flat().find(item => item.card === card)?.span ?? 1
 
-const WEEKDAYS = ['一', '二', '三', '四', '五', '六', '日']
-const barMax = computed(() => Math.max(1, ...(week.value?.days ?? [])))
-// 本週全部 0 杯時長條區只剩底線，不保留空白
-const barMaxCups = computed(() => Math.max(0, ...(week.value?.days ?? [])))
-const barStyle = (cups: number) => ({
-  height: cups ? `${(cups / barMax.value) * 100}%` : '2px',
-  background: cups ? 'var(--accent)' : 'var(--border)',
-})
 
 // 上一杯與最高分的縮圖：長邊 384px 的縮圖檔（《01》§7.1），沒有縮圖檔時退回原圖
 const photoPaths = computed(() => [last.value?.bean.photo_path, top.value?.brew.beans?.photo_path].filter((p): p is string => !!p))
@@ -125,35 +117,15 @@ const newBrewLink = computed(() => newBrewEntry(activeBeans.value))
          每張卡片的第一個元素是標題，靠左上（《03》§4.16） -->
     <div v-else class="mt-6 grid grid-cols-2 gap-3">
       <!-- 目標環：有目標就一定顯示，0 杯也顯示。點了修改目標 -->
-      <button
+      <GoalWeekCard
         v-if="week"
-        type="button"
-        class="col-span-2 rounded-md border p-3 text-left"
-        :style="{ borderColor: 'var(--border)', background: 'var(--surface)' }"
+        class="col-span-2"
+        :count="week.count"
+        :goal="week.goal"
+        :days="week.days"
+        clickable
         @click="editing = true"
-      >
-        <h2 class="font-serif text-lg font-bold">本週目標</h2>
-
-        <!-- 環在左；右邊上方是「N／M 杯」，下方是長條圖（《03》§4.16） -->
-        <div class="mt-3 flex items-center gap-4">
-          <GoalRing :count="week.count" :goal="week.goal" :size="80" />
-          <div class="min-w-0 flex-1">
-            <p class="tabular-nums">
-              <span class="font-serif text-xl font-bold">{{ week.count }}／{{ week.goal }}</span>
-              <span class="ml-1 text-sm text-muted">杯</span>
-            </p>
-            <div class="mt-2 flex items-end gap-1.5" aria-hidden="true">
-              <div v-for="(cups, day) in week.days" :key="day" class="flex flex-1 flex-col items-center gap-1">
-                <div class="flex w-full items-end" :class="barMaxCups ? 'h-7' : 'h-0.5'">
-                  <div class="w-full rounded-sm" :style="barStyle(cups)" />
-                </div>
-                <span class="text-sm leading-none text-muted">{{ WEEKDAYS[day] }}</span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-      </button>
+      />
 
       <!-- 第一排：上一杯。點了進豆子詳情，卡片上不放任何按鈕 -->
       <NuxtLink
@@ -169,7 +141,11 @@ const newBrewLink = computed(() => newBrewEntry(activeBeans.value))
             <BeanThumb :photo-url="photoOf(last.bean.photo_path)" :roast-level="last.bean.roast_level" :alt="last.bean.name" />
           </span>
           <span class="min-w-0 flex-1">
-            <span class="line-clamp-3 text-sm font-medium break-keep wrap-anywhere">{{ last.bean.name }}</span>
+            <!-- 範例豆子：豆名同一行加標籤，放不下時換到下一行（《03》§4.12） -->
+            <span class="flex flex-wrap items-baseline gap-x-1.5 gap-y-1">
+              <span class="line-clamp-3 text-sm font-medium break-keep wrap-anywhere">{{ last.bean.name }}</span>
+              <SampleBadge v-if="last.bean.is_sample" />
+            </span>
             <span class="mt-1 block text-sm tabular-nums text-muted">第 {{ last.count }} 杯</span>
           </span>
         </div>
@@ -189,7 +165,10 @@ const newBrewLink = computed(() => newBrewEntry(activeBeans.value))
             <BeanThumb :photo-url="photoOf(top.brew.beans?.photo_path)" :roast-level="top.brew.beans?.roast_level ?? null" :alt="top.brew.beans?.name ?? ''" />
           </span>
           <span class="min-w-0 flex-1">
-            <span class="line-clamp-3 text-sm font-medium break-keep wrap-anywhere">{{ top.brew.beans?.name ?? '沒有指定豆子' }}</span>
+            <span class="flex flex-wrap items-baseline gap-x-1.5 gap-y-1">
+              <span class="line-clamp-3 text-sm font-medium break-keep wrap-anywhere">{{ top.brew.beans?.name ?? '沒有指定豆子' }}</span>
+              <SampleBadge v-if="top.brew.beans?.is_sample" />
+            </span>
             <span class="mt-1 flex" :aria-label="`評分 ${top.brew.rating} 顆星`">
               <svg
                 v-for="level in 5" :key="level"

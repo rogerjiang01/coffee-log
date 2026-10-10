@@ -15,6 +15,8 @@ export interface StatBean {
   photo_path: string | null
   roast_level: RoastLevel | null
   is_finished: boolean
+  /** 範例豆子：總覽的上一杯與最高分在豆名同一行加「範例」標籤（《03》§4.12） */
+  is_sample?: boolean
 }
 
 export interface StatBrew {

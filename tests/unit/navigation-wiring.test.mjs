@@ -98,8 +98,10 @@ export default function run() {
   r.check(!/BrewTimelineItem|載入更多|brewPage/.test(homeScript), '時間軸不在這裡（紀錄分頁）')
   const cardOrder = ['v-if="week"', 'v-if="last"', 'v-if="top"', 'v-if="totals"', 'v-if="month"'].map(marker => homeTemplate.indexOf(marker))
   r.check(cardOrder.every((at, i) => at > 0 && (i === 0 || at > cardOrder[i - 1])), '由上到下：目標環、上一杯、本週最高分、累計、本月')
-  r.check(/class="mt-6 grid grid-cols-2 gap-3"/.test(homeTemplate) && /v-if="week"[\s\S]{0,40}class="col-span-2/.test(homeTemplate),
-    '目標環全寬，永遠在最上面')
+  const goalCard = stripComments(templateOf(read('components/GoalWeekCard.vue')))
+  const goalCardScript = read('components/GoalWeekCard.vue')
+  r.check(/class="mt-6 grid grid-cols-2 gap-3"/.test(homeTemplate) && /<GoalWeekCard\s+v-if="week"\s+class="col-span-2"/.test(homeTemplate),
+    '目標環全寬，永遠在最上面（GoalWeekCard，結算頁共用）')
   r.check(/dashboardRows\(\{ last: !!last\.value, top: !!top\.value, totals: !!totals\.value, month: !!month\.value \}\)/.test(homeScript),
     '下面固定兩排，排列由 dashboardRows 決定（不往前遞補）')
   for (const card of ['last', 'top', 'totals', 'month']) {
@@ -107,20 +109,25 @@ export default function run() {
       `${card}：同一排只剩它時改成全寬`)
   }
   // 每張卡片的第一個元素都是標題，靠左上，樣式相同
-  const cards = [...homeTemplate.matchAll(/v-if="(week|last|top|totals|month)"[\s\S]*?>\s*<h2 class="([^"]+)">([\s\S]*?)<\/h2>/g)]
-  r.check(cards.length === 5 && cards.every(m => m[2] === 'font-serif text-lg font-bold'), '五張卡片的第一個元素都是標題，樣式相同')
+  const cards = [...homeTemplate.matchAll(/v-if="(last|top|totals|month)"[\s\S]*?>\s*<h2 class="([^"]+)">([\s\S]*?)<\/h2>/g)]
+  const goalTitle = goalCard.match(/<component[\s\S]*?>\s*<h2 class="([^"]+)">([\s\S]*?)<\/h2>/)
+  r.check(cards.length === 4 && cards.every(m => m[2] === 'font-serif text-lg font-bold') && goalTitle?.[1] === 'font-serif text-lg font-bold',
+    '五張卡片的第一個元素都是標題，樣式相同')
   const titles = Object.fromEntries(cards.map(m => [m[1], m[3].trim()]))
+  titles.week = goalTitle?.[2].trim()
   r.check(titles.week === '本週目標' && titles.last === '上一杯' && titles.totals === '累計' && titles.month === '本月'
     && titles.top === "{{ top.week === 'this' ? '本週最高分' : '上週最高分' }}", '標題文字：本週目標、上一杯、本週最高分／上週最高分、累計、本月')
-  r.check(/<GoalRing :count="week\.count" :goal="week\.goal" :size="80" \/>\s*<div class="min-w-0 flex-1">\s*<p class="tabular-nums">/.test(homeTemplate) && !/RING_LAYOUT/.test(homeScript),
+  r.check(/<GoalRing :count="count" :from="from" :goal="goal" :size="80"[^>]*\/>\s*<div class="min-w-0 flex-1">\s*<p class="tabular-nums">/.test(goalCard) && !/RING_LAYOUT/.test(homeScript),
     '目標環卡片：環在左，右邊上方是數字、下方是長條圖（方案 A）')
-  r.check(/\{\{ week\.count \}\}／\{\{ week\.goal \}\}<\/span>\s*<span[^>]*>杯<\/span>/.test(homeTemplate) && !/本週 \{\{/.test(homeTemplate),
+  r.check(/class="w-2 rounded-sm"/.test(goalCard) && /items-end justify-center" :class="anyCups \? 'h-10' : 'h-0\.5'"/.test(goalCard),
+    '長條寬度固定、明顯窄於欄寬；全部 0 杯時長條區只剩底線')
+  r.check(/\{\{ shown \}\}／\{\{ goal \}\}<\/span>\s*<span[^>]*>杯<\/span>/.test(goalCard) && !/本週 \{\{/.test(goalCard + homeTemplate),
     '「N／M 杯」，不和標題重複「本週」')
   // 字級：標題 lg、主要數字 xl（不大過頁面標題的 xl）、單位與次要文字 sm
   r.check(!/text-2xl|text-3xl|text-4xl/.test(homeTemplate), '卡片上的數字不大過頁面標題（text-xl）')
-  const numbers = [...homeTemplate.matchAll(/<span class="([^"]*)">\{\{ (week\.count|totals\.records|totals\.beans|month\.cups|month\.dose)/g)]
+  const numbers = [...(homeTemplate + goalCard).matchAll(/<span class="([^"]*)">\{\{ (shown|totals\.records|totals\.beans|month\.cups|month\.dose)/g)]
   r.check(numbers.length === 5 && numbers.every(m => /font-serif text-xl font-bold/.test(m[1])), '主要數字同一級：--text-xl')
-  r.check(/>杯<\/span>/.test(homeTemplate) && [...homeTemplate.matchAll(/<span class="([^"]*)">(杯|筆紀錄|喝過|支豆子|g)<\/span>/g)].every(m => /text-sm text-muted/.test(m[1])),
+  r.check(/>杯<\/span>/.test(goalCard) && [...(homeTemplate + goalCard).matchAll(/<span class="([^"]*)">(杯|筆紀錄|喝過|支豆子|g)<\/span>/g)].every(m => /text-sm text-muted/.test(m[1])),
     '單位與次要文字同一級：--text-sm')
   r.check(/@click="editing = true"/.test(homeTemplate) && /<GoalDialog/.test(homeTemplate), '點目標環卡片打開修改目標的對話框')
   r.check(/:to="`\/beans\/\$\{last\.beanId\}`"/.test(homeTemplate), '上一杯：點了進豆子詳情')
@@ -257,17 +264,25 @@ export default function run() {
     '摘要：縮圖右邊兩行，豆名與沖煮日期')
   r.check(!/・|<svg|chevron|m9 18 6-6-6-6/.test(summaryRow) && /@click\.prevent="openDetail"/.test(summaryRow),
     '摘要：不用中間點、不加 ›，整列可點（《03》§1）')
-  r.check(/<GoalRing :count="ring\.after" :from="ring\.before"/.test(summaryTemplate), '目標環從存檔前的杯數前進到存檔後的杯數')
-  r.check(/本週目標達成/.test(summaryTemplate) && /\{\{ ring\.goal \}\} 杯/.test(summaryTemplate) && /v-if="ring\.crossed && filled"/.test(summaryTemplate),
-    '剛好跨過目標：補滿之後換成「本週目標達成」與「M 杯」')
-  r.check(/第 \{\{ records \}\} 筆紀錄/.test(summaryTemplate) && /<div v-if="ring"/.test(summaryTemplate), '不在本週時只留「第 N 筆紀錄」')
-  r.check(/和 \{\{ monthDay\(comparison\.target\.brewed_at\) \}\} 那一杯相比/.test(summaryTemplate)
-    && /參數和 \{\{ monthDay\(comparison\.target\.brewed_at\) \}\} 那一杯相同/.test(summaryTemplate)
-    && /恭喜開箱新豆子。/.test(summaryTemplate), '比較區的三種狀態')
-  r.check(/feedbackLine\(compared\.diffs, compared\.target\?\.rating, row\.rating, !!compared\.target\)/.test(summary), '回饋句：有比較對象、兩筆都有評分才出現')
+  r.check(/<GoalWeekCard\s+v-if="ring && week"[\s\S]*?:count="ring\.after"\s+:from="ring\.before"\s+:goal="ring\.goal"\s+:days="week\.days"\s+:celebrate="ring\.crossed"/.test(summaryTemplate),
+    '本週目標：與總覽同一個卡片元件，環從存檔前的杯數前進到存檔後的杯數；不在本週時不顯示')
+  r.check(/<p v-if="celebrate && filled"[^>]*>已達成<\/p>/.test(goalCard) && !/本週目標達成/.test(summaryTemplate + goalCard),
+    '剛好跨過目標：「N／M 杯」下方顯示「已達成」（不再寫「本週目標達成」）')
+  r.check(/<p v-if="firstRecord" class="mt-4 font-serif text-lg font-bold">第一筆紀錄<\/p>\s*<p v-else[^>]*>第 \{\{ records \}\} 筆紀錄<\/p>/.test(summaryTemplate)
+    && /isFirstRecord\(stats\.value, id\)/.test(summary), '第一筆紀錄：換成「第一筆紀錄」，字級和比較區標題同一級')
+  r.check(/<section v-if="comparison\?\.target"/.test(summaryTemplate)
+    && /和 \{\{ monthDay\(comparison\.target\.brewed_at\) \}\} 那一杯相比/.test(summaryTemplate)
+    && /參數和 \{\{ monthDay\(comparison\.target\.brewed_at\) \}\} 那一杯相同/.test(summaryTemplate), '有比較對象：比較區')
+  r.check(/<template v-else-if="firstCup">[\s\S]*<h2 class="font-serif text-lg font-bold">這支豆子<\/h2>[\s\S]*<h2 class="font-serif text-lg font-bold">這一杯<\/h2>[\s\S]*下一杯會和這一杯比較。/.test(summaryTemplate),
+    '沒有比較對象：「這支豆子」與「這一杯」兩個區塊，標題樣式與比較區相同')
+  r.check(/養豆第 \{\{ firstCup\.bean\.restDay \}\} 天/.test(summaryTemplate) && /v-if="firstCup\.bean\.restDay !== null"/.test(summaryTemplate)
+    && /第 \{\{ firstCup\.bean\.beanOrdinal \}\} 支豆子/.test(summaryTemplate), '「養豆第 N 天」（有烘焙日期才有）、「第 N 支豆子」')
+  r.check(/feedbackLine\(compared\.diffs, compared\.target\.rating, row\.rating, true\)/.test(summary) && /: '恭喜開箱新豆子。'/.test(summary)
+    && !/<p v-else-if="comparison">恭喜開箱新豆子/.test(summaryTemplate), '回饋句的位置照舊；第一杯固定是「恭喜開箱新豆子。」，不再取代整個比較區')
   const summaryText = summaryTemplate.replace(/\{\{[\s\S]*?\}\}/g, '').replace(/<(?:[^>"']|"[^"]*"|'[^']*')*>/g, ' ').split(/\s+/).filter(Boolean)
   // → 是差異的資料，與紀錄詳情相同
-  const summaryAllowed = new Set(['→', '本週目標達成', '杯', '本週', '／', '第', '筆紀錄', '和', '那一杯相比', '參數和', '那一杯相同', '恭喜開箱新豆子。'])
+  const summaryAllowed = new Set(['→', '第一筆紀錄', '第', '筆紀錄', '和', '那一杯相比', '參數和', '那一杯相同',
+    '這支豆子', '養豆第', '天', '支豆子', '這一杯', '下一杯會和這一杯比較。'])
   const summaryExtra = summaryText.filter(word => !summaryAllowed.has(word))
   r.check(summaryExtra.length === 0, `結算頁沒有規定以外的文案${summaryExtra.length ? `：${summaryExtra.join('、')}` : ''}`)
   r.check(!/#[0-9a-f]{3,6}\b/i.test(summaryTemplate) && !/from ['"](gsap|animejs|motion|framer|@vueuse\/motion)/.test(summary), '沒有寫死的色碼、沒有動畫函式庫')

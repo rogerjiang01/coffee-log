@@ -10,7 +10,7 @@ export function useBrewStats() {
   async function fetchStats(): Promise<StatBrew[]> {
     const { data, error } = await supabase
       .from('brews')
-      .select('id, bean_id, brewed_at, rating, dose, is_sample, beans ( name, photo_path, roast_level, is_finished )')
+      .select('id, bean_id, brewed_at, rating, dose, is_sample, beans ( name, photo_path, roast_level, is_finished, is_sample )')
       .eq('is_sample', false)
       .order('brewed_at', { ascending: false })
       .order('id', { ascending: false })

@@ -15,6 +15,8 @@ const suites = [
   ['unit/brew-diff.test.ts', '差異計算'],
   ['unit/compare-feedback.test.ts', '比較對象與回饋句'],
   ['unit/weekly-goal.test.ts', '每週記錄目標與總覽卡片'],
+  ['unit/summary.test.ts', '結算頁的第一筆紀錄與第一杯'],
+  ['unit/summary-wiring.test.mjs', '縮圖佔位與範例標籤的接線'],
   ['unit/bean-compare.test.ts', '豆子比較表'],
   ['unit/lookup.test.ts', '查表欄位的比對'],
   ['unit/countries.test.ts', '產國的洲別分組'],
