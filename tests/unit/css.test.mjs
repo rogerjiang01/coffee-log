@@ -4,7 +4,7 @@
 // 規則被順手刪掉時畫面不會 crash、console 不會有訊息，
 // 只是所有浮層默默跑到左上角。
 
-import { readFileSync } from 'node:fs'
+import { existsSync, readFileSync, readdirSync } from 'node:fs'
 import { createReport } from '../helpers/report.mjs'
 
 export default function run() {
@@ -83,6 +83,65 @@ export default function run() {
   // column-gap 只作用在同一行的兩段之間
   r.check(/flex-wrap/.test(referenceLine) && /gap-x-3/.test(referenceLine), '第一行用 flex-wrap ＋ gap-x-3')
   r.check(!/ml-\d/.test(referenceLine), '第一行裡沒有任何 ml-*')
+
+  r.section('字體：台北黑體沒有 500，Medium 要連字體一起換（《03》§2.4）')
+  // 只設 font-weight: 500 的話，瀏覽器會在台北黑體裡挑最接近的 400，畫面上完全沒有變化，
+  // 也不會報錯——比較表的差異標記、分頁列的目前分頁都靠這個字重。
+  r.check(/--font-body:\s*"Taipei Sans TC Beta",\s*"Noto Sans TC"/.test(tokens), '--font-body 以台北黑體為首，Noto Sans TC 補字')
+  r.check(/--font-body-medium:\s*"Noto Sans TC"/.test(tokens), '--font-body-medium 是 Noto Sans TC')
+  r.check(/--font-heading:\s*var\(--font-body-medium\)/.test(tokens) && !/Noto Serif/.test(tokens.replace(/\/\*[\s\S]*?\*\//g, '')),
+    '--font-heading 指到 Noto Sans TC Medium，不再有 Noto Serif TC')
+  r.check(/@utility font-medium\s*\{\s*font-family:\s*var\(--font-body-medium\)/.test(css), 'font-medium 同時切換字體')
+  r.check(/\n\.font-serif\s*\{\s*font-weight:\s*500;/.test(css), '標題字體固定字重 500（只載入這一個字重，不讓瀏覽器合成假粗體）')
+  const vue = dir => readdirSync(new URL(`../../${dir}`, import.meta.url), { recursive: true })
+    .filter(name => String(name).endsWith('.vue')).map(name => `${dir}/${name}`)
+  const bare = [...vue('components'), ...vue('pages'), 'app.vue', 'error.vue'].flatMap((path) => {
+    const lines = readFileSync(new URL(`../../${path}`, import.meta.url), 'utf8').split('\n')
+    return lines.flatMap((line, i) =>
+      /font-?[wW]eight:\s*[^,;}\n]*\b500\b/.test(line) && !/font-body-medium/.test(`${line}\n${lines[i + 1] ?? ''}\n${lines[i + 2] ?? ''}`)
+        ? [`${path}:${i + 1}`]
+        : [])
+  })
+  r.check(bare.length === 0, `直接寫字重 500 的地方都一起指定了 --font-body-medium${bare.length ? `（漏掉：${bare.join('、')}）` : ''}`)
+
+  r.section('字型載入（《03》§8）')
+  const config = readFileSync(new URL('../../nuxt.config.ts', import.meta.url), 'utf8')
+  const google = config.match(/fonts\.googleapis\.com\/css2\?[^'"]*/)?.[0] ?? ''
+  r.check(/family=Noto\+Sans\+TC:wght@500&display=swap$/.test(google), 'Google Fonts 只載入 Noto Sans TC 500，display=swap')
+  r.check(!/Serif/.test(google), '不再載入 Noto Serif TC')
+  const sheet = config.match(/href:\s*'(\/fonts\/taipei-sans\/[^']+\/fonts\.css)'/)?.[1]
+  r.check(sheet !== undefined, '台北黑體的 @font-face 用 <link> 載入（不併進全站 CSS：那份會被寫進每一頁的 HTML）')
+  const sheetUrl = new URL(`../../public${sheet ?? '/missing'}`, import.meta.url)
+  r.check(existsSync(sheetUrl), `${sheet} 存在`)
+  const faces = existsSync(sheetUrl) ? readFileSync(sheetUrl, 'utf8').replace(/\/\*[\s\S]*?\*\//g, '').split('@font-face').slice(1) : []
+  r.check(faces.length === 324, `324 條 @font-face（三個字重各 108 片），實際 ${faces.length}`)
+  r.check(faces.every(face => /font-display:\s*swap/.test(face)), '每一條都是 font-display: swap')
+  r.check(faces.every((face) => {
+    const file = face.match(/url\("([^"]+)"\)/)?.[1]
+    return file !== undefined && existsSync(new URL(file, sheetUrl))
+  }), '每一條指到的 woff2 都存在')
+  r.check(!/@font-face/.test(css) && !/fonts\.css/.test(css), 'main.css 沒有把 @font-face 併進來')
+  const vercel = JSON.parse(readFileSync(new URL('../../vercel.json', import.meta.url), 'utf8'))
+  r.check((vercel.headers ?? []).some(h => h.source === '/fonts/(.*)' && h.headers.some(x => /immutable/.test(x.value))),
+    '/fonts/ 設了不可變快取——沒有的話每次開頁面都要重新驗證字型檔，字會閃一次')
+
+  r.section('字型原始檔不進版本庫')
+  const ignore = readFileSync(new URL('../../.gitignore', import.meta.url), 'utf8')
+  r.check(/^fonts-src\/$/m.test(ignore), '.gitignore 有 fonts-src/')
+  const raw = readdirSync(new URL('../../public', import.meta.url), { recursive: true }).filter(name => /\.(ttf|otf|ttc)$/i.test(String(name)))
+  r.check(raw.length === 0, `public/ 底下沒有 TTF／OTF 原始檔${raw.length ? `（${raw.join('、')}）` : ''}`)
+
+  r.section('文字輸入的游標用強調色（《03》§4.1）')
+  r.check(/input,\s*textarea,\s*\[contenteditable\]\s*\{\s*caret-color:\s*var\(--accent\)/.test(css), 'caret-color: var(--accent)')
+
+  r.section('綠底模式（《03》§2.2）')
+  const green = tokens.slice(tokens.search(/\n\.theme-green\s*\{/))
+  r.check(/--bg:\s*var\(--green-500\)/.test(green) && /--accent:\s*var\(--sand-50\)/.test(green) && /--on-accent:\s*var\(--green-800\)/.test(green),
+    '.theme-green 重新定義底色、強調色與強調色上的文字')
+  for (const page of ['pages/login.vue', 'pages/signup.vue']) {
+    r.check(/useHead\(\{ htmlAttrs: \{ class: 'theme-green' \} \}\)/.test(readFileSync(new URL(`../../${page}`, import.meta.url), 'utf8')),
+      `${page} 把 theme-green 掛在 <html> 上`)
+  }
 
   return r.finish()
 }

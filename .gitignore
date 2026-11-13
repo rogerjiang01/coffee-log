@@ -15,3 +15,10 @@ dist
 
 咖啡專案-開發脈絡補充.md
 咖啡紀錄專案-脈絡整理.md
+
+# 字型原始檔（台北黑體 TTF，三個共 62 MB）。不進版本庫；
+# 切好的 woff2 在 public/fonts/，由 scripts/slice-fonts.py 產生。
+fonts-src/
+
+# 驗收用的截圖
+tmp-screenshots/

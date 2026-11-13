@@ -2,6 +2,10 @@
 const supabase = useSupabaseClient()
 const user = useSupabaseUser()
 
+// 綠底模式（《03》§2.2「綠底模式」）。掛在 <html> 上，頁面底色與焦點框才會跟著換；
+// 離開這一頁時 useHead 會自己把 class 拿掉。
+useHead({ htmlAttrs: { class: 'theme-green' } })
+
 const email = ref('')
 const password = ref('')
 const error = ref('')

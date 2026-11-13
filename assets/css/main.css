@@ -5,39 +5,58 @@
    shadow-overlay 這類 utility 可用。使用 inline 讓 utility 直接輸出
    var()，之後改 token 不需重編譯即可全站生效。
 
-   --radius-* 與 --text-* 不在這裡對應：tokens.css 已直接沿用
-   Tailwind 的 theme 命名並覆蓋其預設值，rounded-* / text-* 會自動吃到。 */
+   --radius-*、--text-* 與 --shadow-light 不在這裡對應：tokens.css 已直接沿用
+   Tailwind 的 theme 命名（內建主題沒有的名字在那邊用 @theme static 登記），
+   rounded-* / text-* / shadow-light 會自動吃到。 */
 @theme inline {
   --color-bg: var(--bg);
   --color-surface: var(--surface);
   --color-accent: var(--accent);
   --color-accent-soft: var(--accent-soft);
   --color-accent-wash: var(--accent-wash);
+  --color-accent-text: var(--accent-text);
   --color-text: var(--text);
   --color-muted: var(--text-muted);
+  --color-placeholder: var(--text-placeholder);
+  --color-icon-muted: var(--icon-muted);
+  --color-surface-muted: var(--surface-muted);
+  --color-control-inactive: var(--control-inactive);
+  --color-control-thumb: var(--control-thumb);
   --color-border: var(--border);
   --color-favorite: var(--favorite);
   --color-danger: var(--danger);
   --color-notice: var(--notice);
   --color-diff: var(--diff);
-  --color-wash-warm: var(--wash-warm);
 
   --color-roast-light: var(--roast-light);
-  --color-roast-light-text: var(--roast-light-text);
+  --color-on-roast-light: var(--on-roast-light);
   --color-roast-medium-light: var(--roast-medium-light);
-  --color-roast-medium-light-text: var(--roast-medium-light-text);
+  --color-on-roast-medium-light: var(--on-roast-medium-light);
   --color-roast-medium: var(--roast-medium);
-  --color-roast-medium-text: var(--roast-medium-text);
+  --color-on-roast-medium: var(--on-roast-medium);
   --color-roast-medium-dark: var(--roast-medium-dark);
-  --color-roast-medium-dark-text: var(--roast-medium-dark-text);
+  --color-on-roast-medium-dark: var(--on-roast-medium-dark);
   --color-roast-dark: var(--roast-dark);
-  --color-roast-dark-text: var(--roast-dark-text);
+  --color-on-roast-dark: var(--on-roast-dark);
+  --color-roast-unknown: var(--roast-unknown);
+  --color-on-roast-unknown: var(--on-roast-unknown);
 
   --font-sans: var(--font-body);
+  /* font-serif 這個名字是改版前留下的：--font-heading 已經不是襯線體（Noto Sans TC Medium）。
+     class 還有 41 處在用，第二、三批重做元件時逐一換掉，這一行才拿掉。 */
   --font-serif: var(--font-heading);
 
-  /* 唯一一級陰影，只給浮出層。卡片與表單區塊不得使用。 */
+  /* 浮出層的陰影：對話框、浮動按鈕、下拉面板。卡片與輸入框用的是 shadow-light，不是這個。 */
   --shadow-overlay: var(--overlay-shadow);
+}
+
+/* font-medium 同時切換字重與字體。
+   台北黑體沒有 500；只設 font-weight: 500 的話，瀏覽器會在台北黑體裡挑最接近的 400，
+   畫面上完全沒有變化。所以 500 一律換成 Noto Sans TC（tokens.css 的 --font-body-medium）。
+   這裡只補字體，字重由 Tailwind 內建的 font-medium 設定。
+   **不要在元件裡直接寫 font-weight: 500**，那樣拿不到 Medium。 */
+@utility font-medium {
+  font-family: var(--font-body-medium);
 }
 
 /* 表單欄位一律是底線制。
@@ -127,6 +146,13 @@
     line-height: var(--leading-body);
   }
 
+  /* 《03》§4.1：文字輸入的游標用強調色。適用全站的文字輸入。 */
+  input,
+  textarea,
+  [contenteditable] {
+    caret-color: var(--accent);
+  }
+
   /* 規範：placeholder 一律用 --text-muted，不得用 --text，
      否則看起來像已經填好的值。opacity 歸零 Firefox 的預設淡化。 */
   ::placeholder {
@@ -213,4 +239,13 @@
       scroll-behavior: auto !important;
     }
   }
+}
+
+/* 標題字體（font-serif 這個 class，見上面 @theme 的說明）一律字重 500。
+   --font-heading 是 Noto Sans TC Medium，只載入 500 這一個字重；
+   既有的 41 處大多同時寫了 font-bold，不處理的話瀏覽器會拿 500 去合成假粗體。
+   刻意不放進任何 layer：沒有分層的規則優先於 utilities 層的 font-bold。
+   第二、三批把元件換成 Figma 的文字樣式之後，這條和 font-serif 一起拿掉。 */
+.font-serif {
+  font-weight: 500;
 }

@@ -96,12 +96,13 @@ function rowBackground(row: CompareRow) {
               class="whitespace-nowrap px-3 py-3 text-right"
             >
               <!-- 與前一列不同的數值加字重與顏色。
-                   §2：色彩不得作為唯一的資訊載體，所以字重也一起變。 -->
+                   §2：色彩不得作為唯一的資訊載體，所以字重也一起變。
+                   字重 500 要連字體一起換：內文的台北黑體沒有 500，只設字重畫面上不會變（《03》§2.4）。 -->
               <NuxtLink
                 :to="`/brews/${row.id}`"
                 class="block"
                 :style="cell.changed
-                  ? { color: 'var(--diff)', fontWeight: 500 }
+                  ? { color: 'var(--diff)', fontWeight: 500, fontFamily: 'var(--font-body-medium)' }
                   : { color: 'var(--text)' }"
               >
                 {{ cell.value }}

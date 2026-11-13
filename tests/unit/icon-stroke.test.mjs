@@ -4,7 +4,7 @@
 // 盤點時量到 1.83、2、1.5、1.2、0.88 五種，後兩個是沒人決定過的異常值。
 // 這裡逐一用「stroke-width × 顯示寬 ÷ viewBox 寬」驗算，而不是比對寫在檔案裡的數字。
 
-import { readFileSync } from 'node:fs'
+import { readFileSync, readdirSync } from 'node:fs'
 import { createReport } from '../helpers/report.mjs'
 
 const read = path => readFileSync(new URL(`../../${path}`, import.meta.url), 'utf8')
@@ -126,9 +126,9 @@ export default function run() {
   }
 
   r.section('未選取的輸入元件輪廓用 --control-empty，不得退回 --border')
-  // --border 是分隔線的顏色（sand-100，白底 1.23:1）。畫在「可以按」的東西上
+  // --border 是分隔線的顏色（stone-100，卡片上 1.16:1）。畫在「可以按」的東西上
   // 淡到看不見，使用者看不出那裡還有五個可點的目標。
-  // --control-empty 本身是 sand-400（2.48:1），刻意低於 3:1——那是《03》§2.2
+  // --control-empty 本身是 sand-400（2.46:1），刻意低於 3:1——那是《03》§2.2
   // 寫明的取捨，這裡守的是「不要再往下退」，不是 3:1
   const empty = [
     ['components/StarRating.vue', '星等（表單）'],
@@ -151,8 +151,8 @@ export default function run() {
     '開關（ToggleSwitch）不適用：關閉的軌道是 --border')
   const tokenCss = read('assets/css/tokens.css')
   r.check(/--control-empty:\s*var\(--sand-400\);/.test(tokenCss),
-    '--control-empty 是 sand-400（白底 2.48:1，刻意低於 3:1，《03》§2.2）')
-  r.check(!/--control-empty:\s*var\(--(border|sand-100|sand-50)\)/.test(tokenCss), '--control-empty 沒有指回 --border 的色階')
+    '--control-empty 是 sand-400（卡片上 2.46:1，刻意低於 3:1，《03》§2.2）')
+  r.check(!/--control-empty:\s*var\(--(border|stone-50|stone-100|sand-100|sand-50)\)/.test(tokenCss), '--control-empty 沒有指回 --border 的色階')
   r.check(/^\| `--control-empty` \|[^\n]*`sand-400`[^\n]*刻意低於 3:1/m.test(read('docs/03-介面規範.md')),
     '《03》§2.2 寫明這是刻意的取捨，不會被當成缺陷改回去')
 
@@ -162,10 +162,35 @@ export default function run() {
   r.check(/Lucide/.test(read('docs/03-介面規範.md')), '《03》§3 註明圖示來源')
 
   r.section('字級下限（《03》§2.4）')
+  // 2026-11-11 起分兩種畫面：有輸入欄位的畫面維持 14px；沒有輸入欄位的瀏覽型與檢視型畫面，
+  // 次要資訊可以到 12px。12px 只有 text-label-m 這一個名字——text-xs 仍然是 14px，
+  // 既有的 text-xs 不會無聲縮小。
   const tokens = read('assets/css/tokens.css')
-  r.check(/--text-xs:\s*var\(--text-sm\);/.test(tokens), '--text-xs 併入 --text-sm')
-  r.check(/--text-sm:\s*0\.875rem;/.test(tokens), '--text-sm 是 0.875rem（14px）')
-  r.check(!/--text-[a-z0-9]+:\s*0\.[0-7]\d*rem/.test(tokens), '沒有任何字級小於 0.875rem')
+  r.check(/--text-xs:\s*var\(--text-sm\);/.test(tokens), '--text-xs 併入 --text-sm（不是 12px）')
+  r.check(/--text-sm:\s*var\(--text-body-m\);/.test(tokens) && /--text-body-m:\s*0\.875rem;/.test(tokens),
+    '--text-sm 指到 Body M，Body M 是 0.875rem（14px）')
+  const sizes = [...tokens.matchAll(/--text-([a-z0-9-]+):\s*(\d*\.?\d+)rem;/g)].map(m => [m[1], Number(m[2])])
+  r.check(sizes.length >= 12, `讀到 ${sizes.length} 個字級`)
+  const small = sizes.filter(([, rem]) => rem < 0.875).map(([name]) => name).sort()
+  r.check(small.join(',') === 'body-s,label-l,label-m', `小於 14px 的只有 body-s、label-l、label-m（實際：${small.join('、')}）`)
+  r.check(sizes.every(([, rem]) => rem >= 0.75), '沒有任何字級小於 0.75rem（12px）')
+
+  // 「有輸入欄位就維持 14px」的機械版：檔案裡有輸入欄位或浮層的，不得使用那三個小於 14px 的樣式。
+  // 另外明列四個沒有原生輸入欄位、但規格指定維持 14px 的畫面。
+  // 這是下限的防線，不是完整的判斷——共用元件被放進表單時，仍要靠人看。
+  const SMALL = /\btext-(body-s|label-l|label-m)\b/
+  const HAS_INPUT = /<(input|textarea|select|dialog)\b/
+  const KEEP_14 = ['pages/brews/[id]/summary.vue', 'pages/goal.vue', 'pages/login.vue', 'pages/signup.vue']
+  const vue = dir => readdirSync(new URL(`../../${dir}`, import.meta.url), { recursive: true })
+    .filter(name => String(name).endsWith('.vue')).map(name => `${dir}/${name}`)
+  const all = [...vue('components'), ...vue('pages'), 'app.vue', 'error.vue']
+  r.check(all.length > 40, `掃了 ${all.length} 個 .vue`)
+  const offenders = all.filter((path) => {
+    const src = read(path).replace(/<!--[\s\S]*?-->/g, '')
+    return SMALL.test(src) && (HAS_INPUT.test(src) || KEEP_14.includes(path))
+  })
+  r.check(offenders.length === 0, `有輸入欄位或浮層的檔案、結算頁、目標設定頁、登入、註冊都沒有小於 14px 的樣式${offenders.length ? `（違反：${offenders.join('、')}）` : ''}`)
+  for (const path of KEEP_14) r.check(all.includes(path), `${path} 存在（明列的畫面沒有被改名）`)
 
   return r.finish()
 }

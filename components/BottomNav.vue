@@ -29,6 +29,8 @@ const isActive = (to: string) => tabSection(route.path) === to
         minHeight: '52px',
         color: isActive(item.to) ? 'var(--accent)' : 'var(--text-muted)',
         fontWeight: isActive(item.to) ? 500 : 400,
+        // 字重 500 要連字體一起換：內文的台北黑體沒有 500（《03》§2.4）
+        fontFamily: isActive(item.to) ? 'var(--font-body-medium)' : undefined,
       }"
       :aria-current="isActive(item.to) ? 'page' : undefined"
     >

@@ -57,10 +57,12 @@ export default function run() {
 
   r.section('縮圖的佔位（全站共用）')
   r.check(roastFill('light').background === 'var(--roast-light)', '沒有照片、有烘焙度：烘焙度色塊')
-  r.check(roastFill(null).background === 'var(--field-border)' && roastFill(undefined).background === 'var(--field-border)',
-    '沒有照片、也沒填烘焙度：灰色（--field-border），不是白色')
+  r.check(roastFill(null).background === 'var(--roast-unknown)' && roastFill(undefined).background === 'var(--roast-unknown)',
+    '沒有照片、也沒填烘焙度：暖灰（--roast-unknown），不是白色')
   r.check(roastFill(null).background !== 'var(--surface)' && roastFill(null).background !== 'var(--border)',
-    '不是卡片的白，也不是骨架的 --border（會被看成還在讀取）')
+    '不是卡片的底色，也不是骨架的 --border（會被看成還在讀取）')
+  r.check(roastFill('light').color === 'var(--on-roast-light)' && roastFill('dark').color === 'var(--on-roast-dark)'
+    && roastFill(null).color === 'var(--on-roast-unknown)', '色塊上的文字用各自的 --on-roast-*')
 
   return r.finish()
 }

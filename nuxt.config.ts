@@ -80,11 +80,17 @@ export default defineNuxtConfig({
         { rel: 'apple-touch-icon', sizes: '180x180', href: '/apple-touch-icon.png' },
         { rel: 'preconnect', href: 'https://fonts.googleapis.com' },
         { rel: 'preconnect', href: 'https://fonts.gstatic.com', crossorigin: '' },
+        // 內文字體：台北黑體 300／400／700，自己放（《03》§8）。
+        // 這份樣式表只有 @font-face（324 條），由 scripts/slice-fonts.py 產生。
+        // 用 <link> 而不是併進 main.css：Nuxt 會把全站 CSS 寫進每一頁的 HTML，
+        // 併進去的話這 330 KB 每開一頁都要重新下載；獨立成檔可以快取（vercel.json 設了一年）。
+        // 路徑裡的 v1 是字型檔的版本，重切字型時要跟著改。
+        { rel: 'stylesheet', href: '/fonts/taipei-sans/v1/fonts.css' },
         {
           rel: 'stylesheet',
-          // 只載入實際會用到的字重：Sans 400/500/700、Serif 500/700。
-          // CJK 全字重過重。display=swap 對應《03-介面規範》第 8 節。
-          href: 'https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&family=Noto+Serif+TC:wght@500;700&display=swap',
+          // 只載入 Noto Sans TC 的 500：Medium（font-medium、標題）用它，
+          // 也補台北黑體沒有的字。display=swap 對應《03-介面規範》第 8 節。
+          href: 'https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@500&display=swap',
         },
       ],
     },

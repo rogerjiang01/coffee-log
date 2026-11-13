@@ -46,3 +46,17 @@ OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER
 TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF
 THIS SOFTWARE.
 ```
+
+## 字體：台北黑體（Taipei Sans TC Beta）
+
+內文字體是 **台北黑體**（翰字鑄造 JT Foundry，字型檔記載的網址是 bit.ly/jtfoundry），
+授權為 **SIL Open Font License 1.1**。字型檔內的著作權宣告是
+「Taipei Sans TC is a modified font of Source Han Sans.」
+
+**自己放，不靠外部服務。** `public/fonts/taipei-sans/v1/` 的 woff2 是由原始 TTF
+切出的子集（`scripts/slice-fonts.py`）：只取部分字、轉成 woff2，字形未經修改；
+每個檔案都保留了字型檔內的著作權與授權宣告。授權全文在 `public/fonts/taipei-sans/OFL.txt`，
+跟著字型檔一起部署。原始 TTF 不在版本庫裡（`fonts-src/`，已列入 `.gitignore`）。
+
+Medium（字重 500）與標題用的 **Noto Sans TC** 從 Google Fonts 載入，沒有放在專案裡；
+它同樣是 SIL Open Font License 1.1。
