@@ -46,10 +46,6 @@
   --color-roast-art: var(--roast-art);
 
   --font-sans: var(--font-body);
-  /* font-serif 這個名字是改版前留下的：--font-heading 已經不是襯線體（Noto Sans TC Medium）。
-     class 還有 41 處在用，第二、三批重做元件時逐一換掉，這一行才拿掉。 */
-  --font-serif: var(--font-heading);
-
   /* 浮出層的陰影：對話框、浮動按鈕、下拉面板。卡片與輸入框用的是 shadow-light，不是這個。 */
   --shadow-overlay: var(--overlay-shadow);
 }
@@ -365,13 +361,4 @@
       scroll-behavior: auto !important;
     }
   }
-}
-
-/* 標題字體（font-serif 這個 class，見上面 @theme 的說明）一律字重 500。
-   --font-heading 是 Noto Sans TC Medium，只載入 500 這一個字重；
-   既有的 41 處大多同時寫了 font-bold，不處理的話瀏覽器會拿 500 去合成假粗體。
-   刻意不放進任何 layer：沒有分層的規則優先於 utilities 層的 font-bold。
-   第二、三批把元件換成 Figma 的文字樣式之後，這條和 font-serif 一起拿掉。 */
-.font-serif {
-  font-weight: 500;
 }

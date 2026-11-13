@@ -92,7 +92,7 @@ export default function run() {
   r.check(/--font-heading:\s*var\(--font-body-medium\)/.test(tokens) && !/Noto Serif/.test(tokens.replace(/\/\*[\s\S]*?\*\//g, '')),
     '--font-heading 指到 Noto Sans TC Medium，不再有 Noto Serif TC')
   r.check(/@utility font-medium\s*\{\s*font-family:\s*var\(--font-body-medium\)/.test(css), 'font-medium 同時切換字體')
-  r.check(/\n\.font-serif\s*\{\s*font-weight:\s*500;/.test(css), '標題字體固定字重 500（只載入這一個字重，不讓瀏覽器合成假粗體）')
+  r.check(!/font-serif/.test(css), 'main.css 不再有 font-serif 的對應與規則（41 處都換成 Figma 的文字樣式了）')
   const vue = dir => readdirSync(new URL(`../../${dir}`, import.meta.url), { recursive: true })
     .filter(name => String(name).endsWith('.vue')).map(name => `${dir}/${name}`)
   const bare = [...vue('components'), ...vue('pages'), 'app.vue', 'error.vue'].flatMap((path) => {

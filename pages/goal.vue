@@ -48,7 +48,7 @@ async function start() {
     class="mx-auto flex min-h-dvh flex-col px-5 pt-16 pb-10"
     :style="{ maxWidth: 'var(--content-max-narrow)' }"
   >
-    <h1 class="font-serif text-2xl font-bold">設定每週記錄目標</h1>
+    <h1 class="text-display-m font-medium">設定每週記錄目標</h1>
 
     <div class="mt-12">
       <GoalStepper v-model="cups" />

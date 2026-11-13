@@ -111,7 +111,7 @@ export default function run() {
   // 每張卡片的第一個元素都是標題，靠左上，樣式相同
   const cards = [...homeTemplate.matchAll(/v-if="(last|top|totals|month)"[\s\S]*?>\s*<h2 class="([^"]+)">([\s\S]*?)<\/h2>/g)]
   const goalTitle = goalCard.match(/<component[\s\S]*?>\s*<h2 class="([^"]+)">([\s\S]*?)<\/h2>/)
-  r.check(cards.length === 4 && cards.every(m => m[2] === 'font-serif text-lg font-bold') && goalTitle?.[1] === 'font-serif text-lg font-bold',
+  r.check(cards.length === 4 && cards.every(m => m[2] === 'text-heading-m font-medium') && goalTitle?.[1] === 'text-heading-m font-medium',
     '五張卡片的第一個元素都是標題，樣式相同')
   const titles = Object.fromEntries(cards.map(m => [m[1], m[3].trim()]))
   titles.week = goalTitle?.[2].trim()
@@ -126,7 +126,7 @@ export default function run() {
   // 字級：標題 lg、主要數字 xl（不大過頁面標題的 xl）、單位與次要文字 sm
   r.check(!/text-2xl|text-3xl|text-4xl/.test(homeTemplate), '卡片上的數字不大過頁面標題（text-xl）')
   const numbers = [...(homeTemplate + goalCard).matchAll(/<span class="([^"]*)">\{\{ (shown|totals\.records|totals\.beans|month\.cups|month\.dose)/g)]
-  r.check(numbers.length === 5 && numbers.every(m => /font-serif text-xl font-bold/.test(m[1])), '主要數字同一級：--text-xl')
+  r.check(numbers.length === 5 && numbers.every(m => /\btext-display-s\b/.test(m[1])), '主要數字同一級：--text-xl')
   r.check(/>杯<\/span>/.test(goalCard) && [...(homeTemplate + goalCard).matchAll(/<span class="([^"]*)">(杯|筆紀錄|喝過|支豆子|g)<\/span>/g)].every(m => /text-sm text-muted/.test(m[1])),
     '單位與次要文字同一級：--text-sm')
   r.check(/@click="editing = true"/.test(homeTemplate) && /<GoalDialog/.test(homeTemplate), '點目標環卡片打開修改目標的對話框')
@@ -208,7 +208,7 @@ export default function run() {
 
   r.section('紀錄詳情：豆名是通往豆子詳情的連結')
   const brewDetailTemplate = stripComments(templateOf(brewDetail))
-  const title = brewDetailTemplate.match(/<h1 class="min-w-0 font-serif text-2xl font-bold">([\s\S]*?)<\/h1>/)?.[1] ?? ''
+  const title = brewDetailTemplate.match(/<h1 class="min-w-0 text-display-m font-medium">([\s\S]*?)<\/h1>/)?.[1] ?? ''
   r.check(/<NuxtLink\s+v-if="brew\.beans"\s+:to="`\/beans\/\$\{brew\.beans\.id\}`"/.test(title), '標題列的豆名連到 /beans/[id]')
   r.check(/>\{\{ brew\.beans\.name \}\}<\/NuxtLink>/.test(title), '連結的文字就是豆名')
   r.check(/class="[^"]*\bunderline\b[^"]*"/.test(title) && /color: 'var\(--accent\)'/.test(title), '連結樣式：--accent、底線（《03》）')
@@ -268,12 +268,12 @@ export default function run() {
     '本週目標：與總覽同一個卡片元件，環從存檔前的杯數前進到存檔後的杯數；不在本週時不顯示')
   r.check(/<p v-if="celebrate && filled"[^>]*>已達成<\/p>/.test(goalCard) && !/本週目標達成/.test(summaryTemplate + goalCard),
     '剛好跨過目標：「N／M 杯」下方顯示「已達成」（不再寫「本週目標達成」）')
-  r.check(/<p v-if="firstRecord" class="mt-4 font-serif text-lg font-bold">第一筆紀錄<\/p>\s*<p v-else[^>]*>第 \{\{ records \}\} 筆紀錄<\/p>/.test(summaryTemplate)
+  r.check(/<p v-if="firstRecord" class="mt-4 text-heading-m font-medium">第一筆紀錄<\/p>\s*<p v-else[^>]*>第 \{\{ records \}\} 筆紀錄<\/p>/.test(summaryTemplate)
     && /isFirstRecord\(stats\.value, id\)/.test(summary), '第一筆紀錄：換成「第一筆紀錄」，字級和比較區標題同一級')
   r.check(/<section v-if="comparison\?\.target"/.test(summaryTemplate)
     && /和 \{\{ monthDay\(comparison\.target\.brewed_at\) \}\} 那一杯相比/.test(summaryTemplate)
     && /參數和 \{\{ monthDay\(comparison\.target\.brewed_at\) \}\} 那一杯相同/.test(summaryTemplate), '有比較對象：比較區')
-  r.check(/<template v-else-if="firstCup">[\s\S]*<h2 class="font-serif text-lg font-bold">這支豆子<\/h2>[\s\S]*<h2 class="font-serif text-lg font-bold">這一杯<\/h2>[\s\S]*下一杯會和這一杯比較。/.test(summaryTemplate),
+  r.check(/<template v-else-if="firstCup">[\s\S]*<h2 class="text-heading-m font-medium">這支豆子<\/h2>[\s\S]*<h2 class="text-heading-m font-medium">這一杯<\/h2>[\s\S]*下一杯會和這一杯比較。/.test(summaryTemplate),
     '沒有比較對象：「這支豆子」與「這一杯」兩個區塊，標題樣式與比較區相同')
   r.check(/養豆第 \{\{ firstCup\.bean\.restDay \}\} 天/.test(summaryTemplate) && /v-if="firstCup\.bean\.restDay !== null"/.test(summaryTemplate)
     && /第 \{\{ firstCup\.bean\.beanOrdinal \}\} 支豆子/.test(summaryTemplate), '「養豆第 N 天」（有烘焙日期才有）、「第 N 支豆子」')

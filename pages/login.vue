@@ -39,7 +39,7 @@ async function submit() {
 
 <template>
   <main class="mx-auto px-5 py-12" :style="{ maxWidth: 'var(--content-max-narrow)' }">
-    <h1 class="font-serif text-xl font-bold">登入</h1>
+    <h1 class="text-display-s font-medium">登入</h1>
 
     <form class="mt-8" novalidate @submit.prevent="submit">
       <!-- 有框的輸入框（《03》§4.1）：登入、註冊不在卡片裡 -->

@@ -93,7 +93,7 @@ function formatDate(iso: string) {
     </div>
 
     <!-- 標題是整頁的定位點，維持全寬、不為照片讓出寬度 -->
-    <h1 class="mt-6 font-serif text-2xl font-bold">{{ brew.bean.name }}</h1>
+    <h1 class="mt-6 text-display-m font-medium">{{ brew.bean.name }}</h1>
     <!-- 日期與星等在左、豆袋照片在右，垂直置中（《03》§4.13.4）。
          有照片時縮圖的位置一開始就在（has_photo），網址晚到也不跳動。
          沒有照片時只剩左邊一欄，與加入照片之前的版面相同 -->
@@ -145,7 +145,7 @@ function formatDate(iso: string) {
     </dl>
 
     <section v-if="steps.length" class="mt-8">
-      <h2 class="font-serif text-lg font-bold">分段</h2>
+      <h2 class="text-heading-m font-medium">分段</h2>
       <ul class="mt-3">
         <li
           v-for="(step, index) in steps"
@@ -178,7 +178,7 @@ function formatDate(iso: string) {
     </section>
 
     <section v-if="intensityRows.length" class="mt-8">
-      <h2 class="font-serif text-lg font-bold">強度</h2>
+      <h2 class="text-heading-m font-medium">強度</h2>
       <dl class="mt-3">
         <div
           v-for="row in intensityRows"
@@ -193,7 +193,7 @@ function formatDate(iso: string) {
     </section>
 
     <section v-if="brew.flavor_tags.length" class="mt-8">
-      <h2 class="font-serif text-lg font-bold">風味</h2>
+      <h2 class="text-heading-m font-medium">風味</h2>
       <div class="mt-3 flex flex-wrap gap-2">
         <span
           v-for="tag in brew.flavor_tags"
@@ -208,7 +208,7 @@ function formatDate(iso: string) {
 
     <!-- 沒勾「包含心得筆記」時，函式根本不回傳這個 key：整段不出現，不留佔位 -->
     <section v-if="brew.tasting_notes" class="mt-8">
-      <h2 class="font-serif text-lg font-bold">心得</h2>
+      <h2 class="text-heading-m font-medium">心得</h2>
       <p class="mt-2 whitespace-pre-line">{{ brew.tasting_notes }}</p>
     </section>
   </div>

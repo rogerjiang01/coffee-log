@@ -40,13 +40,13 @@ const anyCups = computed(() => props.days.some(cups => cups > 0))
     :style="{ borderColor: 'var(--border)', background: 'var(--surface)' }"
     @click="clickable && emit('click')"
   >
-    <h2 class="font-serif text-lg font-bold">本週目標</h2>
+    <h2 class="text-heading-m font-medium">本週目標</h2>
 
     <div class="mt-3 flex items-center gap-4">
       <GoalRing :count="count" :from="from" :goal="goal" :size="80" :celebrate="celebrate" @filled="filled = true" />
       <div class="min-w-0 flex-1">
         <p class="tabular-nums">
-          <span class="font-serif text-xl font-bold">{{ shown }}／{{ goal }}</span>
+          <span class="text-display-s">{{ shown }}／{{ goal }}</span>
           <span class="ml-1 text-sm text-muted">杯</span>
         </p>
         <p v-if="celebrate && filled" class="text-sm font-medium" :style="{ color: 'var(--accent)' }">已達成</p>

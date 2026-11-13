@@ -28,7 +28,7 @@ const tabBar = computed(() => showsTabBar(route.meta.screen, userId.value !== nu
         class="mx-auto flex min-h-dvh flex-col justify-center px-5 py-12"
         :style="{ maxWidth: 'var(--content-max-narrow)' }"
       >
-        <h1 class="font-serif text-xl font-bold">這一頁沒有顯示成功</h1>
+        <h1 class="text-display-s font-medium">這一頁沒有顯示成功</h1>
         <!-- 與 error.vue 同一句：開發者直接跟使用者說話，保留溝通語氣（《03》§5.5 的例外） -->
         <p class="mt-3 text-sm">
           已記錄的資料不受影響，重試通常可以解決。如果一直出現同一組代碼，歡迎來信

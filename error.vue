@@ -31,7 +31,7 @@ function reload() {
     class="mx-auto flex min-h-dvh flex-col justify-center px-5 py-12"
     :style="{ maxWidth: 'var(--content-max-narrow)' }"
   >
-    <h1 class="font-serif text-xl font-bold">
+    <h1 class="text-display-s font-medium">
       {{ notFound ? '找不到這個頁面' : '這一頁沒有載入成功' }}
     </h1>
 

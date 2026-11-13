@@ -226,7 +226,7 @@ async function destroy() {
     </div>
 
     <template v-else-if="notFound">
-      <h1 class="mt-4 font-serif text-xl font-bold">找不到這支豆子</h1>
+      <h1 class="mt-4 text-display-s font-medium">找不到這支豆子</h1>
     </template>
 
     <template v-else-if="bean">
@@ -243,13 +243,13 @@ async function destroy() {
         class="mt-4 flex h-32 items-center rounded-md px-4"
         :style="roastFill(bean.roast_level)"
       >
-        <span class="font-serif text-lg font-bold">{{ bean.name }}</span>
+        <span class="text-heading-m font-medium">{{ bean.name }}</span>
       </div>
 
       <!-- 標籤是標題的修飾語，不是另一段內容。對齊基線不置中：
            長豆名會換成兩行，置中的話標籤會飄在兩行之間 -->
       <div class="mt-5 flex items-baseline gap-2">
-        <h1 class="min-w-0 font-serif text-2xl font-bold">{{ bean.name }}</h1>
+        <h1 class="min-w-0 text-display-m font-medium">{{ bean.name }}</h1>
         <SampleBadge v-if="bean.is_sample" />
       </div>
 
@@ -298,7 +298,7 @@ async function destroy() {
       <!-- 沒有紀錄時整區不出現，不寫文案也不留空標題：
            下方的「用這支豆子沖一杯」就是下一步（《03》§5.6） -->
       <section v-if="compareRows.length" class="mt-8">
-        <h2 class="font-serif text-lg font-bold">每次怎麼沖的</h2>
+        <h2 class="text-heading-m font-medium">每次怎麼沖的</h2>
         <p v-if="compareRows.length === 1" class="mt-2 text-muted">
           記錄第二筆後可以比較，改動的數值會標示出來。
         </p>

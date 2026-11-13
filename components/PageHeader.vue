@@ -22,7 +22,7 @@ defineProps<{
 <template>
   <header class="flex items-center gap-1" :style="{ minHeight: 'var(--touch-min)' }">
     <BackButton v-if="back" :to="back" :label="backLabel ?? '返回'" :direct="backDirect" />
-    <h1 v-if="title" class="min-w-0 flex-1 truncate font-serif text-xl font-bold">{{ title }}</h1>
+    <h1 v-if="title" class="min-w-0 flex-1 truncate text-display-s font-medium">{{ title }}</h1>
     <div v-else class="flex-1" />
     <slot name="end" />
   </header>

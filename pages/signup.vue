@@ -45,7 +45,7 @@ async function submit() {
 <template>
   <main class="mx-auto px-5 py-12" :style="{ maxWidth: 'var(--content-max-narrow)' }">
     <template v-if="mailSent">
-      <h1 class="font-serif text-xl font-bold">確認信寄出了</h1>
+      <h1 class="text-display-s font-medium">確認信寄出了</h1>
       <p class="mt-4">
         確認信已寄到 {{ email }}。
       </p>
@@ -61,7 +61,7 @@ async function submit() {
     </template>
 
     <template v-else>
-      <h1 class="font-serif text-xl font-bold">註冊</h1>
+      <h1 class="text-display-s font-medium">註冊</h1>
 
       <form class="mt-8" novalidate @submit.prevent="submit">
         <!-- 有框的輸入框（《03》§4.1）：登入、註冊不在卡片裡 -->

@@ -135,7 +135,7 @@ const newBrewLink = computed(() => newBrewEntry(activeBeans.value))
         :class="{ 'col-span-2': spanOf('last') === 2 }"
         :style="{ borderColor: 'var(--border)', background: 'var(--surface)' }"
       >
-        <h2 class="font-serif text-lg font-bold">上一杯</h2>
+        <h2 class="text-heading-m font-medium">上一杯</h2>
         <div class="mt-3 flex items-start gap-2.5">
           <span class="block size-16 shrink-0 overflow-hidden rounded-md">
             <BeanThumb :photo-url="photoOf(last.bean.photo_path)" :roast-level="last.bean.roast_level" :alt="last.bean.name" />
@@ -159,7 +159,7 @@ const newBrewLink = computed(() => newBrewEntry(activeBeans.value))
         :class="{ 'col-span-2': spanOf('top') === 2 }"
         :style="{ borderColor: 'var(--border)', background: 'var(--surface)' }"
       >
-        <h2 class="font-serif text-lg font-bold">{{ top.week === 'this' ? '本週最高分' : '上週最高分' }}</h2>
+        <h2 class="text-heading-m font-medium">{{ top.week === 'this' ? '本週最高分' : '上週最高分' }}</h2>
         <div class="mt-3 flex items-start gap-2.5">
           <span class="block size-16 shrink-0 overflow-hidden rounded-md">
             <BeanThumb :photo-url="photoOf(top.brew.beans?.photo_path)" :roast-level="top.brew.beans?.roast_level ?? null" :alt="top.brew.beans?.name ?? ''" />
@@ -193,9 +193,9 @@ const newBrewLink = computed(() => newBrewEntry(activeBeans.value))
         :class="{ 'col-span-2': spanOf('totals') === 2 }"
         :style="{ borderColor: 'var(--border)', background: 'var(--surface)' }"
       >
-        <h2 class="font-serif text-lg font-bold">累計</h2>
-        <p class="mt-3 tabular-nums"><span class="font-serif text-xl font-bold">{{ totals.records }}</span><span class="ml-1 text-sm text-muted">筆紀錄</span></p>
-        <p class="mt-1 tabular-nums"><span class="text-sm text-muted">喝過</span><span class="mx-1 font-serif text-xl font-bold">{{ totals.beans }}</span><span class="text-sm text-muted">支豆子</span></p>
+        <h2 class="text-heading-m font-medium">累計</h2>
+        <p class="mt-3 tabular-nums"><span class="text-display-s">{{ totals.records }}</span><span class="ml-1 text-sm text-muted">筆紀錄</span></p>
+        <p class="mt-1 tabular-nums"><span class="text-sm text-muted">喝過</span><span class="mx-1 text-display-s">{{ totals.beans }}</span><span class="text-sm text-muted">支豆子</span></p>
       </NuxtLink>
 
       <!-- 第二排：本月。卡片不能點 -->
@@ -205,9 +205,9 @@ const newBrewLink = computed(() => newBrewEntry(activeBeans.value))
         :class="{ 'col-span-2': spanOf('month') === 2 }"
         :style="{ borderColor: 'var(--border)', background: 'var(--surface)' }"
       >
-        <h2 class="font-serif text-lg font-bold">本月</h2>
-        <p class="mt-3 tabular-nums"><span class="font-serif text-xl font-bold">{{ month.cups }}</span><span class="ml-1 text-sm text-muted">杯</span></p>
-        <p class="mt-1 tabular-nums"><span class="font-serif text-xl font-bold">{{ month.dose }}</span><span class="ml-1 text-sm text-muted">g</span></p>
+        <h2 class="text-heading-m font-medium">本月</h2>
+        <p class="mt-3 tabular-nums"><span class="text-display-s">{{ month.cups }}</span><span class="ml-1 text-sm text-muted">杯</span></p>
+        <p class="mt-1 tabular-nums"><span class="text-display-s">{{ month.dose }}</span><span class="ml-1 text-sm text-muted">g</span></p>
       </div>
     </div>
 

@@ -251,14 +251,14 @@ async function destroy() {
     </div>
 
     <template v-else-if="notFound">
-      <h1 class="mt-4 font-serif text-xl font-bold">找不到這筆紀錄</h1>
+      <h1 class="mt-4 text-display-s font-medium">找不到這筆紀錄</h1>
     </template>
 
     <template v-else-if="brew">
       <!-- 對齊基線不置中：長豆名換成兩行時，置中的標籤會飄在兩行之間。
            最右端是分享（《03》§4.13.1）：它自己垂直置中，不跟著對齊基線 -->
       <div class="mt-4 flex items-baseline gap-2">
-        <h1 class="min-w-0 font-serif text-2xl font-bold">
+        <h1 class="min-w-0 text-display-m font-medium">
           <!-- 豆名通往豆子詳情（《02》§7.2）。連結樣式照《03》：--accent、底線。
                行內元素的上下內距不影響行高，只把可點範圍加到 44px -->
           <NuxtLink
@@ -329,7 +329,7 @@ async function destroy() {
       </dl>
 
       <section v-if="steps.length" class="mt-8">
-        <h2 class="font-serif text-lg font-bold">分段</h2>
+        <h2 class="text-heading-m font-medium">分段</h2>
         <ul class="mt-3">
           <li
             v-for="(step, index) in steps"
@@ -364,7 +364,7 @@ async function destroy() {
       </section>
 
       <section v-if="intensityRows.length" class="mt-8">
-        <h2 class="font-serif text-lg font-bold">強度</h2>
+        <h2 class="text-heading-m font-medium">強度</h2>
         <dl class="mt-3">
           <div
             v-for="row in intensityRows"
@@ -379,7 +379,7 @@ async function destroy() {
       </section>
 
       <section v-if="tags.length" class="mt-8">
-        <h2 class="font-serif text-lg font-bold">風味</h2>
+        <h2 class="text-heading-m font-medium">風味</h2>
         <div class="mt-3 flex flex-wrap gap-2">
           <span
             v-for="tag in tags"
@@ -393,13 +393,13 @@ async function destroy() {
       </section>
 
       <section v-if="brew.tasting_notes" class="mt-8">
-        <h2 class="font-serif text-lg font-bold">心得</h2>
+        <h2 class="text-heading-m font-medium">心得</h2>
         <p class="mt-2 whitespace-pre-line">{{ brew.tasting_notes }}</p>
       </section>
 
       <!-- 和 M/D 那一杯相比。沒有比較對象、或沒有任何一列（參數相同、沒有兩邊的評分）時整個區塊不顯示 -->
       <section v-if="comparison?.target && compareRows.length" class="mt-8">
-        <h2 class="font-serif text-lg font-bold">和 {{ monthDay(comparison.target.brewed_at) }} 那一杯相比</h2>
+        <h2 class="text-heading-m font-medium">和 {{ monthDay(comparison.target.brewed_at) }} 那一杯相比</h2>
         <dl class="mt-3">
           <div
             v-for="diff in compareRows"
