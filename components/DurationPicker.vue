@@ -58,10 +58,17 @@
 </script>
 
 <template>
-    <div class="flex items-center gap-1">
-        <input :id="id" :value="minutes" :data-filled="minutes !== ''" type="text" inputmode="numeric" placeholder="0" aria-label="分" class="w-16 shrink-0 field py-2.5 text-center tabular-nums" :style="boxStyle" @input="onMinutes" />
+    <!-- 表單列的右側：分、秒各一個膠囊形的輸入框。
+         外層的 label 是 44px 高，膠囊本身 34px——點到上下的空白也會聚焦（《03》§7）。
+         提示字「0」「00」只是範例，用比較淡的 --text-placeholder（.placeholder-example）。 -->
+    <div class="flex items-center justify-end gap-1">
+        <label class="flex items-center" :style="boxStyle">
+            <input :id="id" :value="minutes" type="text" inputmode="numeric" placeholder="0" aria-label="分" class="sheet-pill placeholder-example w-14 text-center tabular-nums" @input="onMinutes" />
+        </label>
         <span aria-hidden="true" :style="{ color: 'var(--text-muted)' }">:</span>
-        <input :value="seconds" :data-filled="seconds !== ''" type="text" inputmode="numeric" placeholder="00" aria-label="秒" class="w-16 shrink-0 field py-2.5 text-center tabular-nums" :style="boxStyle" @input="onSeconds" @blur="onSecondsBlur" />
-        <span class="ml-2 text-xs" :style="{ color: 'var(--text-muted)' }">分 : 秒</span>
+        <label class="flex items-center" :style="boxStyle">
+            <input :value="seconds" type="text" inputmode="numeric" placeholder="00" aria-label="秒" class="sheet-pill placeholder-example w-14 text-center tabular-nums" @input="onSeconds" @blur="onSecondsBlur" />
+        </label>
+        <span class="ml-1 text-sm" :style="{ color: 'var(--text-muted)' }">分 : 秒</span>
     </div>
 </template>

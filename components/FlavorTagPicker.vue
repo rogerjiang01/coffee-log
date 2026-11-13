@@ -94,7 +94,7 @@ async function create() {
 <template>
   <div>
     <div v-for="[category, items] in groups" :key="category" class="mt-3 first:mt-0">
-      <p class="text-xs text-muted">{{ category }}</p>
+      <p class="text-sm text-muted">{{ category }}</p>
       <div class="mt-1 flex flex-wrap gap-2">
         <ChoiceChip
           v-for="tag in items"
@@ -121,8 +121,7 @@ async function create() {
         v-model="draft"
         type="text"
         placeholder="新增風味詞"
-        class="block min-w-0 flex-1 field px-3 py-2.5"
-        :style="{ minHeight: 'var(--touch-min)' }"
+        class="input-box flex-1"
       >
       <AppButton
         v-if="canCreate"

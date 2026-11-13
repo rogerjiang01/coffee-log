@@ -23,12 +23,19 @@ const props = defineProps<{
 }>()
 
 const model = defineModel<string>({ default: '' })
+
+// class 留在最外層（頁面用它排間距），其餘屬性（type、autocomplete、placeholder…）交給 <input>
+const attrs = useAttrs()
+const inputAttrs = computed(() => {
+  const { class: _class, ...rest } = attrs
+  return rest
+})
 const auto = useId()
 const fieldId = computed(() => props.id ?? auto)
 </script>
 
 <template>
-  <div class="text-field" :data-error="!!error || undefined" :data-disabled="disabled || undefined">
+  <div class="text-field" :class="attrs.class" :data-error="!!error || undefined" :data-disabled="disabled || undefined">
     <label v-if="label" :for="fieldId" class="text-field__label">
       {{ label }}<span v-if="required" class="text-field__required" aria-hidden="true">*</span>
     </label>
@@ -36,7 +43,7 @@ const fieldId = computed(() => props.id ?? auto)
       <input
         :id="fieldId"
         v-model="model"
-        v-bind="$attrs"
+        v-bind="inputAttrs"
         :disabled="disabled"
         :aria-invalid="!!error || undefined"
         :aria-describedby="error ? `${fieldId}-error` : undefined"

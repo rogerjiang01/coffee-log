@@ -2,12 +2,13 @@
 // L2 收合區（《03-介面規範》§4.2）。
 // 展開狀態需記憶：使用者展開過一次，之後預設展開。
 // 這是本產品唯一的使用者分級機制——用行為推斷，不用問卷詢問。
+//
+// 放在分組卡片裡：標題列是表單的一列（標籤的樣式、右端一個收合箭頭），
+// 展開的內容接在下面，與標題列之間一條分隔線。左右內距自己帶，外面用 <FormRow flush>。
 
 const props = defineProps<{
   title: string
   storageKey: string
-  // 放在分組卡片內時不要自己的上緣線與外距——分隔線由 FormRow 提供
-  flat?: boolean
 }>()
 
 const open = ref(false)
@@ -34,20 +35,19 @@ function toggle() {
 </script>
 
 <template>
-  <section :class="flat ? '' : 'mt-8 border-t pt-5'" :style="flat ? undefined : { borderColor: 'var(--border)' }">
+  <section>
     <button
       type="button"
-      class="flex w-full items-center justify-between text-left"
-      :style="{ minHeight: 'var(--touch-min)' }"
+      class="sheet-row w-full px-4 text-left"
       :aria-expanded="open"
       @click="toggle"
     >
-      <span class="font-medium">{{ title }}</span>
+      <span class="sheet-label">{{ title }}</span>
       <svg
         width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"
         fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round"
         :style="{
-          color: 'var(--text-muted)',
+          color: 'var(--icon-muted)',
           transform: open ? 'rotate(180deg)' : 'none',
           transition: `transform var(--motion-duration) var(--motion-ease)`,
         }"
@@ -56,7 +56,7 @@ function toggle() {
       </svg>
     </button>
 
-    <div v-show="open" class="mt-4">
+    <div v-show="open" class="border-t" :style="{ borderColor: 'var(--border)' }">
       <slot />
     </div>
   </section>

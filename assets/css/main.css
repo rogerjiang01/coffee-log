@@ -63,32 +63,165 @@
   font-family: var(--font-body-medium);
 }
 
-/* 表單欄位一律是底線制。
-   底線同時扮演該列的分隔線，所以卡片內不另外畫線——線的總數不增加。
-   輸入區左右由 FormRow 的內距撐開，底線不會碰到卡片外框。
+/* 表單的列（Figma 的 Sheet Row，《03》§4.1）：標籤在左、值在右，列與列之間一條分隔線。
+   2026-11-13 取代原本的底線制（.field）：欄位不再各自畫底線。
 
-   三個狀態只變顏色與粗細，線的位置不動，聚焦時不會跳版：
-     未填  --border      已填  --text-muted      聚焦  --accent 且加粗
-
-   加粗用 box-shadow 疊一條線而不是改 border-width，
-   後者會讓元素高度變化，整列跟著位移。 */
+   這組 class 放在這裡而不是某個元件的 scoped style，是因為自帶標籤的元件
+   （四個下拉、器材欄位、研磨刻度、星等、強度、開關）都要排成同一種列。 */
 @layer components {
-  .field {
+  .sheet-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    min-height: 4rem;
+    /* 值換成兩行時（長豆名）上下仍有留白，不會貼到分隔線或下方的提示 */
+    padding: 0.5rem 0;
+  }
+
+  /* 列的右側。值太長時讓的是這一側：標籤不縮（.sheet-label）。 */
+  .sheet-value {
+    display: flex;
+    flex: 1;
+    min-width: 0;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 0.25rem;
+    font-size: var(--text-heading-m);
+    line-height: var(--text-heading-m--line-height);
+    color: var(--text);
+  }
+
+  /* 列裡的文字輸入：靠右、沒有框。輸入中只用游標表示，不另外改變這一列的樣式（《03》§4.1），
+     所以不畫全站的焦點框。 */
+  .sheet-input {
+    display: block;
+    width: 100%;
+    min-width: 0;
+    min-height: var(--touch-min);
     border: 0;
-    border-bottom: 1px solid var(--field-border);
-    border-radius: 0;
     background: transparent;
+    text-align: right;
+    font-size: var(--text-heading-m);
+    line-height: var(--text-heading-m--line-height);
+    color: var(--text);
   }
-
-  .field[data-filled="true"] {
-    border-bottom-color: var(--text-muted);
-  }
-
-  .field:focus,
-  .field:focus-visible {
+  .sheet-input:focus,
+  .sheet-input:focus-visible {
     outline: none;
-    border-bottom-color: var(--accent);
-    box-shadow: 0 1px 0 0 var(--accent);
+  }
+  /* 多行文字（心得筆記、官方風味描述）：靠左。支援 field-sizing 的瀏覽器高度跟著內容走，
+     只有一行字時標籤和文字才會對齊；不支援的照 rows 的高度。 */
+  textarea.sheet-input {
+    text-align: left;
+    padding: 0.5625rem 0;
+    resize: none;
+    field-sizing: content;
+  }
+
+  /* 單位：帶有必要資訊，要 4.5:1，所以是 --text-muted 而不是 Figma 綁的 --text-placeholder */
+  .sheet-unit {
+    flex-shrink: 0;
+    color: var(--text-muted);
+  }
+
+  /* 下拉的觸發鈕：佔滿列的右側，可點範圍至少 44px 高 */
+  .sheet-trigger {
+    display: flex;
+    flex: 1;
+    min-width: 0;
+    min-height: var(--touch-min);
+    align-items: center;
+    justify-content: flex-end;
+    text-align: left;
+  }
+
+  /* 膠囊：已選的值。值最多兩行，超過省略（SheetPill.vue）。
+     圓角用單行高度的一半（17px）而不是 9999px：兩行時不會變成一顆橢圓。
+     也用在原生的 select、日期、分秒輸入上（那些只有一行）。 */
+  .sheet-pill {
+    max-width: 100%;
+    padding: 0.25rem 0.75rem;
+    border: 0;
+    border-radius: 17px;
+    background: var(--surface-muted);
+    font-size: var(--text-heading-m);
+    line-height: var(--text-heading-m--line-height);
+    color: var(--text);
+  }
+  /* 正在輸入或下拉開著（Figma 的 dropdown_input）：文字換成強調色，--surface-muted 上 4.92:1 */
+  .sheet-pill[data-active="true"],
+  input.sheet-pill:focus,
+  select.sheet-pill:focus {
+    color: var(--accent-text);
+  }
+  /* 還沒選值：不畫膠囊，提示字直接寫在卡片底色上（--text-muted，5.05:1）。
+     放進膠囊的話 --text-muted 在 --surface-muted 上只有 4.35:1。 */
+  .sheet-pill[data-empty="true"] {
+    padding-left: 0;
+    padding-right: 0;
+    background: transparent;
+    color: var(--text-muted);
+  }
+  select.sheet-pill {
+    appearance: none;
+    text-overflow: ellipsis;
+  }
+  /* 日期與日期時間：原生內容很寬（2026/11/13 下午04:56 加一個月曆圖示），18px 在 375px 的列裡放不下。
+     所以這兩種用 16px，並把月曆圖示攤成透明、蓋住整個膠囊——點膠囊的任何地方都會開選擇器。 */
+  input[type="date"].sheet-pill,
+  input[type="datetime-local"].sheet-pill {
+    position: relative;
+    font-size: var(--text-heading-s);
+    line-height: var(--text-heading-m--line-height);
+  }
+  input[type="date"].sheet-pill::-webkit-calendar-picker-indicator,
+  input[type="datetime-local"].sheet-pill::-webkit-calendar-picker-indicator {
+    position: absolute;
+    inset: 0;
+    width: auto;
+    height: auto;
+    opacity: 0;
+  }
+  .sheet-clamp {
+    display: -webkit-box;
+    overflow: hidden;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    overflow-wrap: anywhere;
+  }
+
+  /* 列下方的提示、錯誤、衍生值（《03》§4.1 的三層顏色由內容自己決定） */
+  .sheet-below {
+    margin-top: -0.25rem;
+    padding-bottom: 0.75rem;
+    font-size: var(--text-body-m);
+    line-height: var(--text-body-m--line-height);
+    color: var(--text-muted);
+  }
+
+  /* 有框的輸入框（Figma 的 input）給不在卡片裡的單獨輸入用：搜尋、浮層裡的就地新增。
+     有標籤、單位、錯誤訊息的完整版本是 TextField.vue，外觀相同。 */
+  .input-box {
+    display: block;
+    width: 100%;
+    min-width: 0;
+    min-height: var(--touch-min);
+    padding: 0 0.75rem;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    background: var(--surface);
+    box-shadow: var(--shadow-light);
+  }
+  .input-box:focus,
+  .input-box:focus-visible {
+    outline: none;
+    border-color: var(--accent-active);
+    box-shadow: var(--shadow-focus);
+  }
+  .input-box:disabled {
+    background: var(--surface-muted);
+    color: var(--text-placeholder);
   }
 
   /* 《03-介面規範》§7：所有互動元素可鍵盤操作，focus 狀態明確可見。
@@ -102,27 +235,10 @@
      疊在 --accent 底色上的按鈕（主要行動、浮動按鈕）焦點框會融進去。
      outline 不佔版面空間，不會像 border 那樣把版面推開。
 
-     .field 有自己的焦點樣式（底線變色），排除在外。 */
+     列裡的文字輸入（.sheet-input）與有框的輸入框（.input-box、TextField）有自己的焦點樣式，排除在外。 */
   :focus-visible {
     outline: 2px solid var(--accent);
     outline-offset: 2px;
-  }
-
-  .field:focus-visible {
-    outline: none;
-  }
-
-  /* 觸發用的按鈕（下拉、器材選擇）行為與輸入框一致 */
-  .field:focus-visible {
-    border-bottom-color: var(--accent);
-  }
-
-  /* 原生 select 不重設 appearance 的話，瀏覽器會用作業系統的樣式畫它，
-     包括一圈深色外框——那個顏色不在 token 系統內也蓋不掉。
-     重設後原生箭頭會消失，由 SelectField 自己補一個。 */
-  select.field {
-    appearance: none;
-    padding-right: 1.25rem;
   }
 
   /* 表單列的標籤（Figma 的 Sheet Row）：標籤在左、值在右。
@@ -134,17 +250,6 @@
     font-size: var(--text-heading-m);
     line-height: var(--text-heading-m--line-height);
     color: var(--text-muted);
-  }
-
-  /* 段落備註：附屬於該段的次要資訊，上方已經有注水／停留兩格的底線在
-     分隔，不需要再一條。文字比 --text-muted 再淡一階。 */
-  .field--note {
-    border-bottom: 0;
-    color: var(--text-muted);
-  }
-
-  .field--note::placeholder {
-    color: var(--text-faint);
   }
 }
 

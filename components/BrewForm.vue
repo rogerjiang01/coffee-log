@@ -399,9 +399,6 @@ const draft = draftStorageKey
 // 儲存成功後由頁面呼叫，清掉這份暫存
 defineExpose({ clearDraft: () => draft?.clear() })
 
-const inputStyle = {
-  minHeight: 'var(--touch-min)',
-}
 </script>
 
 <template>
@@ -438,19 +435,16 @@ const inputStyle = {
          後面的填寫都在正確的時間脈絡下。 -->
     <FormCard title="這一杯">
       <!-- 日期是 other：事後補記時改日期可能要翻行事曆，那不是參數記錄的時間 -->
-      <FormRow data-section="other">
-        <label class="block text-sm" for="brew-at">沖煮日期</label>
-        <!-- datetime-local 的原生內容有自己的最小寬度，w-full 擋不住它撐開容器 -->
-        <div class="mt-1 overflow-hidden">
+      <FormRow data-section="other" label="沖煮日期" for="brew-at">
+        <!-- datetime-local 的原生內容有自己的最小寬度，min-w-0 讓它在窄螢幕上縮得下來 -->
+        <SelectField>
           <input
             id="brew-at"
             v-model="values.brewed_at"
-            :data-filled="!!values.brewed_at"
             type="datetime-local"
-            class="block w-full min-w-0 max-w-full field py-2.5"
-            :style="inputStyle"
+            class="sheet-pill min-w-0"
           >
-        </div>
+        </SelectField>
       </FormRow>
       <FormRow data-section="params">
         <BeanSelect
@@ -458,9 +452,9 @@ const inputStyle = {
           :error="beanError"
           @selected="selectedBeanRoastDate = $event?.roast_date ?? null"
         />
-        <p v-if="restedDays !== null" class="mt-1 text-xs tabular-nums text-muted">
-          養豆 {{ restedDays }} 天
-        </p>
+        <template v-if="restedDays !== null" #below>
+          <p class="tabular-nums">養豆 {{ restedDays }} 天</p>
+        </template>
       </FormRow>
     </FormCard>
 
@@ -496,20 +490,22 @@ const inputStyle = {
         />
       </FormRow>
       <!-- 收合區是這張卡片內部的最後一列，語意明確是「這組裡的次要項目」 -->
-      <FormRow divider>
-        <CollapsibleSection flat title="濾紙與分享壺" storage-key="brewForm.equipment.expanded">
-          <EquipmentTrigger
-            label="濾紙"
-            :name="equipmentName(values.filter_id)"
-            @open="pickerType = 'filter'"
-          />
-          <div class="mt-5">
+      <FormRow flush>
+        <CollapsibleSection title="濾紙與分享壺" storage-key="brewForm.equipment.expanded">
+          <FormRow>
+            <EquipmentTrigger
+              label="濾紙"
+              :name="equipmentName(values.filter_id)"
+              @open="pickerType = 'filter'"
+            />
+          </FormRow>
+          <FormRow>
             <EquipmentTrigger
               label="分享壺"
               :name="equipmentName(values.server_id)"
               @open="pickerType = 'server'"
             />
-          </div>
+          </FormRow>
         </CollapsibleSection>
       </FormRow>
     </FormCard>
@@ -520,45 +516,48 @@ const inputStyle = {
          沒有停水時間），它就是沖煮時間的一部分，放在分段正下方最近。 -->
     <FormCard title="沖煮" data-section="params">
       <FormRow>
-        <label class="block text-sm" for="brew-dose">
-          粉重
-          <span :style="{ color: 'var(--danger)' }" aria-hidden="true">*</span>
-          <span class="sr-only">必填</span>
-        </label>
-        <NumberField id="brew-dose" v-model="values.dose" unit="g" class="mt-1" />
-        <p v-if="ratio" class="mt-1 text-xs tabular-nums text-muted">粉水比 {{ ratio }}</p>
-        <p v-if="doseError" class="mt-2 text-sm" :style="{ color: 'var(--danger)' }">{{ doseError }}</p>
+        <!-- 必填的列自己寫標籤，不用 FormRow 的 label：
+             tests/unit/required-placeholder.test.mjs 靠這個標記找出必填欄位 -->
+        <div class="sheet-row">
+          <label class="sheet-label" for="brew-dose">粉重<span :style="{ color: 'var(--danger)' }" aria-hidden="true">*</span><span class="sr-only">必填</span></label>
+          <div class="sheet-value">
+            <NumberField id="brew-dose" v-model="values.dose" unit="g" />
+          </div>
+        </div>
+        <template v-if="ratio || doseError" #below>
+          <p v-if="ratio" class="tabular-nums">粉水比 {{ ratio }}</p>
+          <p v-if="doseError" :style="{ color: 'var(--danger)' }">{{ doseError }}</p>
+        </template>
       </FormRow>
-      <FormRow>
-        <label class="block text-sm" for="brew-temp">水溫</label>
-        <NumberField id="brew-temp" v-model="values.water_temp" unit="°C" integer class="mt-1" />
+      <FormRow label="水溫" for="brew-temp">
+        <NumberField id="brew-temp" v-model="values.water_temp" unit="°C" integer />
       </FormRow>
-      <FormRow>
-        <label class="block text-sm" for="brew-method">沖煮手法</label>
+      <FormRow label="沖煮手法" for="brew-method">
         <SelectField>
           <select
             id="brew-method"
             v-model="values.brew_method_id"
-            :data-filled="values.brew_method_id !== null"
-            class="mt-1 block w-full field py-2.5"
-            :style="{ ...inputStyle, color: values.brew_method_id ? 'var(--text)' : 'var(--text-muted)' }"
+            class="sheet-pill"
+            :data-empty="values.brew_method_id === null || undefined"
           >
             <option :value="null">選填</option>
             <option v-for="method in methods" :key="method.id" :value="method.id">{{ method.name }}</option>
           </select>
         </SelectField>
-        <p v-if="methods.length" class="mt-1 text-xs text-muted">選擇沖煮手法會依粉重帶入分段</p>
-        <!-- 內建手法的分段模板數值尚未經實機核實（見 CLAUDE.md 階段備註）。
-             在核實之前先講清楚它是參考值，避免使用者當成標準答案照做。 -->
-        <p v-if="methods.length" class="mt-1 text-xs text-muted">
-          內建沖煮手法為參考框架，實際水量請依自己的器材與豆子調整
-        </p>
-        <!-- 不擋儲存，所以是 --notice 不是 --danger（《03》§4.1） -->
-        <p v-if="methodNotice" class="mt-1 text-xs" :style="{ color: 'var(--notice)' }">
-          {{ methodNotice }}
-        </p>
+        <template v-if="methods.length || methodNotice" #below>
+          <p v-if="methods.length">選擇沖煮手法會依粉重帶入分段</p>
+          <!-- 內建手法的分段模板數值尚未經實機核實（見 CLAUDE.md 階段備註）。
+               在核實之前先講清楚它是參考值，避免使用者當成標準答案照做。 -->
+          <p v-if="methods.length">
+            內建沖煮手法為參考框架，實際水量請依自己的器材與豆子調整
+          </p>
+          <!-- 不擋儲存，所以是 --notice 不是 --danger（《03》§4.1） -->
+          <p v-if="methodNotice" :style="{ color: 'var(--notice)' }">
+            {{ methodNotice }}
+          </p>
+        </template>
       </FormRow>
-      <FormRow divider>
+      <FormRow>
         <PourStepsEditor
           v-model="steps"
           :dose="values.dose"
@@ -569,29 +568,28 @@ const inputStyle = {
           @toggle-times="toggleStepTimes"
         />
       </FormRow>
-      <FormRow>
-        <label class="block text-sm" for="brew-total-time">沖煮時間</label>
-        <DurationPicker id="brew-total-time" v-model="values.total_time" class="mt-1" />
+      <FormRow label="沖煮時間" for="brew-total-time">
+        <DurationPicker id="brew-total-time" v-model="values.total_time" />
       </FormRow>
     </FormCard>
 
     <FormCard title="喝起來" data-section="tasting">
-      <FormRow divider>
+      <FormRow flush>
         <IntensityPicker v-model="values.intensity" />
       </FormRow>
-      <FormRow divider>
-        <CollapsibleSection flat title="風味標籤" storage-key="brewForm.flavor.expanded">
-          <FlavorTagPicker v-model="flavorTagIds" />
+      <FormRow flush>
+        <CollapsibleSection title="風味標籤" storage-key="brewForm.flavor.expanded">
+          <div class="px-4 py-4">
+            <FlavorTagPicker v-model="flavorTagIds" />
+          </div>
         </CollapsibleSection>
       </FormRow>
-      <FormRow>
-        <label class="block text-sm" for="brew-notes">心得筆記</label>
+      <FormRow label="心得筆記" for="brew-notes">
         <textarea
           id="brew-notes"
           v-model="values.tasting_notes"
-          :data-filled="!!values.tasting_notes"
           rows="3"
-          class="mt-1 block w-full field py-2.5"
+          class="sheet-input"
         />
       </FormRow>
       <FormRow>
@@ -600,35 +598,19 @@ const inputStyle = {
     </FormCard>
 
     <!-- 收藏在卡片外：它不是品飲判斷，是「還想不想再沖」的實用決定，
-         跟儲存這個動作在同一個心理時刻。 -->
+         跟儲存這個動作在同一個心理時刻。照 Figma 自己一張卡片、一個開關，說明在卡片下方。 -->
     <div>
-      <button
-        type="button"
-        role="switch"
-        data-section="tasting"
-        :aria-checked="values.is_favorite"
-        class="flex w-full items-center justify-between rounded-sm border px-4 py-3"
-        :style="{ borderColor: 'var(--border)', background: 'var(--surface)', minHeight: 'var(--touch-min)' }"
-        @click="values.is_favorite = !values.is_favorite"
-      >
-        <span>
-          收藏
-          <span class="ml-2 text-sm text-muted">還想再沖一次</span>
-        </span>
-        <svg
-          width="24" height="24" viewBox="0 0 24 24" aria-hidden="true"
-          stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"
-          :fill="values.is_favorite ? 'var(--favorite)' : 'transparent'"
-          :stroke="values.is_favorite ? 'var(--favorite)' : 'var(--control-empty)'"
-        >
-          <path d="M2 9.5a5.5 5.5 0 0 1 9.591-3.676.56.56 0 0 0 .818 0A5.49 5.49 0 0 1 22 9.5c0 2.29-1.5 4-3 5.5l-5.492 5.313a2 2 0 0 1-3 .019L5 15c-1.5-1.5-3-3.2-3-5.5" />
-        </svg>
-      </button>
+      <div data-section="tasting">
+        <AppCard radius="lg" class="px-4 py-2">
+          <ToggleSwitch v-model="values.is_favorite" label="收藏" />
+        </AppCard>
+        <p class="mt-1.5 px-1 text-sm text-muted">還想再沖一次</p>
+      </div>
 
       <AppButton block
         type="submit"
         :busy="busy"
-        class="mt-3"
+        class="mt-4"
       >
         {{ busy ? '儲存中' : submitLabel }}
       </AppButton>

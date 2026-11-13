@@ -225,14 +225,7 @@ if (storageKey) {
 // 儲存成功後由頁面呼叫
 defineExpose({ clearDraft: () => draft?.clear() })
 
-const inputStyle = {
-  minHeight: 'var(--touch-min)',
-}
 
-// 未選取的下拉要用 --text-muted，否則黑字看起來像已經填好的值
-function selectStyle(value: unknown) {
-  return { ...inputStyle, color: value == null ? 'var(--text-muted)' : 'var(--text)' }
-}
 </script>
 
 <template>
@@ -270,58 +263,44 @@ function selectStyle(value: unknown) {
 
     <FormCard class="mt-6">
       <FormRow>
-        <!-- 只有必填欄位有標示，其他不標，讓對比本身說明「其他都可空」 -->
-        <label class="block text-sm" for="bean-name">
-          豆名
-          <span :style="{ color: 'var(--danger)' }" aria-hidden="true">*</span>
-          <span class="sr-only">必填</span>
-        </label>
-        <input
-          id="bean-name"
-          v-model="values.name"
-          :data-filled="!!values.name"
-          type="text"
-          class="mt-1 block w-full field py-2.5"
-          :style="inputStyle"
-        >
-        <p v-if="nameError" class="mt-2 text-sm" :style="{ color: 'var(--danger)' }">{{ nameError }}</p>
+        <!-- 只有必填欄位有標示，其他不標，讓對比本身說明「其他都可空」。
+             必填的列自己寫標籤（tests/unit/required-placeholder.test.mjs 靠這個標記找必填欄位） -->
+        <div class="sheet-row">
+          <label class="sheet-label" for="bean-name">豆名<span :style="{ color: 'var(--danger)' }" aria-hidden="true">*</span><span class="sr-only">必填</span></label>
+          <div class="sheet-value">
+            <SheetText id="bean-name" v-model="values.name" />
+          </div>
+        </div>
+        <template v-if="nameError" #below>
+          <p :style="{ color: 'var(--danger)' }">{{ nameError }}</p>
+        </template>
       </FormRow>
 
-      <FormRow>
-        <label class="block text-sm" for="bean-roaster">咖啡店名</label>
-        <input
-          id="bean-roaster"
-          v-model="values.roaster"
-          :data-filled="!!values.roaster"
-          type="text"
-          class="mt-1 block w-full field py-2.5"
-          :style="inputStyle"
-        >
+      <FormRow label="咖啡店名" for="bean-roaster">
+        <SheetText id="bean-roaster" v-model="values.roaster" />
       </FormRow>
 
-      <FormRow>
-        <label class="block text-sm" for="bean-roast-date">烘焙日期</label>
-        <input
-          id="bean-roast-date"
-          v-model="values.roast_date"
-          :data-filled="!!values.roast_date"
-          type="date"
-          class="mt-1 block w-full field py-2.5"
-          :class="{ 'date-empty': !values.roast_date }"
-          :style="inputStyle"
-        >
-        <p class="mt-1 text-xs text-muted">填寫後顯示養豆天數</p>
+      <FormRow label="烘焙日期" for="bean-roast-date">
+        <SelectField>
+          <input
+            id="bean-roast-date"
+            v-model="values.roast_date"
+            type="date"
+            class="sheet-pill min-w-0"
+            :class="{ 'date-empty': !values.roast_date }"
+            :data-empty="!values.roast_date || undefined"
+          >
+        </SelectField>
+        <template #below>填寫後顯示養豆天數</template>
       </FormRow>
 
-      <FormRow>
-        <label class="block text-sm" for="bean-roast-level">烘焙度</label>
+      <FormRow label="烘焙度" for="bean-roast-level">
         <SelectField>
           <select
             id="bean-roast-level"
             v-model="values.roast_level"
-            :data-filled="values.roast_level !== null"
-            class="mt-1 block w-full field py-2.5"
-            :style="selectStyle(values.roast_level)"
+            class="sheet-pill"
+            :data-empty="values.roast_level === null || undefined"
           >
             <option :value="null">選填</option>
             <option v-for="option in roastOptions" :key="option.value" :value="option.value">
@@ -335,17 +314,8 @@ function selectStyle(value: unknown) {
         <CountrySelect v-model="values.country_id" />
       </FormRow>
 
-      <FormRow>
-        <label class="block text-sm" for="bean-region">產區</label>
-        <input
-          id="bean-region"
-          v-model="values.region"
-          :data-filled="!!values.region"
-          type="text"
-          list="bean-region-options"
-          class="mt-1 block w-full field py-2.5"
-          :style="inputStyle"
-        >
+      <FormRow label="產區" for="bean-region">
+        <SheetText id="bean-region" v-model="values.region" list="bean-region-options" />
         <!-- 建議來自使用者填過的值，沒有歷史就沒有建議，不擋任何輸入 -->
         <datalist id="bean-region-options">
           <option v-for="suggestion in regionSuggestions" :key="suggestion" :value="suggestion" />
@@ -360,14 +330,12 @@ function selectStyle(value: unknown) {
         <LookupSelect v-model="values.variety_id" label="品種" table="varieties" />
       </FormRow>
 
-      <FormRow>
-        <label class="block text-sm" for="bean-notes">官方風味描述</label>
+      <FormRow label="官方風味描述" for="bean-notes">
         <textarea
           id="bean-notes"
           v-model="values.official_notes"
-          :data-filled="!!values.official_notes"
           rows="3"
-          class="mt-1 block w-full field py-2.5"
+          class="sheet-input"
         />
       </FormRow>
     </FormCard>

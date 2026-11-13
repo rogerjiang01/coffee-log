@@ -85,30 +85,31 @@ function setStir(index: number, stir: boolean) {
 </script>
 
 <template>
-  <section>
+  <section class="py-3">
     <!-- 切換入口在標題列右側，而且是唯一入口：想記時間的那一刻就在填表當下。
          文字連結不用 toggle，理由見檔頭。 -->
     <div class="flex items-center justify-between gap-3">
-      <p class="text-sm">分段注水</p>
+      <p class="sheet-label">分段注水</p>
       <button
         type="button"
         :disabled="timesPending"
         class="shrink-0 px-1 text-sm underline disabled:opacity-60"
-        :style="{ color: 'var(--accent)', minHeight: 'var(--touch-min)' }"
+        :style="{ color: 'var(--accent-text)', minHeight: 'var(--touch-min)' }"
         @click="emit('toggleTimes')"
       >
         {{ showTimes ? '不記停水時間' : '記錄停水時間' }}
       </button>
     </div>
 
-    <ul class="mt-2">
+    <ul>
       <li
         v-for="(step, index) in modelValue"
         :key="index"
-        class="step-row py-3"
+        class="step-row pt-2"
       >
         <div class="flex items-center justify-between gap-3">
-          <p class="text-sm font-medium">
+          <!-- 段落標題用強調色的文字（Figma 的「悶蒸」「第 1 段注水」） -->
+          <p class="font-medium" :style="{ color: 'var(--accent-text)' }">
             {{ stepLabel(modelValue, index) }}
           </p>
 
@@ -116,7 +117,7 @@ function setStir(index: number, stir: boolean) {
             <!-- 段落之間顯示算出來的增量水量，幫使用者確認自己填對了 -->
             <span
               v-if="index > 0 && increments[index] !== null"
-              class="mr-1 text-xs tabular-nums"
+              class="mr-1 text-sm tabular-nums"
               :style="{ color: 'var(--text-muted)' }"
             >
               +{{ increments[index] }}g
@@ -138,11 +139,12 @@ function setStir(index: number, stir: boolean) {
             >
               <StirIcon />
             </button>
+            <!-- 移除這一段：垃圾桶（Lucide 的 trash-2，《03》§3）。顏色是 --icon-muted（3.47:1） -->
             <button
               v-if="step.stepType !== 'bloom'"
               type="button"
               class="shrink-0"
-              :style="{ color: 'var(--text-muted)', minHeight: 'var(--touch-min)', minWidth: 'var(--touch-min)' }"
+              :style="{ color: 'var(--icon-muted)', minHeight: 'var(--touch-min)', minWidth: 'var(--touch-min)' }"
               :aria-label="`刪除${stepLabel(modelValue, index)}`"
               @click="removeStep(index)"
             >
@@ -150,69 +152,76 @@ function setStir(index: number, stir: boolean) {
                 width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" class="mx-auto"
                 fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round"
               >
-                <path d="M18 6 6 18" />
-                <path d="m6 6 12 12" />
+                <path d="M10 11v6" />
+                <path d="M14 11v6" />
+                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6" />
+                <path d="M3 6h18" />
+                <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
               </svg>
             </button>
           </div>
         </div>
 
-        <!-- 兩欄格線讓兩個輸入框與標籤上下對齊。時間欄位關閉時仍保留兩欄，
-             水量輸入框維持同樣寬度，不會因為開關而變成一整條 -->
-        <div class="mt-2 grid grid-cols-2 gap-3">
-          <div>
-            <label class="block text-xs text-muted" :for="`step-water-${index}`">注到</label>
-            <NumberField
-              :id="`step-water-${index}`"
-              :model-value="step.cumulativeWater"
-              unit="g"
-              class="mt-1"
-              @update:model-value="patch(index, { cumulativeWater: $event })"
-            />
+        <!-- 每一段的欄位是表單的列：標籤在左、值在右。列與列之間一條分隔線 -->
+        <div class="step-fields">
+          <div class="sheet-row">
+            <label class="sheet-label" :for="`step-water-${index}`">注到</label>
+            <div class="sheet-value">
+              <NumberField
+                :id="`step-water-${index}`"
+                :model-value="step.cumulativeWater"
+                unit="g"
+                @update:model-value="patch(index, { cumulativeWater: $event })"
+              />
+            </div>
           </div>
+          <!--
+            累積水量遞減的提示。**刻意維持提示、不阻擋儲存**，之後也不要改成擋：
+            我們無權判定使用者填錯——他可能在記一個我們沒想過的沖法，
+            也可能想先存起來之後再改。「所有驗證只提示不阻擋」這條沒有例外。
+
+            文案講該填什麼，不講「你填錯了」：最常見的原因是把這一注的水量
+            當成累積水量填進來，而磅秤上顯示的就是累積值。
+
+            顏色是 --notice：針對這次填的值出現、但存得起來（《03》§4.1）。
+          -->
+          <p v-if="orderHints[index]" class="sheet-below" :style="{ color: 'var(--notice)' }">
+            {{ orderHints[index] }}
+          </p>
+
           <!-- 最後一段不顯示：最後一注之後沒有下一注，沒有「停水」這件事 -->
-          <div v-if="showTimes && index < modelValue.length - 1">
-            <label class="block text-xs text-muted" :for="`step-hold-${index}`">停留</label>
-            <NumberField
-              :id="`step-hold-${index}`"
-              :model-value="step.holdSeconds"
-              unit="秒"
-              integer
-              class="mt-1"
-              @update:model-value="patch(index, { holdSeconds: $event })"
-            />
+          <template v-if="showTimes && index < modelValue.length - 1">
+            <div class="sheet-row">
+              <label class="sheet-label" :for="`step-hold-${index}`">停留</label>
+              <div class="sheet-value">
+                <NumberField
+                  :id="`step-hold-${index}`"
+                  :model-value="step.holdSeconds"
+                  unit="秒"
+                  integer
+                  @update:model-value="patch(index, { holdSeconds: $event })"
+                />
+              </div>
+            </div>
             <!-- 說明只寫在第一段：每一段的意思都一樣，逐列重複同一句話是雜訊，
                  在手機上每列還多佔一行。跟著 index 走不跟著段落走：第一段被刪掉（四六法的第一段可刪），
                  說明移到新的第一段，不會消失 -->
-            <p v-if="index === 0" class="mt-1 text-xs text-muted">停水時間</p>
+            <p v-if="index === 0" class="sheet-below">停水時間</p>
+          </template>
+
+          <!-- 段落備註。與攪拌標記是兩個不同需求：那個是結構化標記，這個是自由文字。 -->
+          <div class="sheet-row">
+            <label class="sheet-label" :for="`step-note-${index}`">備註</label>
+            <div class="sheet-value">
+              <SheetText
+                :id="`step-note-${index}`"
+                :model-value="step.note"
+                placeholder="這段的備註"
+                @update:model-value="patch(index, { note: $event ?? '' })"
+              />
+            </div>
           </div>
         </div>
-
-        <!--
-          累積水量遞減的提示。**刻意維持提示、不阻擋儲存**，之後也不要改成擋：
-          我們無權判定使用者填錯——他可能在記一個我們沒想過的沖法，
-          也可能想先存起來之後再改。「所有驗證只提示不阻擋」這條沒有例外。
-
-          文案講該填什麼，不講「你填錯了」：最常見的原因是把這一注的水量
-          當成累積水量填進來，而磅秤上顯示的就是累積值。
-
-          顏色是 --notice：針對這次填的值出現、但存得起來（《03》§4.1）。
-        -->
-        <p v-if="orderHints[index]" class="mt-2 text-xs" :style="{ color: 'var(--notice)' }">
-          {{ orderHints[index] }}
-        </p>
-
-        <!-- 段落備註。單行輸入，沒填時只有一條底線的高度，不佔額外空間。
-             與攪拌標記是兩個不同需求：那個是結構化標記，這個是自由文字。 -->
-        <input
-          :value="step.note"
-          :data-filled="!!step.note"
-          type="text"
-          class="mt-2 block w-full field field--note py-1.5 text-sm"
-          placeholder="這段的備註"
-          :aria-label="`${stepLabel(modelValue, index)}的備註`"
-          @input="patch(index, { note: ($event.target as HTMLInputElement).value })"
-        >
       </li>
     </ul>
 
@@ -238,5 +247,15 @@ function setStir(index: number, stir: boolean) {
 /* 分段之間用分隔線，不用巢狀卡片——外層已經是分組卡片了 */
 .step-row + .step-row {
   border-top: 1px solid var(--border);
+}
+/* 一段裡的列：最後一列以外各畫一條下緣線 */
+.step-fields > .sheet-row:not(:last-child) {
+  border-bottom: 1px solid var(--border);
+}
+.step-fields > .sheet-below {
+  border-bottom: 1px solid var(--border);
+}
+.step-fields > .sheet-row:has(+ .sheet-below) {
+  border-bottom: 0;
 }
 </style>

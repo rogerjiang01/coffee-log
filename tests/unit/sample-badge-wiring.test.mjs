@@ -22,7 +22,7 @@ export default function run() {
 
   r.section('沿用既有標籤樣式，不新增顏色')
   const badge = read('components/SampleBadge.vue')
-  const knownTag = /class="shrink-0 rounded-sm px-2 py-0\.5 text-xs"/
+  const knownTag = /class="shrink-0 rounded-sm px-2 py-0\.5 text-sm"/
   r.check(knownTag.test(badge), '與器材的「常用」標籤同一組 class')
   r.check(/var\(--accent-wash\)/.test(badge) && /var\(--on-accent-wash\)/.test(badge),
     '用既有的語意 token，沒有新顏色')

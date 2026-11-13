@@ -9,6 +9,8 @@ useHead({ htmlAttrs: { class: 'theme-green' } })
 const email = ref('')
 const password = ref('')
 const error = ref('')
+// 哪一格沒填好：訊息顯示在那一格下方，框變成錯誤狀態（TextField）。其他錯誤（帳密不對、連線）顯示在按鈕上方
+const fieldError = ref<{ email?: string, password?: string }>({})
 const sending = ref(false)
 // 專案若開著信箱確認，註冊不會直接給 session，此時改顯示已寄信
 const mailSent = ref(false)
@@ -19,10 +21,11 @@ watchEffect(() => {
 
 async function submit() {
   error.value = ''
+  fieldError.value = {}
 
-  if (!email.value.trim()) return (error.value = '電子郵件尚未填寫')
-  if (!password.value) return (error.value = '密碼尚未填寫')
-  if (password.value.length < 6) return (error.value = '密碼至少 6 個字元')
+  if (!email.value.trim()) return (fieldError.value = { email: '電子郵件尚未填寫' })
+  if (!password.value) return (fieldError.value = { password: '密碼尚未填寫' })
+  if (password.value.length < 6) return (fieldError.value = { password: '密碼至少 6 個字元' })
 
   sending.value = true
   const { data, error: err } = await supabase.auth.signUp({
@@ -61,26 +64,26 @@ async function submit() {
       <h1 class="font-serif text-xl font-bold">註冊</h1>
 
       <form class="mt-8" novalidate @submit.prevent="submit">
-        <label class="block text-sm" for="email">電子郵件</label>
-        <input
+        <!-- 有框的輸入框（《03》§4.1）：登入、註冊不在卡片裡 -->
+        <TextField
           id="email"
           v-model="email"
+          label="電子郵件"
           type="email"
           autocomplete="email"
-          class="mt-1 block w-full field px-3 py-2.5"
-          :style="{ minHeight: 'var(--touch-min)' }"
-        >
+          :error="fieldError.email"
+        />
 
-        <label class="mt-5 block text-sm" for="password">密碼</label>
-        <input
+        <TextField
           id="password"
           v-model="password"
+          class="mt-5"
+          label="密碼"
           type="password"
           autocomplete="new-password"
-          class="mt-1 block w-full field px-3 py-2.5"
-          :style="{ minHeight: 'var(--touch-min)' }"
-        >
-        <p class="mt-1 text-xs text-muted">至少 6 個字元</p>
+          :error="fieldError.password"
+        />
+        <p v-if="!fieldError.password" class="text-sm text-muted">至少 6 個字元</p>
 
         <p v-if="error" class="mt-4 text-sm" :style="{ color: 'var(--danger)' }">
           {{ error }}

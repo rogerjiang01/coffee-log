@@ -83,7 +83,7 @@ function rowBackground(row: CompareRow) {
               <NuxtLink
                 :to="`/brews/${row.id}`"
                 class="underline underline-offset-2"
-                :style="{ color: 'var(--accent)' }"
+                :style="{ color: row.isFavorite ? 'var(--on-accent-wash)' : 'var(--accent)' }"
               >
                 {{ row.date }}
                 <span class="sr-only">，查看這筆紀錄</span>

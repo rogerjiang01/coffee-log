@@ -27,7 +27,7 @@ export default function run() {
 
   r.section('編輯器：開關只決定顯不顯示')
   const editor = read('components/PourStepsEditor.vue')
-  const holdBlock = (editor.match(/<div v-if="showTimes[\s\S]*?<\/div>\s*<\/div>/) || [''])[0]
+  const holdBlock = (editor.match(/<template v-if="showTimes[\s\S]*?<\/template>/) || [''])[0]
   r.check(/step-hold-/.test(holdBlock), '停留欄位在 v-if="showTimes…" 裡——關閉時整格不出現')
   r.check(/>停水時間<\/p>/.test(holdBlock), '輔助說明也在同一格裡，關閉時一起消失')
   r.check(/<label[^>]*>停留<\/label>/.test(editor), '標籤仍是「停留」——咖啡圈的通用說法，不改')

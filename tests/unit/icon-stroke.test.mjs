@@ -39,20 +39,16 @@ const ICONS = [
   ['數量加減的 − 與 ＋', 'components/GoalStepper.vue', 'M5 12h14', 2, 2],
   ['完成（結算頁的勾勾）', 'pages/brews/[id]/summary.vue', 'M20 6 9 17l-5-5', 2, 1],
   // 內容區的小圖示：1.5px
-  ['分段的 ×', 'components/PourStepsEditor.vue', 'M18 6 6 18', 1.5, 1],
+  // 2026-11-13：分段的移除從 × 改成垃圾桶（Lucide trash-2，《03》§3）
+  ['分段的垃圾桶', 'components/PourStepsEditor.vue', 'M3 6h18', 1.5, 1],
   ['⌄ 收合區', 'components/CollapsibleSection.vue', 'm6 9 6 6 6-6', 1.5, 1],
-  ['⌄ 原生下拉', 'components/SelectField.vue', 'm6 9 6 6 6-6', 1.5, 1],
-  ['⌄ 豆子下拉', 'components/BeanSelect.vue', 'm6 9 6 6 6-6', 1.5, 1],
-  ['⌄ 產國下拉', 'components/CountrySelect.vue', 'm6 9 6 6 6-6', 1.5, 1],
-  ['⌄ 型號下拉', 'components/CatalogSelect.vue', 'm6 9 6 6 6-6', 1.5, 1],
-  ['⌄ 處理法／品種下拉', 'components/LookupSelect.vue', 'm6 9 6 6 6-6', 1.5, 1],
-  ['› 器材欄位', 'components/EquipmentTrigger.vue', 'm9 18 6-6-6-6', 1.5, 1],
+  // 2026-11-13：下拉與器材欄位改成膠囊，沒有 ⌄ 與 › 了（照 Figma 的 Sheet Row）；收合區的 ⌄ 還在
+  ['› 卡片標題列', 'components/AppCard.vue', 'm9 18 6-6-6-6', 1.5, 1],
   ['攪拌標記', 'components/StirIcon.vue', 'M12 14v7', 1.5, 1],
-  ['暫存中（sync）', 'components/DraftStatus.vue', 'M18 3v4h-4', 1.5, 1],
+  ['暫存中（Lucide refresh-cw）', 'components/DraftStatus.vue', 'M21 3v5h-5', 1.5, 1],
   ['已暫存（打勾）', 'components/DraftStatus.vue', 'M20 6 9 17l-5-5', 1.5, 1],
   // 收藏愛心：四個尺寸都要落在 1.5px。換成 Lucide 之前四處寫的都是 1.5，
   // 但顯示寬不同（16／18／24），實際線寬因此散成 1.0、1.125、1.5 三種。
-  ['愛心（表單）', 'components/BrewForm.vue', HEART, 1.5, 1],
   ['愛心（時間軸）', 'components/BrewTimelineItem.vue', HEART, 1.5, 1],
   ['愛心（比較表）', 'components/BeanCompareTable.vue', HEART, 1.5, 1],
   ['愛心（紀錄詳情）', 'pages/brews/[id]/index.vue', HEART, 1.5, 1],
@@ -99,25 +95,20 @@ export default function run() {
     ['pages/beans/index.vue', 'M5 12h14'],
     ['pages/equipment/index.vue', 'M5 12h14'],
     ['pages/index.vue', 'r="3"'],
-    ['components/PourStepsEditor.vue', 'M18 6 6 18'],
-    ['components/EquipmentTrigger.vue', 'm9 18 6-6-6-6'],
+    ['components/PourStepsEditor.vue', 'M3 6h18'],
+    ['components/AppCard.vue', 'm9 18 6-6-6-6'],
     ['components/ShareIcon.vue', 'm16 6-4-4-4 4'],
-    ['components/BrewForm.vue', HEART],
     ['components/BrewTimelineItem.vue', HEART],
     ['components/BeanCompareTable.vue', HEART],
     ['pages/brews/[id]/index.vue', HEART],
     ['components/StarRating.vue', STAR],
     ['pages/brews/[id]/index.vue', STAR],
     ['components/DraftStatus.vue', 'M20 6 9 17l-5-5'],
+    ['components/DraftStatus.vue', 'M21 3v5h-5'],
     ['components/BrewShare.vue', 'M20 6 9 17l-5-5'],
     ['components/SharedBrewView.vue', STAR],
     ['components/SharedBrewView.vue', HEART],
     ['components/CollapsibleSection.vue', 'm6 9 6 6 6-6'],
-    ['components/SelectField.vue', 'm6 9 6 6 6-6'],
-    ['components/BeanSelect.vue', 'm6 9 6 6 6-6'],
-    ['components/CountrySelect.vue', 'm6 9 6 6 6-6'],
-    ['components/CatalogSelect.vue', 'm6 9 6 6 6-6'],
-    ['components/LookupSelect.vue', 'm6 9 6 6 6-6'],
   ]
   for (const [file, marker] of LUCIDE) {
     const svgs = svgsWith(read(file), marker)
@@ -132,7 +123,6 @@ export default function run() {
   // 寫明的取捨，這裡守的是「不要再往下退」，不是 3:1
   const empty = [
     ['pages/brews/[id]/index.vue', '星等（紀錄詳情）'],
-    ['components/BrewForm.vue', '收藏愛心（表單）'],
     ['components/SharedBrewView.vue', '星等（分享頁）'],
     ['components/BrewShare.vue', '勾選框（分享對話框）'],
   ]

@@ -106,9 +106,6 @@ const draft = draftStorageKey
 
 defineExpose({ clearDraft: () => draft?.clear() })
 
-const inputStyle = {
-  minHeight: 'var(--touch-min)',
-}
 </script>
 
 <template>
@@ -129,18 +126,19 @@ const inputStyle = {
     <!-- 與豆子表單同一套分組卡片；只有一張卡片，不另外下標題（頁面標題已經是新增／編輯器材） -->
     <FormCard>
       <FormRow>
-        <label class="block text-sm" for="equipment-type">
-          類型
-          <span :style="{ color: 'var(--danger)' }" aria-hidden="true">*</span>
-          <span class="sr-only">必填</span>
-        </label>
-        <SelectField>
-          <select id="equipment-type" v-model="values.type" class="mt-1 block w-full field py-2.5" :style="inputStyle">
-            <option v-for="type in equipmentTypes" :key="type" :value="type">
-              {{ equipmentLabels[type] }}
-            </option>
-          </select>
-        </SelectField>
+        <!-- 必填的列自己寫標籤（tests/unit/required-placeholder.test.mjs 靠這個標記找必填欄位） -->
+        <div class="sheet-row">
+          <label class="sheet-label" for="equipment-type">類型<span :style="{ color: 'var(--danger)' }" aria-hidden="true">*</span><span class="sr-only">必填</span></label>
+          <div class="sheet-value">
+            <SelectField>
+              <select id="equipment-type" v-model="values.type" class="sheet-pill">
+                <option v-for="type in equipmentTypes" :key="type" :value="type">
+                  {{ equipmentLabels[type] }}
+                </option>
+              </select>
+            </SelectField>
+          </div>
+        </div>
       </FormRow>
 
       <FormRow>
@@ -153,7 +151,7 @@ const inputStyle = {
         <!-- 型錄存在的唯一目的是讓刻度這個數字可以被正確解讀（§3.2） -->
         <div
           v-if="values.type === 'grinder' && selectedCatalog && (!isFreeformScale(scaleSpec) || scaleSpec.note)"
-          class="mt-3 rounded-sm px-3 py-3 text-sm"
+          class="mb-4 rounded-sm px-3 py-3 text-sm"
           :style="{ background: 'var(--accent-wash)', color: 'var(--on-accent-wash)' }"
         >
           <!-- 無刻度的機型不說「這台面板沒有刻度標示」：
@@ -173,28 +171,23 @@ const inputStyle = {
       </FormRow>
 
       <FormRow>
-        <label class="block text-sm" for="equipment-name">
-          自訂名稱
-          <span v-if="!values.catalog_id" :style="{ color: 'var(--danger)' }" aria-hidden="true">*</span>
-          <span v-if="!values.catalog_id" class="sr-only">必填</span>
-        </label>
-        <input
-          id="equipment-name"
-          v-model="values.custom_name"
-          type="text"
-          :disabled="!!values.catalog_id"
-          class="mt-1 block w-full field py-2.5 disabled:opacity-60"
-          :style="inputStyle"
-        >
-        <p class="mt-1 text-xs text-muted">
+        <div class="sheet-row">
+          <label class="sheet-label" for="equipment-name">
+            自訂名稱<span v-if="!values.catalog_id" :style="{ color: 'var(--danger)' }" aria-hidden="true">*</span>
+            <span v-if="!values.catalog_id" class="sr-only">必填</span>
+          </label>
+          <div class="sheet-value">
+            <SheetText id="equipment-name" v-model="values.custom_name" :disabled="!!values.catalog_id" />
+          </div>
+        </div>
+        <template #below>
           {{ values.catalog_id ? "已選型號，用型錄的名稱" : "型錄沒有的器材，請填寫名稱" }}
-        </p>
+        </template>
       </FormRow>
 
-      <FormRow>
-        <label class="block text-sm" for="equipment-note">備註</label>
-        <input id="equipment-note" v-model="values.note" type="text" class="mt-1 block w-full field py-2.5" :style="inputStyle">
-        <p class="mt-1 text-xs text-muted">例如換刀盤、加裝配件</p>
+      <FormRow label="備註" for="equipment-note">
+        <SheetText id="equipment-note" v-model="values.note" />
+        <template #below>例如換刀盤、加裝配件</template>
       </FormRow>
 
       <FormRow>
@@ -202,19 +195,21 @@ const inputStyle = {
              unique index），toggle 表達的是獨立的開關，用它承載單選會讓
              副作用隱形——使用者看不到「開啟這台會關掉另一台」。
              改成兩個狀態的按鈕，並把副作用寫在下面那行。 -->
-        <AppButton variant="outline" block @click="toggleDefault">
-          {{ values.is_default ? "取消常用" : "設為常用" }}
-        </AppButton>
+        <div class="py-4">
+          <AppButton variant="outline" block @click="toggleDefault">
+            {{ values.is_default ? "取消常用" : "設為常用" }}
+          </AppButton>
 
-        <!-- 事後回饋，不是事前警告。使用者按下「設為常用」時意圖已經很明確，
-             事前提醒他會換掉哪一台，是把系統的顧慮丟給他判斷——與模糊比對
-             從攔截器改成過濾器是同一個問題。 -->
-        <p v-if="values.is_default && pressedDefault" class="mt-2 text-xs text-muted">
-          {{ formName ? `已將 ${formName} 設為常用` : "已設為常用" }}
-        </p>
+          <!-- 事後回饋，不是事前警告。使用者按下「設為常用」時意圖已經很明確，
+               事前提醒他會換掉哪一台，是把系統的顧慮丟給他判斷——與模糊比對
+               從攔截器改成過濾器是同一個問題。 -->
+          <p v-if="values.is_default && pressedDefault" class="mt-2 text-sm text-muted">
+            {{ formName ? `已將 ${formName} 設為常用` : "已設為常用" }}
+          </p>
 
-        <!-- 沒有任何常用是合法狀態，新使用者本來就沒有。不阻止取消。 -->
-        <p v-else-if="!values.is_default" class="mt-2 text-xs text-muted">新增紀錄時會自動填入</p>
+          <!-- 沒有任何常用是合法狀態，新使用者本來就沒有。不阻止取消。 -->
+          <p v-else-if="!values.is_default" class="mt-2 text-sm text-muted">新增紀錄時會自動填入</p>
+        </div>
       </FormRow>
     </FormCard>
 

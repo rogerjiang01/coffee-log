@@ -13,14 +13,6 @@
     const loading = ref(true);
     const loadError = ref("");
 
-    function displayName(row: UserEquipmentRow) {
-        if (row.equipment_catalog) {
-            const c = row.equipment_catalog;
-            return `${c.brand} ${c.model}${c.variant ? ` ${c.variant}` : ""}`;
-        }
-        return row.custom_name ?? "未命名器材";
-    }
-
     const grouped = computed(() => equipmentTypes.map((type) => ({ type, rows: items.value.filter((item) => item.type === type) })).filter((group) => group.rows.length > 0));
 
     // 欄位與排序走 utils/equipment.ts 的共用定義。這一頁與沖煮表單共用
@@ -109,8 +101,8 @@
                  與「編輯」並列會讓人以為標籤可以點。 -->
                         <div class="flex items-center justify-between gap-2" :style="{ minHeight: 'var(--touch-min)' }">
                             <div class="flex min-w-0 flex-1 items-center gap-2">
-                                <h3 class="min-w-0 truncate font-medium">{{ displayName(row) }}</h3>
-                                <span v-if="row.is_default" class="shrink-0 rounded-sm px-2 py-0.5 text-xs" :style="{ background: 'var(--accent-wash)', color: 'var(--on-accent-wash)' }">常用</span>
+                                <h3 class="min-w-0 truncate font-medium">{{ equipmentOptionName(row) }}</h3>
+                                <span v-if="row.is_default" class="shrink-0 rounded-sm px-2 py-0.5 text-sm" :style="{ background: 'var(--accent-wash)', color: 'var(--on-accent-wash)' }">常用</span>
                                 <SampleBadge v-if="row.is_sample" />
                             </div>
 

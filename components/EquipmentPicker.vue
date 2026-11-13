@@ -242,7 +242,6 @@ async function create() {
   }
 }
 
-const inputStyle = { minHeight: 'var(--touch-min)' }
 </script>
 
 <template>
@@ -324,11 +323,21 @@ const inputStyle = { minHeight: 'var(--touch-min)' }
               <EquipmentIcon :type="item.type" />
 
               <span class="min-w-0 flex-1">
-                <span class="block truncate">{{ equipmentOptionName(item) }}</span>
-                <span v-if="formatUsed(item.id)" class="block text-xs tabular-nums text-muted">
+                <span class="block truncate" :style="{ color: draftId === item.id ? 'var(--on-accent-wash)' : undefined }">{{ equipmentOptionName(item) }}</span>
+                <!-- 已選的那一列是 --accent-wash 底：次要文字要換成 --on-accent-wash-muted，
+                     --text-muted 在上面只有 3.70:1（《03》§2.2） -->
+                <span
+                  v-if="formatUsed(item.id)"
+                  class="block text-sm tabular-nums"
+                  :style="{ color: draftId === item.id ? 'var(--on-accent-wash-muted)' : 'var(--text-muted)' }"
+                >
                   {{ formatUsed(item.id) }}
                 </span>
-                <span v-else-if="item.is_default" class="block text-xs text-muted">常用</span>
+                <span
+                  v-else-if="item.is_default"
+                  class="block text-sm"
+                  :style="{ color: draftId === item.id ? 'var(--on-accent-wash-muted)' : 'var(--text-muted)' }"
+                >常用</span>
               </span>
 
               <input
@@ -346,54 +355,47 @@ const inputStyle = { minHeight: 'var(--touch-min)' }
 
       <!-- 就地新增：留在同一個覆蓋層裡，沖煮表單完全不動 -->
       <div v-else class="min-h-0 flex-1 overflow-y-auto px-5 py-4">
-        <CatalogSelect v-model="form.catalog_id" :type="type" />
+        <!-- 與器材表單同一套：卡片裡一列一列，標籤在左、值在右 -->
+        <FormCard>
+          <FormRow>
+            <CatalogSelect v-model="form.catalog_id" :type="type" />
+            <template v-if="type === 'grinder' && form.catalog_id" #below>研磨刻度規格隨型號帶入</template>
+          </FormRow>
 
-        <div v-if="type === 'grinder' && form.catalog_id" class="mt-3">
-          <p class="text-xs text-muted">研磨刻度規格隨型號帶入</p>
-        </div>
+          <FormRow>
+            <div class="sheet-row">
+              <label class="sheet-label" for="picker-name">
+                自訂名稱<span v-if="!form.catalog_id" :style="{ color: 'var(--danger)' }" aria-hidden="true">*</span>
+                <span v-if="!form.catalog_id" class="sr-only">必填</span>
+              </label>
+              <div class="sheet-value">
+                <SheetText id="picker-name" v-model="form.custom_name" :disabled="!!form.catalog_id" />
+              </div>
+            </div>
+            <template #below>
+              {{ form.catalog_id ? '已選型號，用型錄的名稱' : '型錄沒有的器材，請填寫名稱' }}
+            </template>
+          </FormRow>
 
-        <div class="mt-5">
-          <label class="block text-sm" for="picker-name">
-            自訂名稱
-            <span v-if="!form.catalog_id" :style="{ color: 'var(--danger)' }" aria-hidden="true">*</span>
-            <span v-if="!form.catalog_id" class="sr-only">必填</span>
-          </label>
-          <input
-            id="picker-name"
-            v-model="form.custom_name"
-            type="text"
-            :disabled="!!form.catalog_id"
-            class="mt-1 block w-full field px-3 py-2.5 disabled:opacity-60"
-            :style="inputStyle"
-          >
-          <p class="mt-1 text-xs text-muted">
-            {{ form.catalog_id ? '已選型號，用型錄的名稱' : '型錄沒有的器材，請填寫名稱' }}
-          </p>
-        </div>
+          <FormRow label="備註" for="picker-note">
+            <SheetText id="picker-note" v-model="form.note" />
+          </FormRow>
 
-        <div class="mt-5">
-          <label class="block text-sm" for="picker-note">備註</label>
-          <input
-            id="picker-note"
-            v-model="form.note"
-            type="text"
-            class="mt-1 block w-full field px-3 py-2.5"
-            :style="inputStyle"
-          >
-        </div>
+          <!-- 動作按鈕而非 toggle，理由同器材頁：同類型只能有一台常用，
+               toggle 表達的是獨立開關，會讓單選的副作用隱形 -->
+          <FormRow>
+            <div class="py-4">
+              <AppButton variant="outline" block @click="toggleDefault">
+                {{ form.is_default ? '取消常用' : '設為常用' }}
+              </AppButton>
 
-        <!-- 動作按鈕而非 toggle，理由同器材頁：同類型只能有一台常用，
-             toggle 表達的是獨立開關，會讓單選的副作用隱形 -->
-        <div class="mt-5">
-          <AppButton variant="outline" block @click="toggleDefault">
-            {{ form.is_default ? '取消常用' : '設為常用' }}
-          </AppButton>
-
-          <!-- 事後回饋而非事前警告，理由同器材頁 -->
-          <p v-if="form.is_default && pressedDefault" class="mt-2 text-xs text-muted">
-            {{ formName ? `已將 ${formName} 設為常用` : '已設為常用' }}
-          </p>
-        </div>
+              <!-- 事後回饋而非事前警告，理由同器材頁 -->
+              <p v-if="form.is_default && pressedDefault" class="mt-2 text-sm text-muted">
+                {{ formName ? `已將 ${formName} 設為常用` : '已設為常用' }}
+              </p>
+            </div>
+          </FormRow>
+        </FormCard>
 
         <p v-if="formError" role="alert" class="mt-4 rounded-sm border px-3 py-3 text-sm" :style="{ color: 'var(--danger)', borderColor: 'var(--danger)' }">
           {{ formError }}

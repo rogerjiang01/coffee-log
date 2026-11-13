@@ -106,7 +106,7 @@ onBeforeUnmount(() => {
 
     <div
       class="mt-3 overflow-hidden rounded-md border"
-      :style="{ borderColor: 'var(--border)', background: 'var(--surface)' }"
+      :style="{ borderColor: 'var(--border)', background: 'var(--surface)', boxShadow: 'var(--shadow-light)' }"
     >
       <!-- 正方形，與裁切框、列表縮圖同一個比例：使用者在裁切畫面框的，
            就是這裡與之後每一處看到的。object-cover 只為了裁切上線前存的
@@ -124,7 +124,7 @@ onBeforeUnmount(() => {
         :style="{ minHeight: '132px' }"
         @click="openPicker"
       >
-        <span :style="{ color: 'var(--accent)' }">{{ working ? '處理中' : '拍照或選一張' }}</span>
+        <span :style="{ color: 'var(--accent-text)' }">{{ working ? '處理中' : '拍照或選一張' }}</span>
       </button>
     </div>
 

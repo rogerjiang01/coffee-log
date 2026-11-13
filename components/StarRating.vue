@@ -27,7 +27,7 @@ function onKeydown(event: KeyboardEvent) {
 </script>
 
 <template>
-  <div class="flex items-center justify-between gap-2">
+  <div class="sheet-row">
     <span class="sheet-label">評分</span>
     <div class="star-track flex justify-between" role="radiogroup" aria-label="評分" @keydown="onKeydown">
       <button

@@ -126,8 +126,8 @@ export default function run() {
 
   r.section('兩種時間分開叫')
   const form = read('components/BrewForm.vue')
-  r.check(/for="brew-at">沖煮日期</.test(form), 'brewed_at 的標籤是「沖煮日期」')
-  r.check(/for="brew-total-time">沖煮時間</.test(form), 'total_time 的標籤是「沖煮時間」')
+  r.check(/label="沖煮日期" for="brew-at"/.test(form), 'brewed_at 的標籤是「沖煮日期」')
+  r.check(/label="沖煮時間" for="brew-total-time"/.test(form), 'total_time 的標籤是「沖煮時間」')
   r.check(/'total_time', '沖煮時間'/.test(read('utils/brewDiff.ts')), '差異區的 total_time 也叫「沖煮時間」')
   r.check(/label: '沖煮時間'/.test(read('pages/brews/[id]/index.vue')), '紀錄詳情頁的 total_time 也叫「沖煮時間」')
 
