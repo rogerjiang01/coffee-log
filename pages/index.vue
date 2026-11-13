@@ -131,7 +131,7 @@ const newBrewLink = computed(() => newBrewEntry(activeBeans.value))
       <NuxtLink
         v-if="last"
         :to="`/beans/${last.beanId}`"
-        class="block rounded-md border p-3"
+        class="block rounded-md border p-3 shadow-light"
         :class="{ 'col-span-2': spanOf('last') === 2 }"
         :style="{ borderColor: 'var(--border)', background: 'var(--surface)' }"
       >
@@ -155,7 +155,7 @@ const newBrewLink = computed(() => newBrewEntry(activeBeans.value))
       <NuxtLink
         v-if="top"
         :to="`/brews/${top.brew.id}`"
-        class="block rounded-md border p-3"
+        class="block rounded-md border p-3 shadow-light"
         :class="{ 'col-span-2': spanOf('top') === 2 }"
         :style="{ borderColor: 'var(--border)', background: 'var(--surface)' }"
       >
@@ -189,7 +189,7 @@ const newBrewLink = computed(() => newBrewEntry(activeBeans.value))
       <NuxtLink
         v-if="totals"
         to="/brews"
-        class="block rounded-md border p-3"
+        class="block rounded-md border p-3 shadow-light"
         :class="{ 'col-span-2': spanOf('totals') === 2 }"
         :style="{ borderColor: 'var(--border)', background: 'var(--surface)' }"
       >
@@ -201,7 +201,7 @@ const newBrewLink = computed(() => newBrewEntry(activeBeans.value))
       <!-- 第二排：本月。卡片不能點 -->
       <div
         v-if="month"
-        class="rounded-md border p-3"
+        class="rounded-md border p-3 shadow-light"
         :class="{ 'col-span-2': spanOf('month') === 2 }"
         :style="{ borderColor: 'var(--border)', background: 'var(--surface)' }"
       >

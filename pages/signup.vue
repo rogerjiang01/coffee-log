@@ -83,7 +83,7 @@ async function submit() {
           autocomplete="new-password"
           :error="fieldError.password"
         />
-        <p v-if="!fieldError.password" class="text-sm text-muted">至少 6 個字元</p>
+        <p v-if="!fieldError.password" class="mt-1 text-sm text-muted">至少 6 個字元</p>
 
         <p v-if="error" class="mt-4 text-sm" :style="{ color: 'var(--danger)' }">
           {{ error }}

@@ -63,6 +63,7 @@ const fieldId = computed(() => props.id ?? auto)
 .text-field__label {
   display: flex;
   gap: 2px;
+  margin-bottom: 0.25rem;
   font-size: var(--text-body-m);
   line-height: var(--text-body-m--line-height);
   color: var(--text);
@@ -111,6 +112,7 @@ const fieldId = computed(() => props.id ?? auto)
 }
 .text-field__below {
   display: flex;
+  margin-top: 0.25rem;
   justify-content: space-between;
   gap: 0.75rem;
   font-size: var(--text-body-m);

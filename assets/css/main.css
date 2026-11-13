@@ -163,6 +163,10 @@
     appearance: none;
     text-overflow: ellipsis;
   }
+  /* select 的寬度跟著最長的選項走；還沒選值時讓「選填」貼齊右緣，和其他列的「選填」對齊 */
+  select.sheet-pill[data-empty="true"] {
+    text-align-last: right;
+  }
   /* 日期與日期時間：原生內容很寬（2026/11/13 下午04:56 加一個月曆圖示），18px 在 375px 的列裡放不下。
      所以這兩種用 16px，並把月曆圖示攤成透明、蓋住整個膠囊——點膠囊的任何地方都會開選擇器。 */
   input[type="date"].sheet-pill,

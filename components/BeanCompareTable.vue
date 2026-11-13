@@ -36,7 +36,7 @@ function rowBackground(row: CompareRow) {
 
 <template>
   <div
-    class="overflow-hidden rounded-md border"
+    class="overflow-hidden rounded-md border shadow-light"
     :style="{ borderColor: 'var(--border)', background: 'var(--surface)' }"
   >
     <div class="overflow-x-auto">

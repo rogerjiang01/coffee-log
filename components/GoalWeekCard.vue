@@ -36,7 +36,7 @@ const anyCups = computed(() => props.days.some(cups => cups > 0))
   <component
     :is="clickable ? 'button' : 'section'"
     :type="clickable ? 'button' : undefined"
-    class="block w-full rounded-md border p-3 text-left"
+    class="block w-full rounded-md border p-3 text-left shadow-light"
     :style="{ borderColor: 'var(--border)', background: 'var(--surface)' }"
     @click="clickable && emit('click')"
   >
