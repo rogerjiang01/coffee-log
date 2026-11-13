@@ -216,14 +216,12 @@ function setStir(index: number, stir: boolean) {
       </li>
     </ul>
 
-    <button
-      type="button"
-      class="mt-3 w-full rounded-sm border px-4 py-3"
-      :style="{ borderColor: 'var(--border)', color: 'var(--accent)', minHeight: 'var(--touch-min)' }"
+    <AppButton variant="outline" block
+      class="mt-3"
       @click="addStep"
     >
       新增一段
-    </button>
+    </AppButton>
 
     <!-- 總水量與粉水比都是衍生值，不設輸入欄位、不存資料庫 -->
     <p v-if="water !== null" class="mt-2 text-sm tabular-nums" :style="{ color: 'var(--text-muted)' }">

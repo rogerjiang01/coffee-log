@@ -165,14 +165,12 @@ async function onSubmit(
            而儲存會用空白的內容覆蓋這支豆子 -->
       <div v-else-if="view === 'error'" class="mt-8">
         <p role="alert" class="text-sm" :style="{ color: 'var(--danger)' }">{{ loadError }}</p>
-        <button
-          type="button"
-          class="mt-4 w-full rounded-sm border px-4 py-3"
-          :style="{ borderColor: 'var(--border-strong)', minHeight: 'var(--touch-min)' }"
+        <AppButton variant="outline" block
+          class="mt-4"
           @click="load"
         >
           重試
-        </button>
+        </AppButton>
       </div>
 
       <div v-else-if="view === 'ready'" class="mt-8">

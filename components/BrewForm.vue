@@ -625,14 +625,13 @@ const inputStyle = {
         </svg>
       </button>
 
-      <button
+      <AppButton block
         type="submit"
-        :disabled="busy"
-        class="mt-3 w-full rounded-sm px-4 py-3 font-medium disabled:opacity-60"
-        :style="{ background: 'var(--accent)', color: 'var(--on-accent)', minHeight: 'var(--touch-min)' }"
+        :busy="busy"
+        class="mt-3"
       >
         {{ busy ? '儲存中' : submitLabel }}
-      </button>
+      </AppButton>
 
       <!-- 暫存狀態：使用者在按儲存之前擔心東西安不安全，視線在這裡（《03》§4.11） -->
       <DraftStatus v-if="draft" :status="draft.status.value" class="mt-2" />

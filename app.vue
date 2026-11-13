@@ -40,22 +40,17 @@ const tabBar = computed(() => showsTabBar(route.meta.screen, userId.value !== nu
         </p>
 
         <div class="mt-8 flex flex-col gap-3">
-          <NuxtLink
+          <AppButton block
             to="/"
-            class="w-full rounded-sm px-4 py-3 text-center font-medium"
-            :style="{ background: 'var(--accent)', color: 'var(--on-accent)', minHeight: 'var(--touch-min)' }"
             @click="clearError"
           >
             回總覽
-          </NuxtLink>
-          <button
-            type="button"
-            class="w-full rounded-sm border px-4 py-3"
-            :style="{ borderColor: 'var(--border-strong)', minHeight: 'var(--touch-min)' }"
+          </AppButton>
+          <AppButton variant="outline" block
             @click="clearError"
           >
             重試
-          </button>
+          </AppButton>
         </div>
 
         <p class="mt-8 text-xs text-muted">

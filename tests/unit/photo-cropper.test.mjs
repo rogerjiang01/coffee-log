@@ -117,8 +117,12 @@ export default function run() {
     r.check(square && uncapped, `${label}：照片是正方形（aspect-square 或 size-*），沒有另外限制寬高`)
   }
   const thumb = read('components/BeanThumb.vue')
-  r.check((thumb.match(/\baspect-square w-full\b/g) || []).length === 2,
+  // 沒有照片時是 BeanArt（烘焙度底色加咖啡豆插畫），它自己是 width: 100% 的正方形
+  const art = read('components/BeanArt.vue')
+  r.check(/\baspect-square w-full\b/.test(thumb) && /<BeanArt v-else/.test(thumb) && /width:\s*100%;\s*aspect-ratio:\s*1;/.test(art),
     '豆子縮圖：照片與無照片的烘焙度色塊都是同寬的正方形——有照片與無照片等高')
+  r.check(/background:\s*var\(--roast-art\)/.test(art) && !/#[0-9a-f]{3,6}\b/i.test(art),
+    '咖啡豆插畫的顏色是 --roast-art，元件裡沒有裸色碼（圖檔當遮罩用）')
 
   r.section('層級：沿用 usePortalTarget')
   r.check(/usePortalTarget\(root\)/.test(cropper) && /<Teleport :to="portalTarget">/.test(cropper),

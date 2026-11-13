@@ -125,16 +125,14 @@ export default function run() {
       `${file}：${marker.slice(0, 12)}… 的 viewBox 是 24`)
   }
 
-  r.section('未選取的輸入元件輪廓用 --control-empty，不得退回 --border')
+  r.section('未選取的輪廓用 --control-empty，不得退回 --border')
   // --border 是分隔線的顏色（stone-100，卡片上 1.16:1）。畫在「可以按」的東西上
   // 淡到看不見，使用者看不出那裡還有五個可點的目標。
   // --control-empty 本身是 stone-400（2.45:1），刻意低於 3:1——那是《03》§2.2
   // 寫明的取捨，這裡守的是「不要再往下退」，不是 3:1
   const empty = [
-    ['components/StarRating.vue', '星等（表單）'],
     ['pages/brews/[id]/index.vue', '星等（紀錄詳情）'],
     ['components/BrewForm.vue', '收藏愛心（表單）'],
-    ['components/IntensityPicker.vue', '強度圓點'],
     ['components/SharedBrewView.vue', '星等（分享頁）'],
     ['components/BrewShare.vue', '勾選框（分享對話框）'],
   ]
@@ -145,10 +143,21 @@ export default function run() {
       `${name}：沒有退回 --border`)
     r.check(/--control-empty/.test(src), `${name}：檔案裡確實引用了 --control-empty`)
   }
-  // 開關是例外：尺寸大，圓鈕與軌道的形狀就說明它可以操作，關閉維持 --border（《03》§2.2）
-  const toggle = read('components/ToggleSwitch.vue')
-  r.check(/modelValue \? 'var\(--accent\)' : 'var\(--border\)'/.test(toggle) && !/--control-empty/.test(toggle.replace(/<!--[\s\S]*?-->/g, '')),
-    '開關（ToggleSwitch）不適用：關閉的軌道是 --border')
+  // 表單裡的強度圓點、星等與開關照 Figma：未選是**實心**的 --control-inactive（2026-11-13 決定，《03》§2.2）。
+  // 已選與未選的明度差夠大（圓點 3.88:1），而且數值由「從左數來深色幾個」表達，不只靠色相。
+  // 這裡守兩件事：用的是 --control-inactive，以及沒有退回 --border（1.16:1，看不見）。
+  const strip = src => src.replace(/<!--[\s\S]*?-->/g, '').replace(/^\s*\/\/.*$/gm, '')
+  const dots = strip(read('components/IntensityPicker.vue'))
+  r.check(/>= level \? 'var\(--accent\)' : 'var\(--control-inactive\)'/.test(dots) && !/--border\)'|--control-empty/.test(dots),
+    '強度圓點：未選是實心的 --control-inactive')
+  const stars = strip(read('components/StarRating.vue'))
+  r.check((stars.match(/>= level \? 'var\(--favorite\)' : 'var\(--control-inactive\)'/g) || []).length === 2 && !/--control-empty|transparent/.test(stars),
+    '星等（表單）：未選的填色與線條都是 --control-inactive（實心）')
+  const toggle = strip(read('components/ToggleSwitch.vue'))
+  r.check(/modelValue \? 'var\(--accent\)' : 'var\(--control-inactive\)'/.test(toggle) && /var\(--control-thumb\)/.test(toggle) && !/--control-empty/.test(toggle),
+    '開關（ToggleSwitch）：關閉的軌道是 --control-inactive，圓鈕是 --control-thumb')
+  r.check(/minHeight: 'var\(--touch-min\)'/.test(toggle) && /min-height: var\(--touch-min\)/.test(read('components/IntensityPicker.vue')) && /minHeight: 'var\(--touch-min\)'/.test(stars),
+    '開關、圓點、星等的可點範圍都至少 44px')
   const tokenCss = read('assets/css/tokens.css')
   r.check(/--control-empty:\s*var\(--stone-400\);/.test(tokenCss),
     '--control-empty 是 stone-400（卡片上 2.45:1，刻意低於 3:1，《03》§2.2）')

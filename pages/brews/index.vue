@@ -238,16 +238,14 @@ const newBrewLink = computed(() => newBrewEntry(activeBeans.value))
         </li>
       </ul>
 
-      <button
+      <AppButton variant="outline" block
         v-if="hasMore"
-        type="button"
-        :disabled="loadingMore"
-        class="mt-4 w-full rounded-sm border px-4 py-3 disabled:opacity-60"
-        :style="{ borderColor: 'var(--border)', color: 'var(--accent)', minHeight: 'var(--touch-min)' }"
+        :busy="loadingMore"
+        class="mt-4"
         @click="loadMore"
       >
         {{ loadingMore ? '載入中' : '載入更多' }}
-      </button>
+      </AppButton>
     </template>
 
     <!-- 列表頁的新增入口一律是右下角浮動按鈕（§3 導覽） -->

@@ -1,11 +1,14 @@
 <script setup lang="ts">
-// 標準 toggle switch（《03-介面規範》§4.10 狀態表現）。
+// 開關（《03》§4.10 狀態表現，Figma 的 toggle 與 Sheet Row 的 toggle）。
 //
 // 表達的是狀態不是動作：標籤固定不變，開關位置本身說明目前狀態。
 // 用 role="switch" 而不是 aria-pressed 的按鈕——前者輔助技術會讀成
 // 「開／關」，後者讀成「已按下」，語意不同。
+//
+// **整列都是按鈕**：軌道只有 64×26，可點範圍是整列（至少 44px 高，《03》§7）。
+// 放在卡片的一列裡用（FormRow 或 AppCard），自己不畫框。
 
-const props = defineProps<{
+defineProps<{
   modelValue: boolean
   label: string
   busy?: boolean
@@ -20,29 +23,33 @@ const emit = defineEmits<{ 'update:modelValue': [boolean] }>()
     role="switch"
     :aria-checked="modelValue"
     :disabled="busy"
-    class="flex w-full items-center justify-between rounded-sm border px-4 py-3 disabled:opacity-60"
-    :style="{ borderColor: 'var(--border)', background: 'var(--surface)', minHeight: 'var(--touch-min)' }"
+    class="flex w-full items-center justify-between gap-3 text-left disabled:opacity-60"
+    :style="{ minHeight: 'var(--touch-min)' }"
     @click="emit('update:modelValue', !modelValue)"
   >
-    <span>{{ label }}</span>
+    <span class="sheet-label">{{ label }}</span>
 
-    <!-- 軌道與滑鈕。開啟時軌道填 --accent，滑鈕移到右側。
-         關閉的軌道用 --border，**不用 --control-empty**（《03》§2.2 的例外）：
-         開關尺寸大，圓鈕與軌道的形狀就說明了它可以操作；關閉用深色，
-         預設狀態反而顯得突兀 -->
+    <!-- 軌道與圓鈕。關閉的軌道用 --control-inactive（照 Figma，2026-11-13 決定）：
+         開關尺寸大，靠圓鈕與軌道的形狀就看得出可以操作，不必靠軌道的深淺。
+         **不用 --control-empty**，那是未選取的輪廓用的 -->
     <span
-      class="relative inline-block h-6 w-11 shrink-0 rounded-full"
+      class="relative inline-block shrink-0 rounded-full"
       :style="{
-        background: modelValue ? 'var(--accent)' : 'var(--border)',
+        width: '64px',
+        height: '26px',
+        background: modelValue ? 'var(--accent)' : 'var(--control-inactive)',
         transition: 'background var(--motion-duration) var(--motion-ease)',
       }"
       aria-hidden="true"
     >
       <span
-        class="absolute top-0.5 size-5 rounded-full"
+        class="absolute rounded-full"
         :style="{
-          background: 'var(--surface)',
-          left: modelValue ? 'calc(100% - 1.375rem)' : '0.125rem',
+          top: '2px',
+          width: '36px',
+          height: '22px',
+          background: 'var(--control-thumb)',
+          left: modelValue ? '26px' : '2px',
           transition: 'left var(--motion-duration) var(--motion-ease)',
         }"
       />

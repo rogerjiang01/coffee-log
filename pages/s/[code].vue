@@ -76,15 +76,13 @@ onMounted(load)
     <p class="text-sm text-muted">手沖咖啡紀錄</p>
 
     <p v-if="loadError" role="alert" class="mt-4 text-sm" :style="{ color: 'var(--danger)' }">{{ loadError }}</p>
-    <button
+    <AppButton variant="outline" block
       v-if="loadError && !loading"
-      type="button"
-      class="mt-4 w-full rounded-sm border px-4 py-3"
-      :style="{ borderColor: 'var(--border-strong)', minHeight: 'var(--touch-min)' }"
+      class="mt-4"
       @click="load"
     >
       重試
-    </button>
+    </AppButton>
 
     <div v-if="loading" aria-busy="true" aria-label="讀取中">
       <SkeletonBlock width="60%" height="1.75rem" class="mt-6" />

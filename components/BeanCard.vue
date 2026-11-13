@@ -26,7 +26,7 @@ const days = computed(() => restDays(props.roastDate))
 <template>
   <article
     class="flex overflow-hidden rounded-md border"
-    :style="{ borderColor: 'var(--border)', background: 'var(--surface)' }"
+    :style="{ borderColor: 'var(--border)', background: 'var(--surface)', boxShadow: 'var(--shadow-light)' }"
   >
     <div class="size-24 shrink-0">
       <img
@@ -36,12 +36,7 @@ const days = computed(() => restDays(props.roastDate))
         loading="lazy"
         class="size-24 object-cover"
       >
-      <div
-        v-else
-        class="size-24"
-        :style="{ background: fill.background }"
-        aria-hidden="true"
-      />
+      <BeanArt v-else :background="fill.background" />
     </div>
 
     <!-- h-24 與縮圖同高，overflow-hidden 讓內容再多也撐不開卡片 -->

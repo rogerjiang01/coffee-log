@@ -63,14 +63,13 @@ async function submit() {
         {{ error }}
       </p>
 
-      <button
+      <AppButton block
         type="submit"
-        :disabled="sending"
-        class="mt-7 w-full rounded-sm px-4 py-3 font-medium disabled:opacity-60"
-        :style="{ background: 'var(--accent)', color: 'var(--on-accent)', minHeight: 'var(--touch-min)' }"
+        :busy="sending"
+        class="mt-7"
       >
         {{ sending ? '登入中' : '登入' }}
-      </button>
+      </AppButton>
     </form>
 
     <p class="mt-8 text-sm text-muted">

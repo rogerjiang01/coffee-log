@@ -368,23 +368,19 @@ async function create() {
           <!-- 次要在左、主要在右，與 ConfirmDialog／DraftOverlay／
                器材選擇器一致。這裡原本是反的。 -->
           <div class="mt-3 flex gap-2">
-            <button
-              type="button"
-              class="flex-1 rounded-sm border px-3 py-2"
-              :style="{ borderColor: 'var(--border)', minHeight: 'var(--touch-min)' }"
+            <AppButton variant="outline"
+              class="flex-1"
               @click="cancelCreate"
             >
               取消
-            </button>
-            <button
-              type="button"
-              :disabled="saving"
-              class="flex-1 rounded-sm px-3 py-2 font-medium disabled:opacity-60"
-              :style="{ background: 'var(--accent)', color: 'var(--on-accent)', minHeight: 'var(--touch-min)' }"
+            </AppButton>
+            <AppButton
+              :busy="saving"
+              class="flex-1"
               @click="create"
             >
               {{ saving ? '儲存中' : '儲存' }}
-            </button>
+            </AppButton>
           </div>
         </div>
       </div>

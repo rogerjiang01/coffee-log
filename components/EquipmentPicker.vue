@@ -385,18 +385,9 @@ const inputStyle = { minHeight: 'var(--touch-min)' }
         <!-- 動作按鈕而非 toggle，理由同器材頁：同類型只能有一台常用，
              toggle 表達的是獨立開關，會讓單選的副作用隱形 -->
         <div class="mt-5">
-          <button
-            type="button"
-            class="w-full rounded-sm border px-4 py-3"
-            :style="{
-              borderColor: form.is_default ? 'var(--border-strong)' : 'var(--accent)',
-              color: form.is_default ? 'var(--text)' : 'var(--accent)',
-              minHeight: 'var(--touch-min)',
-            }"
-            @click="toggleDefault"
-          >
+          <AppButton variant="outline" block @click="toggleDefault">
             {{ form.is_default ? '取消常用' : '設為常用' }}
-          </button>
+          </AppButton>
 
           <!-- 事後回饋而非事前警告，理由同器材頁 -->
           <p v-if="form.is_default && pressedDefault" class="mt-2 text-xs text-muted">
@@ -413,34 +404,28 @@ const inputStyle = { minHeight: 'var(--touch-min)' }
            兩個做完全一樣的事的按鈕只會讓人猜哪個會丟東西。
            新增畫面的「取消」會清掉填到一半的內容，與 ‹（保留）不同，所以留著。 -->
       <footer class="flex shrink-0 gap-3 border-t px-5 py-3" :style="{ borderColor: 'var(--border)' }">
-        <button
+        <AppButton variant="outline"
           v-if="mode === 'create'"
-          type="button"
-          class="flex-1 rounded-sm border px-4 py-3"
-          :style="{ borderColor: 'var(--border)', minHeight: 'var(--touch-min)' }"
+          class="flex-1"
           @click="cancelCreate"
         >
           取消
-        </button>
-        <button
+        </AppButton>
+        <AppButton
           v-if="mode === 'list'"
-          type="button"
-          class="flex-1 rounded-sm px-4 py-3 font-medium"
-          :style="{ background: 'var(--accent)', color: 'var(--on-accent)', minHeight: 'var(--touch-min)' }"
+          class="flex-1"
           @click="confirmChoice"
         >
           選好了
-        </button>
-        <button
+        </AppButton>
+        <AppButton
           v-else
-          type="button"
-          :disabled="saving"
-          class="flex-1 rounded-sm px-4 py-3 font-medium disabled:opacity-60"
-          :style="{ background: 'var(--accent)', color: 'var(--on-accent)', minHeight: 'var(--touch-min)' }"
+          :busy="saving"
+          class="flex-1"
           @click="create"
         >
           {{ saving ? '儲存中' : '儲存' }}
-        </button>
+        </AppButton>
       </footer>
     </div>
   </dialog>

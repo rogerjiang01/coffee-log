@@ -104,7 +104,7 @@ export default function run() {
   r.check(both.indexOf('複製連結') > -1 && both.indexOf('複製連結') < both.indexOf('分享\n'),
     '支援系統分享：「複製連結」次要在左、「分享」主要在右')
   const only = actions.slice(actions.indexOf('v-else'))
-  r.check(/background: 'var\(--accent\)'/.test(only) && /複製連結/.test(only) && !/>\s*分享\s*</.test(only),
+  r.check(/^v-else\s+class="flex-1"/.test(only) && !/variant=/.test(only.slice(0, only.indexOf('>'))) && /複製連結/.test(only) && !/>\s*分享\s*</.test(only),
     '不支援系統分享：只有「複製連結」一顆，而且是主要按鈕')
   r.check(!/取消|完成|已分享過/.test(actions), '沒有「取消」「完成」，也沒有「已分享過」的狀態')
   r.check(!/朋友不用登入也能看|只能看、不能改/.test(panel), '沒有說明句')

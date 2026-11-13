@@ -48,14 +48,12 @@ async function signOut() {
       <p class="mt-1">{{ email }}</p>
     </section>
 
-    <button
-      type="button"
-      :disabled="signingOut"
-      class="mt-8 rounded-sm border px-4 py-3 font-medium disabled:opacity-60"
-      :style="{ borderColor: 'var(--border)', background: 'var(--surface)', minHeight: 'var(--touch-min)' }"
+    <AppButton variant="outline"
+      :busy="signingOut"
+      class="mt-8"
       @click="signOut"
     >
       {{ signingOut ? '登出中' : '登出' }}
-    </button>
+    </AppButton>
   </main>
 </template>

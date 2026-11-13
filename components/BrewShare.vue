@@ -273,32 +273,26 @@ async function retry() {
            瀏覽器不支援系統分享時只有「複製連結」一顆，而且是主要按鈕 -->
       <div class="mt-6 flex gap-3">
         <template v-if="canShare">
-          <button
-            type="button"
-            class="flex-1 rounded-sm border px-4 py-3"
-            :style="{ borderColor: 'var(--border)', minHeight: 'var(--touch-min)' }"
+          <AppButton variant="outline"
+            class="flex-1"
             @click="onCopy"
           >
             複製連結
-          </button>
-          <button
-            type="button"
-            class="flex-1 rounded-sm px-4 py-3 font-medium"
-            :style="{ background: 'var(--accent)', color: 'var(--on-accent)', minHeight: 'var(--touch-min)' }"
+          </AppButton>
+          <AppButton
+            class="flex-1"
             @click="onShare"
           >
             分享
-          </button>
+          </AppButton>
         </template>
-        <button
+        <AppButton
           v-else
-          type="button"
-          class="flex-1 rounded-sm px-4 py-3 font-medium"
-          :style="{ background: 'var(--accent)', color: 'var(--on-accent)', minHeight: 'var(--touch-min)' }"
+          class="flex-1"
           @click="onCopy"
         >
           複製連結
-        </button>
+        </AppButton>
       </div>
     </div>
   </dialog>
@@ -319,23 +313,19 @@ async function retry() {
       >
         <p :style="{ color: 'var(--danger)' }">分享建立失敗，連結目前無法開啟</p>
         <div class="mt-3 flex gap-3">
-          <button
-            type="button"
-            class="flex-1 rounded-sm border px-4 py-2"
-            :style="{ borderColor: 'var(--border)', minHeight: 'var(--touch-min)' }"
+          <AppButton variant="outline"
+            class="flex-1"
             @click="failedSend = null"
           >
             關閉
-          </button>
-          <button
-            type="button"
-            :disabled="retrying"
-            class="flex-1 rounded-sm border px-4 py-2 disabled:opacity-60"
-            :style="{ borderColor: 'var(--border-strong)', minHeight: 'var(--touch-min)' }"
+          </AppButton>
+          <AppButton variant="outline"
+            :busy="retrying"
+            class="flex-1"
             @click="retry"
           >
             再試一次
-          </button>
+          </AppButton>
         </div>
       </div>
 
@@ -348,14 +338,12 @@ async function retry() {
         <p>無法複製，請長按連結手動複製</p>
         <!-- 一般文字，不做成連結：點下去會離開這一頁。select-all 讓長按一次選到整串 -->
         <p class="mt-2 select-all break-all tabular-nums" :style="{ color: 'var(--text)' }">{{ manualLink }}</p>
-        <button
-          type="button"
-          class="mt-3 w-full rounded-sm border px-4 py-2"
-          :style="{ borderColor: 'var(--border)', minHeight: 'var(--touch-min)' }"
+        <AppButton variant="outline" block
+          class="mt-3"
           @click="manualLink = null"
         >
           關閉
-        </button>
+        </AppButton>
       </div>
 
       <!-- 約兩秒後自己收起來。不是錯誤，不用 role="alert" -->

@@ -208,15 +208,13 @@ async function destroy() {
 
     <p v-if="loadError" role="alert" class="mt-4 text-sm" :style="{ color: 'var(--danger)' }">{{ loadError }}</p>
     <!-- 整頁都讀不到時才給重試；豆子已經顯示（例如只有紀錄讀不到）時，紅字就夠了 -->
-    <button
+    <AppButton variant="outline" block
       v-if="loadError && !bean && !notFound && !loading"
-      type="button"
-      class="mt-4 w-full rounded-sm border px-4 py-3"
-      :style="{ borderColor: 'var(--border-strong)', minHeight: 'var(--touch-min)' }"
+      class="mt-4"
       @click="load"
     >
       重試
-    </button>
+    </AppButton>
 
     <div v-if="loading" aria-busy="true" aria-label="讀取中">
       <SkeletonBlock height="10rem" radius="4px" class="mt-4" />
@@ -319,13 +317,11 @@ async function destroy() {
         違反可預測性。想複製收藏那筆，從比較表點進去再複製。
       -->
       <div class="mt-8">
-        <NuxtLink
+        <AppButton block
           :to="latestBrew ? `/brews/new?copy=${latestBrew.id}` : `/brews/new?bean=${bean.id}`"
-          class="flex w-full items-center justify-center rounded-sm px-4 py-3 text-center font-medium"
-          :style="{ background: 'var(--accent)', color: 'var(--on-accent)', minHeight: 'var(--touch-min)' }"
         >
           {{ latestBrew ? '照上次再沖一次' : '用這支豆子沖一杯' }}
-        </NuxtLink>
+        </AppButton>
         <!-- 帶入哪一筆寫在按鈕下方，按鈕文字不塞資訊。日期格式與比較表一致 -->
         <p v-if="latestBrew" class="mt-1 text-center text-xs tabular-nums text-muted">
           帶入 {{ latestBrew.date }} 那次的參數
@@ -333,34 +329,31 @@ async function destroy() {
       </div>
 
       <!-- 狀態不是動作，用 role="switch" 的開關而不是按鈕 -->
-      <div class="mt-4">
+      <AppCard class="mt-4 px-4 py-2">
         <ToggleSwitch
           :model-value="bean.is_finished"
           label="已喝完"
           @update:model-value="toggleFinished"
         />
-      </div>
+      </AppCard>
 
       <p v-if="actionError" class="mt-4 text-sm" :style="{ color: 'var(--danger)' }">{{ actionError }}</p>
 
       <!-- 編輯與刪除在內容區，不在頂部角落（《03》§3）：頂部角落只留給 ‹。
            權重依頻率排：再沖一次（主要）→ 編輯（次要，有框）→ 刪除（最低，無框） -->
-      <NuxtLink
+      <AppButton variant="outline" block
         :to="`/beans/${bean.id}/edit`"
-        class="mt-4 flex w-full items-center justify-center rounded-sm border px-4 py-3"
-        :style="{ borderColor: 'var(--border)', minHeight: 'var(--touch-min)' }"
+        class="mt-4"
       >
         編輯
-      </NuxtLink>
+      </AppButton>
 
-      <button
-        type="button"
-        class="mt-3 w-full rounded-sm px-4 py-3"
-        :style="{ color: 'var(--danger)', minHeight: 'var(--touch-min)' }"
+      <AppButton variant="text" tone="danger" block
+        class="mt-3"
         @click="confirmOpen = true"
       >
         刪除
-      </button>
+      </AppButton>
 
       <ConfirmDialog
         :open="confirmOpen"

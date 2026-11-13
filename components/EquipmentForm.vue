@@ -202,18 +202,9 @@ const inputStyle = {
              unique index），toggle 表達的是獨立的開關，用它承載單選會讓
              副作用隱形——使用者看不到「開啟這台會關掉另一台」。
              改成兩個狀態的按鈕，並把副作用寫在下面那行。 -->
-        <button
-          type="button"
-          class="w-full rounded-sm border px-4 py-3"
-          :style="{
-            borderColor: values.is_default ? 'var(--border-strong)' : 'var(--accent)',
-            color: values.is_default ? 'var(--text)' : 'var(--accent)',
-            minHeight: 'var(--touch-min)',
-          }"
-          @click="toggleDefault"
-        >
+        <AppButton variant="outline" block @click="toggleDefault">
           {{ values.is_default ? "取消常用" : "設為常用" }}
-        </button>
+        </AppButton>
 
         <!-- 事後回饋，不是事前警告。使用者按下「設為常用」時意圖已經很明確，
              事前提醒他會換掉哪一台，是把系統的顧慮丟給他判斷——與模糊比對
@@ -227,14 +218,13 @@ const inputStyle = {
       </FormRow>
     </FormCard>
 
-    <button
+    <AppButton block
       type="submit"
-      :disabled="busy"
-      class="mt-6 w-full rounded-sm px-4 py-3 font-medium disabled:opacity-60"
-      :style="{ background: 'var(--accent)', color: 'var(--on-accent)', minHeight: 'var(--touch-min)' }"
+      :busy="busy"
+      class="mt-6"
     >
       {{ busy ? "儲存中" : submitLabel }}
-    </button>
+    </AppButton>
 
     <!-- 暫存狀態：使用者在按儲存之前擔心東西安不安全，視線在這裡（《03》§4.11） -->
     <DraftStatus v-if="draft" :status="draft.status.value" class="mt-2" />

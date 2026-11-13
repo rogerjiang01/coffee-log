@@ -15,13 +15,12 @@ defineProps<{ signedIn: boolean }>()
   >
     <h1 class="font-serif text-xl font-bold">這筆分享已經無法查看</h1>
     <!-- 未登入時不放任何按鈕：他沒有可以去的地方，「回總覽」會把他帶到登入頁 -->
-    <NuxtLink
+    <AppButton variant="outline" block
       v-if="signedIn"
       to="/"
-      class="mt-8 flex w-full items-center justify-center rounded-sm border px-4 py-3"
-      :style="{ borderColor: 'var(--border-strong)', minHeight: 'var(--touch-min)' }"
+      class="mt-8"
     >
       回總覽
-    </NuxtLink>
+    </AppButton>
   </main>
 </template>

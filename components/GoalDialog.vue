@@ -73,23 +73,19 @@ async function save() {
       <p v-if="error" role="alert" class="mt-4 text-sm" :style="{ color: 'var(--danger)' }">{{ error }}</p>
 
       <div class="mt-6 flex gap-3">
-        <button
-          type="button"
-          class="flex-1 rounded-sm border px-4 py-3"
-          :style="{ borderColor: 'var(--border)', minHeight: 'var(--touch-min)' }"
+        <AppButton variant="outline"
+          class="flex-1"
           @click="emit('close')"
         >
           取消
-        </button>
-        <button
-          type="button"
-          :disabled="saving"
-          class="flex-1 rounded-sm px-4 py-3 font-medium disabled:opacity-60"
-          :style="{ background: 'var(--accent)', color: 'var(--on-accent)', minHeight: 'var(--touch-min)' }"
+        </AppButton>
+        <AppButton
+          :busy="saving"
+          class="flex-1"
           @click="save"
         >
           {{ saving ? '儲存中' : '儲存' }}
-        </button>
+        </AppButton>
       </div>
     </div>
   </dialog>

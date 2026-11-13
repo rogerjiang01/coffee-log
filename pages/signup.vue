@@ -49,13 +49,12 @@ async function submit() {
       <p class="mt-2 text-sm text-muted">
         點信中的連結完成註冊後，再回來登入。
       </p>
-      <NuxtLink
+      <AppButton block
         to="/login"
-        class="mt-7 block w-full rounded-sm px-4 py-3 text-center font-medium"
-        :style="{ background: 'var(--accent)', color: 'var(--on-accent)', minHeight: 'var(--touch-min)' }"
+        class="mt-7"
       >
         去登入
-      </NuxtLink>
+      </AppButton>
     </template>
 
     <template v-else>
@@ -87,14 +86,13 @@ async function submit() {
           {{ error }}
         </p>
 
-        <button
+        <AppButton block
           type="submit"
-          :disabled="sending"
-          class="mt-7 w-full rounded-sm px-4 py-3 font-medium disabled:opacity-60"
-          :style="{ background: 'var(--accent)', color: 'var(--on-accent)', minHeight: 'var(--touch-min)' }"
+          :busy="sending"
+          class="mt-7"
         >
           {{ sending ? '註冊中' : '註冊' }}
-        </button>
+        </AppButton>
       </form>
 
       <p class="mt-8 text-sm text-muted">

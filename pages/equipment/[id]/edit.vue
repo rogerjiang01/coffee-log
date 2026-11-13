@@ -144,14 +144,12 @@ async function destroy() {
     <!-- 讀取失敗不渲染表單（loadState.ts） -->
     <div v-else-if="view === 'error'" class="mt-8">
       <p role="alert" class="text-sm" :style="{ color: 'var(--danger)' }">{{ loadError }}</p>
-      <button
-        type="button"
-        class="mt-4 w-full rounded-sm border px-4 py-3"
-        :style="{ borderColor: 'var(--border-strong)', minHeight: 'var(--touch-min)' }"
+      <AppButton variant="outline" block
+        class="mt-4"
         @click="load"
       >
         重試
-      </button>
+      </AppButton>
     </div>
 
     <template v-else-if="view === 'ready'">
@@ -171,14 +169,12 @@ async function destroy() {
       <p v-if="actionError" role="alert" class="mt-4 text-sm" :style="{ color: 'var(--danger)' }">{{ actionError }}</p>
 
       <!-- 低頻且不可復原：儲存之後、不帶邊框，是這一頁權重最低的動作 -->
-      <button
-        type="button"
-        class="mt-3 w-full rounded-sm px-4 py-3 text-sm"
-        :style="{ color: 'var(--danger)', minHeight: 'var(--touch-min)' }"
+      <AppButton variant="text" tone="danger" block
+        class="mt-3"
         @click="confirmOpen = true"
       >
         刪除
-      </button>
+      </AppButton>
 
       <ConfirmDialog
         :open="confirmOpen"

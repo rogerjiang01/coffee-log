@@ -146,22 +146,16 @@ onBeforeUnmount(() => {
     />
 
     <div v-if="shown" class="mt-2 flex gap-3">
-      <button
-        type="button"
-        class="rounded-sm border px-3 py-2 text-sm"
-        :style="{ borderColor: 'var(--border)', minHeight: 'var(--touch-min)' }"
+      <AppButton variant="outline"
         @click="openPicker"
       >
         換一張
-      </button>
-      <button
-        type="button"
-        class="rounded-sm border px-3 py-2 text-sm"
-        :style="{ borderColor: 'var(--border)', color: 'var(--text-muted)', minHeight: 'var(--touch-min)' }"
+      </AppButton>
+      <AppButton variant="outline"
         @click="clear"
       >
         移除
-      </button>
+      </AppButton>
     </div>
   </div>
 </template>

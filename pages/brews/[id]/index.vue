@@ -232,15 +232,13 @@ async function destroy() {
 
     <p v-if="loadError" role="alert" class="mt-4 text-sm" :style="{ color: 'var(--danger)' }">{{ loadError }}</p>
     <!-- 整頁都讀不到時才給重試；已經有內容（例如只有分段讀不到）時，紅字就夠了 -->
-    <button
+    <AppButton variant="outline" block
       v-if="loadError && !brew && !notFound && !loading"
-      type="button"
-      class="mt-4 w-full rounded-sm border px-4 py-3"
-      :style="{ borderColor: 'var(--border-strong)', minHeight: 'var(--touch-min)' }"
+      class="mt-4"
       @click="load"
     >
       重試
-    </button>
+    </AppButton>
 
     <!-- 骨架：版面結構立刻畫出來，資料回來再填。
          這不會讓資料變快，但空白加「讀取中」與有形狀的頁面，感受差很多。 -->
@@ -426,31 +424,27 @@ async function destroy() {
 
       <!-- 本產品最高頻的操作是複製而非從空白新增，
            所以這是此頁權重最高的按鈕，編輯與刪除退居次要。 -->
-      <NuxtLink
+      <AppButton block
         :to="`/brews/new?copy=${brew.id}`"
-        class="mt-8 block w-full rounded-sm px-4 py-3 text-center font-medium"
-        :style="{ background: 'var(--accent)', color: 'var(--on-accent)', minHeight: 'var(--touch-min)' }"
+        class="mt-8"
       >
         照這次再沖一次
-      </NuxtLink>
+      </AppButton>
 
       <!-- 編輯與刪除在內容區，不在頂部角落（《03》§3）：頂部角落只留給 ‹ -->
-      <NuxtLink
+      <AppButton variant="outline" block
         :to="`/brews/${brew.id}/edit`"
-        class="mt-3 flex w-full items-center justify-center rounded-sm border px-4 py-3"
-        :style="{ borderColor: 'var(--border)', minHeight: 'var(--touch-min)' }"
+        class="mt-3"
       >
         編輯
-      </NuxtLink>
+      </AppButton>
 
-      <button
-        type="button"
-        class="mt-3 w-full rounded-sm px-4 py-3"
-        :style="{ color: 'var(--danger)', minHeight: 'var(--touch-min)' }"
+      <AppButton variant="text" tone="danger" block
+        class="mt-3"
         @click="confirmOpen = true"
       >
         刪除
-      </button>
+      </AppButton>
 
       <ConfirmDialog
         :open="confirmOpen"

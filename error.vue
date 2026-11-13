@@ -47,23 +47,17 @@ function reload() {
     </p>
 
     <div class="mt-8 flex flex-col gap-3">
-      <button
-        type="button"
-        class="w-full rounded-sm px-4 py-3 font-medium"
-        :style="{ background: 'var(--accent)', color: 'var(--on-accent)', minHeight: 'var(--touch-min)' }"
+      <AppButton block
         @click="goHome"
       >
         回總覽
-      </button>
-      <button
+      </AppButton>
+      <AppButton variant="outline" block
         v-if="!notFound"
-        type="button"
-        class="w-full rounded-sm border px-4 py-3"
-        :style="{ borderColor: 'var(--border-strong)', minHeight: 'var(--touch-min)' }"
         @click="reload"
       >
         重試
-      </button>
+      </AppButton>
     </div>
 
     <p v-if="!notFound" class="mt-8 text-xs tabular-nums text-muted">

@@ -54,14 +54,12 @@ onBeforeUnmount(() => {
     <span class="min-w-0 flex-1 text-sm" :style="{ color: 'var(--on-accent-wash)' }">
       未儲存的內容已恢復<template v-if="note">。{{ note }}</template>
     </span>
-    <button
-      type="button"
-      class="shrink-0 rounded-sm border px-3 py-2 text-sm"
-      :style="{ borderColor: 'var(--border-strong)', background: 'var(--surface)', minHeight: 'var(--touch-min)' }"
+    <AppButton variant="outline"
+      class="shrink-0"
       @click="$emit('clearAll')"
     >
       全部清除
-    </button>
+    </AppButton>
   </div>
 </template>
 

@@ -84,7 +84,7 @@ export default function run() {
   for (const name of ['ConfirmDialog.vue', 'DraftOverlay.vue', 'EquipmentPicker.vue', 'BeanSelect.vue']) {
     const whole = readFileSync(new URL(name, dir), 'utf8')
     const template = whole.slice(whole.indexOf('<template>'))
-    const buttons = [...template.matchAll(/<button[\s\S]*?<\/button>/g)].map(m => m[0])
+    const buttons = [...template.matchAll(/<(button|AppButton)\b[\s\S]*?<\/\1>/g)].map(m => m[0])
 
     const secondaryAt = buttons.findIndex(b => SECONDARY.some(w => b.includes(w)))
     const primaryAt = buttons.findIndex(b => PRIMARY.some(w => b.includes(w)))

@@ -125,6 +125,17 @@
     padding-right: 1.25rem;
   }
 
+  /* 表單列的標籤（Figma 的 Sheet Row）：標籤在左、值在右。
+     標籤不縮、不截斷、不換行——值太長時讓的是值（《03》§4.1）。
+     FormRow、開關、強度圓點、星等共用，所以放在這裡而不是某一個元件的 scoped style。 */
+  .sheet-label {
+    flex-shrink: 0;
+    white-space: nowrap;
+    font-size: var(--text-heading-m);
+    line-height: var(--text-heading-m--line-height);
+    color: var(--text-muted);
+  }
+
   /* 段落備註：附屬於該段的次要資訊，上方已經有注水／停留兩格的底線在
      分隔，不需要再一條。文字比 --text-muted 再淡一階。 */
   .field--note {
@@ -157,11 +168,17 @@
     caret-color: var(--accent);
   }
 
-  /* 規範：placeholder 一律用 --text-muted，不得用 --text，
+  /* 規範：placeholder 預設用 --text-muted（5.05:1），不得用 --text，
      否則看起來像已經填好的值。opacity 歸零 Firefox 的預設淡化。 */
   ::placeholder {
     color: var(--text-muted);
     opacity: 1;
+  }
+
+  /* 只放範例的提示字（example@email.com、0、00）可以用比較淡的 --text-placeholder：
+     讀不到也不影響填寫。帶有必要資訊的（「選填」「搜尋」）維持上面的 --text-muted（《03》§4.1）。 */
+  .placeholder-example::placeholder {
+    color: var(--text-placeholder);
   }
 
   /* input[type="date"] 不吃 ::placeholder，未填時顯示的 yyyy/mm/dd

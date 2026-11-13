@@ -58,14 +58,12 @@ async function start() {
 
     <p v-if="error" role="alert" class="mt-6 text-sm" :style="{ color: 'var(--danger)' }">{{ error }}</p>
 
-    <button
-      type="button"
-      :disabled="saving"
-      class="mt-auto w-full rounded-sm px-4 py-3 font-medium disabled:opacity-60"
-      :style="{ background: 'var(--accent)', color: 'var(--on-accent)', minHeight: 'var(--touch-min)' }"
+    <AppButton block
+      :busy="saving"
+      class="mt-auto"
       @click="start"
     >
       開始
-    </button>
+    </AppButton>
   </main>
 </template>

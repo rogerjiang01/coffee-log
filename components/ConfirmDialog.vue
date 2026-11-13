@@ -47,23 +47,19 @@ watch(() => props.open, (value) => {
       <p class="mt-3 text-sm text-pretty">{{ body }}</p>
 
       <div class="mt-6 flex gap-3">
-        <button
-          type="button"
-          class="flex-1 rounded-sm border px-4 py-3"
-          :style="{ borderColor: 'var(--border)', minHeight: 'var(--touch-min)' }"
+        <AppButton variant="outline"
+          class="flex-1"
           @click="emit('cancel')"
         >
           取消
-        </button>
-        <button
-          type="button"
-          :disabled="busy"
-          class="flex-1 rounded-sm px-4 py-3 font-medium disabled:opacity-60"
-          :style="{ background: 'var(--danger)', color: 'var(--on-danger)', minHeight: 'var(--touch-min)' }"
+        </AppButton>
+        <AppButton tone="danger"
+          :busy="busy"
+          class="flex-1"
           @click="emit('confirm')"
         >
           {{ busy ? '刪除中' : confirmLabel }}
-        </button>
+        </AppButton>
       </div>
     </div>
   </dialog>
