@@ -128,7 +128,7 @@ export default function run() {
   r.section('未選取的輸入元件輪廓用 --control-empty，不得退回 --border')
   // --border 是分隔線的顏色（stone-100，卡片上 1.16:1）。畫在「可以按」的東西上
   // 淡到看不見，使用者看不出那裡還有五個可點的目標。
-  // --control-empty 本身是 sand-400（2.46:1），刻意低於 3:1——那是《03》§2.2
+  // --control-empty 本身是 stone-400（2.45:1），刻意低於 3:1——那是《03》§2.2
   // 寫明的取捨，這裡守的是「不要再往下退」，不是 3:1
   const empty = [
     ['components/StarRating.vue', '星等（表單）'],
@@ -150,10 +150,10 @@ export default function run() {
   r.check(/modelValue \? 'var\(--accent\)' : 'var\(--border\)'/.test(toggle) && !/--control-empty/.test(toggle.replace(/<!--[\s\S]*?-->/g, '')),
     '開關（ToggleSwitch）不適用：關閉的軌道是 --border')
   const tokenCss = read('assets/css/tokens.css')
-  r.check(/--control-empty:\s*var\(--sand-400\);/.test(tokenCss),
-    '--control-empty 是 sand-400（卡片上 2.46:1，刻意低於 3:1，《03》§2.2）')
+  r.check(/--control-empty:\s*var\(--stone-400\);/.test(tokenCss),
+    '--control-empty 是 stone-400（卡片上 2.45:1，刻意低於 3:1，《03》§2.2）')
   r.check(!/--control-empty:\s*var\(--(border|stone-50|stone-100|sand-100|sand-50)\)/.test(tokenCss), '--control-empty 沒有指回 --border 的色階')
-  r.check(/^\| `--control-empty` \|[^\n]*`sand-400`[^\n]*刻意低於 3:1/m.test(read('docs/03-介面規範.md')),
+  r.check(/^\| `--control-empty` \|[^\n]*`stone-400`[^\n]*刻意低於 3:1/m.test(read('docs/03-介面規範.md')),
     '《03》§2.2 寫明這是刻意的取捨，不會被當成缺陷改回去')
 
   r.section('圖示來源有記在 repo 裡')

@@ -109,6 +109,10 @@
     /* 疊在 --accent-wash 上的文字。不能用 --accent——green-500 在 green-50 上
      只有 4.18:1，低於 AA。green-700 是 7.38:1。 */
     --on-accent-wash: var(--green-700);
+    /* 疊在 --accent-wash 上的次要文字（選取列裡的說明、日期）。2026-11-13 新增：
+       --text-muted（stone-600）在 green-50 上只有 3.70:1，stone-700 是 5.45:1。
+       比 --on-accent-wash（7.38:1）淡一階，選取列裡主要與次要文字才分得出層級。 */
+    --on-accent-wash-muted: var(--stone-700);
     /* 用強調色寫的文字：指標數字與單位、文字按鈕、區段小標。
        和 --accent 分開是因為綠底模式下兩者不同：--accent 是按鈕的底色（淺），
        --accent-text 是寫在頁面底色上的字。對比：--surface 上 5.70:1、--bg 上 5.60:1 */
@@ -127,22 +131,23 @@
     --text-placeholder: var(--stone-400);
     --icon-muted: var(--stone-500); /* 卡片標題列的 › 這類不是主要動作的圖示。--surface 上 3.47:1 */
     --surface-muted: var(--stone-100); /* 停用的輸入框、下拉的膠囊 */
-    --control-inactive: var(--stone-200); /* 停用的按鈕、開關關閉的軌道、未選的強度圓點 */
+    --control-inactive: var(--stone-200); /* 停用的按鈕、開關關閉的軌道、未選的強度圓點與星等（實心） */
     --control-thumb: var(--white); /* 開關的圓鈕 */
     --border: var(--stone-100); /* 分隔線、一般邊界。--surface 上 1.16:1 */
-    --border-strong: var(--sand-400); /* 需要更明顯的次要按鈕 */
-    --text-faint: var(--sand-400); /* 比 --text-muted 再淡一階的附屬文字 */
+    --border-strong: var(--stone-400); /* 需要更明顯的次要按鈕 */
+    --text-faint: var(--stone-400); /* 比 --text-muted 再淡一階的附屬文字（停用欄位的標籤與單位） */
     /* 首頁右上角的設定齒輪。它在標題旁邊，用 --text 會跟標題搶；
        用 --text-muted 又與內文的參考資訊同一個顏色，看不出是可以按的東西。
        對比：--bg 上 4.97:1、--surface 上 5.05:1（非文字，門檻 3:1） */
-    --settings-icon: var(--sand-600);
-    /* 未選取的輸入元件輪廓：星等的空心星、收藏的空心愛心、強度的空心圓點。
+    --settings-icon: var(--stone-600);
+    /* 未選取的輸入元件**輪廓**：收藏的空心愛心、勾選框未勾的方框。
        不能用 --border：那是分隔線的顏色（stone-100，--surface 上 1.16:1），
-       淡到使用者看不出那裡還有五個可點的目標。
-       對比：--surface 上 2.46:1、--bg 上 2.42:1，**刻意低於**《03》§7 非文字元素的 3:1，
-       用來換取較輕的視覺重量——sand-500（3.53:1）過得了門檻，但未選取的五顆星
-       重到搶過已選取的那幾顆。決定與理由見《03》§2.2，不是漏掉的缺陷。 */
-    --control-empty: var(--sand-400);
+       淡到使用者看不出那裡有可以點的目標。
+       對比：--surface 上 2.45:1、--bg 上 2.41:1，**刻意低於**《03》§7 非文字元素的 3:1，
+       用來換取較輕的視覺重量。決定與理由見《03》§2.2，不是漏掉的缺陷。
+       2026-11-13：和其他中性色一起從 sand-400 改成 stone-400（照 Figma）。
+       強度圓點與星等不再用它：那兩個未選時是**實心**的 --control-inactive（《03》§2.2）。 */
+    --control-empty: var(--stone-400);
 
     /* 狀態 */
     --favorite: var(--coral-500); /* 愛心 */
@@ -169,11 +174,11 @@
        淺色底會讓照片看起來偏暗，所以這一面反過來用 ink。
        對比（ink 為底）：on-media 13.84:1、
        on-media-danger 8.20:1、
-       media-border 5.58:1（非文字，門檻 3:1） */
+       media-border 5.61:1（非文字，門檻 3:1） */
     --media-bg: var(--ink);
     --on-media: var(--white);
     --on-media-danger: var(--coral-200);
-    --media-border: var(--sand-400);
+    --media-border: var(--stone-400);
 
     /* ══ 烘焙度色階 ═════════════════════════════════════════
      獨立的語意色階，不併入上面幾組——它表達的是被記錄的事物本身，
@@ -196,13 +201,15 @@
     --roast-unknown: var(--stone-400);
     /* Figma 沒有這一個。--text（stone-800）在 stone-400 上只有 4.36:1，stone-950 是 7.18:1。 */
     --on-roast-unknown: var(--stone-950);
+    /* 沒有豆袋照片時，縮圖上咖啡豆插畫的線條（《03》§4.5）。Figma 是裸值 #fefefe，
+       程式不寫裸色碼，2026-11-13 決定用這個 token。五級烘焙度與暖灰上都用同一個。 */
+    --roast-art: var(--white);
 
     /* ══ 表單欄位的外觀 ═════════════════════════════════════
-     欄位是底線制（見 main.css 的 .field）。底線比分隔線深一階：
-     它同時扮演該列的分隔線，但更重要的角色是讓使用者一眼看出
-     「這裡可以填、填到哪裡為止」，太淡就失去這個作用。 */
+     Choice chip 未選時的框線這類「可以按的東西」的邊界，比分隔線（--border）深一階。
+     2026-11-13 從 sand-200 改成 stone-200（照 Figma）。--surface 上 1.47:1。 */
 
-    --field-border: var(--sand-200);
+    --field-border: var(--stone-200);
 
     /* ══ 字體 ═══════════════════════════════════════════════
      內文是台北黑體（Light 300、Regular 400、Bold 700，自己放，見 fonts.css）。
@@ -378,6 +385,7 @@
     --accent-wash: var(--green-700);
     --on-accent: var(--green-800);
     --on-accent-wash: var(--sand-50);
+    --on-accent-wash-muted: var(--stone-100); /* green-700 上 8.68:1 */
     --accent-text: var(--sand-100);
     --diff: var(--sand-100);
 

@@ -15,6 +15,9 @@
   --color-accent-soft: var(--accent-soft);
   --color-accent-wash: var(--accent-wash);
   --color-accent-text: var(--accent-text);
+  --color-on-accent: var(--on-accent);
+  --color-on-accent-wash: var(--on-accent-wash);
+  --color-on-accent-wash-muted: var(--on-accent-wash-muted);
   --color-text: var(--text);
   --color-muted: var(--text-muted);
   --color-placeholder: var(--text-placeholder);
@@ -40,6 +43,7 @@
   --color-on-roast-dark: var(--on-roast-dark);
   --color-roast-unknown: var(--roast-unknown);
   --color-on-roast-unknown: var(--on-roast-unknown);
+  --color-roast-art: var(--roast-art);
 
   --font-sans: var(--font-body);
   /* font-serif 這個名字是改版前留下的：--font-heading 已經不是襯線體（Noto Sans TC Medium）。
