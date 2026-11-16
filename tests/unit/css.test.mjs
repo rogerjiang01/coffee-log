@@ -144,5 +144,24 @@ export default function run() {
       `${page} 把 theme-green 掛在 <html> 上`)
   }
 
+  r.section('開場與登入頁（《03》§6 的開場動畫）')
+  const splash = readFileSync(new URL('../../composables/useSplash.ts', import.meta.url), 'utf8')
+  const app = readFileSync(new URL('../../app.vue', import.meta.url), 'utf8')
+  const overlay = readFileSync(new URL('../../components/AppSplash.vue', import.meta.url), 'utf8')
+  const shell = readFileSync(new URL('../../components/AuthShell.vue', import.meta.url), 'utf8')
+  r.check(/if \(!import\.meta\.server\) return null/.test(splash) && /path === '\/' \? 'app' : path === '\/login' \? 'login' : null/.test(splash),
+    '只在打開 App 時出現：由伺服器看網址決定，/ 與 /login 以外都沒有')
+  r.check(/COVER_COUNT = 4/.test(splash) && /`\/splash\/v1\/cover-\$\{index\}\.webp`/.test(splash), '首圖四張，放在帶版本號的目錄')
+  r.check(/rel: 'preload', as: 'image', href: coverUrl\(splash\.cover\.value\)/.test(app), '伺服器把挑到的那一張預先載入')
+  r.check(/<AppSplash v-if="splash\.mode\.value === 'app'" \/>/.test(app), '已登入的開場蓋在總覽上')
+  r.check(/const MIN_MS = 300/.test(overlay) && /const MAX_MS = 800/.test(overlay), '已登入：最少 0.3 秒、最多 0.8 秒')
+  r.check(/splashReady\.value = true/.test(readFileSync(new URL('../../pages/index.vue', import.meta.url), 'utf8')), '總覽的資料到了就通知開場可以淡出')
+  r.check(/const intro = ref\(mode\.value === 'login'\)/.test(shell) && /@media \(prefers-reduced-motion: reduce\)[\s\S]*translate: none/.test(shell),
+    '未登入：登入頁自己演；減少動態時不做位移')
+  r.check(/\.splash-fade \{\s*transition-duration: 200ms !important;/.test(css), '減少動態時保留淡入淡出')
+  r.check(/--splash-bg:\s*var\(--green-800\)/.test(tokens) && /html\.splash-on \{\s*background-color: var\(--splash-bg\)/.test(css), '開場期間頁面底色是深綠，避免白閃')
+  r.check(!/#[0-9a-f]{3,6}\b/i.test(overlay + shell + readFileSync(new URL('../../components/BrandLogo.vue', import.meta.url), 'utf8')), '沒有寫死的色碼')
+  r.check(vercel.headers.some(h => h.source === '/(splash|brand)/(.*)' && h.headers.some(x => /immutable/.test(x.value))), '首圖與 logo 設了不可變快取')
+
   return r.finish()
 }

@@ -1,0 +1,30 @@
+// 開場（《02》§3、《03》§6 的開場動畫）。
+//
+// 只在**打開 App** 時出現：這一次載入的第一個畫面是 `/`（已登入，總覽）或 `/login`（未登入）。
+// 由伺服器在算繪時決定，所以站內導覽（登出後到登入頁）、分享頁、直接打開的其他頁面都不會有——
+// useState 的初始值只在伺服器算一次，瀏覽器沿用同一份。
+//
+//   'app'    已登入：首圖蓋在總覽上，資料到了就淡出（最少 0.3 秒、最多 0.8 秒），AppSplash.vue
+//   'login'  未登入：登入頁自己演「首圖 → 綠色漸層與 logo 往上 → 表單出現」，AuthShell.vue
+//   null     不演
+//
+// 首圖從 Cover 的 4 張插畫隨機挑一張。伺服器挑、寫進 HTML 並預先載入，瀏覽器不必等程式就看得到。
+
+export type SplashMode = 'app' | 'login' | null
+
+export const COVER_COUNT = 4
+/** 首圖的網址。路徑裡的 v1 是圖檔的版本：這個目錄設了一年的不可變快取（vercel.json），換圖要換版本 */
+export const coverUrl = (index: number) => `/splash/v1/cover-${index}.webp`
+
+export function useSplash() {
+  const mode = useState<SplashMode>('splash-mode', () => {
+    if (!import.meta.server) return null
+    const path = useRoute().path
+    return path === '/' ? 'app' : path === '/login' ? 'login' : null
+  })
+  // 站內導覽到登入頁時瀏覽器才第一次用到，那時由瀏覽器挑（頁面是瀏覽器算繪的，沒有對不上的問題）
+  const cover = useState('splash-cover', () => 1 + Math.floor(Math.random() * COVER_COUNT))
+  /** 總覽的資料到了沒有。pages/index.vue 讀完之後設成 true */
+  const ready = useState('splash-ready', () => false)
+  return { mode, cover, ready }
+}

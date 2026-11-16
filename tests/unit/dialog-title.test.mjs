@@ -104,6 +104,8 @@ export default function run() {
   const pageHeadings = files
     .map(path => [path, stripComments(read(path)).replace(/<dialog[\s\S]*?<\/dialog>/g, '')])
     .flatMap(([path, text]) => [...text.matchAll(/<h1\b[^>]*>/g)].map(m => [path, m[0]]))
+    // 登入與註冊照 Figma 沒有看得見的標題（畫面上是 logo），h1 只給螢幕閱讀器
+    .filter(([, tag]) => !/class="sr-only"/.test(tag))
   r.check(pageHeadings.length >= 8, `頁面上有 ${pageHeadings.length} 個 h1`)
   for (const [path, tag] of pageHeadings) {
     r.check(/\bfont-medium\b/.test(classOf(tag)) && !/\bfont-(serif|bold|normal)\b/.test(classOf(tag)), `${path} 的 h1 字重 500`)

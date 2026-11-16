@@ -86,7 +86,7 @@ const REPORT_HINT = '請截圖回報'
 export const SUPPORT_EMAIL = 'rogerjiang01@gmail.com'
 
 export function supportMailto(code?: string | null): string {
-  const subject = code ? `手沖咖啡紀錄 錯誤回報 ${code}` : '手沖咖啡紀錄 錯誤回報'
+  const subject = code ? `Laeta 錯誤回報 ${code}` : 'Laeta 錯誤回報'
   return `mailto:${SUPPORT_EMAIL}?subject=${encodeURIComponent(subject)}`
 }
 

@@ -43,7 +43,8 @@ async function submit() {
 </script>
 
 <template>
-  <main class="mx-auto px-5 py-12" :style="{ maxWidth: 'var(--content-max-narrow)' }">
+  <!-- 沿用登入頁的版面（AuthShell）。Figma 沒有畫註冊頁 -->
+  <AuthShell>
     <template v-if="mailSent">
       <h1 class="text-display-s font-medium">確認信寄出了</h1>
       <p class="mt-4">
@@ -54,56 +55,60 @@ async function submit() {
       </p>
       <AppButton block
         to="/login"
-        class="mt-7"
+        class="mt-10"
       >
         去登入
       </AppButton>
     </template>
 
     <template v-else>
-      <h1 class="text-display-s font-medium">註冊</h1>
+      <h1 class="sr-only">註冊</h1>
 
-      <form class="mt-8" novalidate @submit.prevent="submit">
-        <!-- 有框的輸入框（《03》§4.1）：登入、註冊不在卡片裡 -->
-        <TextField
-          id="email"
-          v-model="email"
-          label="電子郵件"
-          type="email"
-          autocomplete="email"
-          :error="fieldError.email"
-        />
+      <form novalidate @submit.prevent="submit">
+        <div class="flex flex-col gap-4">
+          <!-- 有框的輸入框（《03》§4.1）：登入、註冊不在卡片裡 -->
+          <TextField
+            id="email"
+            v-model="email"
+            label="電子郵件"
+            type="email"
+            autocomplete="email"
+            placeholder="example@email.com"
+            example
+            :error="fieldError.email"
+          />
 
-        <TextField
-          id="password"
-          v-model="password"
-          class="mt-5"
-          label="密碼"
-          type="password"
-          autocomplete="new-password"
-          :error="fieldError.password"
-        />
-        <p v-if="!fieldError.password" class="mt-1 text-sm text-muted">至少 6 個字元</p>
+          <div>
+            <TextField
+              id="password"
+              v-model="password"
+              label="密碼"
+              type="password"
+              autocomplete="new-password"
+              :error="fieldError.password"
+            />
+            <p v-if="!fieldError.password" class="mt-1 text-sm text-muted">至少 6 個字元</p>
+          </div>
+        </div>
 
-        <p v-if="error" class="mt-4 text-sm" :style="{ color: 'var(--danger)' }">
-          {{ error }}
+        <p v-if="error" role="alert" class="mt-4 flex items-start gap-1.5 text-sm" :style="{ color: 'var(--danger)' }">
+          <AlertIcon class="mt-0.5" />
+          <span>{{ error }}</span>
         </p>
 
         <AppButton block
           type="submit"
           :busy="sending"
-          class="mt-7"
+          class="mt-10"
         >
           {{ sending ? '註冊中' : '註冊' }}
         </AppButton>
       </form>
 
-      <p class="mt-8 text-sm text-muted">
+      <p class="mt-3 flex items-center gap-1">
         已經有帳號？
-        <NuxtLink to="/login" class="underline" :style="{ color: 'var(--accent)' }">
-          去登入
-        </NuxtLink>
+        <AppButton variant="text" to="/login">去登入</AppButton>
       </p>
     </template>
-  </main>
+  </AuthShell>
 </template>

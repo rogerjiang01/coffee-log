@@ -417,5 +417,15 @@
       transition-duration: 0.01ms !important;
       scroll-behavior: auto !important;
     }
+    /* 例外：開場與登入頁的淡入淡出（《03》§6）。減少動態時不做位移，但淡入淡出要留著——
+       整個畫面瞬間換掉比淡出更突兀。位移由元件自己關掉 */
+    .splash-fade {
+      transition-duration: 200ms !important;
+    }
+  }
+
+  /* 開場期間（composables/useSplash.ts）頁面底色是插畫的深綠：首圖還沒載入時不會白閃 */
+  html.splash-on {
+    background-color: var(--splash-bg);
   }
 }

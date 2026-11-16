@@ -205,6 +205,14 @@
        程式不寫裸色碼，2026-11-13 決定用這個 token。五級烘焙度與暖灰上都用同一個。 */
     --roast-art: var(--white);
 
+    /* 開場與登入頁（《03》§6 的開場動畫）。
+       --splash-bg    首圖還沒載入時的底色：插畫的深綠，避免白閃
+       --brand-mark   疊在首圖上的 logo。Figma 是 sand-50
+       --splash-scrim 首圖上面一層 10% 的黑，讓 logo 與表單讀得到（照 Figma）。純黑不取自色階，和其他遮罩一樣 */
+    --splash-bg: var(--green-800);
+    --brand-mark: var(--sand-50);
+    --splash-scrim: rgb(0 0 0 / 0.1);
+
     /* ══ 表單欄位的外觀 ═════════════════════════════════════
      Choice chip 未選時的框線這類「可以按的東西」的邊界，比分隔線（--border）深一階。
      2026-11-13 從 sand-200 改成 stone-200（照 Figma）。--surface 上 1.47:1。 */

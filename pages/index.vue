@@ -27,6 +27,7 @@ const { thumbnailUrls } = useBeanPhotos()
 const fetchActiveBeans = useActiveBeans()
 const { fetchStats, fetchGoals } = useBrewStats()
 const cache = useQueryCache()
+const { ready: splashReady } = useSplash()
 
 const stats = ref<StatBrew[]>([])
 const goals = ref<GoalRow[]>([])
@@ -80,6 +81,8 @@ async function load() {
   loading.value = !(statQuery.hit && goalQuery.hit)
   await Promise.all([statQuery.settled, goalQuery.settled])
   loading.value = false
+  // 開場的首圖在等這個：資料到了就可以淡出（composables/useSplash.ts）
+  splashReady.value = true
 }
 
 onMounted(load)

@@ -141,7 +141,7 @@ export default function run() {
   r.check(/v-if="signedIn"[\s\S]{0,200}回總覽/.test(gone) && /to="\/"/.test(gone), '失效畫面：登入時才有「回總覽」，目的地是 /')
   r.check(!/<PageHeader|<BackButton/.test(page + view), '沒有 ‹')
   r.check(!/\.rpc\(|useSupabaseClient/.test(view + gone), '內容與失效畫面不碰資料庫，讀取只在頁面做一次')
-  r.check(!/NuxtLink[^>]*>\s*手沖咖啡紀錄/.test(page) && /手沖咖啡紀錄/.test(page), '頂部的產品名不是連結')
+  r.check(!/NuxtLink[^>]*>\s*Laeta/.test(page) && />Laeta</.test(page), '頂部的產品名不是連結')
   r.check(/definePageMeta\(\{ screen: 'share' \}\)/.test(read('pages/s/[code].vue')), '宣告成分享頁（分頁列看登入狀態）')
   r.check(/exclude: \[[^\]]*'\/s\/\*'/.test(read('nuxt.config.ts')), '未登入的人不會被導去登入頁（redirectOptions.exclude）')
 

@@ -12,11 +12,34 @@ useHead({
 // 不由各頁自己放（《03》§3）。放在錯誤邊界外面：頁內算繪出錯時它還在，仍然是出口。
 // 分享頁例外：分頁列由登入狀態決定（utils/navigation.ts）
 const route = useRoute()
+
+// 開場（composables/useSplash.ts）：打開 App 時伺服器挑一張首圖寫進 HTML，並預先載入；
+// 開場期間 <html> 的底色換成插畫的深綠，圖還沒到也不會白閃。
+const splash = useSplash()
+if (import.meta.server && splash.mode.value) {
+  useHead({ link: [{ rel: 'preload', as: 'image', href: coverUrl(splash.cover.value), fetchpriority: 'high' }] })
+}
+useHead({ htmlAttrs: { class: computed(() => (splash.mode.value ? 'splash-on' : '')) } })
+// 開完之後，閒置時把另外三張抓進快取（下次打開挑到哪一張都是現成的）
+onMounted(() => {
+  if (!splash.mode.value) return
+  const warm = () => {
+    for (let index = 1; index <= COVER_COUNT; index++) {
+      if (index !== splash.cover.value) new Image().src = coverUrl(index)
+    }
+  }
+  if (typeof window.requestIdleCallback === 'function') window.requestIdleCallback(warm)
+  else setTimeout(warm, 2000)
+})
+
 const userId = useCurrentUserId()
 const tabBar = computed(() => showsTabBar(route.meta.screen, userId.value !== null))
 </script>
 
 <template>
+  <!-- 已登入時的開場：首圖蓋在總覽上，資料到了就淡出（《03》§6） -->
+  <AppSplash v-if="splash.mode.value === 'app'" />
+
   <!-- 元件層的例外只讓這一塊掛掉，不要整個應用程式變白畫面。
        error.vue 接的是致命錯誤與路由錯誤；這一層接的是頁面內的
        算繪例外——後者比前者常見得多，而且往往只影響一小塊。 -->

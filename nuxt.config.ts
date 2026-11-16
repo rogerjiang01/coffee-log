@@ -60,7 +60,7 @@ export default defineNuxtConfig({
   app: {
     head: {
       htmlAttrs: { lang: 'zh-Hant-TW' },
-      title: '手沖咖啡紀錄',
+      title: 'Laeta',
       // theme_color 決定手機瀏覽器的網址列底色，以及獨立視窗的狀態列。
       // 值必須與 manifest 一致，兩邊都取自 --accent（green-500）。
       // 這裡不能寫 var(--accent)：meta 與 manifest 都不吃 CSS 變數。
@@ -68,7 +68,7 @@ export default defineNuxtConfig({
         { name: 'theme-color', content: '#516e41' },
         { name: 'apple-mobile-web-app-capable', content: 'yes' },
         { name: 'apple-mobile-web-app-status-bar-style', content: 'default' },
-        { name: 'apple-mobile-web-app-title', content: '咖啡紀錄' },
+        { name: 'apple-mobile-web-app-title', content: 'Laeta' },
       ],
       link: [
         // 加到主畫面後以獨立視窗開啟，不帶瀏覽器 UI（display: standalone）。
