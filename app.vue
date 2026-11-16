@@ -19,7 +19,17 @@ const splash = useSplash()
 if (import.meta.server && splash.mode.value) {
   useHead({ link: [{ rel: 'preload', as: 'image', href: coverUrl(splash.cover.value), fetchpriority: 'high' }] })
 }
-useHead({ htmlAttrs: { class: computed(() => (splash.mode.value ? 'splash-on' : '')) } })
+// splash-app：已登入的開場期間把頁面內容藏起來，首圖淡出時底下只看得到底色；
+// splash-reveal：首圖消失之後內容淡入（assets/css/main.css）
+useHead({
+  htmlAttrs: {
+    class: computed(() => {
+      if (splash.mode.value === 'app') return 'splash-on splash-app'
+      if (splash.mode.value) return 'splash-on'
+      return splash.revealing.value ? 'splash-reveal' : ''
+    }),
+  },
+})
 // 開完之後，閒置時把另外三張抓進快取（下次打開挑到哪一張都是現成的）
 onMounted(() => {
   if (!splash.mode.value) return
@@ -37,7 +47,7 @@ const tabBar = computed(() => showsTabBar(route.meta.screen, userId.value !== nu
 </script>
 
 <template>
-  <!-- 已登入時的開場：首圖蓋在總覽上，資料到了就淡出（《03》§6） -->
+  <!-- 已登入時的開場：首圖蓋在總覽上，資料到了就淡出；首圖完全消失之後總覽才淡入（《03》§6.1） -->
   <AppSplash v-if="splash.mode.value === 'app'" />
 
   <!-- 元件層的例外只讓這一塊掛掉，不要整個應用程式變白畫面。

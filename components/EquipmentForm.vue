@@ -154,13 +154,13 @@ defineExpose({ clearDraft: () => draft?.clear() })
       <!-- 型錄存在的唯一目的是讓刻度這個數字可以被正確解讀（§3.2）。
            無刻度的機型不說「這台面板沒有刻度標示」：不顯示範圍提示本身就已經表達了 -->
       <template v-if="values.type === 'grinder' && selectedCatalog">
-        <FormNote v-if="!isFreeformScale(scaleSpec)" field="型號">
+        <FormNote v-if="!isFreeformScale(scaleSpec)">
           <span>刻度範圍 {{ grindScaleRangeLabel(scaleSpec) }}</span>
           <span v-if="scaleSpec.increment !== null">最小間隔 {{ scaleSpec.increment }}</span>
           <span v-else>連續無段</span>
           <span v-if="grindScaleSuggestionLabel(scaleSpec)">{{ grindScaleSuggestionLabel(scaleSpec) }}</span>
         </FormNote>
-        <FormNote v-if="scaleSpec.note" field="型號">{{ scaleSpec.note }}</FormNote>
+        <FormNote v-if="scaleSpec.note" :field="isFreeformScale(scaleSpec) ? '型號' : undefined">{{ scaleSpec.note }}</FormNote>
       </template>
     </FormCard>
 
@@ -177,7 +177,7 @@ defineExpose({ clearDraft: () => draft?.clear() })
           </div>
         </div>
       </FormRow>
-      <FormNote field="自訂名稱">{{ values.catalog_id ? "已選型號，用型錄的名稱" : "型錄沒有的器材，請填寫名稱" }}</FormNote>
+      <FormNote>{{ values.catalog_id ? "已選型號，用型錄的名稱" : "型錄沒有的器材，請填寫名稱" }}</FormNote>
 
       <FormRow label="備註" for="equipment-note">
         <SheetText id="equipment-note" v-model="values.note" />

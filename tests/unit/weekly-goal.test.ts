@@ -7,7 +7,7 @@ import {
   GOAL_DEFAULT, GOAL_MAX, GOAL_MIN, clampGoal, currentGoal, goalForWeek, monthRange, needsGoalSetup,
   ringLaps, weekEnd, weekStart, weekdayIndex,
 } from '../../utils/weeklyGoal.ts'
-import { dashboardRows, lastBeanCard, monthCard, recordCount, summaryRing, topRatedCard, totalsCard, weekCard, type StatBrew } from '../../utils/dashboard.ts'
+import { lastBeanCard, monthCard, recordCount, summaryRing, topRatedCard, totalsCard, weekCard, type StatBrew } from '../../utils/dashboard.ts'
 import { createReport } from '../helpers/report.mjs'
 
 const at = (y: number, m: number, d: number, h = 9, min = 0) => new Date(y, m - 1, d, h, min)
@@ -111,16 +111,6 @@ export default function run() {
   r.check(topRatedCard([brew(WED), brew(at(2026, 9, 27), { rating: 5 })], SUN) === null, '兩週都沒有（更早的不算）：不顯示')
   r.check(topRatedCard([brew(WED, { rating: 5, is_sample: true }), brew(at(2026, 10, 1), { rating: 5, is_sample: true })], SUN) === null,
     '範例紀錄不算')
-
-  r.section('卡片排成固定的兩排')
-  const all = { last: true, top: true, totals: true, month: true }
-  const layout = (v: typeof all) => dashboardRows(v).map(row => row.map(c => `${c.card}:${c.span}`).join(' ')).join(' | ')
-  r.check(layout(all) === 'last:1 top:1 | totals:1 month:1', '第一排上一杯、本週最高分；第二排累計、本月')
-  r.check(layout({ ...all, top: false }) === 'last:2 | totals:1 month:1', '本週最高分不顯示：上一杯改成全寬，累計不往前遞補')
-  r.check(layout({ ...all, last: false }) === 'top:2 | totals:1 month:1', '上一杯不顯示：本週最高分全寬')
-  r.check(layout({ ...all, month: false }) === 'last:1 top:1 | totals:2', '本月不顯示：累計全寬')
-  r.check(layout({ last: false, top: false, totals: true, month: true }) === 'totals:1 month:1', '第一排兩張都不顯示：整排不出現')
-  r.check(layout({ last: false, top: false, totals: false, month: false }) === '', '全都不顯示：只剩目標環')
 
   r.section('累計')
   r.check(JSON.stringify(totalsCard([brew(MON), brew(WED), brew(WED, { bean_id: 'b2' }), brew(SUN, { is_sample: true, bean_id: 'b9' })]))

@@ -30,7 +30,7 @@ withDefaults(defineProps<{
   >
     <span v-if="title" class="flex items-center justify-between gap-2 px-3 pt-2">
       <!-- span 加 role：卡片是 button 或連結時，裡面只能放行內元素 -->
-      <span role="heading" aria-level="2" class="min-w-0 text-body-m font-medium">{{ title }}</span>
+      <span role="heading" aria-level="2" class="min-w-0 text-heading-s font-medium">{{ title }}</span>
       <svg
         v-if="arrow"
         width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" class="shrink-0"

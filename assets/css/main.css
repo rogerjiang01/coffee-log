@@ -422,10 +422,25 @@
     .splash-fade {
       transition-duration: 200ms !important;
     }
+    html.splash-reveal #__nuxt > * {
+      animation-duration: 200ms !important;
+    }
   }
 
   /* 開場期間（composables/useSplash.ts）頁面底色是插畫的深綠：首圖還沒載入時不會白閃 */
   html.splash-on {
     background-color: var(--splash-bg);
+  }
+  /* 已登入的開場（AppSplash.vue）：首圖還在的時候，底下的頁面（總覽、分頁列）先藏起來——
+     首圖淡出時只看得到頁面底色，不會和 logo 疊在一起。首圖完全消失之後才淡入（一般的淡入，只動透明度）。 */
+  html.splash-app #__nuxt > :not(.app-splash) {
+    opacity: 0;
+  }
+  html.splash-reveal #__nuxt > * {
+    animation: splash-reveal 200ms var(--motion-ease) both;
+  }
+  @keyframes splash-reveal {
+    from { opacity: 0; }
+    to { opacity: 1; }
   }
 }

@@ -39,8 +39,9 @@ const showReference = computed(() => props.hasCatalog && !freeform.value)
 
     <!-- 型錄沒有資料、或面板本來就沒刻度時完全不提示，
          連「這台沒有刻度」都不說：畫面上沒有提示本身就是那個資訊。
-         參考資訊與提示都顯示在卡片下方（FormNote），前面寫欄位名：這張卡片還有磨豆機那一列 -->
-    <FormNote v-if="showReference" field="研磨刻度">
+         參考資訊與提示都顯示在卡片下方（FormNote）。欄位名只在訊息本身看不出是哪個欄位時才寫：
+         「刻度 0–40」看得出來，不寫；同一個欄位的第二則也不重複寫 -->
+    <FormNote v-if="showReference" :field="range ? undefined : '研磨刻度'">
       <span v-if="range">刻度 {{ range }}</span>
       <span v-if="!unset(spec.increment)">最小間隔 {{ spec.increment }}</span>
       <span v-else>連續無段</span>
@@ -57,6 +58,6 @@ const showReference = computed(() => props.hasCatalog && !freeform.value)
         :style="{ color: 'var(--notice)' }"
       >{{ notice }}</span>
     </FormNote>
-    <FormNote v-if="spec.note" field="研磨刻度">{{ spec.note }}</FormNote>
+    <FormNote v-if="spec.note" :field="showReference ? undefined : '研磨刻度'">{{ spec.note }}</FormNote>
   </div>
 </template>

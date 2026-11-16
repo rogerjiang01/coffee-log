@@ -6,15 +6,15 @@
 //   第二排  累計、本月（數字）
 // 每張卡片的資料與顯示條件在 utils/dashboard.ts。**所有統計都排除範例資料。**
 //
-// 卡片照 Figma 的 Card（AppCard）：標題列在上（14px、字重 500，可點的卡片右端有 ›），
-// 內容在下。半寬的卡片是正方形。數字是 --accent-text 的指標數字（text-display-s）加單位（text-metric-unit）。
+// 卡片照 Figma 的 Card（AppCard）：標題列在上（16px、字重 500，可點的卡片右端有 ›），內容在下。
+// 最近沖煮、最高分、累計、本月固定同一個高度（--overview-card-h），全寬時也一樣。
+// 數字是 --accent-text 的指標數字（text-display-s）加單位（text-metric-unit）。
 //
-// 空狀態（Laeta 改版第三批，由 Claude 設計、使用者選）：三種情況各有 A／B 兩個方案，
-// 由 emptyVariant 決定畫哪一個。**選定之後刪掉沒選的那一個與這個開關。**
-//   完全沒有紀錄        A 一張全寬的說明卡片加「新增紀錄」；B 四張卡片的位置都留著，各寫之後會顯示什麼
-//   一排只剩一張卡      A 剩下那張全寬、內容橫向展開；B 維持半寬，空位放說明卡
-//   上週最高分、超過目標  A 標題換成「上週最高分」、環畫第二圈並寫「已達成」；
-//                      B 卡片加一行「本週還沒有評分」、寫「超過 N 杯」不畫第二圈
+// 空狀態（2026-11-16 使用者選定，《02》§4.1）：
+//   完全沒有紀錄      目標卡片照常；下面一張全寬的說明卡片加「新增紀錄」
+//   一排只剩一張卡    剩下那張全寬，內容橫向展開（高度不變）
+//   上週最高分        標題「上週最高分」，卡片多一行「本週還沒有評分」
+//   超過目標          環停在一圈，數字下方寫「超過 N 杯」
 //
 // 本週、本月都以沖煮日期計算，週一開始，瀏覽器的本地時間。
 // 顏色一律用語意 token（品牌色會更換）。
@@ -46,15 +46,12 @@ const top = computed(() => topRatedCard(stats.value, now.value))
 const totals = computed(() => totalsCard(stats.value))
 const month = computed(() => monthCard(stats.value, now.value))
 
-// 空狀態的方案開關。正式環境固定是 A；截圖比較時由外部把這個 state 換成 B
-const emptyVariant = useState<'A' | 'B'>('overview-empty-variant', () => 'A')
-const variantB = computed(() => emptyVariant.value === 'B')
-
 const noRecords = computed(() => !totals.value)
-// 同一排只剩一張：A 那一張全寬，B 維持半寬、空位放說明卡（兩張都沒有時整排不出現）
-const firstRowSingle = computed(() => !!last.value !== !!top.value)
-const secondRowSingle = computed(() => !!totals.value !== !!month.value)
-const wide = (single: boolean) => single && !variantB.value
+// 同一排只剩一張：那一張全寬（兩張都沒有時整排不出現）。不往前遞補：
+// 遞補會把不同性質的卡片排在一起，也會讓卡片落單
+const firstRowWide = computed(() => !!last.value !== !!top.value)
+const secondRowWide = computed(() => !!totals.value !== !!month.value)
+const CARD_HEIGHT = { height: 'var(--overview-card-h)' }
 
 const WEEKDAYS = ['一', '二', '三', '四', '五', '六', '日']
 const weekdayOf = (iso: string) => `星期${WEEKDAYS[weekdayIndex(new Date(iso))]}`
@@ -126,11 +123,11 @@ const newBrewLink = computed(() => newBrewEntry(activeBeans.value))
       {{ loadError }}
     </p>
 
-    <!-- 骨架：目標環一張全寬、兩張半寬。§6 不做進場動畫，靜態色塊 -->
+    <!-- 骨架：目標環一張全寬、兩張半寬，和卡片同高。§6 不做進場動畫，靜態色塊 -->
     <div v-if="loading" aria-busy="true" aria-label="讀取中" class="mt-6 grid grid-cols-2 gap-3">
-      <SkeletonBlock class="col-span-2" height="10.5rem" radius="var(--radius-md)" />
-      <SkeletonBlock class="aspect-square" height="auto" radius="var(--radius-md)" />
-      <SkeletonBlock class="aspect-square" height="auto" radius="var(--radius-md)" />
+      <SkeletonBlock class="col-span-2" height="var(--overview-card-h)" radius="var(--radius-md)" />
+      <SkeletonBlock height="var(--overview-card-h)" radius="var(--radius-md)" />
+      <SkeletonBlock height="var(--overview-card-h)" radius="var(--radius-md)" />
     </div>
 
     <div v-else class="mt-6 grid grid-cols-2 gap-3">
@@ -141,13 +138,13 @@ const newBrewLink = computed(() => newBrewEntry(activeBeans.value))
         :count="week.count"
         :goal="week.goal"
         :days="week.days"
-        :over="variantB ? 'text' : 'lap'"
+        over-text
         clickable
         @click="editing = true"
       />
 
-      <!-- 完全沒有紀錄，方案 A：一張全寬的卡片，插畫、一句說明、新增紀錄 -->
-      <AppCard v-if="noRecords && !variantB" class="col-span-2 flex items-center gap-4 p-4">
+      <!-- 完全沒有紀錄：一張全寬的卡片，插畫、一句說明、新增紀錄 -->
+      <AppCard v-if="noRecords" class="col-span-2 flex items-center gap-4 p-4">
         <span class="block size-20 shrink-0 overflow-hidden rounded-sm">
           <BeanArt background="var(--roast-unknown)" />
         </span>
@@ -157,14 +154,6 @@ const newBrewLink = computed(() => newBrewEntry(activeBeans.value))
           <AppButton :to="newBrewLink">新增紀錄</AppButton>
         </span>
       </AppCard>
-
-      <!-- 完全沒有紀錄，方案 B：四張卡片的位置都留著，各寫之後會顯示什麼，不放數字 -->
-      <template v-if="noRecords && variantB">
-        <OverviewHintCard title="最近沖煮" text="最近一筆紀錄的豆子" />
-        <OverviewHintCard title="本週最高分" text="本週評分最高的一杯" />
-        <OverviewHintCard title="累計" text="紀錄與豆子的總數" />
-        <OverviewHintCard title="本月" text="本月的杯數與粉重" />
-      </template>
 
       <!-- 第一排：最近沖煮。點了進豆子詳情，卡片上不放任何按鈕 -->
       <OverviewBeanCard
@@ -176,10 +165,9 @@ const newBrewLink = computed(() => newBrewEntry(activeBeans.value))
         :photo-url="photoOf(last.bean.photo_path)"
         :roast-level="last.bean.roast_level"
         :footer="`第 ${last.count} 杯`"
-        :wide="wide(firstRowSingle)"
-        :class="{ 'col-span-2': wide(firstRowSingle) }"
+        :wide="firstRowWide"
+        :class="{ 'col-span-2': firstRowWide }"
       />
-      <OverviewHintCard v-else-if="top && variantB" title="最近沖煮" text="用未喝完的豆子沖一杯後顯示" />
 
       <!-- 第一排：本週最高分（本週沒有就是上週最高分）。點了進紀錄詳情 -->
       <OverviewBeanCard
@@ -191,29 +179,29 @@ const newBrewLink = computed(() => newBrewEntry(activeBeans.value))
         :photo-url="photoOf(top.brew.beans?.photo_path)"
         :roast-level="top.brew.beans?.roast_level ?? null"
         :rating="top.brew.rating"
-        :note="variantB && top.week === 'last' ? '本週還沒有評分' : ''"
+        :note="top.week === 'last' ? '本週還沒有評分' : ''"
         :footer="weekdayOf(top.brew.brewed_at)"
-        :wide="wide(firstRowSingle)"
-        :class="{ 'col-span-2': wide(firstRowSingle) }"
+        :wide="firstRowWide"
+        :class="{ 'col-span-2': firstRowWide }"
       />
-      <OverviewHintCard v-else-if="last && variantB" title="本週最高分" text="替本週或上週的紀錄評分後顯示" />
 
-      <!-- 第二排：累計。點了進紀錄分頁 -->
+      <!-- 第二排：累計。點了進紀錄分頁。全寬時兩組數字並排，高度不變 -->
       <AppCard
         v-if="totals"
         :as="NuxtLink"
         to="/brews"
         title="累計"
         arrow
-        class="flex flex-col"
-        :class="wide(secondRowSingle) ? 'col-span-2' : 'aspect-square'"
+        class="flex flex-col overflow-hidden"
+        :class="{ 'col-span-2': secondRowWide }"
+        :style="CARD_HEIGHT"
       >
-        <span class="px-3 pb-2" :class="wide(secondRowSingle) ? 'grid grid-cols-2 gap-3' : 'flex flex-col gap-0.5'">
-          <span class="flex flex-col gap-0.5">
+        <span class="px-3 pt-0.5 pb-2" :class="secondRowWide ? 'grid grid-cols-2 gap-3' : 'flex flex-col gap-1'">
+          <span class="flex flex-col">
             <span class="text-sm">總共記錄</span>
             <MetricValue :value="totals.records" unit="筆" />
           </span>
-          <span class="flex flex-col gap-0.5">
+          <span class="flex flex-col">
             <span class="text-sm">喝過豆子</span>
             <MetricValue :value="totals.beans" unit="支" />
           </span>
@@ -221,15 +209,18 @@ const newBrewLink = computed(() => newBrewEntry(activeBeans.value))
       </AppCard>
 
       <!-- 第二排：本月。卡片不能點，所以沒有 › -->
-      <AppCard v-if="month" title="本月" class="flex flex-col aspect-square">
-        <span class="flex flex-col gap-0.5 px-3 pb-2">
-          <span class="text-sm">記錄</span>
-          <MetricValue :value="month.cups" unit="杯" />
-          <span class="text-sm">煮了豆子</span>
-          <MetricValue :value="month.dose" unit="克" />
+      <AppCard v-if="month" title="本月" class="flex flex-col overflow-hidden" :style="CARD_HEIGHT">
+        <span class="flex flex-col gap-1 px-3 pt-0.5 pb-2">
+          <span class="flex flex-col">
+            <span class="text-sm">記錄</span>
+            <MetricValue :value="month.cups" unit="筆" />
+          </span>
+          <span class="flex flex-col">
+            <span class="text-sm">煮了豆子</span>
+            <MetricValue :value="month.dose" unit="克" />
+          </span>
         </span>
       </AppCard>
-      <OverviewHintCard v-else-if="totals && variantB" title="本月" text="本月記下第一杯後顯示" />
     </div>
 
     <GoalDialog

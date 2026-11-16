@@ -207,7 +207,7 @@ function removeStep(index: number) {
                   我們無權判定使用者填錯——他可能在記一個我們沒想過的沖法，也可能想先存起來之後再改。
                   文案講該填什麼，不講「你填錯了」。顏色是 --notice（《03》§4.1）。
                 -->
-                <FormNote v-if="orderHints[index]" tone="notice" field="累積水量">{{ orderHints[index] }}</FormNote>
+                <FormNote v-if="orderHints[index]" tone="notice">{{ orderHints[index] }}</FormNote>
 
                 <!-- 最後一段不顯示：最後一注之後沒有下一注，沒有「停水」這件事 -->
                 <FormRow v-if="showTimes && index < modelValue.length - 1" label="停水時長" :for="`step-hold-${index}`">

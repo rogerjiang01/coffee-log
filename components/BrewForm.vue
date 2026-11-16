@@ -475,7 +475,7 @@ defineExpose({ clearDraft: () => draft?.clear() })
             @selected="selectedBeanRoastDate = $event?.roast_date ?? null"
           />
         </FormRow>
-        <FormNote v-if="restedDays !== null" field="豆子">養豆 {{ restedDays }} 天</FormNote>
+        <FormNote v-if="restedDays !== null">養豆 {{ restedDays }} 天</FormNote>
       </FormCard>
     </FormSection>
 
@@ -553,7 +553,7 @@ defineExpose({ clearDraft: () => draft?.clear() })
           </div>
         </FormRow>
         <FormNote v-if="doseError" tone="error">{{ doseError }}</FormNote>
-        <FormNote v-if="ratio" field="粉重">粉水比 {{ ratio }}</FormNote>
+        <FormNote v-if="ratio">粉水比 {{ ratio }}</FormNote>
         <FormRow label="水溫" for="brew-temp">
           <NumberField id="brew-temp" v-model="values.water_temp" unit="°C" integer />
         </FormRow>

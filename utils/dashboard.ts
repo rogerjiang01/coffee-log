@@ -142,21 +142,3 @@ export function summaryRing(
   const before = after - (self.is_sample ? 0 : 1)
   return { goal, before, after, crossed: before < goal && after >= goal }
 }
-
-export type DashboardCard = 'last' | 'top' | 'totals' | 'month'
-
-/**
- * 卡片排成固定的兩排（《02》§4.1、《03》§4.16），目標環全寬永遠在最上面：
- *   第一排  最近沖煮、本週最高分（某一杯或某支豆子，點進去是詳情）
- *   第二排  累計、本月（數字）
- * 同一排只剩一張時那一張改成全寬；兩張都不顯示時整排不出現。
- * 不往前遞補：遞補會把不同性質的卡片排在一起，也會讓卡片落單。
- * 回傳要顯示的卡片與它佔幾欄（2 欄的格線）。
- */
-export function dashboardRows(visible: Record<DashboardCard, boolean>): { card: DashboardCard, span: 1 | 2 }[][] {
-  const rows: DashboardCard[][] = [['last', 'top'], ['totals', 'month']]
-  return rows
-    .map(row => row.filter(card => visible[card]))
-    .filter(row => row.length)
-    .map(row => row.map(card => ({ card, span: row.length === 1 ? 2 as const : 1 as const })))
-}

@@ -103,20 +103,40 @@ export default function run() {
   const appCard = stripComments(templateOf(read('components/AppCard.vue')))
   r.check(/class="mt-6 grid grid-cols-2 gap-3"/.test(homeTemplate) && /<GoalWeekCard\s+v-if="week"\s+class="col-span-2"/.test(homeTemplate),
     '目標環全寬，永遠在最上面（GoalWeekCard，結算頁共用）')
-  r.check(/<span role="heading" aria-level="2" class="min-w-0 text-body-m font-medium">\{\{ title \}\}<\/span>/.test(appCard),
-    'AppCard：標題 14px、字重 500，是卡片的第一個元素')
-  r.check(/<AppCard[\s\S]*?title="本週目標"/.test(goalCard) && /<AppCard :as="NuxtLink" :to="to" :title="title" arrow/.test(beanCard)
+  r.check(/<span role="heading" aria-level="2" class="min-w-0 text-heading-s font-medium">\{\{ title \}\}<\/span>/.test(appCard),
+    'AppCard：標題 16px（Heading S）、字重 500，是卡片的第一個元素')
+  r.check(/<AppCard[\s\S]*?title="本週目標"/.test(goalCard) && /<AppCard\s+:as="NuxtLink" :to="to" :title="title" arrow/.test(beanCard)
     && /<OverviewBeanCard\s+v-if="last"\s+title="最近沖煮"/.test(homeTemplate)
     && /<OverviewBeanCard\s+v-if="top"\s+:title="top\.week === 'this' \? '本週最高分' : '上週最高分'"/.test(homeTemplate)
     && /<AppCard\s+v-if="totals"[\s\S]*?title="累計"\s+arrow/.test(homeTemplate) && /<AppCard v-if="month" title="本月"/.test(homeTemplate),
     '標題文字：本週目標、最近沖煮、本週最高分／上週最高分、累計、本月')
   r.check(/<GoalRing :count="ringCount" :from="from" :goal="goal" :size="100"/.test(goalCard) && />記錄<\/span>/.test(goalCard),
     '目標環卡片：左邊 100px 的環，中間是「記錄」與數字，右邊是長條圖（Figma）')
-  r.check(/v-if="cups"\s+class="w-full rounded-full"/.test(goalCard), '長條圓頭；0 杯的那一天不畫')
+  r.check(/class="relative w-full rounded-full" :style="\{ height: `\$\{BAR_HEIGHT\}px`, background: 'var\(--accent-wash\)' \}">\s*<span\s+v-if="cups"\s+class="absolute inset-x-0 bottom-0 rounded-full"/.test(goalCard),
+    '每一天都有全高的底軌（--accent-wash），杯數的長條疊在上面；0 杯的那一天只有底軌')
+  r.check(/over-text/.test(homeTemplate) && /if \(props\.overText && props\.count > props\.goal\) return `超過 \$\{props\.count - props\.goal\} 杯`/.test(read('components/GoalWeekCard.vue'))
+    && /props\.overText \? Math\.min\(props\.count, props\.goal\) : props\.count/.test(read('components/GoalWeekCard.vue')),
+    '總覽超過目標：環停在一圈，寫「超過 N 杯」，不畫第二圈')
+
+  r.section('總覽：固定高度與空狀態（2026-11-16 定案）')
+  r.check(/--overview-card-h: 169px/.test(read('assets/css/tokens.css')), '卡片高度是一個 token（Figma 的 169px）')
+  r.check(/:style="\{ height: 'var\(--overview-card-h\)' \}"/.test(beanCard) && !/aspect-square': !wide|aspect-square'\s*:/.test(beanCard),
+    '最近沖煮、最高分：固定高度，全寬時也一樣')
+  r.check((homeTemplate.match(/:style="CARD_HEIGHT"/g) ?? []).length === 2 && /const CARD_HEIGHT = \{ height: 'var\(--overview-card-h\)' \}/.test(homeScript)
+    && !/aspect-square/.test(homeTemplate), '累計、本月：同一個固定高度，不再是正方形')
+  r.check(/const firstRowWide = computed\(\(\) => !!last\.value !== !!top\.value\)/.test(homeScript)
+    && /const secondRowWide = computed\(\(\) => !!totals\.value !== !!month\.value\)/.test(homeScript)
+    && (homeTemplate.match(/:class="\{ 'col-span-2': firstRowWide \}"/g) ?? []).length === 2 && /:class="\{ 'col-span-2': secondRowWide \}"/.test(homeTemplate),
+    '同一排只剩一張：那一張全寬，不往前遞補')
+  r.check(/<AppCard v-if="noRecords" class="col-span-2[^"]*">[\s\S]*?還沒有紀錄[\s\S]*?<AppButton :to="newBrewLink">新增紀錄<\/AppButton>/.test(homeTemplate),
+    '完全沒有紀錄：一張全寬的說明卡片加「新增紀錄」')
+  r.check(/:note="top\.week === 'last' \? '本週還沒有評分' : ''"/.test(homeTemplate), '上週最高分：多一行「本週還沒有評分」')
+  r.check(!/emptyVariant|variantB|OverviewHintCard/.test(homeScript) && !/dashboardRows/.test(read('utils/dashboard.ts')),
+    '方案開關、沒選上的方案與沒有在用的 dashboardRows 都刪掉了')
   r.check(/\{\{ shown \}\}／\{\{ goal \}\}<\/span>\s*<span[^>]*>杯<\/span>/.test(goalCard) && !/本週 \{\{/.test(goalCard + homeTemplate),
     '「N／M 杯」，不和標題重複「本週」')
   const metrics = [...homeTemplate.matchAll(/<MetricValue :value="([\w.]+)" unit="(.)" \/>/g)].map(m => `${m[1]}${m[2]}`)
-  r.check(metrics.join() === 'totals.records筆,totals.beans支,month.cups杯,month.dose克', '累計與本月：指標數字加單位')
+  r.check(metrics.join() === 'totals.records筆,totals.beans支,month.cups筆,month.dose克', '累計與本月：指標數字加單位')
   r.check(/@click="editing = true"/.test(homeTemplate) && /<GoalDialog/.test(homeTemplate), '點目標環卡片打開修改目標的對話框')
   r.check(/:to="`\/beans\/\$\{last\.beanId\}`"/.test(homeTemplate) && !/<button/.test(beanCard), '最近沖煮：點了進豆子詳情，卡片上不放按鈕')
   r.check(/:to="`\/brews\/\$\{top\.brew\.id\}`"/.test(homeTemplate), '最高分：點了進紀錄詳情')

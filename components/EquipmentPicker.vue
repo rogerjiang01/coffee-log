@@ -360,7 +360,7 @@ async function create() {
           <FormRow>
             <CatalogSelect v-model="form.catalog_id" :type="type" />
           </FormRow>
-          <FormNote v-if="type === 'grinder' && form.catalog_id" field="型號">研磨刻度規格隨型號帶入</FormNote>
+          <FormNote v-if="type === 'grinder' && form.catalog_id">研磨刻度規格隨型號帶入</FormNote>
 
           <FormRow>
             <div class="sheet-row">
@@ -373,7 +373,7 @@ async function create() {
               </div>
             </div>
           </FormRow>
-          <FormNote field="自訂名稱">{{ form.catalog_id ? '已選型號，用型錄的名稱' : '型錄沒有的器材，請填寫名稱' }}</FormNote>
+          <FormNote>{{ form.catalog_id ? '已選型號，用型錄的名稱' : '型錄沒有的器材，請填寫名稱' }}</FormNote>
 
           <FormRow label="備註" for="picker-note">
             <SheetText id="picker-note" v-model="form.note" />

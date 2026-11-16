@@ -4,7 +4,8 @@
 // 由伺服器在算繪時決定，所以站內導覽（登出後到登入頁）、分享頁、直接打開的其他頁面都不會有——
 // useState 的初始值只在伺服器算一次，瀏覽器沿用同一份。
 //
-//   'app'    已登入：首圖蓋在總覽上，資料到了就淡出（最少 0.3 秒、最多 0.8 秒），AppSplash.vue
+//   'app'    已登入：首圖蓋在總覽上，資料到了就淡出（最少 0.3 秒、最多 0.8 秒），AppSplash.vue。
+//            首圖淡出時底下只有頁面底色；完全消失之後總覽才淡入（revealing）
 //   'login'  未登入：登入頁自己演「首圖 → 綠色漸層與 logo 往上 → 表單出現」，AuthShell.vue
 //   null     不演
 //
@@ -26,5 +27,7 @@ export function useSplash() {
   const cover = useState('splash-cover', () => 1 + Math.floor(Math.random() * COVER_COUNT))
   /** 總覽的資料到了沒有。pages/index.vue 讀完之後設成 true */
   const ready = useState('splash-ready', () => false)
-  return { mode, cover, ready }
+  /** 已登入的開場剛結束、總覽正在淡入的那一小段（AppSplash.vue 設，app.vue 掛成 <html> 的 class） */
+  const revealing = useState('splash-revealing', () => false)
+  return { mode, cover, ready, revealing }
 }

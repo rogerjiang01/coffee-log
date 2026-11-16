@@ -169,7 +169,8 @@ async function loadDiff() {
 
 const water = computed(() => totalWater(steps.value))
 const ratio = computed(() => brewRatioLabel(water.value, brew.value?.dose ?? null))
-const increments = computed(() => incrementalWater(steps.value))
+// 顯示用：舊紀錄的攪拌段併進相鄰的段（utils/brewSteps.ts）。差異計算與複製用的仍是原本的 steps
+const displaySteps = computed(() => withoutStir(steps.value))
 const restedDays = computed(() =>
   restDays(brew.value?.beans?.roast_date, brew.value ? new Date(brew.value.brewed_at) : undefined),
 )
@@ -320,29 +321,10 @@ async function destroy() {
 
       <section v-if="steps.length" class="mt-8">
         <h2 class="text-heading-m font-medium">分段</h2>
-        <ul class="mt-3">
-          <li
-            v-for="(step, index) in steps"
-            :key="index"
-            class="flex items-baseline justify-between border-t py-3"
-            :style="{ borderColor: 'var(--border)' }"
-          >
-            <span class="min-w-0 flex-1 text-sm">
-              {{ stepLabel(steps, index) }}
-              <!-- 攪拌標記已經移除：舊紀錄裡的攪拌段，在備註的位置寫「攪拌」（utils/brewSteps.ts 的 stirNote） -->
-              <span v-if="stirNote(step.stepType, step.note)" class="block text-sm text-muted">{{ stirNote(step.stepType, step.note) }}</span>
-            </span>
-            <span class="tabular-nums">
-              注到 {{ step.cumulativeWater }}g
-              <span v-if="increments[index] !== null" class="ml-2 text-sm text-muted">
-                +{{ increments[index] }}g
-              </span>
-              <span v-if="step.holdSeconds !== null" class="ml-3 text-sm text-muted">
-                停 {{ step.holdSeconds }} 秒
-              </span>
-            </span>
-          </li>
-        </ul>
+        <!-- 和記錄表單的分段摘要同一種寫法（PourStepList）。舊紀錄的攪拌段已經併進相鄰的段（withoutStir） -->
+        <div class="mt-3">
+          <PourStepList :steps="displaySteps" increments />
+        </div>
       </section>
 
       <section v-if="intensityRows.length" class="mt-8">

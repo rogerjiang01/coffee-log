@@ -141,7 +141,7 @@ pnpm test
 第二階段有一支 migration（`20261006100000_weekly_goals.sql`，只新增一張表）。細節見下面「V2 待辦」的第一項。
 
 **Laeta 改版進行中，只在 `redesign` 分支**：把 Figma 的新設計導入程式，分三批——
-第一批 token 與規範（完成，2026-11-12）、第二批元件（完成，2026-11-13）、第三批頁面（實作完成，2026-11-16，**有幾件事等使用者選**，見下面「Laeta 改版待辦」）。
+第一批 token 與規範（完成，2026-11-12）、第二批元件（完成，2026-11-13）、第三批頁面（完成，2026-11-16；看完截圖與手機實測之後的決定也做完了，見 `第三批.md` 第六節）。
 **不要合併到 main，也不要 push main**（main 一更新，Vercel 就會部署到正式站）；
 `redesign` 可以 push，用 Vercel 的預覽網址在手機上實測。比對報告與決定在 `docs/改版紀錄/第一批.md`，
 第二批、第三批的決定與實際做法在 `docs/改版紀錄/第二批.md`、`第三批.md`。
@@ -165,10 +165,13 @@ pnpm test
 ### 待辦（記下來，之後處理）
 
 - **清理攪拌段的 migration（redesign 上線時處理）**：攪拌標記在 Laeta 改版第三批從介面移除了（2026-11-16），
-  新的介面不會再產生 `step_type = 'stir'`。資料庫沒有動：舊紀錄裡的攪拌段還在，載入表單時轉成一般段、
-  備註前面補上「攪拌」，紀錄詳情與分享頁用文字顯示（`utils/brewSteps.ts` 的 `stirNote`、`withoutStir`）。
-  上線時要一支 migration 把既有的 `stir` 改成 `pour` 並把「攪拌」寫進 `note`，之後才能把 `stir` 從
-  `step_type` 的允許值與程式裡拿掉。**它是覆寫使用者資料的 `update`，要照下面「含不可逆操作的 migration」的規則先報告、先備份。**
+  新的介面不會再產生 `step_type = 'stir'`。資料庫沒有動：舊紀錄裡的攪拌段還在，載入表單、紀錄詳情、分享頁
+  都先把它**併進相鄰的段**（`utils/brewSteps.ts` 的 `withoutStir`，規則的表在《02》§5 區塊三）。
+  上線時要一支 migration **照同一套規則**處理既有的 `stir`：併進前一段（停水時長相加、`note` 補上「攪拌」）、刪掉攪拌那一列、
+  後面的 `step_index` 往前補；第一段、累積水量比前一段多等邊界情況照那張表。之後才能把 `stir` 從
+  `step_type` 的允許值與程式裡拿掉。**不要只把 `stir` 改成 `pour`**：那會留下一段「+0 g」（2026-11-16 修正過的問題）。
+  **它含覆寫使用者資料的 `update` 與 `delete`，要照下面「含不可逆操作的 migration」的規則先報告、先備份。**
+  migration 的結果要和 `withoutStir` 對得上（`tests/unit/brew-steps.test.ts` 的案例可以直接拿來當 db 測試的資料）。
   先查正式庫有幾筆：`select count(*) from brew_steps where step_type = 'stir';`
   手法模板裡沒有攪拌（seed 與之後的 migration 共 72 個步驟：悶蒸 15、注水 57），既有的只會是使用者自己標的。
 
@@ -187,19 +190,24 @@ pnpm test
 **第三批：頁面（實作完成，2026-11-16）**
 
 決定、計畫、自己補的地方、和計畫不同的地方都在 `docs/改版紀錄/第三批.md`。規範在《02》§4.1、§5，《03》§2.3、§3、§4.1–§4.4、§4.16、§4.19、§6.1。
-新元件：`FormSection`、`FormNote`、`AlertIcon`、`PourStepsSummary`、`PourStepsSheet`（取代 `PourStepsEditor`）、`StarDisplay`、
-`OverviewBeanCard`、`OverviewHintCard`、`MetricValue`、`AuthShell`、`AppSplash`、`BrandLogo`；`StirIcon` 已刪除。
+新元件：`FormSection`、`FormNote`、`AlertIcon`、`PourStepsSummary`、`PourStepsSheet`（取代 `PourStepsEditor`）、`PourStepList`（分段的唯讀寫法，表單摘要、紀錄詳情、分享頁共用）、
+`StarDisplay`、`OverviewBeanCard`、`MetricValue`、`AuthShell`、`AppSplash`、`BrandLogo`；`StirIcon`、`OverviewHintCard` 已刪除。
 
-**等使用者選、選完要動程式的**：
+**已經定案的**（2026-11-16，細節在 `第三批.md` 第六節；不要改回去）：
 
-- **總覽的空狀態**：三種情況各 A／B 兩個方案都在程式裡，由 `pages/index.vue` 的 `emptyVariant` 切換（預設 A）。
-  選定後刪掉沒選的那一個與開關；選 A 的話 `OverviewHintCard.vue` 一起刪。`utils/dashboard.ts` 的 `dashboardRows` 目前頁面沒有在用，屆時決定去留。
-  選定的做法補進《02》§4.1、《03》§4.16
-- **卡片內距**：`--card-pad`／`--form-gutter` 現在是 16px／20px；Figma 是 24px／約 5px。兩種的截圖都給了。
-  選 24px 的話改這兩個 token，並處理表單頁的頁首（它也在 `--form-gutter` 裡，會貼到螢幕邊）
-- **總覽「本月」的文案**：「煮了豆子 N 克」的「煮了」與單位「克」不在詞彙表裡，暫定，等確認
-- **實機沒有驗過的**：Android 返回鍵與 iOS 返回手勢關分段子頁（桌面瀏覽器用 `history.back()` 驗過，只關浮層）、
-  開場動畫在手機上的時間感、iOS Safari 的日期與時刻膠囊
+- **總覽的空狀態**：完全沒有紀錄是一張說明卡片；一排只剩一張就全寬橫向；上週最高分多一行「本週還沒有評分」；
+  超過目標寫「超過 N 杯」、**不畫第二圈**（結算頁的環不在這條範圍）。方案開關與沒選的方案都刪了
+- **卡片內距維持 16px**（`--card-pad`），不照 Figma 的 24px
+- **總覽卡片固定高度** `--overview-card-h`（169px），全寬時也一樣；不要改回正方形
+- **本月卡片寫「記錄 N 筆」「煮了豆子 N 克」**（照 Figma；「豆子」照詞彙表）
+- **卡片下方小字的欄位名**只在訊息本身看不出是哪個欄位時才寫（《03》§4.1）
+- **分段的唯讀寫法只有一種**（`PourStepList`）；**舊紀錄的攪拌段併進相鄰的段**（`withoutStir`）
+- **已登入的開場**：首圖淡出時底下只有頁面底色，首圖消失之後總覽才淡入（《03》§6.1）
+
+**還沒驗、等使用者回覆的**：
+
+- 實機：Android 返回鍵與 iOS 返回手勢關分段子頁、iOS Safari 的日期與時刻膠囊、這一輪改過的開場在手機上的時間感
+- `第三批.md` 第六節「自己判斷的地方」列的幾項（上週最高分的豆名只留一行、結算頁的環仍然畫第二圈等）
 
 **還沒做的**：LINE 預覽卡上的產品名稱（不在第三批）；忘記密碼（見「暫緩」）；清理攪拌段的 migration（見上面的待辦）。
 

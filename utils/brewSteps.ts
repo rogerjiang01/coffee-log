@@ -33,25 +33,71 @@ export interface StepInput {
 /**
  * 攪拌標記已經從介面移除（2026-11-16，Laeta 改版第三批）：需要的話寫在備註。
  * 資料庫的 step_type 還留著 'stir'（清理用的 migration 等 redesign 上線時處理，見 CLAUDE.md），
- * 所以舊紀錄裡還讀得到。這裡是唯一決定「舊的攪拌段在新介面長什麼樣子」的地方：
+ * 所以舊紀錄裡還讀得到。**withoutStir 是唯一決定「舊的攪拌段在新介面長什麼樣子」的地方**：
+ * 載入表單（編輯、照這次再沖一次、還原暫存）與顯示（紀錄詳情、分享頁）都先過它，
+ * 清理的 migration 也照同一套規則。新的介面不會再產生 'stir'。
  *
- *   載入表單（編輯、照這次再沖一次、還原暫存）  轉成一般段，備註前面補上「攪拌」
- *   顯示（紀錄詳情、分享頁）                    備註的位置顯示「攪拌」，原本的備註接在後面
+ * **攪拌段併進相鄰的段，不留成獨立的一段。** 攪拌不注水，它的累積水量和前一段相同，
+ * 單純改成一般段會多出一段「+0 g」，看起來像填錯。
  *
- * 新的介面不會再產生 'stir'。
+ *   一般情況            併進前一段：前一段的停水時長加上攪拌段的，備註後面補上「攪拌」（攪拌段自己的備註接在後面）
+ *   攪拌段是第一段      併進下一段：備註前面補上「攪拌」，停水時長加到下一段
+ *   連續好幾個攪拌段    都併進同一段，停水時長全部加起來；中間沒有別的備註時「攪拌」只寫一次
+ *   攪拌段是最後一段    併進前一段；前一段變成最後一段，最後一段不存停水時長（toStepRows）
+ *   停水時長沒記錄      null 當作沒有：兩邊都是 null 才是 null，不會憑空變成 0 秒
+ *   攪拌段的累積水量比前一段多  那一段其實注了水，併掉會少算水量：留成一般段，備註前面補上「攪拌」
+ *   （第一段前面的水量是 0，所以第一段攪拌段只要填了大於 0 的水量就屬於這一條）
+ *   攪拌段的累積水量比前一段少  攪拌不注水，那個數字沒有意義：照樣併進前一段
+ *   整組只有攪拌段      沒有可以併的對象：留一段一般段，備註「攪拌」
  */
 export const STIR_NOTE = '攪拌'
 
-export function stirNote(stepType: StepType, note: string | null | undefined): string {
-  const text = (note ?? '').trim()
-  if (stepType !== 'stir') return text
-  return text ? `${STIR_NOTE}，${text}` : STIR_NOTE
+const joinNotes = (parts: string[]) => parts.map(part => part.trim()).filter(Boolean).join('，')
+const addSeconds = (a: number | null, b: number | null) => (a === null && b === null ? null : (a ?? 0) + (b ?? 0))
+/** 補上「攪拌」。連續的攪拌段只寫一次 */
+function withStirNote(parts: string[], note: string): string[] {
+  const kept = parts.filter(part => part.trim())
+  return [...(kept.at(-1) === STIR_NOTE ? kept : [...kept, STIR_NOTE]), note]
 }
 
 export function withoutStir(steps: StepInput[]): StepInput[] {
-  return steps.map(step => (step.stepType === 'stir'
-    ? { ...step, stepType: 'pour' as const, note: stirNote(step.stepType, step.note) }
-    : step))
+  if (!steps.some(step => step.stepType === 'stir')) return steps
+
+  const merged: { step: StepInput, notes: string[] }[] = []
+  // 開頭的攪拌段：等下一段出現再併進去
+  // as：迴圈裡會重新指派，不加的話 TypeScript 把它收窄成永遠是 null
+  let leading = null as { hold: number | null, notes: string[] } | null
+  let water = 0
+
+  for (const step of steps) {
+    const adds = step.cumulativeWater !== null && step.cumulativeWater > water
+    if (step.stepType === 'stir' && !adds) {
+      const target = merged.at(-1)
+      if (target) {
+        target.step = { ...target.step, holdSeconds: addSeconds(target.step.holdSeconds, step.holdSeconds) }
+        target.notes = withStirNote(target.notes, step.note)
+      }
+      else {
+        leading = { hold: addSeconds(leading?.hold ?? null, step.holdSeconds), notes: withStirNote(leading?.notes ?? [], step.note) }
+      }
+      continue
+    }
+    const stirred = step.stepType === 'stir'
+    merged.push({
+      step: {
+        ...step,
+        stepType: stirred ? 'pour' : step.stepType,
+        holdSeconds: addSeconds(step.holdSeconds, leading?.hold ?? null),
+      },
+      notes: [...(leading?.notes ?? []), ...(stirred ? [STIR_NOTE] : []), step.note],
+    })
+    leading = null
+    if (step.cumulativeWater !== null) water = step.cumulativeWater
+  }
+  // 整組只有攪拌段
+  if (leading) merged.push({ step: { ...emptyStep('pour'), cumulativeWater: steps[0]!.cumulativeWater, holdSeconds: leading.hold }, notes: leading.notes })
+
+  return merged.map(({ step, notes }) => ({ ...step, note: joinNotes(notes) }))
 }
 
 /** 資料庫裡的一段 */

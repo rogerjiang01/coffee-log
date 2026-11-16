@@ -32,7 +32,9 @@ export default function run() {
   r.check(/step-hold-/.test(holdBlock), '停水時長的列在 v-if="showTimes…" 裡——關閉時整列不出現')
   r.check(/label="停水時長"/.test(holdBlock), '標籤是「停水時長」，和切換入口同一個詞')
   const summary = read('components/PourStepsSummary.vue')
-  r.check(/v-if="showTimes && at < rows\.length - 1 && row\.step\.holdSeconds !== null"/.test(summary), '主表單的摘要也跟著開關：關閉時不顯示停水時長')
+  const stepList = read('components/PourStepList.vue')
+  r.check(/<PourStepList :steps="steps" :show-times="showTimes" in-card \/>/.test(summary)
+    && /v-if="showTimes && at < rows\.length - 1 && row\.step\.holdSeconds !== null"/.test(stepList), '主表單的摘要也跟著開關：關閉時不顯示停水時長')
   r.check(count(editor, /holdSeconds:/g) === 1,
     '編輯器只在使用者輸入時寫 holdSeconds（整份檔案只有那一處），不會因為欄位藏起來而清掉它')
 
@@ -108,13 +110,15 @@ export default function run() {
   r.section('攪拌標記已經移除（2026-11-16）')
   const stepsUtil = read('utils/brewSteps.ts')
   r.check(!/stir|攪拌/.test(editor.replace(/\/\/.*$/gm, '').replace(/<!--[\s\S]*?-->/g, '')), '子頁沒有攪拌的切換')
-  r.check(/steps\.map\(step => \(step\.stepType === 'stir'/.test(stepsUtil) && /stepType: 'pour' as const, note: stirNote\(/.test(stepsUtil),
-    '載入表單時攪拌段轉成一般段，備註前面補上「攪拌」')
+  r.check(/export function withoutStir\(steps: StepInput\[\]\): StepInput\[\]/.test(stepsUtil) && !/export function stirNote/.test(stepsUtil),
+    '攪拌段怎麼處理只有 withoutStir 一個入口（併進相鄰的段，規則的斷言在 brew-steps.test.ts）')
   r.check(/const baseSteps = \(\) => withoutStir\(props\.initialSteps \?\? initialSteps\(\)\)/.test(form) && /steps: baseSteps\(\),/.test(form),
     '轉換算表單的初始狀態（暫存的 initial 用同一份），不觸發暫存')
   r.check(/steps\.value = withoutStir\(data\.steps\)/.test(form), '還原暫存時也轉換（舊的暫存裡可能還有攪拌段）')
   for (const path of ['pages/brews/[id]/index.vue', 'components/SharedBrewView.vue']) {
-    r.check(/stirNote\(step\.stepType, step\.note\)/.test(read(path)) && !/StirIcon/.test(read(path)), `${path}：攪拌用文字顯示，沒有圖示`)
+    const view = read(path)
+    r.check(/const displaySteps = computed\(\(\) => withoutStir\(steps\.value\)\)/.test(view) && /<PourStepList :steps="displaySteps" increments \/>/.test(view)
+      && !/StirIcon|注到 \{\{|停 \{\{/.test(view), `${path}：分段和記錄表單的摘要同一種寫法（PourStepList），攪拌段先併掉`)
   }
 
   return r.finish()
