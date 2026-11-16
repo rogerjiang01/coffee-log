@@ -56,7 +56,6 @@ const ICONS = [
   // 換成 Lucide 之前兩處都寫 1.5，詳情頁那個實際只有 1.25
   ['星等（表單）', 'components/StarRating.vue', STAR, 1.5, 1],
   ['星等（紀錄詳情）', 'pages/brews/[id]/index.vue', STAR, 1.5, 1],
-  ['星等（總覽的本週最高分）', 'pages/index.vue', STAR, 1.5, 1],
   // 分享頁與紀錄詳情頁同一組尺寸
   ['星等（分享頁）', 'components/SharedBrewView.vue', STAR, 1.5, 1],
   ['愛心（分享頁）', 'components/SharedBrewView.vue', HEART, 1.5, 1],
@@ -76,6 +75,12 @@ export default function run() {
       r.check(/stroke-linecap="round"/.test(svg), `${name}：圓頭線端`)
     }
   }
+
+  r.section('顯示用的星等（StarDisplay）')
+  const starDisplay = read('components/StarDisplay.vue')
+  r.check(/\(1\.5 \* 24\) \/ props\.size/.test(starDisplay) && /:stroke-width="strokeWidth"/.test(starDisplay) && /stroke-linecap="round"/.test(starDisplay),
+    '線寬依顯示尺寸換算，固定落在 1.5px')
+  r.check(/'var\(--favorite\)' : 'var\(--control-inactive\)'/.test(starDisplay), '未選是實心的 --control-inactive（和表單一致）')
 
   r.section('尺寸')
   const size = svg => Number(svg.match(/\swidth="([\d.]+)"/)[1])

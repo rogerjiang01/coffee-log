@@ -15,11 +15,10 @@ export default function run() {
     r.check(/roastFill\(/.test(read(path)), `${path}：用同一個 roastFill（全站同一條規則）`)
   }
 
-  r.section('範例豆子的標籤：總覽的上一杯與最高分')
+  r.section('範例豆子的標籤：總覽的最近沖煮與最高分')
   const home = read('pages/index.vue')
-  r.check(/\{\{ last\.bean\.name \}\}<\/span>\s*<SampleBadge v-if="last\.bean\.is_sample" \/>/.test(home), '上一杯：範例豆子在豆名同一行加標籤')
-  r.check(/\{\{ top\.brew\.beans\?\.name \?\? '沒有指定豆子' \}\}<\/span>\s*<SampleBadge v-if="top\.brew\.beans\?\.is_sample" \/>/.test(home),
-    '最高分（本週或上週）：同上')
+  r.check((read('components/OverviewBeanCard.vue').match(/\{\{ name \}\}<\/span>\s*<SampleBadge v-if="isSample" \/>/g) ?? []).length === 2, '卡片：範例豆子在豆名同一行加標籤')
+  r.check(/:is-sample="last\.bean\.is_sample"/.test(home) && /:is-sample="top\.brew\.beans\?\.is_sample"/.test(home), '最近沖煮與最高分都帶入是不是範例')
   r.check(/beans \( name, photo_path, roast_level, is_finished, is_sample \)/.test(read('composables/useBrewStats.ts')), '統計帶回豆子是不是範例')
 
   return r.finish()

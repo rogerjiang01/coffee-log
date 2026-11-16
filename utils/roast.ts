@@ -27,7 +27,7 @@ const fills: Record<RoastLevel, { background: string; color: string }> = {
  * 之前 token 裡沒有中性灰，借用的是 --field-border；更早是 --surface（白），
  * 放在白色卡片上看不見，豆名看起來像莫名其妙往右縮排。
  * 不用 --border：骨架（載入中）用的就是它，佔位會被看成還在讀取。
- * 全站共用：豆子列表、豆子詳情、總覽的上一杯與最高分、結算頁的摘要。
+ * 全站共用：豆子列表、豆子詳情、總覽的最近沖煮與最高分、結算頁的摘要。
  */
 const unknownFill = { background: 'var(--roast-unknown)', color: 'var(--on-roast-unknown)' }
 

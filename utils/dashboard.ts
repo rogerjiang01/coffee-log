@@ -15,7 +15,7 @@ export interface StatBean {
   photo_path: string | null
   roast_level: RoastLevel | null
   is_finished: boolean
-  /** 範例豆子：總覽的上一杯與最高分在豆名同一行加「範例」標籤（《03》§4.12） */
+  /** 範例豆子：總覽的最近沖煮與最高分在豆名同一行加「範例」標籤（《03》§4.12） */
   is_sample?: boolean
 }
 
@@ -66,7 +66,7 @@ export interface LastBeanCard {
   count: number
 }
 
-/** 上一杯：未喝完的豆子裡，最近一筆紀錄所屬的那支豆子 */
+/** 最近沖煮：未喝完的豆子裡，最近一筆紀錄所屬的那支豆子 */
 export function lastBeanCard(brews: readonly StatBrew[]): LastBeanCard | null {
   let latest: StatBrew | null = null
   for (const brew of real(brews)) {
@@ -147,7 +147,7 @@ export type DashboardCard = 'last' | 'top' | 'totals' | 'month'
 
 /**
  * 卡片排成固定的兩排（《02》§4.1、《03》§4.16），目標環全寬永遠在最上面：
- *   第一排  上一杯、本週最高分（某一杯或某支豆子，點進去是詳情）
+ *   第一排  最近沖煮、本週最高分（某一杯或某支豆子，點進去是詳情）
  *   第二排  累計、本月（數字）
  * 同一排只剩一張時那一張改成全寬；兩張都不顯示時整排不出現。
  * 不往前遞補：遞補會把不同性質的卡片排在一起，也會讓卡片落單。

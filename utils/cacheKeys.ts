@@ -106,7 +106,7 @@ export function invalidationsFor(mutation: Mutation): string[] {
       return ['beans:*', 'brews:*']
 
     case 'bean-finished':
-      // 總覽的「上一杯」只算未喝完的豆子：統計要跟著重算
+      // 總覽的「最近沖煮」只算未喝完的豆子：統計要跟著重算
       return ['beans:*', cacheKeys.brewStats()]
 
     case 'equipment':
