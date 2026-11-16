@@ -76,7 +76,7 @@ const tabBar = computed(() => showsTabBar(route.meta.screen, userId.value !== nu
           </AppButton>
         </div>
 
-        <p class="mt-8 text-xs text-muted">
+        <p class="mt-8 text-sm text-muted">
           錯誤代碼 {{ errorReportCode(error) }}
         </p>
       </main>

@@ -58,7 +58,7 @@ const hint = computed(() => props.diffs[0] ?? null)
       <span class="ml-2" :style="{ color: 'var(--text-muted)' }">{{ hint.before }}</span>
       <span class="mx-1" :style="{ color: 'var(--text-muted)' }">→</span>
       <span class="font-medium" :style="{ color: 'var(--diff)' }">{{ hint.after }}</span>
-      <span v-if="diffs.length > 1" class="ml-2 text-xs" :style="{ color: 'var(--text-muted)' }">
+      <span v-if="diffs.length > 1" class="ml-2 text-sm" :style="{ color: 'var(--text-muted)' }">
         等 {{ diffs.length }} 項
       </span>
     </p>

@@ -60,7 +60,7 @@ function reload() {
       </AppButton>
     </div>
 
-    <p v-if="!notFound" class="mt-8 text-xs tabular-nums text-muted">
+    <p v-if="!notFound" class="mt-8 text-sm tabular-nums text-muted">
       錯誤代碼 {{ code }}
     </p>
   </main>

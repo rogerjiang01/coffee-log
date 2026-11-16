@@ -238,12 +238,14 @@ async function destroy() {
         :alt="bean.name"
         class="mt-4 block aspect-square w-full rounded-md object-cover"
       >
+      <!-- 沒有照片：烘焙度的色塊，右邊是咖啡豆插畫（和縮圖同一個 BeanArt），豆名在左邊、不疊在插畫上 -->
       <div
         v-else
-        class="mt-4 flex h-32 items-center rounded-md px-4"
+        class="relative mt-4 flex h-32 items-center overflow-hidden rounded-md pr-32 pl-4"
         :style="roastFill(bean.roast_level)"
       >
-        <span class="text-heading-m font-medium">{{ bean.name }}</span>
+        <span class="line-clamp-3 text-heading-m font-medium">{{ bean.name }}</span>
+        <BeanArt class="bean-hero-art" background="transparent" />
       </div>
 
       <!-- 標籤是標題的修飾語，不是另一段內容。對齊基線不置中：
@@ -323,7 +325,7 @@ async function destroy() {
           {{ latestBrew ? '照上次再沖一次' : '用這支豆子沖一杯' }}
         </AppButton>
         <!-- 帶入哪一筆寫在按鈕下方，按鈕文字不塞資訊。日期格式與比較表一致 -->
-        <p v-if="latestBrew" class="mt-1 text-center text-xs tabular-nums text-muted">
+        <p v-if="latestBrew" class="mt-1 text-center text-sm tabular-nums text-muted">
           帶入 {{ latestBrew.date }} 那次的參數
         </p>
       </div>
@@ -369,3 +371,13 @@ async function destroy() {
     </template>
   </main>
 </template>
+
+<style scoped>
+/* 色塊右端的插畫：和色塊同高的正方形 */
+.bean-hero-art {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 8rem;
+}
+</style>
