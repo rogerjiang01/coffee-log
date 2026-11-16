@@ -93,9 +93,16 @@ async function create() {
 
 <template>
   <div>
-    <div v-for="[category, items] in groups" :key="category" class="mt-3 first:mt-0">
-      <p class="text-sm text-muted">{{ category }}</p>
-      <div class="mt-1 flex flex-wrap gap-2">
+    <!-- 卡片的第一列是標題與說明（Figma）。不再收合（2026-11-16） -->
+    <div class="card-pad-x tag-head">
+      <p class="text-sm text-muted">風味標籤</p>
+      <p>請選取感受到的風味</p>
+    </div>
+
+    <!-- 每個分類一列：分類名稱在左、標籤靠右排，放不下就換行 -->
+    <div v-for="[category, items] in groups" :key="category" class="card-pad-x tag-row">
+      <p class="sheet-label">{{ category }}</p>
+      <div class="flex min-w-0 flex-1 flex-wrap justify-end gap-2">
         <ChoiceChip
           v-for="tag in items"
           :key="tag.id"
@@ -107,21 +114,18 @@ async function create() {
       </div>
     </div>
 
-    <p v-if="loadError" role="alert" class="mt-2 text-sm" :style="{ color: 'var(--danger)' }">
-      {{ loadError }}
-    </p>
+    <FormNote v-if="loadError" tone="error">{{ loadError }}</FormNote>
 
-    <div class="mt-4 flex gap-2">
-      <!-- min-w-0 不可省略：flex 項目預設 min-width: auto，而輸入框的
-           內在最小寬度來自它預設的 size="20"（實測約 233px）。
-           沒有這一項時輸入框拒絕縮小，把 shrink-0 的按鈕擠出容器——
-           320px 下溢出 17px，儲存中（按鈕變「新增中」）時 31px。
-           卡片是 overflow-hidden，所以按鈕不是換行而是被裁掉。 -->
+    <!-- 最下面一列：新增風味詞。輸入是列裡的文字輸入（靠左），打了字才出現「新增」 -->
+    <div class="card-pad-x tag-row">
+      <!-- min-w-0 不可省略：輸入框預設 size="20" 的最小寬度會把按鈕擠出卡片 -->
       <input
         v-model="draft"
         type="text"
         placeholder="新增風味詞"
-        class="input-box flex-1"
+        aria-label="新增風味詞"
+        class="sheet-input min-w-0 flex-1 text-left"
+        @keydown.enter.prevent="create"
       >
       <AppButton
         v-if="canCreate"
@@ -133,6 +137,20 @@ async function create() {
       </AppButton>
     </div>
 
-    <p v-if="error" role="alert" class="mt-2 text-sm" :style="{ color: 'var(--danger)' }">{{ error }}</p>
+    <FormNote v-if="error" tone="error">{{ error }}</FormNote>
   </div>
 </template>
+
+<style scoped>
+.tag-head {
+  padding-block: 0.75rem;
+}
+.tag-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  min-height: 4rem;
+  padding-block: 0.75rem;
+  border-top: 1px solid var(--border);
+}
+</style>

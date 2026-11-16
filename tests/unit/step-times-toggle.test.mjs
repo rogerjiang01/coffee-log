@@ -26,11 +26,13 @@ export default function run() {
   const r = createReport('記錄分段時間的開關')
 
   r.section('編輯器：開關只決定顯不顯示')
-  const editor = read('components/PourStepsEditor.vue')
-  const holdBlock = (editor.match(/<template v-if="showTimes[\s\S]*?<\/template>/) || [''])[0]
-  r.check(/step-hold-/.test(holdBlock), '停留欄位在 v-if="showTimes…" 裡——關閉時整格不出現')
-  r.check(/>停水時間<\/p>/.test(holdBlock), '輔助說明也在同一格裡，關閉時一起消失')
-  r.check(/<label[^>]*>停留<\/label>/.test(editor), '標籤仍是「停留」——咖啡圈的通用說法，不改')
+  // 2026-11-16：編輯器搬進子頁（PourStepsSheet），欄位標籤照 Figma 是「累積水量」「停水時長」
+  const editor = read('components/PourStepsSheet.vue')
+  const holdBlock = (editor.match(/<FormRow v-if="showTimes[\s\S]*?<\/FormRow>/) || [''])[0]
+  r.check(/step-hold-/.test(holdBlock), '停水時長的列在 v-if="showTimes…" 裡——關閉時整列不出現')
+  r.check(/label="停水時長"/.test(holdBlock), '標籤是「停水時長」，和切換入口同一個詞')
+  const summary = read('components/PourStepsSummary.vue')
+  r.check(/v-if="showTimes && at < rows\.length - 1 && row\.step\.holdSeconds !== null"/.test(summary), '主表單的摘要也跟著開關：關閉時不顯示停水時長')
   r.check(count(editor, /holdSeconds:/g) === 1,
     '編輯器只在使用者輸入時寫 holdSeconds（整份檔案只有那一處），不會因為欄位藏起來而清掉它')
 
@@ -47,10 +49,10 @@ export default function run() {
   r.check(/export function toStepRows\(steps: StepInput\[\]\): StepRow\[\]/.test(read('utils/brewSteps.ts')),
     'toStepRows 沒有開關參數：存檔的換算與開關無關')
 
-  r.section('切換入口在分段區的標題列')
+  r.section('切換入口在分段子頁的標題列')
   // 主要入口要在填表當下就看得到：需要這個欄位的進階使用者，正好也是不會去翻設定頁的人
-  r.check(/記錄停水時間/.test(editor) && /不記停水時間/.test(editor),
-    '關閉時是「記錄停水時間」，開啟時是「不記停水時間」')
+  r.check(/記錄停水時長/.test(editor) && /不記停水時長/.test(editor),
+    '關閉時是「記錄停水時長」，開啟時是「不記停水時長」')
   r.check(!/role="switch"/.test(editor),
     '用文字連結不用 toggle——表單裡的 toggle 代表「這筆資料的欄位」，這個開關卻是全域偏好')
   r.check(/@click="emit\('toggleTimes'\)"/.test(editor) && !/useRecordStepTimes\(/.test(editor),
@@ -100,11 +102,20 @@ export default function run() {
     'toStepInputs 只吃分段列，沒有 total_time 參數——最後一段不再從沖煮時間反推')
   r.check(/hold_seconds: index === filled\.length - 1 \? null : step\.holdSeconds/.test(read('utils/brewSteps.ts')),
     'toStepRows 原樣寫入停留秒數，最後一段一律 null')
-  r.check(/index < modelValue\.length - 1/.test(read('components/PourStepsEditor.vue')),
-    '編輯器最後一段不顯示停留欄位')
-  r.check(/>停水時間<\/p>/.test(read('components/PourStepsEditor.vue'))
-    && !/到下一段注水前的時間/.test(read('components/PourStepsEditor.vue')),
-  '輔助說明是「停水時間」（與切換入口同一個詞），不是舊定義的「到下一段注水前的時間」')
+  r.check(/index < modelValue\.length - 1/.test(editor), '子頁最後一段沒有停水時長那一列')
+  r.check(!/到下一段注水前的時間/.test(editor), '不寫舊定義的「到下一段注水前的時間」')
+
+  r.section('攪拌標記已經移除（2026-11-16）')
+  const stepsUtil = read('utils/brewSteps.ts')
+  r.check(!/stir|攪拌/.test(editor.replace(/\/\/.*$/gm, '').replace(/<!--[\s\S]*?-->/g, '')), '子頁沒有攪拌的切換')
+  r.check(/steps\.map\(step => \(step\.stepType === 'stir'/.test(stepsUtil) && /stepType: 'pour' as const, note: stirNote\(/.test(stepsUtil),
+    '載入表單時攪拌段轉成一般段，備註前面補上「攪拌」')
+  r.check(/const baseSteps = \(\) => withoutStir\(props\.initialSteps \?\? initialSteps\(\)\)/.test(form) && /steps: baseSteps\(\),/.test(form),
+    '轉換算表單的初始狀態（暫存的 initial 用同一份），不觸發暫存')
+  r.check(/steps\.value = withoutStir\(data\.steps\)/.test(form), '還原暫存時也轉換（舊的暫存裡可能還有攪拌段）')
+  for (const path of ['pages/brews/[id]/index.vue', 'components/SharedBrewView.vue']) {
+    r.check(/stirNote\(step\.stepType, step\.note\)/.test(read(path)) && !/StirIcon/.test(read(path)), `${path}：攪拌用文字顯示，沒有圖示`)
+  }
 
   return r.finish()
 }

@@ -261,25 +261,30 @@ defineExpose({ clearDraft: () => draft?.clear() })
       @picked="onPhotoPicked"
     />
 
-    <FormCard class="mt-6">
+    <!-- 卡片的分組（Figma 沒有畫這張表單，照記錄表單的做法與 iOS inset grouped 列表的慣例分）：
+         這支豆子是誰／烘焙／產地與處理／官方風味描述。卡片之間 --gap-group。
+         說明與錯誤用 FormNote，顯示在所在卡片的下方 -->
+    <div class="flex flex-col" :style="{ gap: 'var(--gap-group)', marginTop: 'var(--gap-group)' }">
+    <FormCard>
       <FormRow>
         <!-- 只有必填欄位有標示，其他不標，讓對比本身說明「其他都可空」。
              必填的列自己寫標籤（tests/unit/required-placeholder.test.mjs 靠這個標記找必填欄位） -->
         <div class="sheet-row">
-          <label class="sheet-label" for="bean-name">豆名<span :style="{ color: 'var(--danger)' }" aria-hidden="true">*</span><span class="sr-only">必填</span></label>
+          <label class="sheet-label" for="bean-name">豆名<span :style="{ color: 'var(--danger)' }" aria-hidden="true">*</span><span class="sr-only">必填</span><AlertIcon v-if="nameError" class="sheet-label-alert" /></label>
           <div class="sheet-value">
-            <SheetText id="bean-name" v-model="values.name" />
+            <SheetText id="bean-name" v-model="values.name" placeholder="輸入豆名" />
           </div>
         </div>
-        <template v-if="nameError" #below>
-          <p :style="{ color: 'var(--danger)' }">{{ nameError }}</p>
-        </template>
       </FormRow>
+      <FormNote v-if="nameError" tone="error">{{ nameError }}</FormNote>
 
       <FormRow label="咖啡店名" for="bean-roaster">
         <SheetText id="bean-roaster" v-model="values.roaster" />
       </FormRow>
 
+    </FormCard>
+
+    <FormCard>
       <FormRow label="烘焙日期" for="bean-roast-date">
         <SelectField>
           <input
@@ -291,8 +296,8 @@ defineExpose({ clearDraft: () => draft?.clear() })
             :data-empty="!values.roast_date || undefined"
           >
         </SelectField>
-        <template #below>填寫後顯示養豆天數</template>
       </FormRow>
+      <FormNote field="烘焙日期">填寫後顯示養豆天數</FormNote>
 
       <FormRow label="烘焙度" for="bean-roast-level">
         <SelectField>
@@ -310,6 +315,9 @@ defineExpose({ clearDraft: () => draft?.clear() })
         </SelectField>
       </FormRow>
 
+    </FormCard>
+
+    <FormCard>
       <FormRow>
         <CountrySelect v-model="values.country_id" />
       </FormRow>
@@ -330,20 +338,25 @@ defineExpose({ clearDraft: () => draft?.clear() })
         <LookupSelect v-model="values.variety_id" label="品種" table="varieties" />
       </FormRow>
 
+    </FormCard>
+
+    <FormCard>
       <FormRow label="官方風味描述" for="bean-notes">
         <textarea
           id="bean-notes"
           v-model="values.official_notes"
           rows="3"
+          placeholder="選填"
           class="sheet-input"
         />
       </FormRow>
     </FormCard>
+    </div>
 
     <AppButton block
       type="submit"
       :busy="busy"
-      class="mt-6"
+      :style="{ marginTop: 'var(--gap-section)' }"
     >
       {{ busy ? '儲存中' : submitLabel }}
     </AppButton>
@@ -356,10 +369,11 @@ defineExpose({ clearDraft: () => draft?.clear() })
     <p
       v-if="error || summaryError || lookupError"
       role="alert"
-      class="mt-3 rounded-sm border px-3 py-3 text-sm"
+      class="mt-3 flex items-start gap-2 rounded-sm border px-3 py-3 text-sm"
       :style="{ color: 'var(--danger)', borderColor: 'var(--danger)' }"
     >
-      {{ error || summaryError || lookupError }}
+      <AlertIcon class="mt-0.5" />
+      <span>{{ error || summaryError || lookupError }}</span>
     </p>
   </form>
 </template>

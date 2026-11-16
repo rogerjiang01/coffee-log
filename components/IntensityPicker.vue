@@ -48,24 +48,17 @@ function onKeydown(event: KeyboardEvent, key: keyof Intensity) {
 
 <template>
   <section>
-    <div class="px-4 pt-4">
-      <p>強度</p>
-      <p class="text-sm text-muted">描述強弱，不是好壞</p>
-    </div>
-
-    <!-- 「弱／強」只標一次，在四列圓點的上方、與圓點欄的兩端對齊。
-         四列的意思相同，逐列重複是雜訊，在 375px 下也放不進卡片。 -->
-    <div class="flex justify-end px-4 pt-3" aria-hidden="true">
-      <div class="rating-track flex justify-between text-sm text-muted">
-        <span class="rating-cell text-center">弱</span>
-        <span class="rating-cell text-center">強</span>
-      </div>
+    <!-- 卡片的第一列是標題與說明（Figma）。「弱／強」拿掉了（2026-11-16）：
+         由左到右愈來愈強，說明句已經講了 -->
+    <div class="card-pad-x rating-head">
+      <p class="text-sm text-muted">強度</p>
+      <p>請依照強弱程度填寫</p>
     </div>
 
     <div
       v-for="dimension in dimensions"
       :key="dimension.key"
-      class="rating-row flex items-center justify-between gap-2 px-4"
+      class="rating-row card-pad-x flex items-center justify-between gap-2"
     >
       <span class="sheet-label">{{ dimension.label }}</span>
 
@@ -116,7 +109,10 @@ function onKeydown(event: KeyboardEvent, key: keyof Intensity) {
 .rating-row {
   min-height: 64px;
 }
-.rating-row + .rating-row {
+.rating-head {
+  padding-block: 0.75rem;
+}
+.rating-row {
   border-top: 1px solid var(--border);
 }
 </style>

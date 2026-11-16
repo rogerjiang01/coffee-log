@@ -31,9 +31,9 @@ function stripComments(text) {
 
 // 詞 → 該用什麼（與《04-詞彙表》第三欄一致）
 const banned = {
-  停水時長: '停水時間',
-  停水秒數: '停水時間',
-  純停水: '停水時間',
+  停水時間: '停水時長',
+  停水秒數: '停水時長',
+  純停水: '停水時長',
   斷水: '停水',
   給水: '注水',
   總沖煮時間: '沖煮時間',
@@ -134,12 +134,14 @@ export default function run() {
   r.section('差異區的分段標籤')
   const diff = read('utils/brewDiff.ts')
   r.check(/'各段累積水量'/.test(diff), '「各段累積水量」')
-  r.check(/'各段停水時間'/.test(diff), '「各段停水時間」')
+  r.check(/'各段停水時長'/.test(diff), '「各段停水時長」')
 
-  r.section('「停留」只當欄位標籤')
-  const uiWithStay = texts.filter(([, text]) => /停留/.test(text.replace(/>停留<\/label>/g, '')))
+  r.section('分段的欄位標籤照 Figma：累積水量、停水時長（2026-11-16）')
+  const sheet = read('components/PourStepsSheet.vue')
+  r.check(/label="累積水量"/.test(sheet) && /label="停水時長"/.test(sheet), '子頁的兩個欄位標籤')
+  const uiWithStay = texts.filter(([, text]) => />(停留|注到)<\/label>|label="(停留|注到)"/.test(text))
   r.check(uiWithStay.length === 0,
-    `「停留」只出現在分段的欄位標籤${uiWithStay.length ? `：${uiWithStay.map(([p]) => p).join('、')}` : ''}`)
+    `「停留」「注到」不再當欄位標籤${uiWithStay.length ? `：${uiWithStay.map(([p]) => p).join('、')}` : ''}`)
 
   return r.finish()
 }

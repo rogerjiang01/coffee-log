@@ -162,7 +162,7 @@ const optionStyle = { minHeight: 'var(--touch-min)' }
       </button>
     </div>
 
-    <p v-if="hint" class="sheet-below">{{ hint }}</p>
+    <FormNote v-if="hint" :field="label">{{ hint }}</FormNote>
 
     <Teleport :to="portalTarget">
       <div

@@ -26,10 +26,9 @@ export default function run() {
   r.section('參數與品飲的區段標記（《01》§9.1）')
   r.check(/paramsDurationSeconds: duration\.params/.test(form) && /tastingDurationSeconds: duration\.tasting/.test(form),
     '兩段的秒數跟著送出一起往上傳')
-  r.check(/data-section="params"[\s\S]*?FormCard title="器材" data-section="params"/.test(form)
-    || /FormCard title="器材" data-section="params"/.test(form), '器材卡片標成參數')
-  r.check(/FormCard title="沖煮" data-section="params"/.test(form), '沖煮卡片標成參數——粉重、水溫、手法、分段、沖煮時間都在裡面')
-  r.check(/FormCard title="喝起來" data-section="tasting"/.test(form), '喝起來卡片標成品飲——強度、風味標籤、心得、星等都在裡面')
+  r.check(/FormSection title="器材" data-section="params"/.test(form), '器材區塊標成參數')
+  r.check(/FormSection title="沖煮" data-section="params"/.test(form), '沖煮區塊標成參數——粉重、水溫、分段、沖煮時間都在裡面')
+  r.check(/FormSection title="喝起來" data-section="tasting"/.test(form), '喝起來區塊標成品飲——強度、風味標籤、心得、星等都在裡面')
   r.check(/<FormRow data-section="params">\s*<BeanSelect/.test(form), '豆子標成參數')
   r.check(/<FormRow data-section="other" label="沖煮日期" for="brew-at">/.test(form), '沖煮日期標成 other——只計入總耗時')
   r.check(/data-section="tasting"[\s\S]{0,200}values\.is_favorite/.test(form), '收藏標成品飲')

@@ -53,7 +53,7 @@ export default function run() {
   r.check(one.cells[compareColumns.indexOf('沖煮時間')]!.value === '2:30', '沖煮時間顯示分:秒')
   r.check(one.cells[compareColumns.indexOf('粉重')]!.value === '15g', '粉重帶單位')
   r.check(!compareColumns.includes('時間'),
-    '欄位不單寫「時間」——分不出是停水時間還是沖煮時間（《04-詞彙表》）')
+    '欄位不單寫「時間」——分不出是停水時長還是沖煮時間（《04-詞彙表》）')
   r.check(one.date === compareDate('2026-03-12T09:00:00Z') && /^\d{2}\/\d{2}$/.test(one.date),
     `日期是 MM/DD（${one.date}），「照上次再沖一次」的說明共用 compareDate`)
 

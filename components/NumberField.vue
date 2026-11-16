@@ -5,6 +5,7 @@
 // 規範要求移除上下箭頭（手機上是誤觸來源），而 type=number 的箭頭
 // 各家瀏覽器要用不同的偽元素才藏得掉，直接不用它更乾淨。
 //
+// 空的時候提示字是「選填」（和下拉列一致，2026-11-16）；必填的欄位由外面傳「輸入＋欄位名」。
 // 單位顯示在數字右側，不用 placeholder 表達單位。顏色是 --text-muted：
 // 單位帶有必要資訊，要 4.5:1（Figma 綁的 --text-placeholder 只有 2.45:1）。
 
@@ -15,7 +16,7 @@ const props = withDefaults(defineProps<{
   placeholder?: string
   ariaLabel?: string
   id?: string
-}>(), { integer: false })
+}>(), { integer: false, placeholder: '選填' })
 
 const emit = defineEmits<{ 'update:modelValue': [number | null] }>()
 

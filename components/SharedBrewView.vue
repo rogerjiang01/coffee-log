@@ -101,17 +101,7 @@ function formatDate(iso: string) {
       <div class="min-w-0 flex-1">
         <p class="text-sm tabular-nums text-muted">{{ formatDate(brew.brewed_at) }}</p>
         <div v-if="brew.rating !== null || brew.is_favorite" class="mt-3 flex items-center gap-3">
-          <span v-if="brew.rating !== null" class="flex" :aria-label="`評分 ${brew.rating} 顆星`">
-            <svg
-              v-for="level in 5" :key="level"
-              width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"
-              stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"
-              :fill="brew.rating >= level ? 'var(--favorite)' : 'transparent'"
-              :stroke="brew.rating >= level ? 'var(--favorite)' : 'var(--control-empty)'"
-            >
-              <path d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.123 2.123 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.123 2.123 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.122 2.122 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.122 2.122 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.122 2.122 0 0 0 1.597-1.16z" />
-            </svg>
-          </span>
+          <StarDisplay v-if="brew.rating !== null" :rating="brew.rating" />
           <span v-if="brew.is_favorite" class="flex items-center gap-1 text-sm" :style="{ color: 'var(--favorite)' }">
             <svg
               width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"
@@ -154,15 +144,9 @@ function formatDate(iso: string) {
           :style="{ borderColor: 'var(--border)' }"
         >
           <span class="min-w-0 flex-1 text-sm">
-            <span class="flex items-center gap-1.5">
-              {{ stepLabel(steps, index) }}
-              <StirIcon
-                v-if="step.stepType === 'stir'"
-                label="這一段有攪拌"
-                :style="{ color: 'var(--accent)' }"
-              />
-            </span>
-            <span v-if="step.note" class="block text-xs text-muted">{{ step.note }}</span>
+            {{ stepLabel(steps, index) }}
+              <!-- 攪拌標記已經移除：舊紀錄裡的攪拌段，在備註的位置寫「攪拌」（utils/brewSteps.ts 的 stirNote） -->
+              <span v-if="stirNote(step.stepType, step.note)" class="block text-sm text-muted">{{ stirNote(step.stepType, step.note) }}</span>
           </span>
           <span class="tabular-nums">
             注到 {{ step.cumulativeWater }}g

@@ -123,7 +123,9 @@ defineExpose({ clearDraft: () => draft?.clear() })
       @discard="draft.discard()"
     />
 
-    <!-- 與豆子表單同一套分組卡片；只有一張卡片，不另外下標題（頁面標題已經是新增／編輯器材） -->
+    <!-- 與豆子表單同一套分組卡片（Figma 沒有畫這張表單）：是哪一台／名稱與備註，卡片之間 --gap-group。
+         不另外下標題（頁面標題已經是新增／編輯器材）。說明用 FormNote，顯示在所在卡片的下方 -->
+    <div class="flex flex-col" :style="{ gap: 'var(--gap-group)' }">
     <FormCard>
       <FormRow>
         <!-- 必填的列自己寫標籤（tests/unit/required-placeholder.test.mjs 靠這個標記找必填欄位） -->
@@ -148,75 +150,66 @@ defineExpose({ clearDraft: () => draft?.clear() })
           :type="values.type"
           @selected="selectedCatalog = $event"
         />
-        <!-- 型錄存在的唯一目的是讓刻度這個數字可以被正確解讀（§3.2） -->
-        <div
-          v-if="values.type === 'grinder' && selectedCatalog && (!isFreeformScale(scaleSpec) || scaleSpec.note)"
-          class="mb-4 rounded-sm px-3 py-3 text-sm"
-          :style="{ background: 'var(--accent-wash)', color: 'var(--on-accent-wash)' }"
-        >
-          <!-- 無刻度的機型不說「這台面板沒有刻度標示」：
-               不顯示範圍提示本身就已經表達了 -->
-          <template v-if="!isFreeformScale(scaleSpec)">
-            <p class="tabular-nums">
-              刻度範圍 {{ grindScaleRangeLabel(scaleSpec) }}
-              <span v-if="scaleSpec.increment !== null" class="ml-3">最小間隔 {{ scaleSpec.increment }}</span>
-              <span v-else class="ml-3">連續無段</span>
-            </p>
-            <p v-if="grindScaleSuggestionLabel(scaleSpec)" class="mt-1 tabular-nums">
-              {{ grindScaleSuggestionLabel(scaleSpec) }}
-            </p>
-          </template>
-          <p v-if="scaleSpec.note" class="mt-1">{{ scaleSpec.note }}</p>
-        </div>
       </FormRow>
+      <!-- 型錄存在的唯一目的是讓刻度這個數字可以被正確解讀（§3.2）。
+           無刻度的機型不說「這台面板沒有刻度標示」：不顯示範圍提示本身就已經表達了 -->
+      <template v-if="values.type === 'grinder' && selectedCatalog">
+        <FormNote v-if="!isFreeformScale(scaleSpec)" field="型號">
+          <span>刻度範圍 {{ grindScaleRangeLabel(scaleSpec) }}</span>
+          <span v-if="scaleSpec.increment !== null">最小間隔 {{ scaleSpec.increment }}</span>
+          <span v-else>連續無段</span>
+          <span v-if="grindScaleSuggestionLabel(scaleSpec)">{{ grindScaleSuggestionLabel(scaleSpec) }}</span>
+        </FormNote>
+        <FormNote v-if="scaleSpec.note" field="型號">{{ scaleSpec.note }}</FormNote>
+      </template>
+    </FormCard>
 
+    <FormCard>
       <FormRow>
         <div class="sheet-row">
           <label class="sheet-label" for="equipment-name">
             自訂名稱<span v-if="!values.catalog_id" :style="{ color: 'var(--danger)' }" aria-hidden="true">*</span>
             <span v-if="!values.catalog_id" class="sr-only">必填</span>
+            <AlertIcon v-if="summaryError" class="sheet-label-alert" />
           </label>
           <div class="sheet-value">
-            <SheetText id="equipment-name" v-model="values.custom_name" :disabled="!!values.catalog_id" />
+            <SheetText id="equipment-name" v-model="values.custom_name" :disabled="!!values.catalog_id" :placeholder="values.catalog_id ? '' : '輸入自訂名稱'" />
           </div>
         </div>
-        <template #below>
-          {{ values.catalog_id ? "已選型號，用型錄的名稱" : "型錄沒有的器材，請填寫名稱" }}
-        </template>
       </FormRow>
+      <FormNote field="自訂名稱">{{ values.catalog_id ? "已選型號，用型錄的名稱" : "型錄沒有的器材，請填寫名稱" }}</FormNote>
 
       <FormRow label="備註" for="equipment-note">
         <SheetText id="equipment-note" v-model="values.note" />
-        <template #below>例如換刀盤、加裝配件</template>
       </FormRow>
-
-      <FormRow>
-        <!-- 動作按鈕而非 toggle。同類型只能有一台常用（DB 有 partial
-             unique index），toggle 表達的是獨立的開關，用它承載單選會讓
-             副作用隱形——使用者看不到「開啟這台會關掉另一台」。
-             改成兩個狀態的按鈕，並把副作用寫在下面那行。 -->
-        <div class="py-4">
-          <AppButton variant="outline" block @click="toggleDefault">
-            {{ values.is_default ? "取消常用" : "設為常用" }}
-          </AppButton>
-
-          <!-- 事後回饋，不是事前警告。使用者按下「設為常用」時意圖已經很明確，
-               事前提醒他會換掉哪一台，是把系統的顧慮丟給他判斷——與模糊比對
-               從攔截器改成過濾器是同一個問題。 -->
-          <p v-if="values.is_default && pressedDefault" class="mt-2 text-sm text-muted">
-            {{ formName ? `已將 ${formName} 設為常用` : "已設為常用" }}
-          </p>
-
-          <!-- 沒有任何常用是合法狀態，新使用者本來就沒有。不阻止取消。 -->
-          <p v-else-if="!values.is_default" class="mt-2 text-sm text-muted">新增紀錄時會自動填入</p>
-        </div>
-      </FormRow>
+      <FormNote field="備註">例如換刀盤、加裝配件</FormNote>
     </FormCard>
+
+    <!-- 動作按鈕而非 toggle。同類型只能有一台常用（DB 有 partial
+         unique index），toggle 表達的是獨立的開關，用它承載單選會讓
+         副作用隱形——使用者看不到「開啟這台會關掉另一台」。
+         它是動作不是欄位，所以不在卡片裡；副作用寫在按鈕下面那行。 -->
+    <div>
+      <AppButton variant="outline" block @click="toggleDefault">
+        {{ values.is_default ? "取消常用" : "設為常用" }}
+      </AppButton>
+
+      <!-- 事後回饋，不是事前警告。使用者按下「設為常用」時意圖已經很明確，
+           事前提醒他會換掉哪一台，是把系統的顧慮丟給他判斷——與模糊比對
+           從攔截器改成過濾器是同一個問題。 -->
+      <p v-if="values.is_default && pressedDefault" class="form-note card-pad-x mt-1.5">
+        {{ formName ? `已將 ${formName} 設為常用` : "已設為常用" }}
+      </p>
+
+      <!-- 沒有任何常用是合法狀態，新使用者本來就沒有。不阻止取消。 -->
+      <p v-else-if="!values.is_default" class="form-note card-pad-x mt-1.5">新增紀錄時會自動填入</p>
+    </div>
+    </div>
 
     <AppButton block
       type="submit"
       :busy="busy"
-      class="mt-6"
+      :style="{ marginTop: 'var(--gap-section)' }"
     >
       {{ busy ? "儲存中" : submitLabel }}
     </AppButton>
@@ -227,10 +220,11 @@ defineExpose({ clearDraft: () => draft?.clear() })
     <p
       v-if="error || summaryError"
       role="alert"
-      class="mt-3 rounded-sm border px-3 py-3 text-sm"
+      class="mt-3 flex items-start gap-2 rounded-sm border px-3 py-3 text-sm"
       :style="{ color: 'var(--danger)', borderColor: 'var(--danger)' }"
     >
-      {{ error || summaryError }}
+      <AlertIcon class="mt-0.5" />
+      <span>{{ error || summaryError }}</span>
     </p>
   </form>
 </template>

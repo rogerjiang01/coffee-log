@@ -45,7 +45,7 @@ async function onSubmit(values: EquipmentFormValues) {
 </script>
 
 <template>
-  <main class="mx-auto px-5 pt-10 pb-16" :style="{ maxWidth: 'var(--content-max)' }">
+  <main class="mx-auto pt-10 pb-16" :style="{ maxWidth: 'var(--content-max)', paddingInline: 'var(--form-gutter)' }">
     <PageHeader title="新增器材" back="/equipment" back-label="離開" />
 
     <div class="mt-8">

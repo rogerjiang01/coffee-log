@@ -47,6 +47,7 @@ function onKeydown(event: KeyboardEvent) {
           stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"
           :fill="(modelValue ?? 0) >= level ? 'var(--favorite)' : 'var(--control-inactive)'"
           :stroke="(modelValue ?? 0) >= level ? 'var(--favorite)' : 'var(--control-inactive)'"
+          class="star"
         >
           <path d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.123 2.123 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.123 2.123 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.122 2.122 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.122 2.122 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.122 2.122 0 0 0 1.597-1.16z" />
         </svg>
@@ -56,6 +57,10 @@ function onKeydown(event: KeyboardEvent) {
 </template>
 
 <style scoped>
+/* 和強度圓點同樣的淡入淡出（--motion-duration、--motion-ease）；系統開啟「減少動態」時全站的規則會關掉它 */
+.star {
+  transition: fill var(--motion-duration) var(--motion-ease), stroke var(--motion-duration) var(--motion-ease);
+}
 /* 與強度圓點同一組間距：五格各 44px、間隔 6px；右邊往外推 12px，最後一顆星的邊緣對齊列的右緣 */
 .star-track {
   width: 244px;

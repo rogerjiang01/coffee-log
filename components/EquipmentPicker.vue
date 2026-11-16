@@ -359,8 +359,8 @@ async function create() {
         <FormCard>
           <FormRow>
             <CatalogSelect v-model="form.catalog_id" :type="type" />
-            <template v-if="type === 'grinder' && form.catalog_id" #below>研磨刻度規格隨型號帶入</template>
           </FormRow>
+          <FormNote v-if="type === 'grinder' && form.catalog_id" field="型號">研磨刻度規格隨型號帶入</FormNote>
 
           <FormRow>
             <div class="sheet-row">
@@ -369,13 +369,11 @@ async function create() {
                 <span v-if="!form.catalog_id" class="sr-only">必填</span>
               </label>
               <div class="sheet-value">
-                <SheetText id="picker-name" v-model="form.custom_name" :disabled="!!form.catalog_id" />
+                <SheetText id="picker-name" v-model="form.custom_name" :disabled="!!form.catalog_id" :placeholder="form.catalog_id ? '' : '輸入自訂名稱'" />
               </div>
             </div>
-            <template #below>
-              {{ form.catalog_id ? '已選型號，用型錄的名稱' : '型錄沒有的器材，請填寫名稱' }}
-            </template>
           </FormRow>
+          <FormNote field="自訂名稱">{{ form.catalog_id ? '已選型號，用型錄的名稱' : '型錄沒有的器材，請填寫名稱' }}</FormNote>
 
           <FormRow label="備註" for="picker-note">
             <SheetText id="picker-note" v-model="form.note" />
@@ -389,12 +387,10 @@ async function create() {
                 {{ form.is_default ? '取消常用' : '設為常用' }}
               </AppButton>
 
-              <!-- 事後回饋而非事前警告，理由同器材頁 -->
-              <p v-if="form.is_default && pressedDefault" class="mt-2 text-sm text-muted">
-                {{ formName ? `已將 ${formName} 設為常用` : '已設為常用' }}
-              </p>
             </div>
           </FormRow>
+          <!-- 事後回饋而非事前警告，理由同器材頁 -->
+          <FormNote v-if="form.is_default && pressedDefault">{{ formName ? `已將 ${formName} 設為常用` : '已設為常用' }}</FormNote>
         </FormCard>
 
         <p v-if="formError" role="alert" class="mt-4 rounded-sm border px-3 py-3 text-sm" :style="{ color: 'var(--danger)', borderColor: 'var(--danger)' }">

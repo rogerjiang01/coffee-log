@@ -136,9 +136,7 @@ const optionStyle = { minHeight: 'var(--touch-min)' }
       </button>
     </div>
 
-    <p v-if="loadError" role="alert" class="sheet-below" :style="{ color: 'var(--danger)' }">
-      {{ loadError }}
-    </p>
+    <FormNote v-if="loadError" tone="error" field="產國">{{ loadError }}</FormNote>
 
     <Teleport :to="portalTarget">
       <div

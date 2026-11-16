@@ -115,6 +115,16 @@
     field-sizing: content;
   }
 
+  /* 有建議清單（datalist）的輸入：藏掉瀏覽器加的箭頭，值與提示字才會貼齊列的右緣 */
+  .sheet-input[list]::-webkit-calendar-picker-indicator {
+    display: none !important;
+  }
+
+  /* 多行文字空的時候，「選填」靠右，和其他列的提示字對齊 */
+  textarea.sheet-input::placeholder {
+    text-align: right;
+  }
+
   /* 單位：帶有必要資訊，要 4.5:1，所以是 --text-muted 而不是 Figma 綁的 --text-placeholder */
   .sheet-unit {
     flex-shrink: 0;
@@ -170,12 +180,14 @@
   /* 日期與日期時間：原生內容很寬（2026/11/13 下午04:56 加一個月曆圖示），18px 在 375px 的列裡放不下。
      所以這兩種用 16px，並把月曆圖示攤成透明、蓋住整個膠囊——點膠囊的任何地方都會開選擇器。 */
   input[type="date"].sheet-pill,
+  input[type="time"].sheet-pill,
   input[type="datetime-local"].sheet-pill {
     position: relative;
     font-size: var(--text-heading-s);
     line-height: var(--text-heading-m--line-height);
   }
   input[type="date"].sheet-pill::-webkit-calendar-picker-indicator,
+  input[type="time"].sheet-pill::-webkit-calendar-picker-indicator,
   input[type="datetime-local"].sheet-pill::-webkit-calendar-picker-indicator {
     position: absolute;
     inset: 0;
@@ -191,13 +203,52 @@
     overflow-wrap: anywhere;
   }
 
-  /* 列下方的提示、錯誤、衍生值（《03》§4.1 的三層顏色由內容自己決定） */
-  .sheet-below {
-    margin-top: -0.25rem;
-    padding-bottom: 0.75rem;
+  /* 卡片下方的小字（footer，《03》§4.1）：說明、提示、錯誤、衍生值一律放在卡片外面的下方，
+     緊貼卡片、左側和卡片內的列文字對齊（iOS inset grouped 列表的 footer）。
+     內容由卡片裡的 FormNote 傳送進來；沒有任何一則時整塊不佔空間。 */
+  .form-card-footer {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    margin-top: 6px;
+    padding-inline: var(--card-pad);
+  }
+  .form-card-footer:not(:has(*)) {
+    display: none;
+  }
+  /* 一則小字。顏色三層（《03》§4.1）：參考資訊 --text-muted、提示 --notice、錯誤 --danger。
+     錯誤前面有 circle-alert：綠底上 --danger 幾乎是白色，不能只靠顏色。 */
+  .form-note {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    column-gap: 0.5rem;
     font-size: var(--text-body-m);
     line-height: var(--text-body-m--line-height);
     color: var(--text-muted);
+    font-variant-numeric: tabular-nums;
+  }
+  .form-note[data-tone="notice"] {
+    color: var(--notice);
+  }
+  .form-note[data-tone="error"] {
+    color: var(--danger);
+  }
+  .form-note > svg {
+    align-self: center;
+    flex-shrink: 0;
+    margin-right: -0.25rem;
+  }
+
+  /* 出錯的列：標籤右邊的 circle-alert */
+  .sheet-label-alert {
+    margin-left: 0.375rem;
+    color: var(--danger);
+  }
+
+  /* 卡片的左右內距：列、收合區的標題列、強度的每一列共用 */
+  .card-pad-x {
+    padding-inline: var(--card-pad);
   }
 
   /* 有框的輸入框（Figma 的 input）給不在卡片裡的單獨輸入用：搜尋、浮層裡的就地新增。
@@ -245,6 +296,8 @@
      標籤不縮、不截斷、不換行——值太長時讓的是值（《03》§4.1）。
      FormRow、開關、強度圓點、星等共用，所以放在這裡而不是某一個元件的 scoped style。 */
   .sheet-label {
+    display: inline-flex;
+    align-items: center;
     flex-shrink: 0;
     white-space: nowrap;
     font-size: var(--text-heading-m);

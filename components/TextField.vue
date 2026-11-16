@@ -51,9 +51,12 @@ const fieldId = computed(() => props.id ?? auto)
         :class="example ? 'placeholder-example' : ''"
       >
       <span v-if="unit" class="text-field__unit">{{ unit }}</span>
+      <!-- 錯誤用形狀區分（2026-11-16）：框的右側與訊息前面各一個 circle-alert。
+           綠底上聚焦與錯誤的框幾乎一樣淡，不能只靠顏色 -->
+      <AlertIcon v-if="error" class="text-field__alert" />
     </div>
     <div v-if="error || $slots.action" class="text-field__below">
-      <p v-if="error" :id="`${fieldId}-error`" class="text-field__error">{{ error }}</p>
+      <p v-if="error" :id="`${fieldId}-error`" class="text-field__error"><AlertIcon :size="14" />{{ error }}</p>
       <span v-if="$slots.action" class="text-field__action"><slot name="action" /></span>
     </div>
   </div>
@@ -119,6 +122,12 @@ const fieldId = computed(() => props.id ?? auto)
   line-height: var(--text-body-m--line-height);
 }
 .text-field__error {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  color: var(--danger);
+}
+.text-field__alert {
   color: var(--danger);
 }
 .text-field__action {

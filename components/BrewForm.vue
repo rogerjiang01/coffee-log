@@ -64,14 +64,30 @@ const baseValues: BrewFormValues = {
 
 const values = reactive<BrewFormValues>({ ...baseValues, intensity: { ...baseValues.intensity } })
 
-const steps = ref<StepInput[]>(props.initialSteps ?? initialSteps())
+// 這個入口的初始分段。舊紀錄裡的攪拌段在這裡轉成一般段、備註前面補上「攪拌」
+// （攪拌標記已經移除，utils/brewSteps.ts 的 withoutStir）。這是初始狀態的一部分，不算使用者的改動，不觸發暫存
+const baseSteps = () => withoutStir(props.initialSteps ?? initialSteps())
+const steps = ref<StepInput[]>(baseSteps())
 
-// 分段時間欄位要不要顯示，由使用者偏好決定（預設關閉）。
+// 分段的編輯子頁（全螢幕浮層）。主表單只顯示摘要
+const stepsOpen = ref(false)
+
+// 沖煮日期在介面上拆成日期與時刻兩個膠囊，寫入的仍是同一個 brewed_at（YYYY-MM-DDTHH:mm）
+const brewDate = computed({
+  get: () => values.brewed_at.slice(0, 10),
+  set: (date: string) => { if (date) values.brewed_at = `${date}T${values.brewed_at.slice(11, 16) || '00:00'}` },
+})
+const brewTime = computed({
+  get: () => values.brewed_at.slice(11, 16),
+  set: (time: string) => { if (time) values.brewed_at = `${values.brewed_at.slice(0, 10)}T${time}` },
+})
+
+// 停水時長的欄位要不要顯示，由使用者偏好決定（預設關閉）。
 // **只影響顯示**：steps 裡的 holdSeconds 不管開不開都一樣保留、一樣儲存，
 // 手法模板帶入的時間也照樣寫進去。這裡刻意不依開關去動 steps。
 //
-// 偏好由這裡持有：分段區的切換入口發事件上來，寫入走同一份狀態。
-// 分段區的入口是唯一入口，設定頁沒有第二個控制點。
+// 偏好由這裡持有：分段子頁的切換入口發事件上來，寫入走同一份狀態。
+// 子頁的入口是唯一入口，設定頁沒有第二個控制點。
 const {
   enabled: recordStepTimes,
   loaded: stepTimesLoaded,
@@ -134,6 +150,7 @@ function initialValues(): BrewFormValues {
   return defaultEquipment.initialFields({ ...baseValues, intensity: { ...baseValues.intensity } })
 }
 const methods = ref<{ id: string; name: string }[]>([])
+const methodName = computed(() => methods.value.find(method => method.id === values.brew_method_id)?.name ?? null)
 
 // 欄位與排序都走 utils/equipment.ts 的共用定義：這個查詢與器材管理頁
 // 共用 equipment:all 這個快取 key，兩邊的欄位集合不一致就會靜默壞掉
@@ -366,14 +383,14 @@ const draft = draftStorageKey
         if (data.duration) interactionTime.carryOver(data.duration)
         writeBack(() => {
           Object.assign(values, data.values)
-          if (data.steps?.length) steps.value = data.steps
+          if (data.steps?.length) steps.value = withoutStir(data.steps)
           flavorTagIds.value = data.flavorTagIds ?? []
         })
       },
       // 沒動過的表單不寫入暫存。初始狀態含帶入的常用器材，所以每次現算（useFormDraft 的 initial）
       initial: () => ({
         values: initialValues(),
-        steps: props.initialSteps ?? initialSteps(),
+        steps: baseSteps(),
         flavorTagIds: props.initialFlavorTagIds ?? [],
       }),
       // 全部清除是還原，不是改參數：分段退回初始值，不依手法重算。
@@ -381,7 +398,7 @@ const draft = draftStorageKey
       reset: () => writeBack(() => {
         Object.assign(values, initialValues())
         defaultEquipment.reset()
-        steps.value = props.initialSteps ?? initialSteps()
+        steps.value = baseSteps()
         flavorTagIds.value = props.initialFlavorTagIds ?? []
         methodNotice.value = ''
         draftNote.value = ''
@@ -402,7 +419,8 @@ defineExpose({ clearDraft: () => draft?.clear() })
 </script>
 
 <template>
-  <form novalidate class="space-y-6" @submit.prevent="submit">
+  <!-- 間距兩層（《03》§2.3）：區塊之間 --gap-section，區塊內由 FormSection 排 --gap-group -->
+  <form novalidate class="flex flex-col" :style="{ gap: 'var(--gap-section)' }" @submit.prevent="submit">
     <!-- 短時間離開：已經填入，只是告知 -->
     <DraftBanner
       v-if="draft?.recovered.value"
@@ -430,187 +448,177 @@ defineExpose({ clearDraft: () => draft?.clear() })
       params ＝ 參數、tasting ＝ 品飲、other ＝ 兩者都不算但計入總耗時。
       沒有標記的地方（捲動、teleport 出去的浮層、送出按鈕）沿用上一次的區段，
       所以浮層不必自己標——打開它的那個觸發元素已經在某一段裡了。
+
+      卡片的分組照 Figma 的「記錄表單」：Figma 分開的卡片這裡也分開（2026-11-16）。
+      說明、提示、錯誤、衍生值都用 FormNote，顯示在所在卡片的下方。
     -->
     <!-- 時間戳最前面：事後補記時可能要先改日期，越早改完，
          後面的填寫都在正確的時間脈絡下。 -->
-    <FormCard title="這一杯">
-      <!-- 日期是 other：事後補記時改日期可能要翻行事曆，那不是參數記錄的時間 -->
-      <FormRow data-section="other" label="沖煮日期" for="brew-at">
-        <!-- datetime-local 的原生內容有自己的最小寬度，min-w-0 讓它在窄螢幕上縮得下來 -->
-        <SelectField>
-          <input
-            id="brew-at"
-            v-model="values.brewed_at"
-            type="datetime-local"
-            class="sheet-pill min-w-0"
-          >
-        </SelectField>
-      </FormRow>
-      <FormRow data-section="params">
-        <BeanSelect
-          v-model="values.bean_id"
-          :error="beanError"
-          @selected="selectedBeanRoastDate = $event?.roast_date ?? null"
-        />
-        <template v-if="restedDays !== null" #below>
-          <p class="tabular-nums">養豆 {{ restedDays }} 天</p>
-        </template>
-      </FormRow>
-    </FormCard>
+    <FormSection title="這一杯">
+      <FormCard>
+        <!-- 日期是 other：事後補記時改日期可能要翻行事曆，那不是參數記錄的時間 -->
+        <FormRow data-section="other" label="沖煮日期" for="brew-at">
+          <!-- 日期與時刻各一個膠囊，寫入的是同一個 brewed_at -->
+          <div class="flex min-w-0 items-center justify-end gap-2">
+            <SelectField>
+              <input id="brew-at" v-model="brewDate" type="date" class="sheet-pill min-w-0">
+            </SelectField>
+            <SelectField class="shrink-0">
+              <input v-model="brewTime" type="time" aria-label="時刻" class="sheet-pill">
+            </SelectField>
+          </div>
+        </FormRow>
+        <FormRow data-section="params">
+          <BeanSelect
+            v-model="values.bean_id"
+            :error="beanError"
+            @selected="selectedBeanRoastDate = $event?.roast_date ?? null"
+          />
+        </FormRow>
+        <FormNote v-if="restedDays !== null" field="豆子">養豆 {{ restedDays }} 天</FormNote>
+      </FormCard>
+    </FormSection>
 
     <!-- 研磨刻度緊接磨豆機：刻度的驗證依賴磨豆機型錄，
          兩者分開會讓刻度失去上下文。依賴關係優先於變動頻率。 -->
-    <FormCard title="器材" data-section="params">
-      <FormRow>
-        <EquipmentTrigger
-          label="磨豆機"
-          :name="equipmentName(values.grinder_id)"
-          @open="pickerType = 'grinder'"
-        />
-      </FormRow>
-      <FormRow>
-        <GrindSettingInput
-          v-model="values.grind_setting"
-          :spec="grindSpec"
-          :has-catalog="!!selectedGrinder?.catalog_id"
-        />
-      </FormRow>
-      <FormRow>
-        <EquipmentTrigger
-          label="濾杯"
-          :name="equipmentName(values.dripper_id)"
-          @open="pickerType = 'dripper'"
-        />
-      </FormRow>
-      <FormRow>
-        <EquipmentTrigger
-          label="手沖壺"
-          :name="equipmentName(values.kettle_id)"
-          @open="pickerType = 'kettle'"
-        />
-      </FormRow>
-      <!-- 收合區是這張卡片內部的最後一列，語意明確是「這組裡的次要項目」 -->
-      <FormRow flush>
-        <CollapsibleSection title="濾紙與分享壺" storage-key="brewForm.equipment.expanded">
-          <FormRow>
-            <EquipmentTrigger
-              label="濾紙"
-              :name="equipmentName(values.filter_id)"
-              @open="pickerType = 'filter'"
-            />
-          </FormRow>
-          <FormRow>
-            <EquipmentTrigger
-              label="分享壺"
-              :name="equipmentName(values.server_id)"
-              @open="pickerType = 'server'"
-            />
-          </FormRow>
-        </CollapsibleSection>
-      </FormRow>
-    </FormCard>
+    <FormSection title="器材" data-section="params">
+      <FormCard>
+        <FormRow>
+          <EquipmentTrigger
+            label="磨豆機"
+            :name="equipmentName(values.grinder_id)"
+            @open="pickerType = 'grinder'"
+          />
+        </FormRow>
+        <FormRow>
+          <GrindSettingInput
+            v-model="values.grind_setting"
+            :spec="grindSpec"
+            :has-catalog="!!selectedGrinder?.catalog_id"
+          />
+        </FormRow>
+      </FormCard>
+      <FormCard>
+        <FormRow>
+          <EquipmentTrigger
+            label="濾杯"
+            :name="equipmentName(values.dripper_id)"
+            @open="pickerType = 'dripper'"
+          />
+        </FormRow>
+        <FormRow>
+          <EquipmentTrigger
+            label="手沖壺"
+            :name="equipmentName(values.kettle_id)"
+            @open="pickerType = 'kettle'"
+          />
+        </FormRow>
+      </FormCard>
+      <!-- 收合區自己一張卡片：這組裡的次要項目（幾乎不變，交給預設值） -->
+      <FormCard>
+        <FormRow flush>
+          <CollapsibleSection title="濾紙與分享壺" storage-key="brewForm.equipment.expanded">
+            <FormRow>
+              <EquipmentTrigger
+                label="濾紙"
+                :name="equipmentName(values.filter_id)"
+                @open="pickerType = 'filter'"
+              />
+            </FormRow>
+            <FormRow>
+              <EquipmentTrigger
+                label="分享壺"
+                :name="equipmentName(values.server_id)"
+                @open="pickerType = 'server'"
+              />
+            </FormRow>
+          </CollapsibleSection>
+        </FormRow>
+      </FormCard>
+    </FormSection>
 
-    <!-- 手法在粉重與水溫之後、分段之前：手法選定後會依粉重換算並填入分段，
-         兩者相隔太遠使用者看不到這件事發生。
-         沖煮時間在分段最下方：最後一注之後的時間不由分段表達（最後一段
-         沒有停水時間），它就是沖煮時間的一部分，放在分段正下方最近。 -->
-    <FormCard title="沖煮" data-section="params">
-      <FormRow>
-        <!-- 必填的列自己寫標籤，不用 FormRow 的 label：
-             tests/unit/required-placeholder.test.mjs 靠這個標記找出必填欄位 -->
-        <div class="sheet-row">
-          <label class="sheet-label" for="brew-dose">粉重<span :style="{ color: 'var(--danger)' }" aria-hidden="true">*</span><span class="sr-only">必填</span></label>
-          <div class="sheet-value">
-            <NumberField id="brew-dose" v-model="values.dose" unit="g" />
+    <!-- 分段緊接粉重與水溫：手法選定後會依粉重換算並填入分段，兩者相隔太遠使用者看不到這件事發生。
+         沖煮時間在分段正下方：最後一注之後的時間不由分段表達（最後一段沒有停水時長），
+         它就是沖煮時間的一部分。Figma 在這個位置畫的是「開啟碼錶」，碼錶這一輪不做，改放沖煮時間。 -->
+    <FormSection title="沖煮" data-section="params">
+      <FormCard>
+        <FormRow>
+          <!-- 必填的列自己寫標籤，不用 FormRow 的 label：
+               tests/unit/required-placeholder.test.mjs 靠這個標記找出必填欄位 -->
+          <div class="sheet-row">
+            <label class="sheet-label" for="brew-dose">粉重<span :style="{ color: 'var(--danger)' }" aria-hidden="true">*</span><span class="sr-only">必填</span><AlertIcon v-if="doseError" class="sheet-label-alert" /></label>
+            <div class="sheet-value">
+              <NumberField id="brew-dose" v-model="values.dose" unit="g" placeholder="輸入粉重" />
+            </div>
           </div>
-        </div>
-        <template v-if="ratio || doseError" #below>
-          <p v-if="ratio" class="tabular-nums">粉水比 {{ ratio }}</p>
-          <p v-if="doseError" :style="{ color: 'var(--danger)' }">{{ doseError }}</p>
-        </template>
-      </FormRow>
-      <FormRow label="水溫" for="brew-temp">
-        <NumberField id="brew-temp" v-model="values.water_temp" unit="°C" integer />
-      </FormRow>
-      <FormRow label="沖煮手法" for="brew-method">
-        <SelectField>
-          <select
-            id="brew-method"
-            v-model="values.brew_method_id"
-            class="sheet-pill"
-            :data-empty="values.brew_method_id === null || undefined"
-          >
-            <option :value="null">選填</option>
-            <option v-for="method in methods" :key="method.id" :value="method.id">{{ method.name }}</option>
-          </select>
-        </SelectField>
-        <template v-if="methods.length || methodNotice" #below>
-          <p v-if="methods.length">選擇沖煮手法會依粉重帶入分段</p>
-          <!-- 內建手法的分段模板數值尚未經實機核實（見 CLAUDE.md 階段備註）。
-               在核實之前先講清楚它是參考值，避免使用者當成標準答案照做。 -->
-          <p v-if="methods.length">
-            內建沖煮手法為參考框架，實際水量請依自己的器材與豆子調整
-          </p>
-          <!-- 不擋儲存，所以是 --notice 不是 --danger（《03》§4.1） -->
-          <p v-if="methodNotice" :style="{ color: 'var(--notice)' }">
-            {{ methodNotice }}
-          </p>
-        </template>
-      </FormRow>
-      <FormRow>
-        <PourStepsEditor
-          v-model="steps"
-          :dose="values.dose"
+        </FormRow>
+        <FormNote v-if="doseError" tone="error">{{ doseError }}</FormNote>
+        <FormNote v-if="ratio" field="粉重">粉水比 {{ ratio }}</FormNote>
+        <FormRow label="水溫" for="brew-temp">
+          <NumberField id="brew-temp" v-model="values.water_temp" unit="°C" integer />
+        </FormRow>
+      </FormCard>
+
+      <!-- 分段：這裡只有摘要，編輯在子頁（PourStepsSheet）。沖煮手法的下拉也在子頁最上面 -->
+      <FormCard>
+        <PourStepsSummary
+          :steps="steps"
+          :method-name="methodName"
           :show-times="recordStepTimes"
-          :times-pending="!stepTimesLoaded || stepTimesSaving"
-          :times-notice="stepTimesNotice"
-          :times-error="stepTimesError"
-          @toggle-times="toggleStepTimes"
+          @open="stepsOpen = true"
         />
-      </FormRow>
-      <FormRow label="沖煮時間" for="brew-total-time">
-        <DurationPicker id="brew-total-time" v-model="values.total_time" />
-      </FormRow>
-    </FormCard>
+        <!-- 總水量是衍生值，不設輸入欄位、不存資料庫 -->
+        <FormNote v-if="water !== null">總水量 {{ water }} g</FormNote>
+        <!-- 不擋儲存，所以是 --notice 不是 --danger（《03》§4.1） -->
+        <FormNote v-if="methodNotice" tone="notice">{{ methodNotice }}</FormNote>
+      </FormCard>
 
-    <FormCard title="喝起來" data-section="tasting">
-      <FormRow flush>
+      <FormCard>
+        <FormRow label="沖煮時間" for="brew-total-time">
+          <DurationPicker id="brew-total-time" v-model="values.total_time" />
+        </FormRow>
+      </FormCard>
+    </FormSection>
+
+    <FormSection title="喝起來" data-section="tasting">
+      <FormCard>
         <IntensityPicker v-model="values.intensity" />
-      </FormRow>
-      <FormRow flush>
-        <CollapsibleSection title="風味標籤" storage-key="brewForm.flavor.expanded">
-          <div class="px-4 py-4">
-            <FlavorTagPicker v-model="flavorTagIds" />
-          </div>
-        </CollapsibleSection>
-      </FormRow>
-      <FormRow label="心得筆記" for="brew-notes">
-        <textarea
-          id="brew-notes"
-          v-model="values.tasting_notes"
-          rows="3"
-          class="sheet-input"
-        />
-      </FormRow>
-      <FormRow>
-        <StarRating v-model="values.rating" />
-      </FormRow>
-    </FormCard>
+      </FormCard>
+      <FormCard>
+        <FlavorTagPicker v-model="flavorTagIds" />
+      </FormCard>
+      <FormCard>
+        <FormRow label="心得筆記" for="brew-notes">
+          <textarea
+            id="brew-notes"
+            v-model="values.tasting_notes"
+            rows="3"
+            placeholder="選填"
+            class="sheet-input"
+          />
+        </FormRow>
+      </FormCard>
+      <FormCard>
+        <FormRow>
+          <StarRating v-model="values.rating" />
+        </FormRow>
+      </FormCard>
+    </FormSection>
 
-    <!-- 收藏在卡片外：它不是品飲判斷，是「還想不想再沖」的實用決定，
+    <!-- 收藏不在「喝起來」裡：它不是品飲判斷，是「還想不想再沖」的實用決定，
          跟儲存這個動作在同一個心理時刻。照 Figma 自己一張卡片、一個開關，說明在卡片下方。 -->
     <div>
-      <div data-section="tasting">
-        <AppCard radius="lg" class="px-4 py-2">
-          <ToggleSwitch v-model="values.is_favorite" label="收藏" />
-        </AppCard>
-        <p class="mt-1.5 px-1 text-sm text-muted">還想再沖一次</p>
-      </div>
+      <FormCard data-section="tasting">
+        <FormRow>
+          <ToggleSwitch v-model="values.is_favorite" label="收藏" class="sheet-row" />
+        </FormRow>
+        <FormNote>還想再沖一次</FormNote>
+      </FormCard>
 
       <AppButton block
         type="submit"
         :busy="busy"
-        class="mt-4"
+        :style="{ marginTop: 'var(--gap-group)' }"
       >
         {{ busy ? '儲存中' : submitLabel }}
       </AppButton>
@@ -621,10 +629,11 @@ defineExpose({ clearDraft: () => draft?.clear() })
       <p
         v-if="error || summaryError || lookupError"
         role="alert"
-        class="mt-3 rounded-sm border px-3 py-3 text-sm"
+        class="mt-3 flex items-start gap-2 rounded-sm border px-3 py-3 text-sm"
         :style="{ color: 'var(--danger)', borderColor: 'var(--danger)' }"
       >
-        {{ error || summaryError || lookupError }}
+        <AlertIcon class="mt-0.5" />
+        <span>{{ error || summaryError || lookupError }}</span>
       </p>
     </div>
 
@@ -635,6 +644,22 @@ defineExpose({ clearDraft: () => draft?.clear() })
       :type="pickerType"
       @close="pickerType = null"
       @created="loadEquipment"
+    />
+
+    <PourStepsSheet
+      v-if="stepsOpen"
+      v-model="steps"
+      v-model:method-id="values.brew_method_id"
+      :open="stepsOpen"
+      :dose="values.dose"
+      :methods="methods"
+      :method-notice="methodNotice"
+      :show-times="recordStepTimes"
+      :times-pending="!stepTimesLoaded || stepTimesSaving"
+      :times-notice="stepTimesNotice"
+      :times-error="stepTimesError"
+      @toggle-times="toggleStepTimes"
+      @close="stepsOpen = false"
     />
   </form>
 </template>

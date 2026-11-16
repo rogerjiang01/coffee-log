@@ -55,7 +55,7 @@ function sortedSteps(steps: StepRow[]) {
 }
 
 /**
- * 各段停水時間的顯示字串。資料庫存的就是這個數字，不必反推。
+ * 各段停水時長的顯示字串。資料庫存的就是這個數字，不必反推。
  * 最後一段永遠沒有停留（沒有下一注），尾端的空值不列出來。
  */
 function holdSecondsText(steps: StepRow[]) {
@@ -91,7 +91,7 @@ export function computeBrewDiff(after: DiffSubject, before: DiffSubject): BrewDi
     push('total_time', '沖煮時間', secondsToClock(before.total_time!), secondsToClock(after.total_time!))
   }
 
-  // 分段結構：段數、各段累積水量、各段停水時間，三者分開列。一邊沒有分段就整組略過
+  // 分段結構：段數、各段累積水量、各段停水時長，三者分開列。一邊沒有分段就整組略過
   const beforeSteps = sortedSteps(before.steps)
   const afterSteps = sortedSteps(after.steps)
   if (!beforeSteps.length || !afterSteps.length) return diffs
@@ -102,10 +102,10 @@ export function computeBrewDiff(after: DiffSubject, before: DiffSubject): BrewDi
   const waterAfter = afterSteps.map(step => Number(step.cumulative_water)).join(' / ')
   push('step_water', '各段累積水量', waterBefore, waterAfter)
 
-  // 分段時間是可選的進階參數（分段注水區的「記錄停水時間」預設關閉），
+  // 分段時間是可選的進階參數（分段注水區的「記錄停水時長」預設關閉），
   // 沒記錄的 hold_seconds 全是 null。兩邊都有記錄才比對
   if (hasStepTiming(beforeSteps) && hasStepTiming(afterSteps)) {
-    push('step_time', '各段停水時間', holdSecondsText(beforeSteps), holdSecondsText(afterSteps))
+    push('step_time', '各段停水時長', holdSecondsText(beforeSteps), holdSecondsText(afterSteps))
   }
 
   return diffs

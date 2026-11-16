@@ -6,6 +6,7 @@
 //   - 顯示用的那一層撐出高度（一行或兩行）
 //   - <input> 一直都在、佔滿整格，所以點哪裡都能開始輸入；
 //     沒在輸入而且有值時只是把它的文字藏起來，讓底下那一層顯示
+// 空的時候提示字是「選填」（和下拉列一致，2026-11-16）；必填的欄位由外面傳「輸入＋欄位名」。
 // 用 <input> 而不是 textarea：要支援 datalist（產區的建議），也不必處理換行。
 
 defineOptions({ inheritAttrs: false })
@@ -23,6 +24,7 @@ const hasValue = computed(() => !!model.value)
       v-bind="$attrs"
       v-model="model"
       type="text"
+      :placeholder="($attrs.placeholder as string | undefined) ?? '選填'"
       class="sheet-input sheet-text__input"
       :class="hasValue && !focused ? 'sheet-text__input--hidden' : ''"
       @focus="focused = true"

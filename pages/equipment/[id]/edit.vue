@@ -122,7 +122,7 @@ async function destroy() {
 </script>
 
 <template>
-  <main class="mx-auto px-5 pt-10 pb-16" :style="{ maxWidth: 'var(--content-max)' }">
+  <main class="mx-auto pt-10 pb-16" :style="{ maxWidth: 'var(--content-max)', paddingInline: 'var(--form-gutter)' }">
     <!-- 離開的入口不跟著資料走：讀取中、讀取失敗、找不到都要看得到 -->
     <PageHeader
       :title="view === 'notFound' ? '找不到這個器材' : '編輯器材'"

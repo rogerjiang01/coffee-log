@@ -63,7 +63,7 @@ export default function run() {
 
   const grind = readFileSync(new URL('../../components/GrindSettingInput.vue', import.meta.url), 'utf8')
   r.section('刻度提示的位置與顏色')
-  const referenceLine = (grind.match(/<p v-if="hasCatalog[\s\S]*?<\/p>/) || [''])[0]
+  const referenceLine = (grind.match(/<FormNote v-if="showReference"[\s\S]*?<\/FormNote>/) || [''])[0]
   r.check(/v-if="notice"/.test(referenceLine),
     '提示在參考資訊那一行裡面——分開一行就跟參考資訊長得一樣')
   r.check(/var\(--notice\)/.test(referenceLine), '用 --notice')
@@ -75,13 +75,14 @@ export default function run() {
 
   r.section('間隔不符與範圍提示同位置、同顏色')
   r.check(!/incrementNotice|rangeNotice/.test(grind), '不再分兩種提示各自擺放')
-  r.check((grind.match(/<p\b/g) || []).length === 2,
+  r.check((grind.match(/<FormNote\b/g) || []).length === 2,
     '只剩參考資訊與型錄備註兩個段落——間隔不符不再獨立一行')
 
   r.section('換到第二行時貼齊左緣')
   // ml-3 會跟著換行的那段一起走，只有提示縮排 12px。
   // column-gap 只作用在同一行的兩段之間
-  r.check(/flex-wrap/.test(referenceLine) && /gap-x-3/.test(referenceLine), '第一行用 flex-wrap ＋ gap-x-3')
+  // 2026-11-16：這一行改由 .form-note 排（卡片下方的小字），同樣是 flex-wrap 加 column-gap
+  r.check(/\.form-note \{[^}]*flex-wrap: wrap;[^}]*column-gap: 0\.5rem;/.test(css), '.form-note 用 flex-wrap ＋ column-gap')
   r.check(!/ml-\d/.test(referenceLine), '第一行裡沒有任何 ml-*')
 
   r.section('字體：台北黑體沒有 500，Medium 要連字體一起換（《03》§2.4）')

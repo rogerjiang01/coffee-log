@@ -6,9 +6,11 @@
 //
 // 兩種用法：
 //   - 給 label：這一列自己排標籤，預設 slot 是右側的控制項
-//   - 不給 label：整列交給 slot。自帶標籤的元件（下拉、器材欄位、研磨刻度、星等）
-//     與不是單一欄位的區塊（強度、分段注水、收合區）用這種
-// below slot 是列下方的提示、錯誤與衍生值，放在分隔線之前。
+//   - 不給 label：整列交給 slot。自帶標籤的元件（下拉、器材欄位、星等）
+//     與不是單一欄位的區塊（強度、收合區）用這種
+//
+// 這一列的提示、錯誤與衍生值不放在列裡：用 FormNote，它會顯示在卡片下方（《03》§4.1）。
+// error：這一列有錯誤時，標籤右邊加 circle-alert——訊息在卡片下方，要看得出是哪一列。
 
 defineProps<{
   label?: string
@@ -18,23 +20,22 @@ defineProps<{
   required?: boolean
   /** 不要左右內距：內容自己帶（強度選擇器） */
   flush?: boolean
+  error?: boolean
 }>()
 </script>
 
 <template>
-  <div class="form-row" :class="flush ? '' : 'px-4'">
+  <div class="form-row" :class="flush ? '' : 'card-pad-x'">
     <div v-if="label" class="sheet-row">
       <label class="sheet-label" :for="$props.for">
         {{ label }}<template v-if="required"><span :style="{ color: 'var(--danger)' }" aria-hidden="true">*</span><span class="sr-only">必填</span></template>
+        <AlertIcon v-if="error" class="sheet-label-alert" />
       </label>
       <div class="sheet-value">
         <slot />
       </div>
     </div>
     <slot v-else />
-    <div v-if="$slots.below" class="sheet-below">
-      <slot name="below" />
-    </div>
   </div>
 </template>
 

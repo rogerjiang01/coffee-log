@@ -5,7 +5,7 @@
 // **所有結果都是提示，不阻擋儲存**——使用者可能改裝、可能記錯、
 // 可能用型錄未涵蓋的方式讀數，擋住輸入的代價遠高於容忍異常值。
 //
-// 版面是表單的一列（標籤在左、數字在右），刻度的參考資訊與提示在這一列下方。
+// 版面是表單的一列（標籤在左、數字在右），刻度的參考資訊與提示在卡片下方（FormNote）。
 
 const props = defineProps<{
   modelValue: number | null
@@ -37,35 +37,26 @@ const showReference = computed(() => props.hasCatalog && !freeform.value)
       </div>
     </div>
 
-    <div v-if="showReference || spec.note" class="sheet-below">
-      <!-- 型錄沒有資料、或面板本來就沒刻度時完全不提示，
-           連「這台沒有刻度」都不說：畫面上沒有提示本身就是那個資訊 -->
+    <!-- 型錄沒有資料、或面板本來就沒刻度時完全不提示，
+         連「這台沒有刻度」都不說：畫面上沒有提示本身就是那個資訊。
+         參考資訊與提示都顯示在卡片下方（FormNote），前面寫欄位名：這張卡片還有磨豆機那一列 -->
+    <FormNote v-if="showReference" field="研磨刻度">
+      <span v-if="range">刻度 {{ range }}</span>
+      <span v-if="!unset(spec.increment)">最小間隔 {{ spec.increment }}</span>
+      <span v-else>連續無段</span>
+      <span v-if="suggestion">{{ suggestion }}</span>
       <!--
-        flex-wrap ＋ gap-x-3 取代每段的 ml-3：column-gap 只在同一行的兩段之間生效，
-        換到下一行的那段會貼齊左緣。ml-3 會跟著換行，只有提示縮排 12px，
-        下面的型錄備註卻貼齊左緣，看起來像排版出錯。
+        超出範圍、不符最小間隔都接在參考資訊後面，同一則。分開一則的話它長得跟
+        參考資訊一樣，而參考資訊是一直都在的東西，使用者看久了會自動略過。
+        whitespace-nowrap：中文預設可以在任兩個字之間換行，整段一起換到下一行才讀得出來。
+        顏色用 --notice 不用 --danger：這個值存得起來（《03》§4.1）。
       -->
-      <p v-if="hasCatalog && !freeform" class="flex flex-wrap gap-x-3 tabular-nums text-muted">
-        <span v-if="range">刻度 {{ range }}</span>
-        <span v-if="!unset(spec.increment)">最小間隔 {{ spec.increment }}</span>
-        <span v-else>連續無段</span>
-        <span v-if="suggestion">{{ suggestion }}</span>
-        <!--
-          超出範圍、不符最小間隔都接在參考資訊後面，同一行。分開一行的話它長得跟
-          參考資訊一樣，而參考資訊是一直都在的東西，使用者看久了會自動略過。
-
-          whitespace-nowrap：中文預設可以在任兩個字之間換行，一行放不下時
-          會變成「超出磨豆機刻」＋「度範圍」。整段一起換到下一行才讀得出來。
-
-          顏色用 --notice 不用 --danger：這個值存得起來（《03》§4.1）。
-        -->
-        <span
-          v-if="notice"
-          class="whitespace-nowrap"
-          :style="{ color: 'var(--notice)' }"
-        >{{ notice }}</span>
-      </p>
-      <p v-if="spec.note" class="text-muted">{{ spec.note }}</p>
-    </div>
+      <span
+        v-if="notice"
+        class="whitespace-nowrap"
+        :style="{ color: 'var(--notice)' }"
+      >{{ notice }}</span>
+    </FormNote>
+    <FormNote v-if="spec.note" field="研磨刻度">{{ spec.note }}</FormNote>
   </div>
 </template>

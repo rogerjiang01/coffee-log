@@ -24,7 +24,9 @@ export default function run() {
     hardcoded.length ? `這些還寫死 body：${hardcoded.join('、')}` : '全部改用 usePortalTarget')
 
   r.section('每個 Teleport 都用共用的目標')
-  const users = sources.filter(([, src]) => src.includes('<Teleport'))
+  // FormNote 不是浮層：它把小字傳送到同一張卡片下方的 footer（FormCard 提供的元素），
+  // 目標和來源在同一個 dialog／頁面裡，沒有 inert 的問題，不適用這一條
+  const users = sources.filter(([name, src]) => src.includes('<Teleport') && name !== 'FormNote.vue')
   r.check(users.length >= 3, `有 ${users.length} 個元件用到 Teleport`)
   for (const [name, src] of users) {
     r.check(src.includes('usePortalTarget'), `${name} 用 usePortalTarget 決定目標`)

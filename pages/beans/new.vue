@@ -80,7 +80,7 @@ async function onSubmit({ values, photo }: { values: BeanFormValues; photo: Comp
 </script>
 
 <template>
-  <main class="mx-auto px-5 py-10" :style="{ maxWidth: 'var(--content-max)' }">
+  <main class="mx-auto py-10" :style="{ maxWidth: 'var(--content-max)', paddingInline: 'var(--form-gutter)' }">
     <!-- ‹ 是「離開」不是「取消」：暫存留著，回來還在（《04》） -->
     <PageHeader title="新增豆子" back="/beans" back-label="離開" />
 

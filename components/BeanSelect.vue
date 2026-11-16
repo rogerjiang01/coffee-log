@@ -251,7 +251,7 @@ async function create() {
     <!-- 表單的一列：標籤在左，已選的值在右側的膠囊裡；還沒選時不畫膠囊。
          下拉開著的時候膠囊的文字換成強調色（Figma 的 dropdown_input） -->
     <div class="sheet-row">
-      <label class="sheet-label" for="brew-bean">豆子<span :style="{ color: 'var(--danger)' }" aria-hidden="true">*</span><span class="sr-only">必填</span></label>
+      <label class="sheet-label" for="brew-bean">豆子<span :style="{ color: 'var(--danger)' }" aria-hidden="true">*</span><span class="sr-only">必填</span><AlertIcon v-if="error" class="sheet-label-alert" /></label>
       <button
         ref="trigger"
         id="brew-bean"
@@ -268,7 +268,8 @@ async function create() {
       </button>
     </div>
 
-    <p v-if="error" class="sheet-below" :style="{ color: 'var(--danger)' }">{{ error }}</p>
+    <!-- 錯誤顯示在卡片下方（FormNote 會傳送過去），這一列的標籤右邊有 circle-alert -->
+    <FormNote v-if="error" tone="error">{{ error }}</FormNote>
 
     <Teleport :to="portalTarget">
       <div

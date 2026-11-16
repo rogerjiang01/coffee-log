@@ -38,7 +38,7 @@ function toggle() {
   <section>
     <button
       type="button"
-      class="sheet-row w-full px-4 text-left"
+      class="sheet-row card-pad-x w-full text-left"
       :aria-expanded="open"
       @click="toggle"
     >

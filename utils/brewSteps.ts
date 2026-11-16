@@ -1,19 +1,19 @@
 // 分段注水（《01-資料庫規格》§3.6、《02-功能規格》§5 區塊三）。
 //
 // **介面填什麼就存什麼，沒有換算層。**
-//   累積水量  「注到 160 g」→ cumulative_water = 160
-//   停水時間  「停 30 秒」  → hold_seconds = 30
+//   累積水量  160 g → cumulative_water = 160
+//   停水時長  30 秒 → hold_seconds = 30
 //
-// 停留＝注完之後到下一注之前的**停水時間**，不含注水動作本身。
+// 停留＝注完之後到下一注之前的**停水時長**，不含注水動作本身。
 //
 // 舊版存的是累積時間點（time_offset），「停留」被定義成「這段開始注水到
 // 下一段開始注水」的全部時間。那個定義要求使用者提供一個他不知道的數字
 // ——注水花了幾秒——兩位實機測試者都填不出來（「我以為是下沖的時間」；
 // 被告知定義之後仍然「不知道怎麼填」）。給水速率依器材與手法而異，
-// 還有行動誤差，無法預期；能預期、也真的在被調整的是停水時間。
+// 還有行動誤差，無法預期；能預期、也真的在被調整的是停水時長。
 // **換算層與它的測試一起移除了，不要再加回來。**
 //
-// 最後一段不存停水時間（一律 null）：最後一注之後沒有下一注，「停水」
+// 最後一段不存停水時長（一律 null）：最後一注之後沒有下一注，「停水」
 // 這件事不存在，剩下的只是等它滴完，那段時間由 total_time 記錄。
 //
 // hold_seconds 可為 NULL：沒記錄就是 NULL。舊版 NOT NULL 逼得「沒記錄」
@@ -30,10 +30,34 @@ export interface StepInput {
   note: string
 }
 
+/**
+ * 攪拌標記已經從介面移除（2026-11-16，Laeta 改版第三批）：需要的話寫在備註。
+ * 資料庫的 step_type 還留著 'stir'（清理用的 migration 等 redesign 上線時處理，見 CLAUDE.md），
+ * 所以舊紀錄裡還讀得到。這裡是唯一決定「舊的攪拌段在新介面長什麼樣子」的地方：
+ *
+ *   載入表單（編輯、照這次再沖一次、還原暫存）  轉成一般段，備註前面補上「攪拌」
+ *   顯示（紀錄詳情、分享頁）                    備註的位置顯示「攪拌」，原本的備註接在後面
+ *
+ * 新的介面不會再產生 'stir'。
+ */
+export const STIR_NOTE = '攪拌'
+
+export function stirNote(stepType: StepType, note: string | null | undefined): string {
+  const text = (note ?? '').trim()
+  if (stepType !== 'stir') return text
+  return text ? `${STIR_NOTE}，${text}` : STIR_NOTE
+}
+
+export function withoutStir(steps: StepInput[]): StepInput[] {
+  return steps.map(step => (step.stepType === 'stir'
+    ? { ...step, stepType: 'pour' as const, note: stirNote(step.stepType, step.note) }
+    : step))
+}
+
 /** 資料庫裡的一段 */
 export interface StepRow {
   step_index: number
-  /** 停水時間。沒記錄是 null；最後一段永遠是 null */
+  /** 停水時長。沒記錄是 null；最後一段永遠是 null */
   hold_seconds: number | null
   cumulative_water: number
   step_type: StepType
@@ -113,7 +137,7 @@ export interface MethodTemplateStep {
   type: StepType
   basis: StepBasis
   factor: number
-  /** 該段的停水時間。最後一段沒有下一注，是 null */
+  /** 該段的停水時長。最後一段沒有下一注，是 null */
   duration: number | null
   note?: string
 }
@@ -209,7 +233,7 @@ export function stepsFromTemplate(
       stepType: step.type,
       // 磅秤讀的是累積數字，這裡直接給累積值
       cumulativeWater: cumulative,
-      // 模板的 duration 是停水時間，直接給，不換算
+      // 模板的 duration 是停水時長，直接給，不換算
       holdSeconds: step.duration ?? null,
       note: step.note ?? '',
     }

@@ -223,7 +223,7 @@ async function onSubmit(payload: {
 </script>
 
 <template>
-  <main class="mx-auto px-5 pt-10 pb-16" :style="{ maxWidth: 'var(--content-max)' }">
+  <main class="mx-auto pt-10 pb-16" :style="{ maxWidth: 'var(--content-max)', paddingInline: 'var(--form-gutter)' }">
     <!-- ‹ 是「離開」不是「取消」：暫存留著，回來還在（《04》）。
          會丟掉內容的動作才叫取消，這一頁沒有 -->
     <PageHeader :title="copiedFrom ? '再沖一次' : '新增紀錄'" :back="leaveTo" back-label="離開" />

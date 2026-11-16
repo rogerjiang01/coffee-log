@@ -40,11 +40,10 @@ const ICONS = [
   ['完成（結算頁的勾勾）', 'pages/brews/[id]/summary.vue', 'M20 6 9 17l-5-5', 2, 1],
   // 內容區的小圖示：1.5px
   // 2026-11-13：分段的移除從 × 改成垃圾桶（Lucide trash-2，《03》§3）
-  ['分段的垃圾桶', 'components/PourStepsEditor.vue', 'M3 6h18', 1.5, 1],
+  ['分段的垃圾桶', 'components/PourStepsSheet.vue', 'M3 6h18', 1.5, 1],
   ['⌄ 收合區', 'components/CollapsibleSection.vue', 'm6 9 6 6 6-6', 1.5, 1],
   // 2026-11-13：下拉與器材欄位改成膠囊，沒有 ⌄ 與 › 了（照 Figma 的 Sheet Row）；收合區的 ⌄ 還在
   ['› 卡片標題列', 'components/AppCard.vue', 'm9 18 6-6-6-6', 1.5, 1],
-  ['攪拌標記', 'components/StirIcon.vue', 'M12 14v7', 1.5, 1],
   ['暫存中（Lucide refresh-cw）', 'components/DraftStatus.vue', 'M21 3v5h-5', 1.5, 1],
   ['已暫存（打勾）', 'components/DraftStatus.vue', 'M20 6 9 17l-5-5', 1.5, 1],
   // 收藏愛心：四個尺寸都要落在 1.5px。換成 Lucide 之前四處寫的都是 1.5，
@@ -55,9 +54,7 @@ const ICONS = [
   // 星等：表單 24px、詳情頁 20px，兩處都要落在 1.5px。
   // 換成 Lucide 之前兩處都寫 1.5，詳情頁那個實際只有 1.25
   ['星等（表單）', 'components/StarRating.vue', STAR, 1.5, 1],
-  ['星等（紀錄詳情）', 'pages/brews/[id]/index.vue', STAR, 1.5, 1],
   // 分享頁與紀錄詳情頁同一組尺寸
-  ['星等（分享頁）', 'components/SharedBrewView.vue', STAR, 1.5, 1],
   ['愛心（分享頁）', 'components/SharedBrewView.vue', HEART, 1.5, 1],
   ['勾選框的打勾（分享對話框）', 'components/BrewShare.vue', 'M20 6 9 17l-5-5', 1.5, 1],
 ]
@@ -81,6 +78,10 @@ export default function run() {
   r.check(/\(1\.5 \* 24\) \/ props\.size/.test(starDisplay) && /:stroke-width="strokeWidth"/.test(starDisplay) && /stroke-linecap="round"/.test(starDisplay),
     '線寬依顯示尺寸換算，固定落在 1.5px')
   r.check(/'var\(--favorite\)' : 'var\(--control-inactive\)'/.test(starDisplay), '未選是實心的 --control-inactive（和表單一致）')
+  r.check(/viewBox="0 0 24 24"/.test(starDisplay), 'Lucide 的 24 格線')
+  for (const path of ['pages/brews/[id]/index.vue', 'components/SharedBrewView.vue', 'components/OverviewBeanCard.vue']) {
+    r.check(/<StarDisplay /.test(read(path)), `${path}：顯示用的星等走 StarDisplay`)
+  }
 
   r.section('尺寸')
   const size = svg => Number(svg.match(/\swidth="([\d.]+)"/)[1])
@@ -100,18 +101,16 @@ export default function run() {
     ['pages/beans/index.vue', 'M5 12h14'],
     ['pages/equipment/index.vue', 'M5 12h14'],
     ['pages/index.vue', 'r="3"'],
-    ['components/PourStepsEditor.vue', 'M3 6h18'],
+    ['components/PourStepsSheet.vue', 'M3 6h18'],
     ['components/AppCard.vue', 'm9 18 6-6-6-6'],
     ['components/ShareIcon.vue', 'm16 6-4-4-4 4'],
     ['components/BrewTimelineItem.vue', HEART],
     ['components/BeanCompareTable.vue', HEART],
     ['pages/brews/[id]/index.vue', HEART],
     ['components/StarRating.vue', STAR],
-    ['pages/brews/[id]/index.vue', STAR],
     ['components/DraftStatus.vue', 'M20 6 9 17l-5-5'],
     ['components/DraftStatus.vue', 'M21 3v5h-5'],
     ['components/BrewShare.vue', 'M20 6 9 17l-5-5'],
-    ['components/SharedBrewView.vue', STAR],
     ['components/SharedBrewView.vue', HEART],
     ['components/CollapsibleSection.vue', 'm6 9 6 6 6-6'],
   ]
@@ -127,8 +126,6 @@ export default function run() {
   // --control-empty 本身是 stone-400（2.45:1），刻意低於 3:1——那是《03》§2.2
   // 寫明的取捨，這裡守的是「不要再往下退」，不是 3:1
   const empty = [
-    ['pages/brews/[id]/index.vue', '星等（紀錄詳情）'],
-    ['components/SharedBrewView.vue', '星等（分享頁）'],
     ['components/BrewShare.vue', '勾選框（分享對話框）'],
   ]
   for (const [file, name] of empty) {

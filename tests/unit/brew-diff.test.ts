@@ -57,7 +57,7 @@ export default function run() {
   r.check(computeBrewDiff(base({ brew_method_id: 'm1', methodName: '四六法' }), base()).length === 0,
     '比較對象沒選手法、這一筆選了：不列（不是調整，是記得比較詳細）')
   r.check(computeBrewDiff(base({ total_time: null }), base()).length === 0, '一邊沒填沖煮時間：不列')
-  r.check(computeBrewDiff(base({ steps: [] }), base()).length === 0, '一邊沒有分段：段數、水量、停水時間都不列')
+  r.check(computeBrewDiff(base({ steps: [] }), base()).length === 0, '一邊沒有分段：段數、水量、停水時長都不列')
   r.check(!JSON.stringify(computeBrewDiff(base({ dose: null, steps: [] }), base({ water_temp: null }))).includes('沒填'),
     '畫面上不再出現「沒填」')
 
@@ -93,7 +93,7 @@ export default function run() {
   r.check(untimedFewer.some(d => d.field === 'step_count') && !untimedFewer.some(d => d.field === 'step_time'),
     '兩邊都沒記錄、段數不同：比出段數，不比停留秒數')
   const oneSide = computeBrewDiff(base({ steps: untimed }), base())
-  r.check(!oneSide.some(d => d.field === 'step_time'), '只有一邊有記錄：略過停水時間（一邊沒填就略過）')
+  r.check(!oneSide.some(d => d.field === 'step_time'), '只有一邊有記錄：略過停水時長（一邊沒填就略過）')
   const bloomOnly = [step(1, null, 40)]
   r.check(!computeBrewDiff(base({ steps: bloomOnly, total_time: 120 }), base({ steps: bloomOnly }))
     .some(d => d.field === 'step_time'),
