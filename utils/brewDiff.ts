@@ -50,8 +50,14 @@ function name(value: string | null) {
   return value ?? '沒填'
 }
 
+/**
+ * 比較用的分段。舊紀錄的攪拌段先併進相鄰的段（withoutStir）——和紀錄詳情、分享頁、表單顯示的是同一組段。
+ * 不併的話，畫面上是三段，差異卻寫「3 段 → 4 段」，多出來的那一段是畫面上看不到的攪拌段（2026-11-16）。
+ */
 function sortedSteps(steps: StepRow[]) {
-  return [...steps].sort((a, b) => a.step_index - b.step_index)
+  const sorted = [...steps].sort((a, b) => a.step_index - b.step_index)
+  if (!sorted.some(step => step.step_type === 'stir')) return sorted
+  return toStepRows(withoutStir(toStepInputs(sorted)))
 }
 
 /**

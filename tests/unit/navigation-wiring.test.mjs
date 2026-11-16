@@ -110,13 +110,19 @@ export default function run() {
     && /<OverviewBeanCard\s+v-if="top"\s+:title="top\.week === 'this' \? '本週最高分' : '上週最高分'"/.test(homeTemplate)
     && /<AppCard\s+v-if="totals"[\s\S]*?title="累計"\s+arrow/.test(homeTemplate) && /<AppCard v-if="month" title="本月"/.test(homeTemplate),
     '標題文字：本週目標、最近沖煮、本週最高分／上週最高分、累計、本月')
-  r.check(/<GoalRing :count="ringCount" :from="from" :goal="goal" :size="100"/.test(goalCard) && />記錄<\/span>/.test(goalCard),
+  r.check(/<GoalRing :count="ringCount" :from="ringFrom" :goal="goal" :size="100"/.test(goalCard) && />記錄<\/span>/.test(goalCard),
     '目標環卡片：左邊 100px 的環，中間是「記錄」與數字，右邊是長條圖（Figma）')
   r.check(/class="relative w-full rounded-full" :style="\{ height: `\$\{BAR_HEIGHT\}px`, background: 'var\(--accent-wash\)' \}">\s*<span\s+v-if="cups"\s+class="absolute inset-x-0 bottom-0 rounded-full"/.test(goalCard),
     '每一天都有全高的底軌（--accent-wash），杯數的長條疊在上面；0 杯的那一天只有底軌')
-  r.check(/over-text/.test(homeTemplate) && /if \(props\.overText && props\.count > props\.goal\) return `超過 \$\{props\.count - props\.goal\} 杯`/.test(read('components/GoalWeekCard.vue'))
-    && /props\.overText \? Math\.min\(props\.count, props\.goal\) : props\.count/.test(read('components/GoalWeekCard.vue')),
-    '總覽超過目標：環停在一圈，寫「超過 N 杯」，不畫第二圈')
+  const goalCardFile = read('components/GoalWeekCard.vue')
+  r.check(!/over-?[tT]ext/.test(homeTemplate + goalCard) && !/props\.overText/.test(goalCardFile)
+    && /if \(props\.count > props\.goal\) return `超過 \$\{props\.count - props\.goal\} 杯`/.test(goalCardFile)
+    && /const ringCount = computed\(\(\) => Math\.min\(props\.count, props\.goal\)\)/.test(goalCardFile)
+    && /<GoalRing :count="ringCount" :from="ringFrom"/.test(goalCard)
+    && !/accent-active|laps\.second/.test(read('components/GoalRing.vue')),
+    '超過目標：環停在一圈，寫「超過 N 杯」，不畫第二圈——總覽與結算頁共用同一張卡片，沒有開關')
+  r.check(/const filled = ref\(ringFrom\.value === null \|\| ringFrom\.value === ringCount\.value\)/.test(goalCardFile),
+    '結算頁上已經超過目標之後的紀錄：環沒有動畫，數字直接是存檔後的杯數')
 
   r.section('總覽：固定高度與空狀態（2026-11-16 定案）')
   r.check(/--overview-card-h: 169px/.test(read('assets/css/tokens.css')), '卡片高度是一個 token（Figma 的 169px）')

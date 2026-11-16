@@ -5,7 +5,7 @@
 
 import {
   GOAL_DEFAULT, GOAL_MAX, GOAL_MIN, clampGoal, currentGoal, goalForWeek, monthRange, needsGoalSetup,
-  ringLaps, weekEnd, weekStart, weekdayIndex,
+  ringFraction, weekEnd, weekStart, weekdayIndex,
 } from '../../utils/weeklyGoal.ts'
 import { lastBeanCard, monthCard, recordCount, summaryRing, topRatedCard, totalsCard, weekCard, type StatBrew } from '../../utils/dashboard.ts'
 import { createReport } from '../helpers/report.mjs'
@@ -61,11 +61,12 @@ export default function run() {
   r.check(GOAL_MIN === 1 && GOAL_MAX === 21 && GOAL_DEFAULT === 3, '範圍與預設')
   r.check(clampGoal(0) === 1 && clampGoal(22) === 21 && clampGoal(5) === 5, '超出範圍時夾在邊界')
 
-  r.section('目標環的兩圈')
-  r.check(JSON.stringify(ringLaps(0, 3)) === JSON.stringify({ first: 0, second: 0 }), '0 杯：空的')
-  r.check(ringLaps(3, 3).first === 1 && ringLaps(3, 3).second === 0, '剛好達成：第一圈滿')
-  r.check(ringLaps(4, 3).first === 1 && Math.abs(ringLaps(4, 3).second - 1 / 3) < 1e-9, '超過：第二圈畫出超出的部分')
-  r.check(ringLaps(10, 3).second === 1, '第二圈最多一圈')
+  r.section('目標環：最多一圈，不畫第二圈')
+  r.check(ringFraction(0, 3) === 0, '0 杯：空的')
+  r.check(Math.abs(ringFraction(1, 3) - 1 / 3) < 1e-9, '1／3：三分之一圈')
+  r.check(ringFraction(3, 3) === 1, '剛好達成：滿的一圈')
+  r.check(ringFraction(4, 3) === 1 && ringFraction(10, 3) === 1, '超過：停在一圈（總覽與結算頁一致）')
+  r.check(ringFraction(2, 0) === 0 && ringFraction(-1, 3) === 0, '目標是 0 或杯數是負的：空的')
 
   r.section('目標設定頁的出現時機')
   r.check(needsGoalSetup('/', true, false), '已登入、沒有目標：導向目標設定頁')
@@ -132,7 +133,7 @@ export default function run() {
   r.check(ring?.before === 2 && ring.after === 3 && ring.crossed, '2 → 3／3：剛好跨過目標')
   const beyond = brew(at(2026, 10, 9))
   const over = summaryRing([...crossing, newest, beyond], goals3, beyond.id, at(2026, 10, 9, 10))
-  r.check(over?.before === 3 && over.after === 4 && !over.crossed, '已經達成之後：照樣前進，不算跨過')
+  r.check(over?.before === 3 && over.after === 4 && !over.crossed, '已經達成之後：杯數照樣前進，不算跨過（環停在一圈，由卡片處理）')
   const early = summaryRing([brew(MON), newest], goals3, newest.id, at(2026, 10, 8, 10))
   r.check(early?.after === 2 && !early.crossed, '還沒達成：不算跨過')
   const old = brew(at(2026, 9, 28))

@@ -169,7 +169,7 @@ async function loadDiff() {
 
 const water = computed(() => totalWater(steps.value))
 const ratio = computed(() => brewRatioLabel(water.value, brew.value?.dose ?? null))
-// 顯示用：舊紀錄的攪拌段併進相鄰的段（utils/brewSteps.ts）。差異計算與複製用的仍是原本的 steps
+// 顯示用：舊紀錄的攪拌段併進相鄰的段（utils/brewSteps.ts）。差異計算自己也會先併掉攪拌段（utils/brewDiff.ts），和這裡顯示的是同一組段；複製用的仍是原本的 steps（表單載入時再併）
 const displaySteps = computed(() => withoutStir(steps.value))
 const restedDays = computed(() =>
   restDays(brew.value?.beans?.roast_date, brew.value ? new Date(brew.value.brewed_at) : undefined),

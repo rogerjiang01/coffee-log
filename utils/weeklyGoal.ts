@@ -76,13 +76,12 @@ export function clampGoal(value: number): number {
 }
 
 /**
- * 目標環的兩圈（《03》§4.15）：第一圈是達成的比例，超過目標時第二圈疊在第一圈上，
- * 畫出超出的部分。第二圈最多畫滿一圈。
+ * 目標環畫多少（《03》§4.15）：達成的比例，0 到 1。超過目標時停在一圈，不畫第二圈
+ * （2026-11-16，總覽與結算頁一致；超出多少由「超過 N 杯」說明）。
  */
-export function ringLaps(count: number, goal: number): { first: number, second: number } {
-  if (goal <= 0) return { first: 0, second: 0 }
-  const ratio = Math.max(0, count) / goal
-  return { first: Math.min(ratio, 1), second: Math.min(Math.max(ratio - 1, 0), 1) }
+export function ringFraction(count: number, goal: number): number {
+  if (goal <= 0) return 0
+  return Math.min(Math.max(0, count) / goal, 1)
 }
 
 /**

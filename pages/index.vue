@@ -138,7 +138,6 @@ const newBrewLink = computed(() => newBrewEntry(activeBeans.value))
         :count="week.count"
         :goal="week.goal"
         :days="week.days"
-        over-text
         clickable
         @click="editing = true"
       />

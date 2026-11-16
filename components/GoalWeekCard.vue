@@ -10,7 +10,8 @@
 //   celebrate   這一筆剛好跨過目標：環補滿時的強調，「N／M 杯」下方顯示「已達成」
 // 總覽的卡片可以點（修改目標，標題列右端有 ›），結算頁的不行。
 //
-// overText：總覽用。超過目標時環停在一圈、不畫第二圈，數字下方寫「超過 N 杯」（《02》§4.1）。
+// 超過目標時兩頁都一樣（《02》§4.1、§5，2026-11-16）：環停在一圈、不畫第二圈，數字下方寫「超過 N 杯」。
+// 結算頁上已經超過目標之後的紀錄，環的起點與終點都是滿的一圈，所以沒有動畫，數字直接是存檔後的杯數。
 
 const props = withDefaults(defineProps<{
   count: number
@@ -20,24 +21,26 @@ const props = withDefaults(defineProps<{
   from?: number | null
   celebrate?: boolean
   clickable?: boolean
-  overText?: boolean
-}>(), { from: null, celebrate: false, clickable: false, overText: false })
+}>(), { from: null, celebrate: false, clickable: false })
 
 const emit = defineEmits<{ click: [] }>()
 
 const WEEKDAYS = ['一', '二', '三', '四', '五', '六', '日']
 const BAR_HEIGHT = 54
 
-// 有動畫時，數字等環畫完才換成存檔後的杯數
-const filled = ref(props.from === null)
+// 環最多畫到一圈
+const ringCount = computed(() => Math.min(props.count, props.goal))
+const ringFrom = computed(() => (props.from === null ? null : Math.min(props.from, props.goal)))
+
+// 有動畫時，數字等環畫完才換成存檔後的杯數。起點和終點相同（已經超過目標）就沒有動畫
+const filled = ref(ringFrom.value === null || ringFrom.value === ringCount.value)
 const shown = computed(() => (filled.value || props.from === null ? props.count : props.from))
 
 const barMax = computed(() => Math.max(1, ...props.days))
 
-const ringCount = computed(() => (props.overText ? Math.min(props.count, props.goal) : props.count))
 const status = computed(() => {
   if (props.celebrate) return filled.value ? '已達成' : ''
-  if (props.overText && props.count > props.goal) return `超過 ${props.count - props.goal} 杯`
+  if (props.count > props.goal) return `超過 ${props.count - props.goal} 杯`
   return ''
 })
 </script>
@@ -53,7 +56,7 @@ const status = computed(() => {
     @click="clickable && emit('click')"
   >
     <span class="flex items-end justify-between gap-3 px-3 pt-3.25 pb-2">
-      <GoalRing :count="ringCount" :from="from" :goal="goal" :size="100" :celebrate="celebrate" @filled="filled = true" />
+      <GoalRing :count="ringCount" :from="ringFrom" :goal="goal" :size="100" :celebrate="celebrate" @filled="filled = true" />
       <span class="flex min-w-0 flex-col justify-center self-stretch pb-2.5 font-medium">
         <span class="text-body-s">記錄</span>
         <span class="whitespace-nowrap tabular-nums" :style="{ color: 'var(--accent-text)' }">
