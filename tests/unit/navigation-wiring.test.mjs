@@ -290,6 +290,8 @@ export default function run() {
   r.check(/needsGoalSetup\(to\.path, userId !== null, false\)/.test(middleware) && /navigateTo\(GOAL_SETUP_PATH, \{ replace: true \}\)/.test(middleware),
     '已登入、沒有任何目標時，先到目標設定頁（全站的 middleware）')
   r.check(/if \(error\) return/.test(middleware), '查詢失敗不擋')
+  r.check(!/import\.meta\.server\) return/.test(middleware) && /import\.meta\.client && useNuxtApp\(\)\.isHydrating\) return/.test(middleware),
+    '整頁載入由伺服器判斷（直接 302），瀏覽器不在 hydration 途中導向——那會讓 /goal 沿用前一頁 HTML 的屬性')
   const stepper = read('components/GoalStepper.vue')
   r.check(/:disabled="atMin"/.test(stepper) && /:disabled="atMax"/.test(stepper) && /<span>杯<\/span>/.test(stepper), '加減按鈕：到邊界時停用，數字旁是「杯」')
   const goalDialog = read('components/GoalDialog.vue')

@@ -39,7 +39,9 @@ function rowBackground(row: CompareRow) {
     class="overflow-hidden rounded-md border shadow-light"
     :style="{ borderColor: 'var(--border)', background: 'var(--surface)' }"
   >
-    <div class="overflow-x-auto">
+    <!-- relative：表格裡只給螢幕閱讀器的文字（sr-only，絕對定位）要以這個捲動容器為定位基準。
+         沒有的話它們的定位基準是 body，會逃出捲動範圍、把整頁撐寬——手機上整頁可以左右滑（2026-11-17 修） -->
+    <div class="relative overflow-x-auto">
       <table class="w-full border-collapse text-sm tabular-nums">
         <thead>
           <tr :style="{ background: 'var(--surface)' }">
