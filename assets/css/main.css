@@ -227,6 +227,8 @@
     line-height: var(--text-body-m--line-height);
     color: var(--text-muted);
     font-variant-numeric: tabular-nums;
+    /* 避免最後一行只剩一兩個字（2026-11-17）。沒有支援的瀏覽器照一般的換行，不影響內容 */
+    text-wrap: pretty;
   }
   .form-note[data-tone="notice"] {
     color: var(--notice);

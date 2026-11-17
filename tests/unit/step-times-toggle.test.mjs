@@ -67,8 +67,8 @@ export default function run() {
     '右上角的「完成」和 ‹ 一樣只關掉子頁，不寫資料庫')
   r.check(/@toggle-times="toggleStepTimes"/.test(form) && /setRecordStepTimes\(next\)/.test(form),
     'BrewForm 接住事件，寫進同一個偏好')
-  r.check(/stepTimesNotice\.value = next && recordStepTimes\.value === next \? '之後的紀錄都會有時間欄位' : ''/.test(form),
-    '開啟之後回饋「之後的紀錄都會有時間欄位」；沒存成功就不說')
+  r.check(/stepTimesNotice\.value = next && recordStepTimes\.value === next \? '之後的紀錄都會有停水時長' : ''/.test(form),
+    '開啟之後回饋「之後的紀錄都會有停水時長」（2026-11-17 從「時間欄位」改成《04》的用詞）；沒存成功就不說')
   r.check(/const stepTimesNotice = ref\(''\)/.test(form),
     '回饋放在表單自己的狀態裡——只在該次切換後顯示，重新進表單不再出現')
 

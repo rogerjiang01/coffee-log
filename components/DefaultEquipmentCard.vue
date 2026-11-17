@@ -26,6 +26,10 @@ const emit = defineEmits<{ 'update:modelValue': [boolean] }>()
         @update:model-value="emit('update:modelValue', $event)"
       />
     </FormRow>
-    <FormNote>新增紀錄時會自動帶入。同一類器材只能有一台常用。</FormNote>
+    <!-- 兩句各自一行：連在一起時 390px 下第二行只剩「用。」 -->
+    <FormNote>
+      <span class="w-full">新增紀錄時會自動帶入。</span>
+      <span class="w-full">同一類器材只能有一台常用。</span>
+    </FormNote>
   </FormCard>
 </template>

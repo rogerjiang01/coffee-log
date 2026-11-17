@@ -102,8 +102,9 @@ const stepTimesNotice = ref('')
 async function toggleStepTimes() {
   const next = !recordStepTimes.value
   await setRecordStepTimes(next)
-  // 沒存成功時 enabled 會被退回原值，那時不該說「之後的紀錄都會有時間欄位」
-  stepTimesNotice.value = next && recordStepTimes.value === next ? '之後的紀錄都會有時間欄位' : ''
+  // 沒存成功時 enabled 會被退回原值，那時不該說「之後的紀錄都會有停水時長」。
+  // 關閉時不回饋：開關的位置與消失的那一列已經說明了
+  stepTimesNotice.value = next && recordStepTimes.value === next ? '之後的紀錄都會有停水時長' : ''
 }
 
 // 全頁器材選擇器：整個流程留在這一頁，沖煮表單已填的內容完全不動
