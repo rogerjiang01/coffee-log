@@ -144,7 +144,7 @@
 
   /* 膠囊：已選的值。值最多兩行，超過省略（SheetPill.vue）。
      圓角用單行高度的一半（17px）而不是 9999px：兩行時不會變成一顆橢圓。
-     也用在日期、時刻、分秒輸入上（那些只有一行）。原生的 select 不掛這個 class：它攤成透明，
+     也用在沖煮時間的分秒輸入上。原生的 select、日期、時刻不掛這個 class：它們攤成透明，
      看得到的是 SelectField 裡的 SheetPill（2026-11-17）。 */
   .sheet-pill {
     max-width: 100%;
@@ -169,25 +169,7 @@
     background: transparent;
     color: var(--text-muted);
   }
-  /* 日期與日期時間：原生內容很寬（2026/11/13 下午04:56 加一個月曆圖示），18px 在 375px 的列裡放不下。
-     所以這兩種用 16px，並把月曆圖示攤成透明、蓋住整個膠囊——點膠囊的任何地方都會開選擇器。 */
-  input[type="date"].sheet-pill,
-  input[type="time"].sheet-pill,
-  input[type="datetime-local"].sheet-pill {
-    position: relative;
-    font-size: var(--text-heading-s);
-    line-height: var(--text-heading-m--line-height);
-  }
-  input[type="date"].sheet-pill::-webkit-calendar-picker-indicator,
-  input[type="time"].sheet-pill::-webkit-calendar-picker-indicator,
-  input[type="datetime-local"].sheet-pill::-webkit-calendar-picker-indicator {
-    position: absolute;
-    inset: 0;
-    width: auto;
-    height: auto;
-    opacity: 0;
-  }
-  /* SelectField 給了 text：看得到的是 SheetPill，原生的 select／日期攤成透明蓋在上面（SelectField.vue）。
+  /* SelectField 給了 text：看得到的是 SheetPill，原生的 select、日期、時刻攤成透明蓋在上面（SelectField.vue）。
      原生控制項不參與排版，膠囊的寬度只看文字 */
   .select-field[data-overlay="true"] > select,
   .select-field[data-overlay="true"] > input {
@@ -197,9 +179,30 @@
     height: 100%;
     opacity: 0;
   }
+  /* 日期與時刻的月曆／時鐘圖示攤成蓋住整個控制項：桌面的 Chromium 點在數字上只會選到那一格、不開選擇器，
+     攤開之後點哪裡都會開。手機本來就是點了就開系統的選擇器 */
+  .select-field[data-overlay="true"] > input::-webkit-calendar-picker-indicator {
+    position: absolute;
+    inset: 0;
+    width: auto;
+    height: auto;
+    opacity: 0;
+  }
   /* 聚焦（手機上就是系統的選擇器開著）：膠囊的文字換成強調色，和下拉開著同一個狀態 */
   .select-field[data-overlay="true"]:focus-within .sheet-pill {
     color: var(--accent-text);
+  }
+  /* 鍵盤聚焦才畫焦點框（和全站的 :focus-visible 同一個樣子），畫在看得到的膠囊上。
+     不直接用原生控制項的 :focus-visible：select 被手指點到時瀏覽器也可能算它 focus-visible，
+     那就是原本「選填」外面那一圈。用手指還是鍵盤由 SelectField 判斷（data-keyboard-focus） */
+  .select-field[data-keyboard-focus="true"] .sheet-pill {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+  /* 沒選值時沒有膠囊、也沒有內距：框照膠囊的圓角畫會貼著「選填」變成一顆圓。改成圓角矩形、離字遠一點 */
+  .select-field[data-keyboard-focus="true"] .sheet-pill[data-empty="true"] {
+    border-radius: var(--radius-sm);
+    outline-offset: 4px;
   }
   .sheet-clamp {
     display: -webkit-box;

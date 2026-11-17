@@ -83,7 +83,7 @@ const brewTime = computed({
 })
 
 // 沖煮日期一定有值：iOS 的選擇器有「清除」，按了輸入框會變空，但上面的 setter 不收空值，
-// brewed_at 沒變、畫面也不會重畫——右邊就留著一塊空白。失焦時把顯示退回目前的值（2026-11-17）
+// brewed_at 沒變、畫面也不會重畫——原生控制項和膠囊上的字對不起來。失焦時把它退回目前的值（2026-11-17）
 function restoreIfCleared(event: Event, current: string) {
   const input = event.target as HTMLInputElement
   if (!input.value) input.value = current
@@ -464,13 +464,14 @@ defineExpose({ clearDraft: () => draft?.clear() })
       <FormCard>
         <!-- 日期是 other：事後補記時改日期可能要翻行事曆，那不是參數記錄的時間 -->
         <FormRow data-section="other" label="沖煮日期" for="brew-at">
-          <!-- 日期與時刻各一個膠囊，寫入的是同一個 brewed_at -->
+          <!-- 日期與時刻各一個膠囊，寫入的是同一個 brewed_at。膠囊上的字自己寫（YYYY/MM/DD、24 小時制 HH:mm，
+               utils/formDate.ts），原生的日期與時刻透明蓋在上面，點了照樣開系統的選擇器 -->
           <div class="flex min-w-0 items-center justify-end gap-2">
-            <SelectField>
-              <input id="brew-at" v-model="brewDate" type="date" class="sheet-pill min-w-0" @blur="restoreIfCleared($event, brewDate)">
+            <SelectField :text="pillDate(brewDate) ?? '選填'" :empty="!pillDate(brewDate)">
+              <input id="brew-at" v-model="brewDate" type="date" @blur="restoreIfCleared($event, brewDate)">
             </SelectField>
-            <SelectField class="shrink-0">
-              <input v-model="brewTime" type="time" aria-label="時刻" class="sheet-pill" @blur="restoreIfCleared($event, brewTime)">
+            <SelectField class="shrink-0" :text="pillTime(brewTime) ?? '選填'" :empty="!pillTime(brewTime)">
+              <input v-model="brewTime" type="time" aria-label="時刻" @blur="restoreIfCleared($event, brewTime)">
             </SelectField>
           </div>
         </FormRow>
