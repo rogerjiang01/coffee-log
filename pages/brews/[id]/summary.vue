@@ -130,20 +130,7 @@ async function openDetail() {
   <main class="mx-auto px-5 pt-10 pb-16" :style="{ maxWidth: 'var(--content-max)' }">
     <!-- 右上角：完成。《03》§3 圖示表的「完成」 -->
     <header class="flex justify-end" :style="{ minHeight: 'var(--touch-min)' }">
-      <button
-        type="button"
-        aria-label="完成"
-        class="-mr-1 flex shrink-0 items-center justify-center rounded-full"
-        :style="{ width: 'var(--touch-min)', height: 'var(--touch-min)', background: 'var(--accent)', color: 'var(--on-accent)' }"
-        @click="done"
-      >
-        <svg
-          width="22" height="22" viewBox="0 0 24 24" aria-hidden="true"
-          fill="none" stroke="currentColor" stroke-width="2.18" stroke-linecap="round" stroke-linejoin="round"
-        >
-          <path d="M20 6 9 17l-5-5" />
-        </svg>
-      </button>
+      <DoneButton class="-mr-1" @click="done" />
     </header>
 
     <div v-if="!ready" aria-busy="true" aria-label="讀取中" class="mt-4 space-y-6">

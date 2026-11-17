@@ -249,7 +249,10 @@ export default function run() {
   r.check(/async function done\(\) \{\s*leavingByPage = true\s*await navigateTo\('\/', \{ replace: true \}\)/.test(summary), '勾勾：用取代的方式去總覽')
   r.check(/async function openDetail\(\) \{\s*leavingByPage = true\s*await navigateTo\(`\/brews\/\$\{id\}`, \{ replace: true \}\)/.test(summary),
     '摘要：用取代的方式進紀錄詳情，返回時不會回到結算頁')
-  r.check(/aria-label="完成"[\s\S]{0,600}<path d="M20 6 9 17l-5-5" \/>/.test(summaryTemplate) && /rounded-full/.test(summaryTemplate), '右上角是圓形按鈕，中間放勾勾（完成）')
+  // 2026-11-17：按鈕抽成 DoneButton，分段子頁也用同一個
+  const doneButton = read('components/DoneButton.vue')
+  r.check(/<DoneButton[^>]*@click="done"/.test(summaryTemplate)
+    && /aria-label="完成"[\s\S]{0,600}<path d="M20 6 9 17l-5-5" \/>/.test(doneButton) && /rounded-full/.test(doneButton), '右上角是圓形按鈕，中間放勾勾（完成）')
   const summaryRow = summaryTemplate.match(/<a\s+:href="`\/brews\/\$\{id\}`"[\s\S]*?<\/a>/)?.[0] ?? ''
   r.check(/<span class="block font-medium">\{\{ brew\.beans\?\.name \?\? '沒有指定豆子' \}\}<\/span>\s*<span class="block[^"]*">\{\{ monthDay\(brew\.brewed_at\) \}\}<\/span>/.test(summaryRow),
     '摘要：縮圖右邊兩行，豆名與沖煮日期')

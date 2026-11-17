@@ -7,8 +7,6 @@
 
 const props = defineProps<{
   initial?: Partial<EquipmentFormValues>
-  /** 編輯時這一台的 id：找「同一種器材目前的常用」時排除自己 */
-  equipmentId?: string
   submitLabel: string
   busy?: boolean
   error?: string
@@ -57,28 +55,6 @@ function writeBack(data: EquipmentFormValues) {
   }
 }
 
-// 「設為常用」卡片下方要寫出同一種器材目前的常用是哪一台（不含這一台），
-// 開了之後儲存，那一台的常用會被取消（DefaultEquipmentCard）。換類型時重查。
-const supabase = useSupabaseClient()
-const currentDefault = ref<string | null>(null)
-let defaultQuery = 0
-
-async function loadCurrentDefault() {
-  const ticket = ++defaultQuery
-  let query = supabase
-    .from('user_equipment')
-    .select(USER_EQUIPMENT_SELECT)
-    .eq('type', values.type)
-    .eq('is_default', true)
-  if (props.equipmentId) query = query.neq('id', props.equipmentId)
-  const { data } = await query.limit(1).maybeSingle()
-  // 讀不到就只寫前半句：這一句是說明，不擋任何操作
-  if (ticket !== defaultQuery) return
-  currentDefault.value = data ? equipmentOptionName(data as unknown as UserEquipmentRow) : null
-}
-
-onMounted(loadCurrentDefault)
-watch(() => values.type, loadCurrentDefault)
 
 function submit() {
   // 型錄與自訂名稱至少要有一個（DB 的 name_or_catalog check 也擋，
@@ -183,10 +159,9 @@ defineExpose({ clearDraft: () => draft?.clear() })
       <FormNote field="備註">例如換刀盤、加裝配件</FormNote>
     </FormCard>
 
-    <!-- 設為常用：開關一張卡片（2026-11-17，取代原本的動作按鈕）。同類型只能有一台常用，
-         開了會取代哪一台寫在卡片下方——副作用在畫面上看得到（《03》§4.0.1）。
+    <!-- 設為常用：開關一張卡片（2026-11-17，取代原本的兩態按鈕，《03》§4.0.1）。
          沒有任何常用是合法狀態，新使用者本來就沒有。不阻止關掉。 -->
-    <DefaultEquipmentCard v-model="values.is_default" :current-default="currentDefault" />
+    <DefaultEquipmentCard v-model="values.is_default" />
     </div>
 
     <!-- 表單最下方的儲存：膠囊形（《03》§4.18 的例外） -->

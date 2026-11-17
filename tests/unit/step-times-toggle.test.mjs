@@ -51,15 +51,20 @@ export default function run() {
   r.check(/export function toStepRows\(steps: StepInput\[\]\): StepRow\[\]/.test(read('utils/brewSteps.ts')),
     'toStepRows 沒有開關參數：存檔的換算與開關無關')
 
-  r.section('切換入口在分段子頁的標題列')
-  // 主要入口要在填表當下就看得到：需要這個欄位的進階使用者，正好也是不會去翻設定頁的人
-  r.check(/記錄停水時長/.test(editor) && /不記停水時長/.test(editor),
-    '關閉時是「記錄停水時長」，開啟時是「不記停水時長」')
-  r.check(!/role="switch"/.test(editor),
-    '用文字連結不用 toggle——表單裡的 toggle 代表「這筆資料的欄位」，這個開關卻是全域偏好')
-  r.check(/@click="emit\('toggleTimes'\)"/.test(editor) && !/useRecordStepTimes\(/.test(editor),
+  r.section('切換入口是分段子頁的開關')
+  // 主要入口要在填表當下就看得到：需要這個欄位的進階使用者，正好也是不會去翻設定頁的人。
+  // 2026-11-17：從標題列的文字連結（記錄／不記停水時長）改成沖煮手法卡片下方的開關，標題列右側留給「完成」
+  const toggle = (editor.match(/<ToggleSwitch[\s\S]*?\/>/) || [''])[0]
+  r.check(/label="記錄停水時長"/.test(toggle) && /:model-value="showTimes"/.test(toggle) && /\brow\b/.test(toggle),
+    '開關的標籤固定是「記錄停水時長」，位置就是狀態；是表單的一列（row）')
+  r.check(!/不記停水時長/.test(editor), '不再有「不記停水時長」的文字連結')
+  r.check(/@update:model-value="emit\('toggleTimes'\)"/.test(toggle) && !/useRecordStepTimes\(/.test(editor),
     '編輯器只發事件、不自己取偏好——兩邊各讀一份，寫入之後就會對不起來')
-  r.check(/:disabled="timesPending"/.test(editor), '偏好還沒讀到或正在寫入時不可按')
+  r.check(/:busy="timesPending"/.test(toggle), '偏好還沒讀到或正在寫入時不可按')
+  r.check(/<FormNote v-if="timesNotice">/.test(editor) && /<FormNote v-if="timesError" tone="error">/.test(editor),
+    '切換的回饋與錯誤放在那張卡片下方（FormNote）')
+  r.check(/<DoneButton @click="emit\('close'\)" \/>/.test(editor),
+    '右上角的「完成」和 ‹ 一樣只關掉子頁，不寫資料庫')
   r.check(/@toggle-times="toggleStepTimes"/.test(form) && /setRecordStepTimes\(next\)/.test(form),
     'BrewForm 接住事件，寫進同一個偏好')
   r.check(/stepTimesNotice\.value = next && recordStepTimes\.value === next \? '之後的紀錄都會有時間欄位' : ''/.test(form),

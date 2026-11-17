@@ -4,13 +4,16 @@
 // 全螢幕浮層，和器材選擇器同一套機制（原生 <dialog> 的 showModal、useOverlayHistory）：
 // **Android 的返回鍵與 iOS 的返回手勢只關掉這一層，不會離開表單。**
 // 改動即時寫回表單（v-model），沒有另外的儲存鈕；表單的狀態與暫存因此不必跨頁搬。
+// 右上角的「完成」（DoneButton，2026-11-17）和左上的 ‹ 做一樣的事：關掉子頁、改動留在表單上，
+// 要等表單的「儲存」才寫進資料庫。加它是因為對使用者來說返回不像「完成」。名稱是「完成」不是「儲存」。
 //
 // 介面輸入的是累積水量與停水時長，兩個都原樣存進資料庫（沒有換算層）。
 // 寫入由 utils/brewSteps.ts 的 toStepRows 負責，這個元件只管介面。
 //
 // 由上到下：
-//   標題列      ‹ 返回、「分段注水」、右側「記錄停水時長／不記停水時長」的文字連結
+//   標題列      ‹ 返回、「分段注水」、右上角「完成」
 //   沖煮手法    下拉。選了會依粉重帶入分段（由表單處理）
+//   記錄停水時長  開關，自己一張卡片（膠囊形）。切換的回饋與錯誤在卡片下方
 //   每一段      卡片上方一列：段名、增量水量、垃圾桶（悶蒸不能刪）；卡片裡是累積水量、停水時長、備註
 //   新增一段    下面的小字是總水量與粉水比
 //
@@ -20,8 +23,9 @@
 // **停水時長＝注完之後到下一注之前的時間**，不含注水動作本身。
 // **最後一段沒有這一列**：最後一注之後沒有下一注，剩下的只是等它滴完，那段時間由沖煮時間記錄。
 //
-// **切換入口用文字連結不用開關**：它是全域偏好，會影響之後所有紀錄；開關在表單裡代表「這筆資料的一個欄位」。
-// 開啟之後回饋一行「之後的紀錄都會有時間欄位」。偏好由表單持有並寫入，這裡只發事件。
+// **「記錄停水時長」是開關**（2026-11-17；原本是標題列右側的文字連結，移走是為了不和「完成」擠在一起）。
+// 它是全域偏好，會影響之後所有紀錄，切換時立刻寫進 profiles（不等表單儲存）；
+// 開啟之後卡片下方回饋一行「之後的紀錄都會有時間欄位」。偏好由表單持有並寫入，這裡只發事件。
 // 關閉只是不顯示，不改資料：holdSeconds 照樣留在 modelValue 裡，儲存時照樣寫進 hold_seconds。
 //
 // 攪拌標記已經移除（2026-11-16）：需要的話寫在備註。
@@ -113,27 +117,15 @@ function removeStep(index: number) {
 
         <h2 class="flex-1 truncate text-heading-m font-medium">分段注水</h2>
 
-        <!-- 切換入口：文字連結，不用開關（理由見檔頭） -->
-        <button
-          type="button"
-          :disabled="timesPending"
-          class="shrink-0 px-2 text-sm underline disabled:opacity-60"
-          :style="{ color: 'var(--accent-text)', minHeight: 'var(--touch-min)' }"
-          @click="emit('toggleTimes')"
-        >
-          {{ showTimes ? '不記停水時長' : '記錄停水時長' }}
-        </button>
+        <!-- 完成：和 ‹ 一樣只關掉子頁，不寫資料庫（見檔頭） -->
+        <DoneButton @click="emit('close')" />
       </header>
 
       <div class="min-h-0 flex-1 overflow-y-auto">
         <div class="mx-auto flex flex-col pt-6 pb-16" :style="{ maxWidth: 'var(--content-max)', gap: 'var(--gap-section)', paddingInline: 'var(--form-gutter)' }">
-          <div v-if="timesNotice || timesError">
-            <!-- 切換之後的回饋：這個連結看起來像一次性動作，實際會被記住 -->
-            <p v-if="timesNotice" role="status" class="form-note card-pad-x">{{ timesNotice }}</p>
-            <p v-if="timesError" role="alert" class="form-note card-pad-x" data-tone="error"><AlertIcon :size="14" />{{ timesError }}</p>
-          </div>
-
-          <FormCard>
+          <!-- 沖煮手法與記錄停水時長是同一組（這一杯怎麼記），卡片之間 --gap-group -->
+          <div class="flex flex-col" :style="{ gap: 'var(--gap-group)' }">
+          <FormCard pill>
             <FormRow label="沖煮手法" for="brew-method">
               <SelectField>
                 <select
@@ -157,6 +149,23 @@ function removeStep(index: number) {
             <!-- 不擋儲存，所以是 --notice 不是 --danger（《03》§4.1） -->
             <FormNote v-if="methodNotice" tone="notice">{{ methodNotice }}</FormNote>
           </FormCard>
+
+          <!-- 記錄停水時長：開關一張卡片（膠囊形）。切換的回饋與錯誤照規則放在卡片下方 -->
+          <FormCard pill>
+            <FormRow>
+              <ToggleSwitch
+                :model-value="showTimes"
+                label="記錄停水時長"
+                row
+                :busy="timesPending"
+                @update:model-value="emit('toggleTimes')"
+              />
+            </FormRow>
+            <!-- 切換之後的回饋：它會被記住，影響之後的紀錄 -->
+            <FormNote v-if="timesNotice">{{ timesNotice }}</FormNote>
+            <FormNote v-if="timesError" tone="error">{{ timesError }}</FormNote>
+          </FormCard>
+          </div>
 
           <ul class="flex flex-col" :style="{ gap: 'var(--gap-group)' }">
             <li v-for="(step, index) in modelValue" :key="index">

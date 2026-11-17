@@ -140,11 +140,6 @@ function formatUsed(id: string) {
   return relativeUsed(lastUsed.value.get(id))
 }
 
-/** 這一類目前的常用（清單就是這一類的器材），「設為常用」卡片下方寫出會被取代的是哪一台 */
-const currentDefault = computed(() => {
-  const row = items.value.find(item => item.is_default)
-  return row ? equipmentOptionName(row) : null
-})
 
 function confirmChoice() {
   emit('update:modelValue', draftId.value)
@@ -365,10 +360,9 @@ async function create() {
           </FormRow>
         </FormCard>
 
-        <!-- 設為常用：和器材表單同一張卡片（開關，下方寫出會取代哪一台） -->
+        <!-- 設為常用：和器材表單同一張卡片（開關） -->
         <DefaultEquipmentCard
           v-model="form.is_default"
-          :current-default="currentDefault"
           :style="{ marginTop: 'var(--gap-group)' }"
         />
 

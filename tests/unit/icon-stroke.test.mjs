@@ -37,7 +37,8 @@ const ICONS = [
   ['分享', 'components/ShareIcon.vue', 'm16 6-4-4-4 4', 2, 1],
   // 數量加減與完成（2026-10-06 加進《03》§3 的圖示表）
   ['數量加減的 − 與 ＋', 'components/GoalStepper.vue', 'M5 12h14', 2, 2],
-  ['完成（結算頁的勾勾）', 'pages/brews/[id]/summary.vue', 'M20 6 9 17l-5-5', 2, 1],
+  // 2026-11-17：結算頁與分段子頁共用 DoneButton
+  ['完成（結算頁與分段子頁的勾勾）', 'components/DoneButton.vue', 'M20 6 9 17l-5-5', 2, 1],
   // 內容區的小圖示：1.5px
   // 2026-11-13：分段的移除從 × 改成垃圾桶（Lucide trash-2，《03》§3）
   ['分段的垃圾桶', 'components/PourStepsSheet.vue', 'M3 6h18', 1.5, 1],
