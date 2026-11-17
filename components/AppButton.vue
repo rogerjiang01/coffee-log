@@ -11,7 +11,8 @@
 // 高度固定是觸控目標下限（44px）。有 to 時渲染成連結，外觀相同。
 //
 // shape="pill"：**只給表單最下方那顆全寬的儲存按鈕**（六張表單：新增／編輯紀錄、豆子、器材，2026-11-17）。
-// 它是整張表單的收尾動作，用形狀和頁面中其他按鈕區分開。其他按鈕維持 --radius-sm，預設不變（《03》§4.18）。
+// 它是整張表單的收尾動作，用形狀和頁面中其他按鈕區分開：高度和表單的列一樣是 65px（--sheet-row-h），圓角 32.5px。
+// 其他按鈕維持 44px、--radius-sm，預設不變（《03》§4.18）。
 
 const props = withDefaults(defineProps<{
   variant?: 'filled' | 'outline' | 'text'
@@ -96,8 +97,10 @@ const classes = computed(() => [
   color: var(--danger);
 }
 
-/* 表單最下方的儲存按鈕。和只有一列的表單卡片同一個圓角（--radius-pill）：44px 高的按鈕上就是兩端全圓 */
+/* 表單最下方的儲存按鈕：和表單的列同高（--sheet-row-h，65px）、同一個圓角（--radius-pill，32.5px），
+   兩端是半圓（2026-11-17，原本是 44px 高） */
 .app-button--pill {
+  min-height: var(--sheet-row-h);
   border-radius: var(--radius-pill);
 }
 

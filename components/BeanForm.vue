@@ -88,6 +88,8 @@ function onPhotoPicked(picked: CompressedImage | null) {
 const roastOptions: { value: RoastLevel; label: string }[] = (
   ['light', 'medium_light', 'medium', 'medium_dark', 'dark'] as RoastLevel[]
 ).map(value => ({ value, label: roastLabels[value] }))
+// 膠囊上的文字（SelectField）：沒選時是 null，膠囊寫「選填」
+const roastLabel = computed(() => values.roast_level ? roastLabels[values.roast_level] : null)
 
 function submit() {
   // 錯誤訊息只在送出時顯示，不在輸入過程中即時跳出（《03》§4.1）
@@ -286,27 +288,21 @@ defineExpose({ clearDraft: () => draft?.clear() })
 
     <FormCard>
       <FormRow label="烘焙日期" for="bean-roast-date">
-        <SelectField>
+        <!-- 沒填時寫「選填」（空列的規則）：iOS 的空日期什麼都不畫。填了之後格式交給瀏覽器 -->
+        <SelectField :text="values.roast_date ? undefined : '選填'" :empty="!values.roast_date">
           <input
             id="bean-roast-date"
             v-model="values.roast_date"
             type="date"
             class="sheet-pill min-w-0"
-            :class="{ 'date-empty': !values.roast_date }"
-            :data-empty="!values.roast_date || undefined"
           >
         </SelectField>
       </FormRow>
       <FormNote field="烘焙日期">填寫後顯示養豆天數</FormNote>
 
       <FormRow label="烘焙度" for="bean-roast-level">
-        <SelectField>
-          <select
-            id="bean-roast-level"
-            v-model="values.roast_level"
-            class="sheet-pill"
-            :data-empty="values.roast_level === null || undefined"
-          >
+        <SelectField :text="roastLabel ?? '選填'" :empty="!roastLabel">
+          <select id="bean-roast-level" v-model="values.roast_level">
             <option :value="null">選填</option>
             <option v-for="option in roastOptions" :key="option.value" :value="option.value">
               {{ option.label }}

@@ -61,16 +61,16 @@ export default function run() {
   r.check(/@update:model-value="emit\('toggleTimes'\)"/.test(toggle) && !/useRecordStepTimes\(/.test(editor),
     '編輯器只發事件、不自己取偏好——兩邊各讀一份，寫入之後就會對不起來')
   r.check(/:busy="timesPending"/.test(toggle), '偏好還沒讀到或正在寫入時不可按')
-  r.check(/<FormNote v-if="timesNotice">/.test(editor) && /<FormNote v-if="timesError" tone="error">/.test(editor),
-    '切換的回饋與錯誤放在那張卡片下方（FormNote）')
+  r.check(/<FormNote v-if="timesError" tone="error">/.test(editor),
+    '沒存成功的錯誤放在那張卡片下方（FormNote）')
+  r.check(!/timesNotice/.test(editor) && !/之後的紀錄都會有/.test(editor),
+    '切換之後沒有回饋：開關的位置與出現、消失的那一列已經說明了（2026-11-17 拿掉）')
   r.check(/<DoneButton @click="emit\('close'\)" \/>/.test(editor),
     '右上角的「完成」和 ‹ 一樣只關掉子頁，不寫資料庫')
   r.check(/@toggle-times="toggleStepTimes"/.test(form) && /setRecordStepTimes\(next\)/.test(form),
     'BrewForm 接住事件，寫進同一個偏好')
-  r.check(/stepTimesNotice\.value = next && recordStepTimes\.value === next \? '之後的紀錄都會有停水時長' : ''/.test(form),
-    '開啟之後回饋「之後的紀錄都會有停水時長」（2026-11-17 從「時間欄位」改成《04》的用詞）；沒存成功就不說')
-  r.check(/const stepTimesNotice = ref\(''\)/.test(form),
-    '回饋放在表單自己的狀態裡——只在該次切換後顯示，重新進表單不再出現')
+  r.check(!/stepTimesNotice/.test(form) && !/之後的紀錄都會有/.test(form),
+    'BrewForm 也不再持有切換的回饋（2026-11-17 拿掉）')
 
   r.section('偏好：預設關閉，存在 profiles')
   const pref = read('composables/useRecordStepTimes.ts')

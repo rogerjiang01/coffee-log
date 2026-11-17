@@ -25,7 +25,8 @@
 //
 // **「記錄停水時長」是開關**（2026-11-17；原本是標題列右側的文字連結，移走是為了不和「完成」擠在一起）。
 // 它是全域偏好，會影響之後所有紀錄，切換時立刻寫進 profiles（不等表單儲存）；
-// 開啟之後卡片下方回饋一行「之後的紀錄都會有停水時長」。偏好由表單持有並寫入，這裡只發事件。
+// 切換之後沒有回饋（2026-11-17 拿掉開啟後的那一句）：開關的位置與出現、消失的那一列已經說明了。
+// 卡片下方只有沒存成功時的錯誤。偏好由表單持有並寫入，這裡只發事件。
 // 關閉只是不顯示，不改資料：holdSeconds 照樣留在 modelValue 裡，儲存時照樣寫進 hold_seconds。
 //
 // 攪拌標記已經移除（2026-11-16）：需要的話寫在備註。
@@ -42,8 +43,6 @@ const props = defineProps<{
   showTimes: boolean
   /** 偏好還沒讀到、或正在寫入：切換入口先不可按 */
   timesPending?: boolean
-  /** 剛切換成開啟時的回饋，說明它會影響之後的紀錄 */
-  timesNotice?: string
   /** 偏好沒存成功時的訊息 */
   timesError?: string
 }>()
@@ -70,6 +69,9 @@ watch(() => props.open, (open) => {
     if (!open && el.open) el.close()
   })
 }, { immediate: true })
+
+// 手法下拉的膠囊文字（SelectField）：沒選時是 null，膠囊寫「選填」
+const methodName = computed(() => props.methods.find(m => m.id === props.methodId)?.name ?? null)
 
 const increments = computed(() => incrementalWater(props.modelValue))
 const orderHints = computed(() => waterOrderHints(props.modelValue))
@@ -127,12 +129,10 @@ function removeStep(index: number) {
           <div class="flex flex-col" :style="{ gap: 'var(--gap-group)' }">
           <FormCard pill>
             <FormRow label="沖煮手法" for="brew-method">
-              <SelectField>
+              <SelectField :text="methodName ?? '選填'" :empty="!methodName">
                 <select
                   id="brew-method"
                   :value="methodId"
-                  class="sheet-pill"
-                  :data-empty="methodId === null || undefined"
                   @change="emit('update:methodId', ($event.target as HTMLSelectElement).value || null)"
                 >
                   <option value="">選填</option>
@@ -161,8 +161,6 @@ function removeStep(index: number) {
                 @update:model-value="emit('toggleTimes')"
               />
             </FormRow>
-            <!-- 切換之後的回饋：它會被記住，影響之後的紀錄 -->
-            <FormNote v-if="timesNotice">{{ timesNotice }}</FormNote>
             <FormNote v-if="timesError" tone="error">{{ timesError }}</FormNote>
           </FormCard>
           </div>

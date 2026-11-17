@@ -42,10 +42,10 @@ withDefaults(defineProps<{
           <span class="line-clamp-2 text-sm leading-4 break-keep wrap-anywhere">{{ name }}</span>
           <SampleBadge v-if="isSample" />
         </span>
-        <StarDisplay v-if="rating !== null" :rating="rating" :size="18" />
+        <StarDisplay v-if="rating !== null" :rating="rating" :size="18" class="gap-0.5" />
         <span class="mt-auto flex flex-col">
-          <span v-if="note" class="text-label-l text-muted">{{ note }}</span>
-          <span class="text-label-l tabular-nums text-muted">{{ footer }}</span>
+          <span v-if="note" class="text-body-s text-muted">{{ note }}</span>
+          <span class="text-body-s tabular-nums text-muted">{{ footer }}</span>
         </span>
       </span>
     </span>
@@ -54,14 +54,14 @@ withDefaults(defineProps<{
         <span class="text-sm leading-4 break-keep wrap-anywhere" :class="note ? 'line-clamp-1' : 'line-clamp-2'">{{ name }}</span>
         <SampleBadge v-if="isSample" />
       </span>
-      <StarDisplay v-if="rating !== null" :rating="rating" :size="18" class="shrink-0" />
+      <StarDisplay v-if="rating !== null" :rating="rating" :size="18" class="shrink-0 gap-0.5" />
       <span class="flex min-h-0 flex-1 items-center justify-center">
         <span class="block aspect-square h-full overflow-hidden rounded-sm">
           <BeanThumb :photo-url="photoUrl" :roast-level="roastLevel" :alt="name" />
         </span>
       </span>
-      <span v-if="note" class="shrink-0 text-label-l text-muted">{{ note }}</span>
-      <span class="shrink-0 text-label-l tabular-nums text-muted">{{ footer }}</span>
+      <span v-if="note" class="shrink-0 text-body-s text-muted">{{ note }}</span>
+      <span class="shrink-0 text-body-s tabular-nums text-muted">{{ footer }}</span>
     </span>
   </AppCard>
 </template>

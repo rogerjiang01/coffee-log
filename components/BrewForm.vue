@@ -82,6 +82,13 @@ const brewTime = computed({
   set: (time: string) => { if (time) values.brewed_at = `${values.brewed_at.slice(0, 10)}T${time}` },
 })
 
+// 沖煮日期一定有值：iOS 的選擇器有「清除」，按了輸入框會變空，但上面的 setter 不收空值，
+// brewed_at 沒變、畫面也不會重畫——右邊就留著一塊空白。失焦時把顯示退回目前的值（2026-11-17）
+function restoreIfCleared(event: Event, current: string) {
+  const input = event.target as HTMLInputElement
+  if (!input.value) input.value = current
+}
+
 // 停水時長的欄位要不要顯示，由使用者偏好決定（預設關閉）。
 // **只影響顯示**：steps 裡的 holdSeconds 不管開不開都一樣保留、一樣儲存，
 // 手法模板帶入的時間也照樣寫進去。這裡刻意不依開關去動 steps。
@@ -96,15 +103,11 @@ const {
   set: setRecordStepTimes,
 } = useRecordStepTimes()
 
-/** 剛切換成開啟時的回饋。只在這一次切換後顯示，重新進表單就沒有了 */
-const stepTimesNotice = ref('')
-
-async function toggleStepTimes() {
+// 切換之後不回饋（開啟、關閉都一樣，2026-11-17）：開關的位置與出現、消失的那一列已經說明了。
+// 沒存成功時 enabled 會退回原值，錯誤訊息在子頁那張卡片下方（stepTimesError）
+function toggleStepTimes() {
   const next = !recordStepTimes.value
-  await setRecordStepTimes(next)
-  // 沒存成功時 enabled 會被退回原值，那時不該說「之後的紀錄都會有停水時長」。
-  // 關閉時不回饋：開關的位置與消失的那一列已經說明了
-  stepTimesNotice.value = next && recordStepTimes.value === next ? '之後的紀錄都會有停水時長' : ''
+  return setRecordStepTimes(next)
 }
 
 // 全頁器材選擇器：整個流程留在這一頁，沖煮表單已填的內容完全不動
@@ -457,17 +460,17 @@ defineExpose({ clearDraft: () => draft?.clear() })
     -->
     <!-- 時間戳最前面：事後補記時可能要先改日期，越早改完，
          後面的填寫都在正確的時間脈絡下。 -->
-    <FormSection title="這一杯">
+    <FormSection title="這杯紀錄">
       <FormCard>
         <!-- 日期是 other：事後補記時改日期可能要翻行事曆，那不是參數記錄的時間 -->
         <FormRow data-section="other" label="沖煮日期" for="brew-at">
           <!-- 日期與時刻各一個膠囊，寫入的是同一個 brewed_at -->
           <div class="flex min-w-0 items-center justify-end gap-2">
             <SelectField>
-              <input id="brew-at" v-model="brewDate" type="date" class="sheet-pill min-w-0">
+              <input id="brew-at" v-model="brewDate" type="date" class="sheet-pill min-w-0" @blur="restoreIfCleared($event, brewDate)">
             </SelectField>
             <SelectField class="shrink-0">
-              <input v-model="brewTime" type="time" aria-label="時刻" class="sheet-pill">
+              <input v-model="brewTime" type="time" aria-label="時刻" class="sheet-pill" @blur="restoreIfCleared($event, brewTime)">
             </SelectField>
           </div>
         </FormRow>
@@ -585,7 +588,7 @@ defineExpose({ clearDraft: () => draft?.clear() })
       </FormCard>
     </FormSection>
 
-    <FormSection title="喝起來" data-section="tasting">
+    <FormSection title="品飲" data-section="tasting">
       <FormCard>
         <IntensityPicker v-model="values.intensity" />
       </FormCard>
@@ -611,7 +614,7 @@ defineExpose({ clearDraft: () => draft?.clear() })
       </FormCard>
     </FormSection>
 
-    <!-- 收藏不在「喝起來」裡：它不是品飲判斷，是「還想不想再沖」的實用決定，
+    <!-- 收藏不在「品飲」裡：它不是品飲判斷，是「還想不想再沖」的實用決定，
          跟儲存這個動作在同一個心理時刻。照 Figma 自己一張卡片、一個開關，說明在卡片下方。 -->
     <div>
       <FormCard pill data-section="tasting">
@@ -664,7 +667,6 @@ defineExpose({ clearDraft: () => draft?.clear() })
       :method-notice="methodNotice"
       :show-times="recordStepTimes"
       :times-pending="!stepTimesLoaded || stepTimesSaving"
-      :times-notice="stepTimesNotice"
       :times-error="stepTimesError"
       @toggle-times="toggleStepTimes"
       @close="stepsOpen = false"

@@ -106,8 +106,8 @@ defineExpose({ clearDraft: () => draft?.clear() })
         <div class="sheet-row">
           <label class="sheet-label" for="equipment-type">類型<span :style="{ color: 'var(--danger)' }" aria-hidden="true">*</span><span class="sr-only">必填</span></label>
           <div class="sheet-value">
-            <SelectField>
-              <select id="equipment-type" v-model="values.type" class="sheet-pill">
+            <SelectField :text="equipmentLabels[values.type]">
+              <select id="equipment-type" v-model="values.type">
                 <option v-for="type in equipmentTypes" :key="type" :value="type">
                   {{ equipmentLabels[type] }}
                 </option>

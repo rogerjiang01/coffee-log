@@ -144,7 +144,8 @@
 
   /* 膠囊：已選的值。值最多兩行，超過省略（SheetPill.vue）。
      圓角用單行高度的一半（17px）而不是 9999px：兩行時不會變成一顆橢圓。
-     也用在原生的 select、日期、分秒輸入上（那些只有一行）。 */
+     也用在日期、時刻、分秒輸入上（那些只有一行）。原生的 select 不掛這個 class：它攤成透明，
+     看得到的是 SelectField 裡的 SheetPill（2026-11-17）。 */
   .sheet-pill {
     max-width: 100%;
     padding: 0.25rem 0.75rem;
@@ -157,8 +158,7 @@
   }
   /* 正在輸入或下拉開著（Figma 的 dropdown_input）：文字換成強調色，--surface-muted 上 4.92:1 */
   .sheet-pill[data-active="true"],
-  input.sheet-pill:focus,
-  select.sheet-pill:focus {
+  input.sheet-pill:focus {
     color: var(--accent-text);
   }
   /* 還沒選值：不畫膠囊，提示字直接寫在卡片底色上（--text-muted，5.05:1）。
@@ -168,14 +168,6 @@
     padding-right: 0;
     background: transparent;
     color: var(--text-muted);
-  }
-  select.sheet-pill {
-    appearance: none;
-    text-overflow: ellipsis;
-  }
-  /* select 的寬度跟著最長的選項走；還沒選值時讓「選填」貼齊右緣，和其他列的「選填」對齊 */
-  select.sheet-pill[data-empty="true"] {
-    text-align-last: right;
   }
   /* 日期與日期時間：原生內容很寬（2026/11/13 下午04:56 加一個月曆圖示），18px 在 375px 的列裡放不下。
      所以這兩種用 16px，並把月曆圖示攤成透明、蓋住整個膠囊——點膠囊的任何地方都會開選擇器。 */
@@ -194,6 +186,20 @@
     width: auto;
     height: auto;
     opacity: 0;
+  }
+  /* SelectField 給了 text：看得到的是 SheetPill，原生的 select／日期攤成透明蓋在上面（SelectField.vue）。
+     原生控制項不參與排版，膠囊的寬度只看文字 */
+  .select-field[data-overlay="true"] > select,
+  .select-field[data-overlay="true"] > input {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    opacity: 0;
+  }
+  /* 聚焦（手機上就是系統的選擇器開著）：膠囊的文字換成強調色，和下拉開著同一個狀態 */
+  .select-field[data-overlay="true"]:focus-within .sheet-pill {
+    color: var(--accent-text);
   }
   .sheet-clamp {
     display: -webkit-box;
@@ -339,18 +345,6 @@
      讀不到也不影響填寫。帶有必要資訊的（「選填」「搜尋」）維持上面的 --text-muted（《03》§4.1）。 */
   .placeholder-example::placeholder {
     color: var(--text-placeholder);
-  }
-
-  /* input[type="date"] 不吃 ::placeholder，未填時顯示的 yyyy/mm/dd
-     是瀏覽器自繪的內容。.date-empty 由元件在無值時掛上。
-     兩條都需要：WebKit 走 ::-webkit-datetime-edit，
-     Firefox 沒有對應偽元素，只能改輸入框本身的 color。 */
-  input[type="date"].date-empty {
-    color: var(--text-muted);
-  }
-
-  input[type="date"].date-empty::-webkit-datetime-edit {
-    color: var(--text-muted);
   }
 
   /* 全站浮層的定位機制。所有用 showModal() 開的 <dialog> 都吃這一條，

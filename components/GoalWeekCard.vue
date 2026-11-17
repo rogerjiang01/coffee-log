@@ -91,7 +91,7 @@ const status = computed(() => {
               :style="{ height: `${Math.max(8, (cups / barMax) * BAR_HEIGHT)}px`, background: 'var(--accent)' }"
             />
           </span>
-          <span class="text-label-l whitespace-nowrap text-muted">{{ WEEKDAYS[day] }}</span>
+          <span class="text-body-s whitespace-nowrap text-muted">{{ WEEKDAYS[day] }}</span>
         </span>
       </span>
     </span>
