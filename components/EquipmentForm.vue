@@ -7,8 +7,8 @@
 
 const props = defineProps<{
   initial?: Partial<EquipmentFormValues>
-  /** 編輯時這台原本的名稱，「已將 X 設為常用」在表單還沒有名稱時用 */
-  currentName?: string | null
+  /** 編輯時這一台的 id：找「同一種器材目前的常用」時排除自己 */
+  equipmentId?: string
   submitLabel: string
   busy?: boolean
   error?: string
@@ -57,27 +57,28 @@ function writeBack(data: EquipmentFormValues) {
   }
 }
 
-/**
- * 這次有沒有按過「設為常用」。
- *
- * 用來決定要不要顯示回饋，而不是拿 values.is_default 直接判斷——
- * 本來就是常用的那台一打開表單就是 true，那不是「剛剛做了什麼」，
- * 是「原本就是這樣」，不該冒出一句回饋。
- */
-const pressedDefault = ref(false)
+// 「設為常用」卡片下方要寫出同一種器材目前的常用是哪一台（不含這一台），
+// 開了之後儲存，那一台的常用會被取消（DefaultEquipmentCard）。換類型時重查。
+const supabase = useSupabaseClient()
+const currentDefault = ref<string | null>(null)
+let defaultQuery = 0
 
-function toggleDefault() {
-  values.is_default = !values.is_default
-  pressedDefault.value = true
+async function loadCurrentDefault() {
+  const ticket = ++defaultQuery
+  let query = supabase
+    .from('user_equipment')
+    .select(USER_EQUIPMENT_SELECT)
+    .eq('type', values.type)
+    .eq('is_default', true)
+  if (props.equipmentId) query = query.neq('id', props.equipmentId)
+  const { data } = await query.limit(1).maybeSingle()
+  // 讀不到就只寫前半句：這一句是說明，不擋任何操作
+  if (ticket !== defaultQuery) return
+  currentDefault.value = data ? equipmentOptionName(data as unknown as UserEquipmentRow) : null
 }
 
-/** 表單上這台的名稱，給回饋文案用。以表單當下的值為準，沒有名字時回 null */
-const formName = computed(() => {
-  if (values.catalog_id && selectedCatalog.value) return catalogDisplayName(selectedCatalog.value)
-  const typed = values.custom_name.trim()
-  if (typed) return typed
-  return props.currentName ?? null
-})
+onMounted(loadCurrentDefault)
+watch(() => values.type, loadCurrentDefault)
 
 function submit() {
   // 型錄與自訂名稱至少要有一個（DB 的 name_or_catalog check 也擋，
@@ -97,10 +98,7 @@ const draft = draftStorageKey
   ? useFormDraft<EquipmentFormValues>(draftStorageKey, {
       read: () => ({ ...values }),
       restore: data => writeBack({ ...initialValues(), ...data }),
-      reset: () => {
-        writeBack(initialValues())
-        pressedDefault.value = false
-      },
+      reset: () => writeBack(initialValues()),
     })
   : null
 
@@ -185,29 +183,16 @@ defineExpose({ clearDraft: () => draft?.clear() })
       <FormNote field="備註">例如換刀盤、加裝配件</FormNote>
     </FormCard>
 
-    <!-- 動作按鈕而非 toggle。同類型只能有一台常用（DB 有 partial
-         unique index），toggle 表達的是獨立的開關，用它承載單選會讓
-         副作用隱形——使用者看不到「開啟這台會關掉另一台」。
-         它是動作不是欄位，所以不在卡片裡；副作用寫在按鈕下面那行。 -->
-    <div>
-      <AppButton variant="outline" block @click="toggleDefault">
-        {{ values.is_default ? "取消常用" : "設為常用" }}
-      </AppButton>
-
-      <!-- 事後回饋，不是事前警告。使用者按下「設為常用」時意圖已經很明確，
-           事前提醒他會換掉哪一台，是把系統的顧慮丟給他判斷——與模糊比對
-           從攔截器改成過濾器是同一個問題。 -->
-      <p v-if="values.is_default && pressedDefault" class="form-note card-pad-x mt-1.5">
-        {{ formName ? `已將 ${formName} 設為常用` : "已設為常用" }}
-      </p>
-
-      <!-- 沒有任何常用是合法狀態，新使用者本來就沒有。不阻止取消。 -->
-      <p v-else-if="!values.is_default" class="form-note card-pad-x mt-1.5">新增紀錄時會自動填入</p>
-    </div>
+    <!-- 設為常用：開關一張卡片（2026-11-17，取代原本的動作按鈕）。同類型只能有一台常用，
+         開了會取代哪一台寫在卡片下方——副作用在畫面上看得到（《03》§4.0.1）。
+         沒有任何常用是合法狀態，新使用者本來就沒有。不阻止關掉。 -->
+    <DefaultEquipmentCard v-model="values.is_default" :current-default="currentDefault" />
     </div>
 
+    <!-- 表單最下方的儲存：膠囊形（《03》§4.18 的例外） -->
     <AppButton block
       type="submit"
+      shape="pill"
       :busy="busy"
       :style="{ marginTop: 'var(--gap-section)' }"
     >

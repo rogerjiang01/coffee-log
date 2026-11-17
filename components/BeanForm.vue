@@ -340,7 +340,8 @@ defineExpose({ clearDraft: () => draft?.clear() })
 
     </FormCard>
 
-    <FormCard>
+    <!-- 只有一列：膠囊形（FormCard 的 pill）。打成好幾行時圓角不變 -->
+    <FormCard pill>
       <FormRow label="官方風味描述" for="bean-notes">
         <textarea
           id="bean-notes"
@@ -353,8 +354,10 @@ defineExpose({ clearDraft: () => draft?.clear() })
     </FormCard>
     </div>
 
+    <!-- 表單最下方的儲存：膠囊形（《03》§4.18 的例外） -->
     <AppButton block
       type="submit"
+      shape="pill"
       :busy="busy"
       :style="{ marginTop: 'var(--gap-section)' }"
     >

@@ -158,7 +158,7 @@ async function destroy() {
           ref="form"
           :draft-key="`draft:equipment:${id}`"
           :initial="initial ?? undefined"
-          :current-name="currentName"
+          :equipment-id="id"
           submit-label="儲存"
           :busy="saving"
           :error="error"

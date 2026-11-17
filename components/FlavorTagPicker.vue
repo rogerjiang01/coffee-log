@@ -29,9 +29,31 @@ const groups = computed(() => {
   )
 })
 
+// 「新增」可以按的條件：有輸入，而且不是已經有的詞（名稱或別名正規化之後相同，hasExactMatch）。
+// Return 鍵和按鈕走同一個條件——原本 Return 不看這一條，會建出重複的詞
 const canCreate = computed(() =>
   draft.value.trim().length > 0 && !hasExactMatch(draft.value, tags.value),
 )
+
+// 最下面那一列的兩種狀態（2026-11-17，iOS 新增項目的慣例）：
+//   平常    一列 --accent-text 的「＋ 新增風味詞」，看起來是一個動作（和「編輯分段」那一列同一種做法）
+//   輸入中  提示字「輸入風味詞」，右邊「新增」按鈕。新增之後維持輸入狀態、保留焦點，方便連續新增；
+//           輸入框是空的時候失去焦點，就變回動作列（有字的時候不收，打到一半的字不會不見）
+const adding = ref(false)
+const input = ref<HTMLInputElement | null>(null)
+
+async function startAdding() {
+  adding.value = true
+  await nextTick()
+  input.value?.focus()
+}
+
+function onInputBlur() {
+  if (!draft.value.trim()) {
+    draft.value = ''
+    adding.value = false
+  }
+}
 
 // 讀不到標籤時要講出來。原本無聲失敗，畫面只會是一片空白的標籤區，
 // 使用者不知道是「還沒有標籤」還是「讀取失敗」。
@@ -66,7 +88,7 @@ function toggle(id: string) {
 
 async function create() {
   const name = draft.value.trim()
-  if (!name || saving.value) return
+  if (!name || !canCreate.value || saving.value) return
   if (!userId.value) {
     error.value = SESSION_EXPIRED
     return
@@ -88,6 +110,8 @@ async function create() {
   cache.invalidateAfter({ kind: 'lookup', table: 'flavor_tags' })
   draft.value = ''
   toggle(created.id)
+  // 維持輸入狀態：點了「新增」按鈕的話焦點在按鈕上，拉回輸入框
+  input.value?.focus()
 }
 </script>
 
@@ -116,20 +140,40 @@ async function create() {
 
     <FormNote v-if="loadError" tone="error">{{ loadError }}</FormNote>
 
-    <!-- 最下面一列：新增風味詞。輸入是列裡的文字輸入（靠左），打了字才出現「新增」 -->
-    <div class="card-pad-x tag-row">
+    <!-- 最下面一列：新增風味詞。平常是動作列，點了變成輸入列（見 script 的 adding） -->
+    <button
+      v-if="!adding"
+      type="button"
+      class="card-pad-x tag-row add-row w-full text-left"
+      :style="{ color: 'var(--accent-text)' }"
+      @click="startAdding"
+    >
+      <!-- Lucide 的 plus（《03》§3 的「新增 ＋」） -->
+      <svg
+        width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" class="shrink-0"
+        fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round"
+      >
+        <path d="M5 12h14" />
+        <path d="M12 5v14" />
+      </svg>
+      <span class="text-heading-m">新增風味詞</span>
+    </button>
+    <div v-else class="card-pad-x tag-row add-row">
       <!-- min-w-0 不可省略：輸入框預設 size="20" 的最小寬度會把按鈕擠出卡片 -->
       <input
+        ref="input"
         v-model="draft"
         type="text"
-        placeholder="新增風味詞"
+        placeholder="輸入風味詞"
         aria-label="新增風味詞"
+        enterkeyhint="done"
         class="sheet-input min-w-0 flex-1 text-left"
         @keydown.enter.prevent="create"
+        @blur="onInputBlur"
       >
       <AppButton
-        v-if="canCreate"
         :busy="saving"
+        :disabled="!canCreate"
         class="shrink-0"
         @click="create"
       >
@@ -149,8 +193,15 @@ async function create() {
   display: flex;
   align-items: center;
   gap: 0.75rem;
-  min-height: 4rem;
+  min-height: var(--sheet-row-h);
   padding-block: 0.75rem;
-  border-top: 1px solid var(--border);
+  /* 分隔線不另外佔 1px，列高才會是 --sheet-row-h */
+  box-shadow: inset 0 1px 0 var(--border);
+}
+/* 新增風味詞那一列（動作列與輸入列）是單行的列：固定 --sheet-row-h，兩種狀態切換時高度不跳 */
+.add-row {
+  height: var(--sheet-row-h);
+  padding-block: 0;
+  gap: 0.5rem;
 }
 </style>

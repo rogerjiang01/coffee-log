@@ -5,13 +5,15 @@
 //
 // 放在分組卡片裡：標題列是表單的一列（標籤的樣式、右端一個收合箭頭），
 // 展開的內容接在下面，與標題列之間一條分隔線。左右內距自己帶，外面用 <FormRow flush>。
+//
+// v-model:open：外面的卡片要知道現在是不是收合著——收合時只有一列，卡片是膠囊形（FormCard 的 pill）。
 
 const props = defineProps<{
   title: string
   storageKey: string
 }>()
 
-const open = ref(false)
+const open = defineModel<boolean>('open', { default: false })
 
 onMounted(() => {
   try {
@@ -56,7 +58,8 @@ function toggle() {
       </svg>
     </button>
 
-    <div v-show="open" class="border-t" :style="{ borderColor: 'var(--border)' }">
+    <!-- 分隔線畫在內容裡（inset 陰影），不另外佔 1px：列高才會是 --sheet-row-h -->
+    <div v-show="open" :style="{ boxShadow: 'inset 0 1px 0 var(--border)' }">
       <slot />
     </div>
   </section>

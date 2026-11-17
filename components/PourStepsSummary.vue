@@ -42,7 +42,7 @@ const hasSteps = computed(() => props.steps.some(step => step.cumulativeWater !=
 .summary-title {
   display: flex;
   align-items: center;
-  min-height: 4rem;
-  border-bottom: 1px solid var(--border);
+  min-height: var(--sheet-row-h);
+  box-shadow: inset 0 -1px 0 var(--border);
 }
 </style>

@@ -9,6 +9,9 @@
 // 進行中由文字表達（「儲存中」），呼叫的地方自己換文字。
 //
 // 高度固定是觸控目標下限（44px）。有 to 時渲染成連結，外觀相同。
+//
+// shape="pill"：**只給表單最下方那顆全寬的儲存按鈕**（六張表單：新增／編輯紀錄、豆子、器材，2026-11-17）。
+// 它是整張表單的收尾動作，用形狀和頁面中其他按鈕區分開。其他按鈕維持 --radius-sm，預設不變（《03》§4.18）。
 
 const props = withDefaults(defineProps<{
   variant?: 'filled' | 'outline' | 'text'
@@ -20,13 +23,16 @@ const props = withDefaults(defineProps<{
   /** 佔滿容器寬度 */
   block?: boolean
   to?: string
-}>(), { variant: 'filled', tone: 'accent', type: 'button' })
+  /** 表單最下方的儲存按鈕用 pill，其他一律預設的 --radius-sm */
+  shape?: 'default' | 'pill'
+}>(), { variant: 'filled', tone: 'accent', type: 'button', shape: 'default' })
 
 const classes = computed(() => [
   'app-button',
   `app-button--${props.variant}`,
   props.tone === 'danger' ? 'app-button--danger' : '',
   props.block ? 'w-full' : '',
+  props.shape === 'pill' ? 'app-button--pill' : '',
 ])
 </script>
 
@@ -88,6 +94,11 @@ const classes = computed(() => [
 }
 .app-button--danger.app-button--text {
   color: var(--danger);
+}
+
+/* 表單最下方的儲存按鈕。和只有一列的表單卡片同一個圓角（--radius-pill）：44px 高的按鈕上就是兩端全圓 */
+.app-button--pill {
+  border-radius: var(--radius-pill);
 }
 
 /* 停用（不是進行中）：Figma 的 disabled。進行中的按鈕外觀不變。 */

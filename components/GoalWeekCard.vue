@@ -1,8 +1,9 @@
 <script setup lang="ts">
 // 「本週目標」卡片（《03》§4.16，Figma 的「Card / 本週目標」）：總覽與結算頁共用同一個元件。
 //
-// 標題列在上（AppCard）；下面一排三塊：左邊 100px 的環，中間是「記錄」與「N／M 杯」，
-// 右邊是週一到週日的每日長條圖。每一天都有一條全高的底軌（--accent-wash），杯數的長條疊在上面；
+// 標題列在上（AppCard）；下面一排三塊：左邊 100px 的環（線寬 22px），中間是「記錄」（14px、500）與
+// 「N／M」（28px Bold）加「杯」（16px、500），右邊是週一到週日的每日長條圖（10px 寬，星期 13px）。
+// 字級是 2026-11-17 照 Figma 更新過的值（使用者第二次反映字太小）。每一天都有一條全高的底軌（--accent-wash），杯數的長條疊在上面；
 // 沒有紀錄的日子只看得到底軌（照 Figma）。
 //
 // 結算頁特有的行為由 props 開：
@@ -38,6 +39,18 @@ const shown = computed(() => (filled.value || props.from === null ? props.count 
 
 const barMax = computed(() => Math.max(1, ...props.days))
 
+// 放不下時的退讓（2026-11-17，自己判斷的，見 第三批.md 第八節）。Figma 的值只算過 350px 寬、一位數的「1 / 3」：
+// 28px 的「12／21 杯」約 118px 寬，390px 下中間只剩 84px，375px 下連「2／3 杯」都放不下，會壓到長條。
+//   1. 長條的間距先讓：8px 縮到最少 4px（長條本身維持 10px），整組 118 → 94px
+//   2. 還放不下才把數字縮小：字級 = min(28px, 剩下的寬度 ÷ 這串字的寬度)。一位數在 375px 以上都是 28px
+// 剩下的寬度 = 這一排的寬度（100cqi）− 環 100 − 兩個間距 24 − 長條最窄 94 − 「杯」與前面的空隙 24 = 100cqi − 242px。
+// 這串字的寬度以 em 計：台北黑體 Bold 的數字約 0.59em，全形斜線 1em（實際量過：28px 的「2／3」是 61px）
+const numberFontSize = computed(() => {
+  const digits = String(shown.value).length + String(props.goal).length
+  const em = Math.round((digits * 0.59 + 1) * 100) / 100
+  return `min(var(--text-display-m), calc((100cqi - 242px) / ${em}))`
+})
+
 const status = computed(() => {
   if (props.celebrate) return filled.value ? '已達成' : ''
   if (props.count > props.goal) return `超過 ${props.count - props.goal} 杯`
@@ -55,19 +68,22 @@ const status = computed(() => {
     :style="{ minHeight: 'var(--overview-card-h)' }"
     @click="clickable && emit('click')"
   >
-    <span class="flex items-end justify-between gap-3 px-3 pt-3.25 pb-2">
+    <!-- container：數字的字級用這一排的寬度（cqi）算，見 numberFontSize -->
+    <span class="goal-row flex items-end gap-3 px-3 pt-3.25 pb-2">
       <GoalRing :count="ringCount" :from="ringFrom" :goal="goal" :size="100" :celebrate="celebrate" @filled="filled = true" />
-      <span class="flex min-w-0 flex-col justify-center self-stretch pb-2.5 font-medium">
-        <span class="text-body-s">記錄</span>
+      <span class="flex shrink-0 flex-col justify-center self-stretch pb-2.5">
+        <span class="text-body-m font-medium">記錄</span>
+        <!-- 數字是台北黑體 Bold（text-display-m 自帶 700），「杯」是 Noto Sans TC Medium；同一行、基線對齊 -->
         <span class="whitespace-nowrap tabular-nums" :style="{ color: 'var(--accent-text)' }">
-          <span class="text-heading-l">{{ shown }}／{{ goal }}</span>
-          <span class="ml-1.5 text-body-l">杯</span>
+          <span class="text-display-m" :style="{ fontSize: numberFontSize }">{{ shown }}／{{ goal }}</span>
+          <span class="ml-2 text-heading-s font-medium">杯</span>
         </span>
-        <span v-if="status" class="text-body-s" :style="{ color: 'var(--accent-text)' }">{{ status }}</span>
+        <span v-if="status" class="text-body-s font-medium" :style="{ color: 'var(--accent-text)' }">{{ status }}</span>
       </span>
-      <!-- 每日長條圖：8px 寬、圓頭。底軌全高 54px，杯數的長條疊在上面，最多的那一天頂到最高 -->
-      <span class="flex shrink-0 gap-2" aria-hidden="true">
-        <span v-for="(cups, day) in days" :key="day" class="flex w-2 flex-col items-center gap-0.5">
+      <!-- 每日長條圖：10px 寬、圓頭。底軌全高 54px，杯數的長條疊在上面，最多的那一天頂到最高。
+           整組靠右；間距 8px，空間不夠時縮到最少 4px（長條平均分開，寬度 94–118px） -->
+      <span class="ml-auto flex min-w-[94px] max-w-[118px] flex-1 justify-between" aria-hidden="true">
+        <span v-for="(cups, day) in days" :key="day" class="flex w-2.5 flex-col items-center gap-0.5">
           <span class="relative w-full rounded-full" :style="{ height: `${BAR_HEIGHT}px`, background: 'var(--accent-wash)' }">
             <span
               v-if="cups"
@@ -75,9 +91,15 @@ const status = computed(() => {
               :style="{ height: `${Math.max(8, (cups / barMax) * BAR_HEIGHT)}px`, background: 'var(--accent)' }"
             />
           </span>
-          <span class="text-label-m whitespace-nowrap text-muted">{{ WEEKDAYS[day] }}</span>
+          <span class="text-label-l whitespace-nowrap text-muted">{{ WEEKDAYS[day] }}</span>
         </span>
       </span>
     </span>
   </AppCard>
 </template>
+
+<style scoped>
+.goal-row {
+  container-type: inline-size;
+}
+</style>

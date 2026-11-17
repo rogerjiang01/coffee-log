@@ -7,6 +7,12 @@
 // 卡片裡的 FormNote 會自己傳送到這裡，所以訊息仍然寫在它的欄位旁邊。
 //
 // 區塊標題不在這裡：一個區塊有好幾張卡片，標題由 FormSection 畫。
+//
+// pill：**只有一列**、獨立成一張卡片的（沖煮時間、心得筆記、評分、收藏、設為常用……），
+// 圓角是膠囊形（--radius-pill，2026-11-17）。可收合的卡片收合時是單列、傳 true，展開後傳 false。
+// 一般的圓角是 --radius-lg。
+
+defineProps<{ pill?: boolean }>()
 
 const footer = ref<HTMLElement | null>(null)
 provide(FORM_CARD_FOOTER, footer)
@@ -14,7 +20,8 @@ provide(FORM_CARD_FOOTER, footer)
 
 <template>
   <div>
-    <AppCard radius="lg" class="overflow-hidden">
+    <!-- 外框畫在內側：卡片是列高的整數倍，膠囊形的兩端剛好是半圓 -->
+    <AppCard :radius="pill ? 'pill' : 'lg'" border-inside class="overflow-hidden">
       <slot />
     </AppCard>
     <div ref="footer" class="form-card-footer" />

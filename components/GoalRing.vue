@@ -20,7 +20,8 @@ const props = withDefaults(defineProps<{
 
 const emit = defineEmits<{ filled: [] }>()
 
-const STROKE = 10
+// 線寬 22px（2026-11-17 照 Figma 加粗：外徑 100、內徑 56）。只用在 100px 的環上
+const STROKE = 22
 const radius = computed(() => (props.size - STROKE) / 2)
 const circumference = computed(() => 2 * Math.PI * radius.value)
 

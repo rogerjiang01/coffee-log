@@ -70,7 +70,7 @@
     align-items: center;
     justify-content: space-between;
     gap: 0.75rem;
-    min-height: 4rem;
+    min-height: var(--sheet-row-h);
     /* 值換成兩行時（長豆名）上下仍有留白，不會貼到分隔線或下方的提示 */
     padding: 0.5rem 0;
   }

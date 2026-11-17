@@ -108,6 +108,8 @@ async function toggleStepTimes() {
 
 // 全頁器材選擇器：整個流程留在這一頁，沖煮表單已填的內容完全不動
 const pickerType = ref<EquipmentType | null>(null)
+// 「濾紙與分享壺」展開了沒有：收合時那張卡片只有一列，是膠囊形
+const extraEquipmentOpen = ref(false)
 const equipmentFields: { type: EquipmentType; label: string; key: keyof BrewFormValues }[] = [
   { type: 'grinder', label: '磨豆機', key: 'grinder_id' },
   { type: 'dripper', label: '濾杯', key: 'dripper_id' },
@@ -514,10 +516,11 @@ defineExpose({ clearDraft: () => draft?.clear() })
           />
         </FormRow>
       </FormCard>
-      <!-- 收合區自己一張卡片：這組裡的次要項目（幾乎不變，交給預設值） -->
-      <FormCard>
+      <!-- 收合區自己一張卡片：這組裡的次要項目（幾乎不變，交給預設值）。
+           收合時只有一列，膠囊形；展開後是多列，一般的圓角（2026-11-17） -->
+      <FormCard :pill="!extraEquipmentOpen">
         <FormRow flush>
-          <CollapsibleSection title="濾紙與分享壺" storage-key="brewForm.equipment.expanded">
+          <CollapsibleSection v-model:open="extraEquipmentOpen" title="濾紙與分享壺" storage-key="brewForm.equipment.expanded">
             <FormRow>
               <EquipmentTrigger
                 label="濾紙"
@@ -573,7 +576,8 @@ defineExpose({ clearDraft: () => draft?.clear() })
         <FormNote v-if="methodNotice" tone="notice">{{ methodNotice }}</FormNote>
       </FormCard>
 
-      <FormCard>
+      <!-- 只有一列的卡片是膠囊形（FormCard 的 pill，2026-11-17）：沖煮時間、心得筆記、評分、收藏 -->
+      <FormCard pill>
         <FormRow label="沖煮時間" for="brew-total-time">
           <DurationPicker id="brew-total-time" v-model="values.total_time" />
         </FormRow>
@@ -587,7 +591,8 @@ defineExpose({ clearDraft: () => draft?.clear() })
       <FormCard>
         <FlavorTagPicker v-model="flavorTagIds" />
       </FormCard>
-      <FormCard>
+      <!-- 打成好幾行、卡片變高時圓角不變（--radius-pill 是單列高度的一半，不是 9999px） -->
+      <FormCard pill>
         <FormRow label="心得筆記" for="brew-notes">
           <textarea
             id="brew-notes"
@@ -598,7 +603,7 @@ defineExpose({ clearDraft: () => draft?.clear() })
           />
         </FormRow>
       </FormCard>
-      <FormCard>
+      <FormCard pill>
         <FormRow>
           <StarRating v-model="values.rating" />
         </FormRow>
@@ -608,15 +613,17 @@ defineExpose({ clearDraft: () => draft?.clear() })
     <!-- 收藏不在「喝起來」裡：它不是品飲判斷，是「還想不想再沖」的實用決定，
          跟儲存這個動作在同一個心理時刻。照 Figma 自己一張卡片、一個開關，說明在卡片下方。 -->
     <div>
-      <FormCard data-section="tasting">
+      <FormCard pill data-section="tasting">
         <FormRow>
-          <ToggleSwitch v-model="values.is_favorite" label="收藏" class="sheet-row" />
+          <ToggleSwitch v-model="values.is_favorite" label="收藏" row />
         </FormRow>
         <FormNote>還想再沖一次</FormNote>
       </FormCard>
 
+      <!-- 表單最下方的儲存：膠囊形（AppButton 的 shape="pill"，《03》§4.18 的例外） -->
       <AppButton block
         type="submit"
+        shape="pill"
         :busy="busy"
         :style="{ marginTop: 'var(--gap-group)' }"
       >

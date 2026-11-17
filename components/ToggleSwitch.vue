@@ -7,11 +7,15 @@
 //
 // **整列都是按鈕**：軌道只有 64×26，可點範圍是整列（至少 44px 高，《03》§7）。
 // 放在卡片的一列裡用（FormRow 或 AppCard），自己不畫框。
+//
+// row：表單的一列（Figma 的 Sheet Row 的 toggle），高度是 --sheet-row-h（65px）。
+// 不在表單裡的（豆子詳情的「已喝完」）只要可點範圍 44px。
 
 defineProps<{
   modelValue: boolean
   label: string
   busy?: boolean
+  row?: boolean
 }>()
 
 const emit = defineEmits<{ 'update:modelValue': [boolean] }>()
@@ -24,7 +28,8 @@ const emit = defineEmits<{ 'update:modelValue': [boolean] }>()
     :aria-checked="modelValue"
     :disabled="busy"
     class="flex w-full items-center justify-between gap-3 text-left disabled:opacity-60"
-    :style="{ minHeight: 'var(--touch-min)' }"
+    :class="{ 'sheet-row': row }"
+    :style="row ? undefined : { minHeight: 'var(--touch-min)' }"
     @click="emit('update:modelValue', !modelValue)"
   >
     <span class="sheet-label">{{ label }}</span>

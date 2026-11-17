@@ -40,7 +40,9 @@ defineProps<{
 </template>
 
 <style scoped>
+/* 分隔線畫在列裡（inset 陰影），不另外佔 1px：單行的列含分隔線一律是 --sheet-row-h（65px），
+   最後一列沒有分隔線也一樣高（2026-11-17，照 Figma 的 Sheet Row） */
 .form-row:not(:last-child) {
-  border-bottom: 1px solid var(--border);
+  box-shadow: inset 0 -1px 0 var(--border);
 }
 </style>

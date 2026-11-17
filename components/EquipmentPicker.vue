@@ -140,24 +140,10 @@ function formatUsed(id: string) {
   return relativeUsed(lastUsed.value.get(id))
 }
 
-/**
- * 這次有沒有按過「設為常用」。用來決定要不要顯示回饋——
- * 不能拿 form.is_default 直接判斷，那分不出「剛剛按的」與「原本就是」。
- */
-const pressedDefault = ref(false)
-
-function toggleDefault() {
-  form.is_default = !form.is_default
-  pressedDefault.value = true
-}
-
-/** 表單上這台的名稱，給回饋文案用 */
-const formName = computed(() => {
-  if (form.catalog_id) {
-    const row = items.value.find(item => item.catalog_id === form.catalog_id)
-    if (row) return equipmentOptionName(row)
-  }
-  return form.custom_name.trim() || null
+/** 這一類目前的常用（清單就是這一類的器材），「設為常用」卡片下方寫出會被取代的是哪一台 */
+const currentDefault = computed(() => {
+  const row = items.value.find(item => item.is_default)
+  return row ? equipmentOptionName(row) : null
 })
 
 function confirmChoice() {
@@ -180,7 +166,6 @@ function cancelCreate() {
 function startCreate() {
   mode.value = 'create'
   formError.value = ''
-  pressedDefault.value = false
   // 不清空，改成把上次留下的內容放回來
   Object.assign(form, inlineDraft.value.read())
 }
@@ -378,20 +363,14 @@ async function create() {
           <FormRow label="備註" for="picker-note">
             <SheetText id="picker-note" v-model="form.note" />
           </FormRow>
-
-          <!-- 動作按鈕而非 toggle，理由同器材頁：同類型只能有一台常用，
-               toggle 表達的是獨立開關，會讓單選的副作用隱形 -->
-          <FormRow>
-            <div class="py-4">
-              <AppButton variant="outline" block @click="toggleDefault">
-                {{ form.is_default ? '取消常用' : '設為常用' }}
-              </AppButton>
-
-            </div>
-          </FormRow>
-          <!-- 事後回饋而非事前警告，理由同器材頁 -->
-          <FormNote v-if="form.is_default && pressedDefault">{{ formName ? `已將 ${formName} 設為常用` : '已設為常用' }}</FormNote>
         </FormCard>
+
+        <!-- 設為常用：和器材表單同一張卡片（開關，下方寫出會取代哪一台） -->
+        <DefaultEquipmentCard
+          v-model="form.is_default"
+          :current-default="currentDefault"
+          :style="{ marginTop: 'var(--gap-group)' }"
+        />
 
         <p v-if="formError" role="alert" class="mt-4 rounded-sm border px-3 py-3 text-sm" :style="{ color: 'var(--danger)', borderColor: 'var(--danger)' }">
           {{ formError }}
