@@ -222,6 +222,9 @@ Playwright 是 devDependency（2026-11-17 加入），**只用來在瀏覽器裡
   記錄表單的區塊標題是「這杯紀錄」「器材」「沖煮」「品飲」（《04》：紀錄是名詞、記錄是動作）；總覽 13px 的字是 Body S（400），最高分的星星間距 2px。
   日期與時刻的膠囊自己寫字（`YYYY/MM/DD`、24 小時制 `HH:mm`，沿用紀錄詳情頁；`utils/formDate.ts`）；**焦點框只在鍵盤操作時畫**（`useInputModality`，不靠原生的 `:focus-visible`）；
   沖煮時間的分秒框維持固定寬（已同意）
+- **膠囊的轉角形狀**（2026-11-19，`第三批.md` 第十一節）：膠囊形的元素加 `corner-shape`（token `--pill-corner-shape`，目前 `squircle`；工具 class `.pill-corner`）。
+  **漸進增強**：只有 Chrome／Edge 139 以後支援，iPhone 上所有瀏覽器都看不到，設計不能依賴它。正圓不套；
+  **一般卡片（12、24px）要不要套、半徑要不要加大，等你看截圖決定**；squircle 套在膠囊上兩端偏方，superellipse(1.5) 的截圖也有
 
 **還沒驗、等使用者回覆的**：
 

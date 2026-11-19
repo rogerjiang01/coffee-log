@@ -102,6 +102,8 @@ const classes = computed(() => [
 .app-button--pill {
   min-height: var(--sheet-row-h);
   border-radius: var(--radius-pill);
+  /* 兩端的曲率連續（tokens.css 的 --pill-corner-shape，漸進增強） */
+  corner-shape: var(--pill-corner-shape);
 }
 
 /* 停用（不是進行中）：Figma 的 disabled。進行中的按鈕外觀不變。 */

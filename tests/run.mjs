@@ -18,6 +18,7 @@ const suites = [
   ['unit/summary.test.ts', '結算頁的第一筆紀錄與第一杯'],
   ['unit/form-date.test.ts', '表單膠囊上的日期與時刻'],
   ['unit/form-date-wiring.test.mjs', '表單膠囊上的日期與時刻的接線'],
+  ['unit/corner-shape.test.mjs', '膠囊形的轉角形狀'],
   ['unit/summary-wiring.test.mjs', '縮圖佔位與範例標籤的接線'],
   ['unit/bean-compare.test.ts', '豆子比較表'],
   ['unit/lookup.test.ts', '查表欄位的比對'],

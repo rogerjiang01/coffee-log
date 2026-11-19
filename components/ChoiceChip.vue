@@ -24,6 +24,8 @@ defineProps<{ selected: boolean }>()
   padding: 0.25rem 0.75rem;
   border: 1px solid var(--field-border);
   border-radius: 9999px;
+  /* 兩端的曲率連續（tokens.css 的 --pill-corner-shape，漸進增強） */
+  corner-shape: var(--pill-corner-shape);
   font-size: var(--text-heading-m);
   line-height: var(--text-heading-m--line-height);
   color: var(--text);

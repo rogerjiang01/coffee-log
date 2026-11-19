@@ -84,10 +84,10 @@ const status = computed(() => {
            整組靠右；間距 8px，空間不夠時縮到最少 4px（長條平均分開，寬度 94–118px） -->
       <span class="ml-auto flex min-w-[94px] max-w-[118px] flex-1 justify-between" aria-hidden="true">
         <span v-for="(cups, day) in days" :key="day" class="flex w-2.5 flex-col items-center gap-0.5">
-          <span class="relative w-full rounded-full" :style="{ height: `${BAR_HEIGHT}px`, background: 'var(--accent-wash)' }">
+          <span class="pill-corner relative w-full rounded-full" :style="{ height: `${BAR_HEIGHT}px`, background: 'var(--accent-wash)' }">
             <span
               v-if="cups"
-              class="absolute inset-x-0 bottom-0 rounded-full"
+              class="pill-corner absolute inset-x-0 bottom-0 rounded-full"
               :style="{ height: `${Math.max(8, (cups / barMax) * BAR_HEIGHT)}px`, background: 'var(--accent)' }"
             />
           </span>

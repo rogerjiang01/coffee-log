@@ -6,7 +6,7 @@
 //
 // 圓角三種：md（12px，總覽這類獨立的卡片）、lg（24px，表單的卡片容器）、
 // pill（--radius-pill，只有一列的表單卡片，2026-11-17）。pill 是單列高度的一半，不是 9999px：
-// 那張卡片長高時（心得筆記打成好幾行）圓角不變，不會變成兩端全圓。
+// 那張卡片長高時（心得筆記打成好幾行）圓角不變，不會變成兩端全圓。pill 另外加 corner-shape（.pill-corner，漸進增強）。
 // 陰影是 --shadow-light：卡片底色和頁面底色幾乎一樣，靠它分層（《03》§2.3）。
 //
 // borderInside：外框畫在內側（inset 陰影），不另外佔高度——Figma 的外框是內側的，表單的卡片因此是
@@ -31,7 +31,7 @@ withDefaults(defineProps<{
   <component
     :is="as"
     class="app-card"
-    :class="[radius === 'lg' ? 'rounded-lg' : radius === 'md' ? 'rounded-md' : '', borderInside ? '' : 'border']"
+    :class="[radius === 'lg' ? 'rounded-lg' : radius === 'md' ? 'rounded-md' : 'pill-corner', borderInside ? '' : 'border']"
     :style="{
       borderColor: 'var(--border)',
       background: 'var(--surface)',

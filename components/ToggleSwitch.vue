@@ -38,7 +38,7 @@ const emit = defineEmits<{ 'update:modelValue': [boolean] }>()
          開關尺寸大，靠圓鈕與軌道的形狀就看得出可以操作，不必靠軌道的深淺。
          **不用 --control-empty**，那是未選取的輪廓用的 -->
     <span
-      class="relative inline-block shrink-0 rounded-full"
+      class="pill-corner relative inline-block shrink-0 rounded-full"
       :style="{
         width: '64px',
         height: '26px',
@@ -48,7 +48,7 @@ const emit = defineEmits<{ 'update:modelValue': [boolean] }>()
       aria-hidden="true"
     >
       <span
-        class="absolute rounded-full"
+        class="pill-corner absolute rounded-full"
         :style="{
           top: '2px',
           width: '36px',
