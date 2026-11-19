@@ -125,9 +125,9 @@ const newBrewLink = computed(() => newBrewEntry(activeBeans.value))
 
     <!-- 骨架：目標環一張全寬、兩張半寬，和卡片同高。§6 不做進場動畫，靜態色塊 -->
     <div v-if="loading" aria-busy="true" aria-label="讀取中" class="mt-6 grid grid-cols-2 gap-3">
-      <SkeletonBlock class="col-span-2" height="var(--overview-card-h)" radius="var(--radius-md)" />
-      <SkeletonBlock height="var(--overview-card-h)" radius="var(--radius-md)" />
-      <SkeletonBlock height="var(--overview-card-h)" radius="var(--radius-md)" />
+      <SkeletonBlock class="col-span-2" height="var(--overview-card-h)" radius="var(--radius-card-md)" />
+      <SkeletonBlock height="var(--overview-card-h)" radius="var(--radius-card-md)" />
+      <SkeletonBlock height="var(--overview-card-h)" radius="var(--radius-card-md)" />
     </div>
 
     <div v-else class="mt-6 grid grid-cols-2 gap-3">

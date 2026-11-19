@@ -276,20 +276,24 @@
        圓角維持不變，不會變成兩端全圓的膠囊。和 --sheet-row-h 是一組 */
     --radius-pill: calc(var(--sheet-row-h) / 2);
     /* 轉角形狀（CSS corner-shape，2026-11-19）：圓弧和直線接在一起時曲率不連續，
-       膠囊的兩端看起來有「骨頭感」；squircle 讓曲率連續。**漸進增強**：只有 Chrome／Edge 139 以後支援，
-       Safari（含 iPhone 上所有瀏覽器）與 Firefox 忽略，維持一般的圓角（《03》§2.3 的圓角段落）。
-       每一類元素各自一個 token，在開發環境的 /dev/corners 一個一個調（2026-11-19 拆開）。
+       膠囊的兩端看起來有「骨頭感」；superellipse(K) 的 K 只要大於 1，接點的曲率就是連續的。
+       **漸進增強**：只有 Chrome／Edge 139 以後支援，正式版的 Safari（含 iPhone 上所有瀏覽器）與 Firefox 忽略，
+       維持一般的圓角（《03》§2.3 的圓角段落）。
+       數值是使用者在開發環境的 /dev/corners 一個一個調出來的（2026-11-19）。改值之前先在那一頁調，
+       那一頁的預設值（dev/corners.vue 的 kinds）要跟著這裡改。
        正圓（浮動按鈕、完成按鈕、目標的加減按鈕、強度圓點）不套：沒有直線段，套了會變成圓角方塊 */
-    --corner-card-pill: squircle;    /* 只有一列的表單卡片（AppCard 的 pill） */
-    --corner-save-button: squircle;  /* 表單最下方的儲存按鈕（AppButton 的 shape="pill"） */
-    --corner-sheet-pill: squircle;   /* 下拉與日期的膠囊、沖煮時間的分秒框（.sheet-pill） */
-    --corner-chip: squircle;         /* 風味標籤（ChoiceChip） */
-    --corner-toggle: squircle;       /* 開關的軌道與圓鈕（ToggleSwitch） */
-    --corner-bar: squircle;          /* 總覽的每日長條（GoalWeekCard） */
-    --corner-card-md: round;         /* 一般卡片 12px：round 等於不套用，要不要改還沒決定 */
-    --corner-card-lg: round;         /* 表單的卡片容器 24px：同上 */
-    /* 卡片與儲存按鈕各自的圓角半徑。預設就是上面三個共用的值；分開是為了在 /dev/corners 各自調 */
-    --radius-card-md: var(--radius-md);
+    --corner-card-pill: superellipse(1.2);    /* 只有一列的表單卡片（AppCard 的 pill） */
+    --corner-save-button: superellipse(1.2);  /* 表單最下方的儲存按鈕（AppButton 的 shape="pill"） */
+    --corner-sheet-pill: superellipse(1.1);   /* 下拉與日期的膠囊、沖煮時間的分秒框（.sheet-pill） */
+    --corner-chip: superellipse(1.1);         /* 風味標籤（ChoiceChip） */
+    --corner-toggle: superellipse(1.1);       /* 開關的軌道與圓鈕（ToggleSwitch） */
+    --corner-bar: superellipse(1.1);          /* 總覽的每日長條（GoalWeekCard） */
+    --corner-card-md: superellipse(1.1);      /* 總覽的卡片（AppCard 的 md） */
+    --corner-card-lg: superellipse(1.1);      /* 表單的卡片容器（AppCard 的 lg） */
+    /* 卡片與儲存按鈕各自的圓角半徑。
+       **總覽的卡片（AppCard 的 md）是 24px**（2026-11-19 使用者決定，原本是 --radius-md 的 12px；Figma 是 12）。
+       --radius-md 本身沒有改：豆子卡片、器材列表、比較表、縮圖還是 12px。其餘三個等於共用的值 */
+    --radius-card-md: 24px;
     --radius-card-lg: var(--radius-lg);
     --radius-card-pill: var(--radius-pill);
     --radius-save-button: var(--radius-pill);

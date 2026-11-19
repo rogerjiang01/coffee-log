@@ -19,16 +19,16 @@ type Kind = {
   radius?: { token: string, value: number, default: number, max: number, step: number, fallback: string }
 }
 
-// 預設值和 tokens.css 一致：膠囊類 squircle（2），一般卡片 round（1，等於不套用）
+// 預設值和 tokens.css 一致（2026-11-19 使用者調好、貼回來的值）。tokens.css 改了這裡要跟著改（tests/unit/corner-shape.test.mjs 會擋）
 const kinds = reactive<Record<string, Kind>>({
-  cardPill: { label: '只有一列的卡片', note: '沖煮時間、心得筆記、評分、收藏、設為常用……', token: '--corner-card-pill', shape: 2, defaultShape: 2, radius: { token: '--radius-card-pill', value: 32.5, default: 32.5, max: 32.5, step: 0.5, fallback: 'var(--radius-pill)' } },
-  save: { label: '儲存按鈕', note: '表單最下方，65px 高', token: '--corner-save-button', shape: 2, defaultShape: 2, radius: { token: '--radius-save-button', value: 32.5, default: 32.5, max: 32.5, step: 0.5, fallback: 'var(--radius-pill)' } },
-  sheet: { label: '下拉與日期的膠囊', note: '含沖煮時間的分秒輸入框', token: '--corner-sheet-pill', shape: 2, defaultShape: 2 },
-  chip: { label: '風味標籤', token: '--corner-chip', shape: 2, defaultShape: 2 },
-  toggle: { label: '開關', note: '軌道與圓鈕', token: '--corner-toggle', shape: 2, defaultShape: 2 },
-  bar: { label: '每日長條', note: '總覽的本週目標', token: '--corner-bar', shape: 2, defaultShape: 2 },
-  cardMd: { label: '一般卡片 12px', note: '總覽的卡片。1 等於不套用', token: '--corner-card-md', shape: 1, defaultShape: 1, radius: { token: '--radius-card-md', value: 12, default: 12, max: 48, step: 1, fallback: 'var(--radius-md)' } },
-  cardLg: { label: '一般卡片 24px', note: '表單的卡片容器。1 等於不套用', token: '--corner-card-lg', shape: 1, defaultShape: 1, radius: { token: '--radius-card-lg', value: 24, default: 24, max: 48, step: 1, fallback: 'var(--radius-lg)' } },
+  cardPill: { label: '只有一列的卡片', note: '沖煮時間、心得筆記、評分、收藏、設為常用……', token: '--corner-card-pill', shape: 1.2, defaultShape: 1.2, radius: { token: '--radius-card-pill', value: 32.5, default: 32.5, max: 32.5, step: 0.5, fallback: 'var(--radius-pill)' } },
+  save: { label: '儲存按鈕', note: '表單最下方，65px 高', token: '--corner-save-button', shape: 1.2, defaultShape: 1.2, radius: { token: '--radius-save-button', value: 32.5, default: 32.5, max: 32.5, step: 0.5, fallback: 'var(--radius-pill)' } },
+  sheet: { label: '下拉與日期的膠囊', note: '含沖煮時間的分秒輸入框', token: '--corner-sheet-pill', shape: 1.1, defaultShape: 1.1 },
+  chip: { label: '風味標籤', token: '--corner-chip', shape: 1.1, defaultShape: 1.1 },
+  toggle: { label: '開關', note: '軌道與圓鈕', token: '--corner-toggle', shape: 1.1, defaultShape: 1.1 },
+  bar: { label: '每日長條', note: '總覽的本週目標', token: '--corner-bar', shape: 1.1, defaultShape: 1.1 },
+  cardMd: { label: '總覽的卡片', note: '1 等於不套用', token: '--corner-card-md', shape: 1.1, defaultShape: 1.1, radius: { token: '--radius-card-md', value: 24, default: 24, max: 48, step: 1, fallback: '24px' } },
+  cardLg: { label: '表單的卡片容器', note: '1 等於不套用', token: '--corner-card-lg', shape: 1.1, defaultShape: 1.1, radius: { token: '--radius-card-lg', value: 24, default: 24, max: 48, step: 1, fallback: 'var(--radius-lg)' } },
 })
 
 /** 全部切回一般圓角：對照 Safari（含 iPhone）上看到的樣子。半徑不動 */
