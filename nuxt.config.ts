@@ -4,7 +4,19 @@ export default defineNuxtConfig({
   compatibilityDate: '2025-08-31',
   devtools: { enabled: true },
 
-  modules: ['@nuxtjs/supabase'],
+  modules: [
+    '@nuxtjs/supabase',
+    // 開發用的頁面：只在 nuxt dev 時加進路由，正式 build 沒有這些路由（不只是藏起來，是根本不存在）。
+    // 檔案放在 dev/ 而不是 pages/：放在 pages/ 的話 build 一定會掃進去。
+    // tests/unit/dev-corners.test.mjs 檢查這裡的條件，以及 build 之後的伺服器程式裡沒有 /dev/corners。
+    (_options, nuxt) => {
+      if (!nuxt.options.dev) return
+      nuxt.hook('pages:extend', (pages) => {
+        // 轉角形狀的調整頁（2026-11-19）
+        pages.push({ name: 'dev-corners', path: '/dev/corners', file: `${nuxt.options.rootDir}/dev/corners.vue` })
+      })
+    },
+  ],
 
   experimental: {
     // dev 啟動時每次噴五筆 #app-manifest 的 pre-transform error。
@@ -54,6 +66,9 @@ export default defineNuxtConfig({
   $development: {
     supabase: {
       cookieOptions: { secure: false },
+      // 開發用的頁面（上面 modules 裡加的）不需要登入。和上面的 exclude 合併成一份（defu 會串接陣列）；
+      // login、callback 是型別要求的，值和上面相同
+      redirectOptions: { login: '/login', callback: '/confirm', exclude: ['/dev/*'] },
     },
   },
 

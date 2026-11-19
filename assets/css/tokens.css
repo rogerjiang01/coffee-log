@@ -275,11 +275,24 @@
        用單列高度的一半（32.5px）而不是 9999px：心得筆記打成好幾行、卡片變高時，
        圓角維持不變，不會變成兩端全圓的膠囊。和 --sheet-row-h 是一組 */
     --radius-pill: calc(var(--sheet-row-h) / 2);
-    /* 膠囊形的轉角形狀（CSS corner-shape，2026-11-19）：圓弧和直線接在一起時曲率不連續，
-       兩端看起來有「骨頭感」；squircle 讓曲率連續。**漸進增強**：只有 Chrome／Edge 139 以後支援，
-       Safari（含 iPhone 上所有瀏覽器）與 Firefox 忽略，維持一般的圓角。
-       用在 .pill-corner 與幾個膠囊元件上（《03》§2.3 的圓角段落）。一般卡片（12、24px）不套用 */
-    --pill-corner-shape: squircle;
+    /* 轉角形狀（CSS corner-shape，2026-11-19）：圓弧和直線接在一起時曲率不連續，
+       膠囊的兩端看起來有「骨頭感」；squircle 讓曲率連續。**漸進增強**：只有 Chrome／Edge 139 以後支援，
+       Safari（含 iPhone 上所有瀏覽器）與 Firefox 忽略，維持一般的圓角（《03》§2.3 的圓角段落）。
+       每一類元素各自一個 token，在開發環境的 /dev/corners 一個一個調（2026-11-19 拆開）。
+       正圓（浮動按鈕、完成按鈕、目標的加減按鈕、強度圓點）不套：沒有直線段，套了會變成圓角方塊 */
+    --corner-card-pill: squircle;    /* 只有一列的表單卡片（AppCard 的 pill） */
+    --corner-save-button: squircle;  /* 表單最下方的儲存按鈕（AppButton 的 shape="pill"） */
+    --corner-sheet-pill: squircle;   /* 下拉與日期的膠囊、沖煮時間的分秒框（.sheet-pill） */
+    --corner-chip: squircle;         /* 風味標籤（ChoiceChip） */
+    --corner-toggle: squircle;       /* 開關的軌道與圓鈕（ToggleSwitch） */
+    --corner-bar: squircle;          /* 總覽的每日長條（GoalWeekCard） */
+    --corner-card-md: round;         /* 一般卡片 12px：round 等於不套用，要不要改還沒決定 */
+    --corner-card-lg: round;         /* 表單的卡片容器 24px：同上 */
+    /* 卡片與儲存按鈕各自的圓角半徑。預設就是上面三個共用的值；分開是為了在 /dev/corners 各自調 */
+    --radius-card-md: var(--radius-md);
+    --radius-card-lg: var(--radius-lg);
+    --radius-card-pill: var(--radius-pill);
+    --radius-save-button: var(--radius-pill);
 
     /* ══ 陰影 ═══════════════════════════════════════════════
      兩種，用途不同，不互相代替：

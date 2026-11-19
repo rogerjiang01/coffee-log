@@ -112,7 +112,7 @@ export default function run() {
     '標題文字：本週目標、最近沖煮、本週最高分／上週最高分、累計、本月')
   r.check(/<GoalRing :count="ringCount" :from="ringFrom" :goal="goal" :size="100"/.test(goalCard) && />記錄<\/span>/.test(goalCard),
     '目標環卡片：左邊 100px 的環，中間是「記錄」與數字，右邊是長條圖（Figma）')
-  r.check(/class="pill-corner relative w-full rounded-full" :style="\{ height: `\$\{BAR_HEIGHT\}px`, background: 'var\(--accent-wash\)' \}">\s*<span\s+v-if="cups"\s+class="pill-corner absolute inset-x-0 bottom-0 rounded-full"/.test(goalCard),
+  r.check(/class="corner-bar relative w-full rounded-full" :style="\{ height: `\$\{BAR_HEIGHT\}px`, background: 'var\(--accent-wash\)' \}">\s*<span\s+v-if="cups"\s+class="corner-bar absolute inset-x-0 bottom-0 rounded-full"/.test(goalCard),
     '每一天都有全高的底軌（--accent-wash），杯數的長條疊在上面；0 杯的那一天只有底軌')
   const goalCardFile = read('components/GoalWeekCard.vue')
   r.check(!/over-?[tT]ext/.test(homeTemplate + goalCard) && !/props\.overText/.test(goalCardFile)

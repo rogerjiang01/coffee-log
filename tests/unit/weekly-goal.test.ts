@@ -71,6 +71,7 @@ export default function run() {
   r.section('目標設定頁的出現時機')
   r.check(needsGoalSetup('/', true, false), '已登入、沒有目標：導向目標設定頁')
   r.check(!needsGoalSetup('/', true, true), '已經有目標：不導向')
+  r.check(!needsGoalSetup('/dev/corners', true, false), '開發用的頁面（/dev/*）：不導向，也就不查資料庫')
   r.check(!needsGoalSetup('/', true, null), '還不知道有沒有（查詢中或失敗）：不擋')
   r.check(!needsGoalSetup('/', false, false), '沒登入：不導向（交給登入導向）')
   r.check(!needsGoalSetup('/s/abc', true, false), '分享頁不受影響')

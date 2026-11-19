@@ -101,9 +101,9 @@ const classes = computed(() => [
    兩端是半圓（2026-11-17，原本是 44px 高） */
 .app-button--pill {
   min-height: var(--sheet-row-h);
-  border-radius: var(--radius-pill);
-  /* 兩端的曲率連續（tokens.css 的 --pill-corner-shape，漸進增強） */
-  corner-shape: var(--pill-corner-shape);
+  border-radius: var(--radius-save-button);
+  /* 兩端的曲率連續（tokens.css 的 --corner-save-button，漸進增強） */
+  corner-shape: var(--corner-save-button);
 }
 
 /* 停用（不是進行中）：Figma 的 disabled。進行中的按鈕外觀不變。 */

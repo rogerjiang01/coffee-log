@@ -94,5 +94,7 @@ export function needsGoalSetup(path: string, signedIn: boolean, hasGoal: boolean
   if (!signedIn || hasGoal !== false) return false
   if (path === GOAL_SETUP_PATH) return false
   if (path.startsWith('/s/') || path === '/login' || path === '/signup' || path === '/confirm') return false
+  // 開發用的頁面（只在 nuxt dev 存在，例如 /dev/corners）：不讀資料庫、不導向
+  if (path.startsWith('/dev/')) return false
   return true
 }

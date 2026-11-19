@@ -96,6 +96,9 @@ pnpm test
 | `tests/run.mjs` | 執行器 |
 
 Playwright 是 devDependency（2026-11-17 加入），**只用來在瀏覽器裡驗證與截圖**（Chromium 與 WebKit），沒有進 `pnpm test`。
+
+**開發用的頁面放在 `dev/`，不放 `pages/`**（2026-11-19）：`nuxt.config.ts` 的小模組只在 `nuxt dev` 時把它們加進路由，正式 build 沒有。
+目前只有 `/dev/corners`（轉角形狀的調整頁）。`tests/unit/dev-corners.test.mjs` 在有 `.output/` 時檢查產物裡沒有它——**改到這一塊之後先 `pnpm build` 再 `pnpm test`**。
 瀏覽器要另外下載一次：`pnpm exec playwright install chromium webkit`。
 
 `tests/helpers/pg.mjs` 的 stub **刻意不預先授權 public schema**，
@@ -224,7 +227,9 @@ Playwright 是 devDependency（2026-11-17 加入），**只用來在瀏覽器裡
   沖煮時間的分秒框維持固定寬（已同意）
 - **膠囊的轉角形狀**（2026-11-19，`第三批.md` 第十一節）：膠囊形的元素加 `corner-shape`（token `--pill-corner-shape`，目前 `squircle`；工具 class `.pill-corner`）。
   **漸進增強**：只有 Chrome／Edge 139 以後支援，iPhone 上所有瀏覽器都看不到，設計不能依賴它。正圓不套；
-  **一般卡片（12、24px）要不要套、半徑要不要加大，等你看截圖決定**；squircle 套在膠囊上兩端偏方，superellipse(1.5) 的截圖也有
+  **一般卡片（12、24px）要不要套、半徑要不要加大，等你看截圖決定**；squircle 套在膠囊上兩端偏方，superellipse(1.5) 的截圖也有。
+  2026-11-19 拆成每一類一個 token（`--corner-card-pill`、`--corner-save-button`、`--corner-sheet-pill`、`--corner-chip`、`--corner-toggle`、`--corner-bar`、
+  一般卡片 `--corner-card-md`／`--corner-card-lg` 預設 `round`），**使用者在開發環境的 `/dev/corners` 自己調，調好會把 CSS 貼回來**（`第三批.md` 第十二節）
 
 **還沒驗、等使用者回覆的**：
 
