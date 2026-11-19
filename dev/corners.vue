@@ -7,7 +7,7 @@
 // 也不經過目標設定的導向（utils/weeklyGoal.ts 的 needsGoalSetup 跳過 /dev/）。
 //
 // 每一類元素放實際的元件（假的內容），旁邊的滑桿改的是那一類的 token（tokens.css 的 --corner-*、
-// --radius-card-*、--radius-save-button）。值寫在這一頁最外層的 style 上，只影響這一頁，不會帶到別頁。
+// --radius-card-*、--radius-block-button）。值寫在這一頁最外層的 style 上，只影響這一頁，不會帶到別頁。
 // 調好之後，最下方那段 CSS 就是每個 token 的最終值。
 
 type Kind = {
@@ -21,13 +21,13 @@ type Kind = {
 
 // 預設值和 tokens.css 一致（2026-11-19 使用者調好、貼回來的值）。tokens.css 改了這裡要跟著改（tests/unit/corner-shape.test.mjs 會擋）
 const kinds = reactive<Record<string, Kind>>({
-  cardPill: { label: '只有一列的卡片', note: '沖煮時間、心得筆記、評分、收藏、設為常用……', token: '--corner-card-pill', shape: 1.2, defaultShape: 1.2, radius: { token: '--radius-card-pill', value: 32.5, default: 32.5, max: 32.5, step: 0.5, fallback: 'var(--radius-pill)' } },
-  save: { label: '儲存按鈕', note: '表單最下方，65px 高', token: '--corner-save-button', shape: 1.2, defaultShape: 1.2, radius: { token: '--radius-save-button', value: 32.5, default: 32.5, max: 32.5, step: 0.5, fallback: 'var(--radius-pill)' } },
+  cardPill: { label: '只有一列的卡片', note: '沖煮時間、心得筆記、評分、收藏、設為常用、豆子詳情的已喝完……', token: '--corner-card-pill', shape: 1.2, defaultShape: 1.2, radius: { token: '--radius-card-pill', value: 32.5, default: 32.5, max: 32.5, step: 0.5, fallback: 'var(--radius-pill)' } },
+  save: { label: '滿寬按鈕', note: '實心與外框都是，65px 高（儲存、照上次再沖一次、編輯、新增一段……）', token: '--corner-block-button', shape: 1.2, defaultShape: 1.2, radius: { token: '--radius-block-button', value: 32.5, default: 32.5, max: 32.5, step: 0.5, fallback: 'var(--radius-pill)' } },
   sheet: { label: '下拉與日期的膠囊', note: '含沖煮時間的分秒輸入框', token: '--corner-sheet-pill', shape: 1.1, defaultShape: 1.1 },
   chip: { label: '風味標籤', token: '--corner-chip', shape: 1.1, defaultShape: 1.1 },
   toggle: { label: '開關', note: '軌道與圓鈕', token: '--corner-toggle', shape: 1.1, defaultShape: 1.1 },
   bar: { label: '每日長條', note: '總覽的本週目標', token: '--corner-bar', shape: 1.1, defaultShape: 1.1 },
-  cardMd: { label: '總覽的卡片', note: '1 等於不套用', token: '--corner-card-md', shape: 1.1, defaultShape: 1.1, radius: { token: '--radius-card-md', value: 24, default: 24, max: 48, step: 1, fallback: '24px' } },
+  cardMd: { label: '獨立的卡片', note: '總覽、結算頁、豆子與器材列表、比較表。1 等於不套用', token: '--corner-card-md', shape: 1.1, defaultShape: 1.1, radius: { token: '--radius-card-md', value: 24, default: 24, max: 48, step: 1, fallback: '24px' } },
   cardLg: { label: '表單的卡片容器', note: '1 等於不套用', token: '--corner-card-lg', shape: 1.1, defaultShape: 1.1, radius: { token: '--radius-card-lg', value: 24, default: 24, max: 48, step: 1, fallback: 'var(--radius-lg)' } },
 })
 
@@ -150,7 +150,8 @@ const ROAST = { light: '淺焙', medium_light: '中淺焙', medium: '中焙', me
         </template>
 
         <template v-else-if="key === 'save'">
-          <AppButton type="button" block shape="pill">儲存</AppButton>
+          <AppButton type="button" block>儲存</AppButton>
+          <AppButton type="button" variant="outline" block>編輯</AppButton>
         </template>
 
         <template v-else-if="key === 'sheet'">

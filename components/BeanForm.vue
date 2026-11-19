@@ -353,7 +353,6 @@ defineExpose({ clearDraft: () => draft?.clear() })
     <!-- 表單最下方的儲存：膠囊形（《03》§4.18 的例外） -->
     <AppButton block
       type="submit"
-      shape="pill"
       :busy="busy"
       :style="{ marginTop: 'var(--gap-section)' }"
     >

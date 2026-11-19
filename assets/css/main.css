@@ -260,6 +260,16 @@
 
   /* 轉角形狀（tokens.css 的 --corner-*）：漸進增強，不支援的瀏覽器維持一般圓角。
      卡片、儲存按鈕、下拉的膠囊、風味標籤在各自的樣式裡寫；這兩個給 Tailwind 排版的元素用 */
+  /* 卡片的圓角與轉角：獨立的卡片（總覽、結算頁、豆子與器材列表、比較表）與表單的卡片容器。
+     AppCard 自己有；這兩個給沒有用 AppCard 的卡片與載入骨架用（2026-11-19 統一成 24px） */
+  .card-corners {
+    border-radius: var(--radius-card-md);
+    corner-shape: var(--corner-card-md);
+  }
+  .form-card-corners {
+    border-radius: var(--radius-card-lg);
+    corner-shape: var(--corner-card-lg);
+  }
   .corner-toggle {
     corner-shape: var(--corner-toggle);
   }

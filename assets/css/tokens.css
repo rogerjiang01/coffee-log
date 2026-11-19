@@ -271,7 +271,7 @@
     --radius-sm: 8px; /* 輸入框、按鈕 */
     --radius-md: 12px; /* 卡片 */
     --radius-lg: 24px; /* 對話框、表單的卡片容器 */
-    /* 只有一列的表單卡片與表單最下方的儲存按鈕：膠囊形（2026-11-17）。
+    /* 只有一列、獨立成一張卡片的與滿寬的按鈕：膠囊形（2026-11-17；按鈕 2026-11-19 從「只有儲存按鈕」改成「滿寬就是」）。
        用單列高度的一半（32.5px）而不是 9999px：心得筆記打成好幾行、卡片變高時，
        圓角維持不變，不會變成兩端全圓的膠囊。和 --sheet-row-h 是一組 */
     --radius-pill: calc(var(--sheet-row-h) / 2);
@@ -283,20 +283,21 @@
        那一頁的預設值（dev/corners.vue 的 kinds）要跟著這裡改。
        正圓（浮動按鈕、完成按鈕、目標的加減按鈕、強度圓點）不套：沒有直線段，套了會變成圓角方塊 */
     --corner-card-pill: superellipse(1.2);    /* 只有一列的表單卡片（AppCard 的 pill） */
-    --corner-save-button: superellipse(1.2);  /* 表單最下方的儲存按鈕（AppButton 的 shape="pill"） */
+    --corner-block-button: superellipse(1.2); /* 滿寬的實心與外框按鈕（AppButton 的 block） */
     --corner-sheet-pill: superellipse(1.1);   /* 下拉與日期的膠囊、沖煮時間的分秒框（.sheet-pill） */
     --corner-chip: superellipse(1.1);         /* 風味標籤（ChoiceChip） */
     --corner-toggle: superellipse(1.1);       /* 開關的軌道與圓鈕（ToggleSwitch） */
     --corner-bar: superellipse(1.1);          /* 總覽的每日長條（GoalWeekCard） */
-    --corner-card-md: superellipse(1.1);      /* 總覽的卡片（AppCard 的 md） */
+    --corner-card-md: superellipse(1.1);      /* 獨立的卡片（AppCard 的 md、.card-corners） */
     --corner-card-lg: superellipse(1.1);      /* 表單的卡片容器（AppCard 的 lg） */
     /* 卡片與儲存按鈕各自的圓角半徑。
-       **總覽的卡片（AppCard 的 md）是 24px**（2026-11-19 使用者決定，原本是 --radius-md 的 12px；Figma 是 12）。
-       --radius-md 本身沒有改：豆子卡片、器材列表、比較表、縮圖還是 12px。其餘三個等於共用的值 */
+       **卡片一律 24px**（2026-11-19 使用者決定，原本是 --radius-md 的 12px；Figma 的總覽卡片是 12）：
+       總覽、結算頁、豆子與器材列表、比較表（--radius-card-md），表單的卡片容器（--radius-card-lg）。
+       --radius-md 本身沒有改，留給縮圖與提示這些不是卡片的東西。其餘三個等於共用的值 */
     --radius-card-md: 24px;
     --radius-card-lg: var(--radius-lg);
     --radius-card-pill: var(--radius-pill);
-    --radius-save-button: var(--radius-pill);
+    --radius-block-button: var(--radius-pill);
 
     /* ══ 陰影 ═══════════════════════════════════════════════
      兩種，用途不同，不互相代替：

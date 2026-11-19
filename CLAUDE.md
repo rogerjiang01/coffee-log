@@ -216,7 +216,8 @@ Playwright 是 devDependency（2026-11-17 加入），**只用來在瀏覽器裡
 - **`第三批.md` 第六節「自己判斷的地方」八項都同意了**（2026-11-17）：上週最高分的半寬卡片豆名一行、詳情頁保留增量水量、目標卡片最少 169px、說明卡片不固定高度、攪拌段的八條邊界、詞彙表新增的三列
 - **已登入的開場**：首圖淡出時底下只有頁面底色，首圖消失之後總覽才淡入（《03》§6.1）
 - **手機實測後的第二輪**（2026-11-17，`第三批.md` 第八節）：表單單行的列一律 65px（`--sheet-row-h`，含分隔線）；
-  只有一列的表單卡片與表單最下方的儲存按鈕是膠囊形（`--radius-pill`＝32.5px，**不是 999**；儲存按鈕用 `AppButton` 的 `shape="pill"`，高度 65px，其他按鈕維持 44px、8px）；
+  只有一列、獨立成一張卡片的（不限表單，例如豆子詳情的「已喝完」）是膠囊形（`FormCard pill`，`--radius-pill`＝32.5px，**不是 999**）；
+  **滿寬（`AppButton` 的 `block`）的實心與外框按鈕一律膠囊形、65px**（2026-11-19 的通則，取代原本只給儲存按鈕的 `shape="pill"`），其他按鈕維持 44px、8px，文字按鈕不受影響；
   「設為常用」是開關（跟著表單儲存），卡片下方只寫「新增紀錄時會自動帶入。同一類器材只能有一台常用。」，**不在事前點名會換掉哪一台**（《03》§4.0.1）；
   新增風味詞是動作列 → 輸入列；總覽字級照 Figma 放大，兩位數放不下時先縮長條間距再縮數字（已同意）；
   分段子頁右上角是「完成」（`DoneButton`，和 ‹ 一樣只回表單，**不叫「儲存」**），「記錄停水時長」是手法卡片下方的開關
@@ -227,9 +228,9 @@ Playwright 是 devDependency（2026-11-17 加入），**只用來在瀏覽器裡
   沖煮時間的分秒框維持固定寬（已同意）
 - **轉角形狀**（2026-11-19，`第三批.md` 第十一、十二節）：膠囊形的元素與卡片加 `corner-shape`。
   **漸進增強**：只有 Chrome／Edge 139 以後支援，正式版 Safari（iPhone 上所有瀏覽器）目前看不到，設計不能依賴它。正圓不套；
-  每一類一個 token（`--corner-card-pill`、`--corner-save-button`、`--corner-sheet-pill`、`--corner-chip`、`--corner-toggle`、`--corner-bar`、
+  每一類一個 token（`--corner-card-pill`、`--corner-block-button`、`--corner-sheet-pill`、`--corner-chip`、`--corner-toggle`、`--corner-bar`、
   一般卡片 `--corner-card-md`／`--corner-card-lg`），**數值是使用者在開發環境的 `/dev/corners` 調出來的**（膠囊類 1.1、單列卡片與儲存按鈕 1.2、卡片 1.1；`第三批.md` 第十二節）。
-  **總覽的卡片（`AppCard` 的 `md`）是 24px**（`--radius-card-md`，不是改 `--radius-md`；Figma 是 12）。要改這些值先在 `/dev/corners` 調，那一頁的預設值要和 tokens.css 一致
+  **卡片一律 24px、轉角 1.1**（總覽、結算頁、豆子與器材列表、比較表、表單，含載入骨架；`--radius-card-md`／`.card-corners`，不是改 `--radius-md`；Figma 的總覽卡片是 12）。要改這些值先在 `/dev/corners` 調，那一頁的預設值要和 tokens.css 一致
 
 **還沒驗、等使用者回覆的**：
 

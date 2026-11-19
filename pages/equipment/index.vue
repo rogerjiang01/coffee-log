@@ -83,7 +83,7 @@
             <section v-for="n in 2" :key="n">
                 <SkeletonBlock width="4rem" height="0.875rem" />
                 <div class="mt-3 space-y-3">
-                    <SkeletonBlock v-for="row in 2" :key="row" height="3.5rem" radius="4px" />
+                    <SkeletonBlock v-for="row in 2" :key="row" height="3.5rem" radius="var(--radius-card-md)" class="card-corners" />
                 </div>
             </section>
         </div>
@@ -94,7 +94,7 @@
             <section v-for="group in grouped" :key="group.type">
                 <h2 class="text-sm text-muted">{{ equipmentLabels[group.type] }}</h2>
                 <ul class="mt-2 space-y-3">
-                    <li v-for="row in group.rows" :key="row.id" class="rounded-md border p-4 shadow-light" :style="{ borderColor: 'var(--border)', background: 'var(--surface)' }">
+                    <li v-for="row in group.rows" :key="row.id" class="card-corners border p-4 shadow-light" :style="{ borderColor: 'var(--border)', background: 'var(--surface)' }">
                         <!-- 固定兩行，高度由結構決定不由內容決定。
                  左邊回答「這是什麼」（名稱 ＋ 常用標籤），右邊回答「能做什麼」（編輯）。
                  標籤緊跟名稱是因為它是名稱的修飾語，屬於身分而非動作；

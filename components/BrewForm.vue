@@ -625,10 +625,9 @@ defineExpose({ clearDraft: () => draft?.clear() })
         <FormNote>還想再沖一次</FormNote>
       </FormCard>
 
-      <!-- 表單最下方的儲存：膠囊形（AppButton 的 shape="pill"，《03》§4.18 的例外） -->
+      <!-- 表單最下方的儲存：滿寬，所以是膠囊形（AppButton 的 block，《03》§4.18） -->
       <AppButton block
         type="submit"
-        shape="pill"
         :busy="busy"
         :style="{ marginTop: 'var(--gap-group)' }"
       >

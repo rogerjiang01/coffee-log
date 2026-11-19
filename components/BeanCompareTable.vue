@@ -36,7 +36,7 @@ function rowBackground(row: CompareRow) {
 
 <template>
   <div
-    class="overflow-hidden rounded-md border shadow-light"
+    class="card-corners overflow-hidden border shadow-light"
     :style="{ borderColor: 'var(--border)', background: 'var(--surface)' }"
   >
     <!-- relative：表格裡只給螢幕閱讀器的文字（sr-only，絕對定位）要以這個捲動容器為定位基準。

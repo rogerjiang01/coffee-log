@@ -89,7 +89,7 @@ onMounted(load)
 
     <ul v-if="loading" aria-busy="true" aria-label="讀取中" class="mt-6 space-y-3">
       <li v-for="n in 4" :key="n">
-        <SkeletonBlock height="5.5rem" radius="4px" />
+        <SkeletonBlock height="5.5rem" radius="var(--radius-card-md)" class="card-corners" />
       </li>
     </ul>
 

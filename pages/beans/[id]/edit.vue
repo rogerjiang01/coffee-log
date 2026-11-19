@@ -151,7 +151,7 @@ async function onSubmit(
       <div v-if="view === 'loading'" aria-busy="true" aria-label="讀取中" class="mt-8 space-y-4">
         <div
           v-for="card in 2" :key="card"
-          class="rounded-sm border p-5"
+          class="form-card-corners border p-5"
           :style="{ borderColor: 'var(--border)', background: 'var(--surface)' }"
         >
           <SkeletonBlock width="5rem" height="0.875rem" />

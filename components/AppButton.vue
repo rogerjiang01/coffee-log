@@ -8,11 +8,12 @@
 // 而《03》§2.1 明寫 green-400 不可配白字。底色維持不變、按鈕停用，
 // 進行中由文字表達（「儲存中」），呼叫的地方自己換文字。
 //
-// 高度固定是觸控目標下限（44px）。有 to 時渲染成連結，外觀相同。
+// 有 to 時渲染成連結，外觀相同。
 //
-// shape="pill"：**只給表單最下方那顆全寬的儲存按鈕**（六張表單：新增／編輯紀錄、豆子、器材，2026-11-17）。
-// 它是整張表單的收尾動作，用形狀和頁面中其他按鈕區分開：高度和表單的列一樣是 65px（--sheet-row-h），圓角 32.5px。
-// 其他按鈕維持 44px、--radius-sm，預設不變（《03》§4.18）。
+// **滿寬（block）的實心與外框按鈕一律是膠囊形**（2026-11-19，《03》§4.18 的通則）：高度和表單的列一樣是 65px
+// （--sheet-row-h）、圓角是高度的一半（--radius-block-button）、轉角 --corner-block-button（corner-shape，漸進增強）。
+// 原本只有表單最下方的儲存按鈕是膠囊形（shape="pill"，2026-11-17），現在改成看「是不是滿寬」，那個 prop 拿掉了。
+// 不是滿寬的按鈕維持 44px（觸控目標下限）、--radius-sm；文字按鈕沒有外框，滿寬也維持原樣。
 
 const props = withDefaults(defineProps<{
   variant?: 'filled' | 'outline' | 'text'
@@ -21,19 +22,17 @@ const props = withDefaults(defineProps<{
   /** 進行中：停用，外觀不變 */
   busy?: boolean
   disabled?: boolean
-  /** 佔滿容器寬度 */
+  /** 佔滿容器寬度。實心與外框的滿寬按鈕是膠囊形、65px（見檔頭） */
   block?: boolean
   to?: string
-  /** 表單最下方的儲存按鈕用 pill，其他一律預設的 --radius-sm */
-  shape?: 'default' | 'pill'
-}>(), { variant: 'filled', tone: 'accent', type: 'button', shape: 'default' })
+}>(), { variant: 'filled', tone: 'accent', type: 'button' })
 
 const classes = computed(() => [
   'app-button',
   `app-button--${props.variant}`,
   props.tone === 'danger' ? 'app-button--danger' : '',
   props.block ? 'w-full' : '',
-  props.shape === 'pill' ? 'app-button--pill' : '',
+  props.block && props.variant !== 'text' ? 'app-button--block' : '',
 ])
 </script>
 
@@ -97,13 +96,12 @@ const classes = computed(() => [
   color: var(--danger);
 }
 
-/* 表單最下方的儲存按鈕：和表單的列同高（--sheet-row-h，65px）、同一個圓角（--radius-pill，32.5px），
-   兩端是半圓（2026-11-17，原本是 44px 高） */
-.app-button--pill {
+/* 滿寬的實心與外框按鈕：和表單的列同高（--sheet-row-h，65px）、圓角是高度的一半（32.5px），
+   轉角 superellipse（tokens.css 的 --corner-block-button，漸進增強）。2026-11-19 從「只有儲存按鈕」改成通則 */
+.app-button--block {
   min-height: var(--sheet-row-h);
-  border-radius: var(--radius-save-button);
-  /* 兩端的曲率連續（tokens.css 的 --corner-save-button，漸進增強） */
-  corner-shape: var(--corner-save-button);
+  border-radius: var(--radius-block-button);
+  corner-shape: var(--corner-block-button);
 }
 
 /* 停用（不是進行中）：Figma 的 disabled。進行中的按鈕外觀不變。 */
