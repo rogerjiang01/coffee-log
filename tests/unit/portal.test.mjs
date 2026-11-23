@@ -81,7 +81,7 @@ export default function run() {
   // 只看 <button> 的內容：DraftOverlay 的標題就有「繼續填寫」四個字，
   // 拿整份 template 比對會量到標題的位置而不是按鈕的位置。
   const SECONDARY = ['取消', '重新開始']
-  const PRIMARY = ['confirmLabel', '繼續填寫', '選好了', "'儲存'"]
+  const PRIMARY = ['confirmLabel', '繼續填寫', '確定', "'儲存'"]
 
   for (const name of ['ConfirmDialog.vue', 'DraftOverlay.vue', 'EquipmentPicker.vue', 'BeanSelect.vue']) {
     const whole = readFileSync(new URL(name, dir), 'utf8')

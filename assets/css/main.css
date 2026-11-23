@@ -346,7 +346,58 @@
   }
 }
 
+/* ══ 輸入框的字（2026-11-23）══════════════════════════════
+   台北黑體宣告的下緣（hhea／typo descent）只有 123／1024，但 g、j、p、q、y 的字形往下到 234–256，| 到 286。
+   一般文字照樣畫出去，看不出來；**<input> 會把字裁在字型宣告的上下緣**——輸入時 g、@ 的下半部被切掉
+   （Chromium 與 WebKit 都是；改 line-height、padding、overflow 都沒用，換系統字型就不會）。
+
+   修法：給輸入框一個別名字型，只載入 ASCII 那一片（107，U+20–7E 在這一片），
+   上下緣各加 163／1024：上 901→1064（103.9%）、下 123→286（27.93%）。**上下加一樣多，基線位置不變**，
+   所以和沒在輸入時的顯示層（一般的台北黑體）對得上，聚焦、失焦不會跳。
+   別名是輸入框的第一個字型，行的上下緣由它決定；中文與其他字照 --font-body 往後找。
+   **不改字型檔本身**：改了全站的文字都會往上移約 1.4px。
+   檔名寫死 107：tests/unit/css.test.mjs 檢查切片樣式表裡 107 仍然是 ASCII，重新切字型時會擋。 */
+@font-face {
+  font-family: "Taipei Sans TC Field";
+  font-style: normal;
+  font-weight: 300;
+  font-display: swap;
+  src: url("/fonts/taipei-sans/v1/light-107.woff2") format("woff2");
+  unicode-range: U+20-7E, U+A0-FF;
+  ascent-override: 103.9%;
+  descent-override: 27.93%;
+  line-gap-override: 0%;
+}
+@font-face {
+  font-family: "Taipei Sans TC Field";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("/fonts/taipei-sans/v1/regular-107.woff2") format("woff2");
+  unicode-range: U+20-7E, U+A0-FF;
+  ascent-override: 103.9%;
+  descent-override: 27.93%;
+  line-gap-override: 0%;
+}
+@font-face {
+  font-family: "Taipei Sans TC Field";
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url("/fonts/taipei-sans/v1/bold-107.woff2") format("woff2");
+  unicode-range: U+20-7E, U+A0-FF;
+  ascent-override: 103.9%;
+  descent-override: 27.93%;
+  line-gap-override: 0%;
+}
+
 @layer base {
+  /* 文字輸入一律用 --font-field（上面「輸入框的字」）。font-medium 的輸入框照樣被 utility 蓋過去（Noto 沒有這個問題） */
+  input:not([type="checkbox"], [type="radio"], [type="file"], [type="range"]),
+  textarea {
+    font-family: var(--font-field);
+  }
+
   html {
     background-color: var(--bg);
     color: var(--text);

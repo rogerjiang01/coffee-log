@@ -28,7 +28,7 @@ const lastUsed = ref<Map<string, string>>(new Map())
 const loading = ref(true)
 const loadError = ref('')
 
-// 選擇是暫存的，按「選好了」才送出去
+// 選擇是暫存的，按「確定」才送出去
 const draftId = ref<string | null>(null)
 
 const mode = ref<'list' | 'create'>('list')
@@ -373,7 +373,8 @@ async function create() {
 
       <!-- 底部動作。清單畫面沒有「取消」：不選就離開是標題列的 ‹，
            兩個做完全一樣的事的按鈕只會讓人猜哪個會丟東西。
-           新增畫面的「取消」會清掉填到一半的內容，與 ‹（保留）不同，所以留著。 -->
+           新增畫面的「取消」會清掉填到一半的內容，與 ‹（保留）不同，所以留著。
+           清單畫面只有一顆「確定」：滿寬按鈕（56px 膠囊，《03》§4.18）；新增畫面並排兩顆，不是滿寬，維持 44px（2026-11-23） -->
       <footer class="flex shrink-0 gap-3 border-t px-5 py-3" :style="{ borderColor: 'var(--border)' }">
         <AppButton variant="outline"
           v-if="mode === 'create'"
@@ -384,10 +385,10 @@ async function create() {
         </AppButton>
         <AppButton
           v-if="mode === 'list'"
-          class="flex-1"
+          block
           @click="confirmChoice"
         >
-          選好了
+          確定
         </AppButton>
         <AppButton
           v-else

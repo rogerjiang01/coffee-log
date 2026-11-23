@@ -88,6 +88,10 @@ export default function run() {
   r.section('滿寬按鈕 56px')
   r.check(/\.app-button--block \{[^}]*min-height: var\(--sheet-row-h\);[^}]*border-radius: var\(--radius-block-button\);/.test(read('components/AppButton.vue')), 'AppButton 的 block：56px、圓角 28px')
 
+  const picker = read('components/EquipmentPicker.vue')
+  r.check(/<AppButton\s+v-if="mode === 'list'"\s+block\s+@click="confirmChoice"\s*>\s*確定\s*<\/AppButton>/.test(picker), '器材選擇器清單畫面的「確定」：滿寬（56px 膠囊）')
+  r.check((picker.match(/class="flex-1"/g) || []).length === 2 && !/<AppButton[^>]*v-if="mode === 'create'"[^>]*\bblock\b/.test(picker), '新增畫面並排的取消、儲存：不是滿寬，維持 44px')
+
   r.section('登入與註冊：表單的單列卡片（2026-11-23）')
   for (const page of ['pages/login.vue', 'pages/signup.vue']) {
     const src = read(page)

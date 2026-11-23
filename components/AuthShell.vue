@@ -2,7 +2,8 @@
 // 登入與註冊共用的版面（Figma 的 login，綠底模式）。
 //
 // 由下到上：首圖（填滿、置中裁切，上面一層 10% 的黑）→ 綠色漸層（上面透明、到 53% 變成 --bg）→ logo 與表單。
-// 表單寬 300px。
+// 表單撐滿內容寬度，左右是表單頁的 --form-gutter（20px，Figma 的 login 新版：390 寬的畫面裡卡片 350）；
+// 寬螢幕最多 --content-max-narrow（2026-11-23；原本固定 300px，手機上長的電子郵件看不完）。
 //
 // **未登入時的開場**（《03》§6 的開場動畫）：打開 App 落在登入頁時（useSplash 的 'login'），
 // 先只看到首圖與置中的 logo，接著漸層升上來、logo 移到上方，最後表單淡入。
@@ -74,14 +75,14 @@ onMounted(() => {
   flex-direction: column;
   align-items: center;
   /* Figma：844 高的畫面，logo 在 154、表單在 414 */
-  padding: 18dvh 1.25rem 2rem;
+  padding: 18dvh var(--form-gutter) 2rem;
 }
 .auth__logo {
   transition: translate 500ms var(--motion-ease);
 }
 .auth__form {
   width: 100%;
-  max-width: 300px;
+  max-width: var(--content-max-narrow);
   margin-top: clamp(3rem, 21dvh, 11.25rem);
   transition: opacity 300ms var(--motion-ease) 300ms;
 }

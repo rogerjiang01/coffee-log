@@ -235,6 +235,9 @@
     --font-body: "Taipei Sans TC Beta", "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", system-ui, sans-serif;
     --font-body-medium: "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", system-ui, sans-serif;
     --font-heading: var(--font-body-medium);
+    /* 輸入框與多行文字用（2026-11-23）：最前面多一個「台北黑體的 ASCII 那一片、改過上下高度」的別名，
+       其餘照 --font-body。理由與 @font-face 在 main.css 的「輸入框的字」。 */
+    --font-field: "Taipei Sans TC Field", var(--font-body);
 
     /* 字級。Figma 的文字樣式（display、heading、body、label）在本檔最後的 @theme static，
      下面這六個是改版前的名字，留著當別名，指到最接近的 Figma 樣式：只帶字級與行高，不帶字重。

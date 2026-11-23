@@ -121,7 +121,10 @@ export default function run() {
     const file = face.match(/url\("([^"]+)"\)/)?.[1]
     return file !== undefined && existsSync(new URL(file, sheetUrl))
   }), '每一條指到的 woff2 都存在')
-  r.check(!/@font-face/.test(css) && !/fonts\.css/.test(css), 'main.css 沒有把 @font-face 併進來')
+  // 例外只有輸入框的別名（2026-11-23，三條、幾百位元組）：324 條的台北黑體不能併進來
+  const cssFaces = css.match(/@font-face \{[^}]*\}/g) || []
+  r.check(!/fonts\.css/.test(css) && cssFaces.length === 3 && cssFaces.every(f => /"Taipei Sans TC Field"/.test(f)),
+    'main.css 沒有把台北黑體的 @font-face 併進來（只有輸入框別名的三條）')
   const vercel = JSON.parse(readFileSync(new URL('../../vercel.json', import.meta.url), 'utf8'))
   r.check((vercel.headers ?? []).some(h => h.source === '/fonts/(.*)' && h.headers.some(x => /immutable/.test(x.value))),
     '/fonts/ 設了不可變快取——沒有的話每次開頁面都要重新驗證字型檔，字會閃一次')
@@ -162,6 +165,24 @@ export default function run() {
   r.check(/--splash-bg:\s*var\(--green-800\)/.test(tokens) && /html\.splash-on \{\s*background-color: var\(--splash-bg\)/.test(css), '開場期間頁面底色是深綠，避免白閃')
   r.check(!/#[0-9a-f]{3,6}\b/i.test(overlay + shell + readFileSync(new URL('../../components/BrandLogo.vue', import.meta.url), 'utf8')), '沒有寫死的色碼')
   r.check(vercel.headers.some(h => h.source === '/(splash|brand)/(.*)' && h.headers.some(x => /immutable/.test(x.value))), '首圖與 logo 設了不可變快取')
+
+
+  r.section('登入、註冊的寬度（2026-11-23）')
+  r.check(/padding: 18dvh var\(--form-gutter\) 2rem;/.test(shell), '左右是表單頁的 --form-gutter（20px）')
+  r.check(/\.auth__form \{\s*width: 100%;\s*max-width: var\(--content-max-narrow\);/.test(shell) && !/300px;/.test(shell), '表單撐滿內容寬度，寬螢幕最多 --content-max-narrow（不再固定 300px）')
+
+  r.section('輸入框的字：台北黑體的下緣（2026-11-23）')
+  // 台北黑體宣告的下緣比 g、j、p、q、y 短，<input> 會把字的下半部裁掉；輸入框改用上下緣加高的別名
+  const fonts = readFileSync(new URL('../../public/fonts/taipei-sans/v1/fonts.css', import.meta.url), 'utf8')
+  for (const w of ['light', 'regular', 'bold']) {
+    const face = fonts.split('@font-face').find(f => f.includes(`url("${w}-107.woff2")`)) || ''
+    r.check(/unicode-range: U\+20-7e,/.test(face), `fonts.css 的 ${w}-107 仍然是 ASCII 那一片（別名寫死這個檔名；重新切字型時要一起改）`)
+  }
+  const fieldFaces = css.match(/@font-face \{[^}]*"Taipei Sans TC Field"[^}]*\}/g) || []
+  r.check(fieldFaces.length === 3 && fieldFaces.every(f => /ascent-override: 103\.9%;/.test(f) && /descent-override: 27\.93%;/.test(f) && /-107\.woff2/.test(f)),
+    '別名三個字重，上下緣各加 163／1024（上 103.9%、下 27.93%：基線不動）')
+  r.check(/--font-field: "Taipei Sans TC Field", var\(--font-body\);/.test(tokens), '--font-field 是別名在前、其餘照 --font-body')
+  r.check(/input:not\(\[type="checkbox"\], \[type="radio"\], \[type="file"\], \[type="range"\]\),\s*textarea \{\s*font-family: var\(--font-field\);/.test(css), '文字輸入與多行文字用 --font-field')
 
   return r.finish()
 }
