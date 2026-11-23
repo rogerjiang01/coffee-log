@@ -30,7 +30,8 @@ const trigger = ref<HTMLElement | null>(null)
 // 頁面層級的提示送到哪裡：與其他浮層同一套規則（紀錄詳情頁上它會是 body）
 const portalTarget = usePortalTarget(trigger)
 
-// 日期格式與紀錄分頁的時間軸相同（BrewTimelineItem）
+// 日期格式：月日補零（MM/DD）。原本與紀錄分頁的時間軸相同；紀錄分頁在 2026-11-23 換成紀錄卡片
+// （BrewCard，M/D 週X HH:mm），這裡沒有跟著改
 const brewDate = computed(() => {
   const d = new Date(props.brewedAt)
   const pad = (n: number) => String(n).padStart(2, '0')

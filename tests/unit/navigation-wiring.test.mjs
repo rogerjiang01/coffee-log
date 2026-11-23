@@ -157,7 +157,7 @@ export default function run() {
   r.check(!/#[0-9a-f]{3,6}\b/i.test(homeTemplate + read('components/GoalRing.vue') + read('components/GoalStepper.vue') + read('components/BeanThumb.vue')),
     '沒有寫死的色碼（品牌色會更換）')
 
-  r.section('紀錄分頁：時間軸原樣搬過來')
+  r.section('紀錄分頁：一筆一張紀錄卡片（2026-11-23）')
   const brews = read('pages/brews/index.vue')
   const brewsTemplate = stripComments(templateOf(brews))
   r.check(/<PageHeader title="紀錄" \/>/.test(brewsTemplate), '標題是「紀錄」')
@@ -165,12 +165,17 @@ export default function run() {
   r.check(/\.order\('brewed_at', \{ ascending: false \}\)\s*\.order\('id', \{ ascending: false \}\)/.test(brews), '依沖煮日期新到舊')
   const brewsQuery = brews.slice(brews.indexOf('async function fetchBrewPage'), brews.indexOf('async function load()'))
   r.check(!/\.eq\(|\.ilike\(|\.filter\(|\.in\(/.test(brewsQuery) && !/type="search"|<select/.test(brewsTemplate), '沒有篩選、排序、搜尋')
-  r.check(/compareTargetId\(/.test(brews) && !/supabase[\s\S]{0,40}for \(const row of rows\)/.test(brews), '差異提示用同一條比較規則')
+  // 卡片只呈現「這一杯」，差異只在紀錄詳情與結算頁（《02》§4.2）
+  r.check(!/compareTargetId|computeBrewDiff|diffs/.test(brews), '列表不算比較對象與差異')
   const enrich = brews.slice(brews.indexOf('async function enrichEntries'), brews.indexOf('const cache = useQueryCache()'))
-  r.check((enrich.match(/supabase\.from\(/g) || []).length === 4 && !/for \([^)]*\)\s*\{[^}]*supabase/.test(enrich),
-    '一頁最多四個請求，不是每一列各發一次')
-  r.check(/<NuxtLink :to="`\/brews\/\$\{entry\.id\}`" class="block">\s*<BrewTimelineItem/.test(brewsTemplate), '整列點進紀錄詳情，沿用 BrewTimelineItem')
-  r.check(/:diffs="entry\.diffs"/.test(brewsTemplate) && /computeBrewDiff\(/.test(brews), '每一列帶差異提示')
+  r.check((enrich.match(/supabase\.from\(/g) || []).length === 1 && /thumbnailUrls\(/.test(enrich) && !/for \([^)]*\)\s*\{[^}]*supabase/.test(enrich),
+    '一頁只補一次分段（總水量）與一次縮圖網址，不是每一列各發一次')
+  r.check(/<BrewCard\b[\s\S]*?:id="entry\.id"/.test(brewsTemplate) && !/BrewTimelineItem/.test(brews), '每一筆是一張紀錄卡片（BrewCard）')
+  const card = read('components/BrewCard.vue')
+  r.check(/<AppCard :as="NuxtLink" :to="`\/brews\/\$\{id\}`" radius="ml"/.test(card) && !/<button|<AppButton/.test(card),
+    '整張卡片連到紀錄詳情，圓角 ml，卡片上沒有按鈕')
+  r.check(/<ul v-else class="mt-6 space-y-3">/.test(brewsTemplate) && !/border-t/.test(brewsTemplate),
+    '卡片間距和豆子列表一樣（space-y-3），每列上方沒有分隔線')
   r.check(/載入更多/.test(brewsTemplate) && /v-if="hasMore"/.test(brewsTemplate), '「載入更多」')
   r.check(/<p v-if="!timeline\.length"[^>]*>\s*記錄沖煮後，可以比較每次的調整。\s*<\/p>/.test(brewsTemplate), '空狀態保留那一行')
   r.check(/newBrewEntry\(activeBeans\.value\)/.test(brews), '浮動新增按鈕與總覽同一條規則')

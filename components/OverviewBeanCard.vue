@@ -21,7 +21,6 @@ withDefaults(defineProps<{
   title: string
   to: string
   name: string
-  isSample?: boolean
   photoUrl: string | null
   roastLevel: RoastLevel | null
   rating?: number | null
@@ -46,7 +45,6 @@ withDefaults(defineProps<{
       <span class="flex min-w-0 flex-1 flex-col gap-1">
         <span class="flex flex-wrap items-baseline gap-x-1.5 gap-y-1">
           <span class="line-clamp-2 text-sm leading-4 break-keep wrap-anywhere">{{ name }}</span>
-          <SampleBadge v-if="isSample" />
         </span>
         <StarDisplay v-if="rating !== null" :rating="rating" class="overview-stars" />
         <span class="mt-auto flex flex-col">
@@ -57,7 +55,6 @@ withDefaults(defineProps<{
     <span v-else class="flex min-h-0 flex-1 flex-col gap-1 px-3 pt-0.5 pb-2">
       <span class="flex shrink-0 flex-wrap items-baseline gap-x-1.5 gap-y-1">
         <span class="text-sm leading-4 break-keep wrap-anywhere" :class="nameLines === 1 ? 'line-clamp-1' : 'line-clamp-2'">{{ name }}</span>
-        <SampleBadge v-if="isSample" />
       </span>
       <StarDisplay v-if="rating !== null" :rating="rating" class="overview-stars shrink-0" />
       <span class="flex min-h-0 flex-1 items-center justify-center">

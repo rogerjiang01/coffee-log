@@ -3,7 +3,8 @@
 // 三件事最容易出錯：
 //   一、範例建立失敗不可以讓註冊失敗——使用者連進都進不來，比少三筆範例嚴重得多
 //   二、只建立一次。刪掉之後不會再冒出來，依據是「建立過沒有」不是「現在還有沒有」
-//   三、範例是使用者自己的資料：編輯、刪除都照常，標記不因編輯而消失
+//   三、範例是使用者自己的資料：編輯、刪除都照常，is_sample 不因編輯而消失
+//      （畫面上的「範例」寫在豆名裡，使用者改名就跟著消失——那是名稱，不是標記，2026-11-23）
 
 import { createDatabase } from '../helpers/pg.mjs'
 import { stepsFromTemplate } from '../../utils/brewSteps.ts'
@@ -25,6 +26,7 @@ export default async function run() {
     from brews where user_id='${A}'`)
   r.check(equipment.length === 1 && beans.length === 1 && brews.length === 1, '一台磨豆機、一支豆子、一筆紀錄')
   r.check(equipment[0].is_sample && beans[0].is_sample && brews[0].is_sample, '三筆都標成範例')
+  r.check(beans[0].name === '範例-衣索比亞 耶加雪菲', `範例的標示寫在豆名裡（2026-11-23）：${beans[0].name}`)
   r.check((await pg.rows(`select sample_seeded from profiles where id='${A}'`))[0].sample_seeded === true,
     'profiles 記下建立過了')
 
@@ -82,7 +84,7 @@ export default async function run() {
   r.check((await pg.query(`update beans set name='我改過的豆名' where id='${beans[0].id}'`)).affectedRows === 1,
     '改得動範例豆子')
   r.check((await pg.rows(`select is_sample from beans where id='${beans[0].id}'`))[0].is_sample === true,
-    '**改過之後仍然是範例**——「改過就變成真的」使用者猜不到，規則要能預測')
+    '**改過之後 is_sample 仍然是 true**——統計照樣排除；畫面上的「範例」在豆名裡，改名就跟著消失')
 
   r.section('從範例複製出來的是真實紀錄')
   const copy = (await pg.rows(`insert into brews (user_id, bean_id, dose, copied_from_brew_id)

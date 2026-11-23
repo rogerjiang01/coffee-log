@@ -49,7 +49,7 @@ const ICONS = [
   ['已暫存（打勾）', 'components/DraftStatus.vue', 'M20 6 9 17l-5-5', 1.5, 1],
   // 收藏愛心：四個尺寸都要落在 1.5px。換成 Lucide 之前四處寫的都是 1.5，
   // 但顯示寬不同（16／18／24），實際線寬因此散成 1.0、1.125、1.5 三種。
-  ['愛心（時間軸）', 'components/BrewTimelineItem.vue', HEART, 1.5, 1],
+  ['愛心（紀錄卡片）', 'components/BrewCard.vue', HEART, 1.5, 1],
   ['愛心（比較表）', 'components/BeanCompareTable.vue', HEART, 1.5, 1],
   ['愛心（紀錄詳情）', 'pages/brews/[id]/index.vue', HEART, 1.5, 1],
   // 星等：表單 24px、詳情頁 20px，兩處都要落在 1.5px。
@@ -111,7 +111,7 @@ export default function run() {
     ['components/PourStepsSheet.vue', 'M3 6h18'],
     ['components/AppCard.vue', 'm9 18 6-6-6-6'],
     ['components/ShareIcon.vue', 'm16 6-4-4-4 4'],
-    ['components/BrewTimelineItem.vue', HEART],
+    ['components/BrewCard.vue', HEART],
     ['components/BeanCompareTable.vue', HEART],
     ['pages/brews/[id]/index.vue', HEART],
     ['components/StarRating.vue', STAR],

@@ -29,7 +29,6 @@ interface BrewDetail {
   brewed_at: string
   rating: number | null
   is_favorite: boolean
-  is_sample: boolean
   tasting_notes: string | null
   intensity: Intensity | null
   beans: { id: string; name: string; roast_date: string | null; photo_path: string | null } | null
@@ -85,7 +84,7 @@ async function fetchBrew() {
     .select(`
       id, bean_id, copied_from_brew_id, brew_method_id, grinder_id, dripper_id, kettle_id,
       dose, water_temp, grind_setting, total_time, brewed_at,
-      rating, is_favorite, is_sample, tasting_notes, intensity,
+      rating, is_favorite, tasting_notes, intensity,
       beans ( id, name, roast_date, photo_path ),
       brew_methods ( name ),
       grinder:grinder_id ( custom_name, equipment_catalog ( brand, model, variant ) ),
@@ -256,8 +255,8 @@ async function destroy() {
     </template>
 
     <template v-else-if="brew">
-      <!-- 對齊基線不置中：長豆名換成兩行時，置中的標籤會飄在兩行之間。
-           最右端是分享（《03》§4.13.1）：它自己垂直置中，不跟著對齊基線 -->
+      <!-- 最右端是分享（《03》§4.13.1）：它自己垂直置中，不跟著豆名對齊基線。
+           範例紀錄的標示寫在豆名裡（「範例-…」，《01》§13.2），不另外放標籤 -->
       <div class="mt-4 flex items-baseline gap-2">
         <h1 class="min-w-0 text-display-m font-medium">
           <!-- 豆名通往豆子詳情（《02》§7.2）。連結樣式照《03》：--accent、底線。
@@ -270,7 +269,6 @@ async function destroy() {
           >{{ brew.beans.name }}</NuxtLink>
           <template v-else>沒有指定豆子</template>
         </h1>
-        <SampleBadge v-if="brew.is_sample" />
         <BrewShare
           :brew-id="brew.id"
           :bean-name="brew.beans?.name ?? '沒有指定豆子'"

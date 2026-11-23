@@ -149,7 +149,7 @@ export default function run() {
   const detail = read('pages/brews/[id]/index.vue')
   const titleRow = detail.match(/<div class="mt-4 flex items-baseline gap-2">[\s\S]*?<\/div>/)?.[0] ?? ''
   r.check(/<BrewShare\b/.test(titleRow), '分享圖示在標題列（豆名那一行）')
-  r.check(titleRow.indexOf('<BrewShare') > titleRow.indexOf('<SampleBadge'), '在最右端')
+  r.check(titleRow.indexOf('<BrewShare') > titleRow.indexOf('</h1>'), '在最右端（豆名之後）')
   r.check(/aria-label="分享"[\s\S]*?self-center|self-center[\s\S]*?aria-label="分享"/.test(panel.split('<dialog')[0]),
     '圖示自己垂直置中，不跟著標題對齊基線')
   r.check(/ml-auto/.test(panel.split('<dialog')[0]) && /shrink-0/.test(panel.split('<dialog')[0]), '靠右、不讓位給長豆名')

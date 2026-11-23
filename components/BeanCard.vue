@@ -15,8 +15,6 @@ const props = defineProps<{
   roastLevel: RoastLevel | null
   roaster: string | null
   roastDate: string | null
-  /** 註冊時自動建立的範例豆子（《01》§13）。只多一個標籤，其他行為完全相同 */
-  isSample?: boolean
 }>()
 
 const fill = computed(() => roastFill(props.roastLevel))
@@ -41,11 +39,8 @@ const days = computed(() => restDays(props.roastDate))
 
     <!-- h-24 與縮圖同高，overflow-hidden 讓內容再多也撐不開卡片 -->
     <div class="flex h-24 min-w-0 flex-1 flex-col justify-center gap-1 overflow-hidden px-3">
-      <!-- 標籤與豆名同一行：它說的是「這一筆是什麼」，不是另一個欄位，不該佔掉三行之一 -->
-      <div class="flex min-w-0 items-center gap-2">
-        <h3 class="truncate font-medium">{{ name }}</h3>
-        <SampleBadge v-if="isSample" />
-      </div>
+      <!-- 範例豆子的標示寫在豆名裡（「範例-…」，《01》§13.2），不另外放標籤 -->
+      <h3 class="truncate font-medium">{{ name }}</h3>
       <p v-if="roaster" class="truncate text-sm text-muted">{{ roaster }}</p>
       <p v-if="days !== null" class="truncate text-sm tabular-nums text-muted">養豆 {{ days }} 天</p>
     </div>

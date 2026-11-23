@@ -67,8 +67,9 @@ export default function run() {
   const beanDetail = read('pages/beans/[id]/index.vue')
   r.check(/<FormCard pill class="mt-4">\s*<FormRow>\s*<ToggleSwitch[\s\S]*?label="已喝完"\s*row/.test(beanDetail), '豆子詳情的「已喝完」：FormCard pill、開關是一列')
   const appCardUsers = all.filter(f => f !== 'components/AppCard.vue' && /<AppCard\b/.test(read(f)))
-  r.check(appCardUsers.sort().join(',') === ['components/FormCard.vue', 'components/GoalWeekCard.vue', 'components/OverviewBeanCard.vue', 'dev/corners.vue', 'pages/index.vue'].join(','),
-    `用 AppCard 的只有表單、總覽、結算頁的本週目標與調整頁（${appCardUsers.join('、')}）`)
+  // 2026-11-23：紀錄分頁的紀錄卡片與它的骨架也用 AppCard（ml）
+  r.check(appCardUsers.sort().join(',') === ['components/BrewCard.vue', 'components/FormCard.vue', 'components/GoalWeekCard.vue', 'components/OverviewBeanCard.vue', 'dev/corners.vue', 'pages/brews/index.vue', 'pages/index.vue'].join(','),
+    `用 AppCard 的只有表單、總覽、結算頁的本週目標、紀錄卡片與調整頁（${appCardUsers.join('、')}）`)
 
   r.section('卡片的圓角：分頁第一層 18px（ml），其他 24px（2026-11-23）')
   r.check(/radius\?: 'ml' \| 'md' \| 'lg' \| 'pill' \| 'pill-tall'/.test(card) && /\{ radius: 'md',/.test(card), 'AppCard 的預設是 md：要 ml 就明確傳')
@@ -80,6 +81,9 @@ export default function run() {
   const overviewCards = overview.match(/<AppCard\b[^>]*>/g) || []
   r.check(overviewCards.length === 3 && overviewCards.every(c => /\bradius="ml"/.test(c)), '總覽的說明卡片、累計、本月是 ml')
   r.check(/<AppCard\b[^>]*\bradius="ml"/.test(read('components/OverviewBeanCard.vue')), '最近沖煮、最高分是 ml')
+  r.check(/<AppCard\b[^>]*\bradius="ml"/.test(read('components/BrewCard.vue')), '紀錄卡片是 ml')
+  const brewsCards = read('pages/brews/index.vue').match(/<AppCard\b[^>]*>/g) || []
+  r.check(brewsCards.length === 1 && /\bradius="ml"/.test(brewsCards[0]), '紀錄卡片的骨架是 ml')
   r.check(/\.card-ml-corners \{\s*border-radius: var\(--radius-card-ml\);\s*corner-shape: var\(--corner-card-ml\);/.test(css), '.card-ml-corners')
   r.check(/\.card-corners \{\s*border-radius: var\(--radius-card-md\);\s*corner-shape: var\(--corner-card-md\);/.test(css), '.card-corners')
   r.check(/\.form-card-corners \{\s*border-radius: var\(--radius-card-lg\);\s*corner-shape: var\(--corner-card-lg\);/.test(css), '.form-card-corners')
