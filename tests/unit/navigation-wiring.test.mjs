@@ -136,7 +136,12 @@ export default function run() {
     '同一排只剩一張：那一張全寬，不往前遞補')
   r.check(/<AppCard v-if="noRecords" radius="ml" class="col-span-2[^"]*">[\s\S]*?還沒有紀錄[\s\S]*?<AppButton :to="newBrewLink">新增紀錄<\/AppButton>/.test(homeTemplate),
     '完全沒有紀錄：一張全寬的說明卡片加「新增紀錄」')
-  r.check(/:note="top\.week === 'last' \? '本週還沒有評分' : ''"/.test(homeTemplate), '上週最高分：多一行「本週還沒有評分」')
+  r.check(/:footer="top\.week === 'last' \? `上週\$\{weekdayShort\(top\.brew\.brewed_at\)\}，本週未評分` : weekdayOf\(top\.brew\.brewed_at\)"/.test(homeTemplate)
+    && /:name-lines="top\.week === 'last' \? 1 : 2"/.test(homeTemplate),
+    '上週最高分：最下面一行「上週六，本週未評分」，豆名一行（2026-11-23）')
+  const overviewBeanCard = read('components/OverviewBeanCard.vue')
+  r.check(!/\bnote\b/.test(overviewBeanCard.replace(/\/\/.*$/gm, '')) && (overviewBeanCard.match(/class="[^"]*\btruncate text-body-s tabular-nums text-muted"/g) || []).length === 2,
+    '最下面一行不換行、放不下截斷；note 拿掉了')
   r.check(!/emptyVariant|variantB|OverviewHintCard/.test(homeScript) && !/dashboardRows/.test(read('utils/dashboard.ts')),
     '方案開關、沒選上的方案與沒有在用的 dashboardRows 都刪掉了')
   r.check(/\{\{ shown \}\}／\{\{ goal \}\}<\/span>\s*<span[^>]*>杯<\/span>/.test(goalCard) && !/本週 \{\{/.test(goalCard + homeTemplate),

@@ -10,8 +10,10 @@
 // 星等用 StarDisplay 的預設（20px、間距 4，共 116px）。半寬卡片在 320px 寬時內容只有 108px，
 // 放不下時先縮間距、最小 2px（.overview-stars），星星維持 20px——比照目標卡片數字放不下時先縮長條間距的前例（2026-11-23）。
 //
-// note：最下面一行小字上面多一行說明（上週最高分的「本週還沒有評分」）。半寬時多這一行，
-// 豆名就只留一行——不然縮圖只剩不到 20px。
+// 最下面一行小字（footer）**不換行**，放不下時以省略號截斷。上週最高分把說明併進這一行：
+// 「上週六，本週未評分」（2026-11-23；原本是兩行「本週還沒有評分」＋「星期六」，把縮圖壓到 33px）。
+// 13px 時 9 個字約 117px，360px 以上的半寬卡片放得下，320px 會被截斷（已同意）。
+// nameLines：豆名最多幾行，預設兩行。上週最高分維持一行。
 
 import { NuxtLink } from '#components'
 
@@ -25,9 +27,10 @@ withDefaults(defineProps<{
   rating?: number | null
   /** 最下面一行：第 N 杯、星期三 */
   footer: string
-  note?: string
+  /** 豆名最多幾行（上週最高分是 1） */
+  nameLines?: 1 | 2
   wide?: boolean
-}>(), { rating: null, note: '', wide: false })
+}>(), { rating: null, nameLines: 2, wide: false })
 </script>
 
 <template>
@@ -47,14 +50,13 @@ withDefaults(defineProps<{
         </span>
         <StarDisplay v-if="rating !== null" :rating="rating" class="overview-stars" />
         <span class="mt-auto flex flex-col">
-          <span v-if="note" class="text-body-s text-muted">{{ note }}</span>
-          <span class="text-body-s tabular-nums text-muted">{{ footer }}</span>
+          <span class="truncate text-body-s tabular-nums text-muted">{{ footer }}</span>
         </span>
       </span>
     </span>
     <span v-else class="flex min-h-0 flex-1 flex-col gap-1 px-3 pt-0.5 pb-2">
       <span class="flex shrink-0 flex-wrap items-baseline gap-x-1.5 gap-y-1">
-        <span class="text-sm leading-4 break-keep wrap-anywhere" :class="note ? 'line-clamp-1' : 'line-clamp-2'">{{ name }}</span>
+        <span class="text-sm leading-4 break-keep wrap-anywhere" :class="nameLines === 1 ? 'line-clamp-1' : 'line-clamp-2'">{{ name }}</span>
         <SampleBadge v-if="isSample" />
       </span>
       <StarDisplay v-if="rating !== null" :rating="rating" class="overview-stars shrink-0" />
@@ -63,8 +65,7 @@ withDefaults(defineProps<{
           <BeanThumb :photo-url="photoUrl" :roast-level="roastLevel" :alt="name" />
         </span>
       </span>
-      <span v-if="note" class="shrink-0 text-body-s text-muted">{{ note }}</span>
-      <span class="shrink-0 text-body-s tabular-nums text-muted">{{ footer }}</span>
+      <span class="shrink-0 truncate text-body-s tabular-nums text-muted">{{ footer }}</span>
     </span>
   </AppCard>
 </template>

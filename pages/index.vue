@@ -13,7 +13,7 @@
 // 空狀態（2026-11-16 使用者選定，《02》§4.1）：
 //   完全沒有紀錄      目標卡片照常；下面一張全寬的說明卡片加「新增紀錄」
 //   一排只剩一張卡    剩下那張全寬，內容橫向展開（高度不變）
-//   上週最高分        標題「上週最高分」，卡片多一行「本週還沒有評分」
+//   上週最高分        標題「上週最高分」，最下面一行寫「上週六，本週未評分」（不換行，放不下時截斷）
 //   超過目標          環停在一圈，數字下方寫「超過 N 杯」
 //
 // 本週、本月都以沖煮日期計算，週一開始，瀏覽器的本地時間。
@@ -54,7 +54,8 @@ const secondRowWide = computed(() => !!totals.value !== !!month.value)
 const CARD_HEIGHT = { height: 'var(--overview-card-h)' }
 
 const WEEKDAYS = ['一', '二', '三', '四', '五', '六', '日']
-const weekdayOf = (iso: string) => `星期${WEEKDAYS[weekdayIndex(new Date(iso))]}`
+const weekdayShort = (iso: string) => WEEKDAYS[weekdayIndex(new Date(iso))]
+const weekdayOf = (iso: string) => `星期${weekdayShort(iso)}`
 
 // 最近沖煮與最高分的縮圖：長邊 384px 的縮圖檔（《01》§7.1），沒有縮圖檔時退回原圖
 const photoPaths = computed(() => [last.value?.bean.photo_path, top.value?.brew.beans?.photo_path].filter((p): p is string => !!p))
@@ -179,8 +180,8 @@ const newBrewLink = computed(() => newBrewEntry(activeBeans.value))
         :photo-url="photoOf(top.brew.beans?.photo_path)"
         :roast-level="top.brew.beans?.roast_level ?? null"
         :rating="top.brew.rating"
-        :note="top.week === 'last' ? '本週還沒有評分' : ''"
-        :footer="weekdayOf(top.brew.brewed_at)"
+        :name-lines="top.week === 'last' ? 1 : 2"
+        :footer="top.week === 'last' ? `上週${weekdayShort(top.brew.brewed_at)}，本週未評分` : weekdayOf(top.brew.brewed_at)"
         :wide="firstRowWide"
         :class="{ 'col-span-2': firstRowWide }"
       />
