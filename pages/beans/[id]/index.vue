@@ -331,7 +331,7 @@ async function destroy() {
       </div>
 
       <!-- 狀態不是動作，用 role="switch" 的開關而不是按鈕。
-           只有一列、獨立成一張卡片：和表單裡的單列卡片同一個元件（65px、膠囊形，2026-11-19） -->
+           只有一列、獨立成一張卡片：和表單裡的單列卡片同一個元件（56px、膠囊形 28px，2026-11-19；列高 2026-11-23） -->
       <FormCard pill class="mt-4">
         <FormRow>
           <ToggleSwitch

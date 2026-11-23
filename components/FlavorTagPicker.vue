@@ -193,14 +193,19 @@ async function create() {
   display: flex;
   align-items: center;
   gap: 0.75rem;
-  min-height: var(--sheet-row-h);
-  padding-block: 0.75rem;
-  /* 分隔線不另外佔 1px，列高才會是 --sheet-row-h */
+  /* 分類列（choice chips）：只有一排時剛好 65px（--sheet-row-h-tall，和有膠囊的列同高），多排時跟著長高
+     （2026-11-23，Figma 的 Sheet Row 的 choice-chips）。
+     **上下內距 14.5px，不是 Figma 的 15px**：Figma 的標籤 34px、加 1px 底線，15 ＋ 34 ＋ 15 ＋ 1＝65；
+     這裡的標籤（ChoiceChip）是 36px、分隔線畫在列裡不佔高度，15px 的話一排是 66px。保 65 這個高度，內距讓半格 */
+  min-height: var(--sheet-row-h-tall);
+  padding-block: 14.5px;
   box-shadow: inset 0 1px 0 var(--border);
 }
-/* 新增風味詞那一列（動作列與輸入列）是單行的列：固定 --sheet-row-h，兩種狀態切換時高度不跳 */
+/* 新增風味詞那一列（動作列與輸入列）是單行、沒有膠囊的列：固定 --sheet-row-h（56px），兩種狀態切換時高度不跳。
+   min-height 也要改：.tag-row 的 65px 是 min-height，會蓋過 height */
 .add-row {
   height: var(--sheet-row-h);
+  min-height: var(--sheet-row-h);
   padding-block: 0;
   gap: 0.5rem;
 }

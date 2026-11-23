@@ -8,7 +8,7 @@
 // **整列都是按鈕**：軌道只有 64×26，可點範圍是整列（至少 44px 高，《03》§7）。
 // 放在卡片的一列裡用（FormRow 或 AppCard），自己不畫框。
 //
-// row：表單的一列（Figma 的 Sheet Row 的 toggle），高度是 --sheet-row-h（65px）。
+// row：表單的一列（Figma 的 Sheet Row 的 toggle），高度是 --sheet-row-h（56px，沒有膠囊的列）。
 // 不在表單裡的（豆子詳情的「已喝完」）只要可點範圍 44px。
 
 defineProps<{

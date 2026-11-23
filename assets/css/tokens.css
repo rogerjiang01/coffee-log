@@ -272,9 +272,12 @@
     --radius-md: 12px; /* 卡片 */
     --radius-lg: 24px; /* 對話框、表單的卡片容器 */
     /* 只有一列、獨立成一張卡片的與滿寬的按鈕：膠囊形（2026-11-17；按鈕 2026-11-19 從「只有儲存按鈕」改成「滿寬就是」）。
-       用單列高度的一半（32.5px）而不是 9999px：心得筆記打成好幾行、卡片變高時，
-       圓角維持不變，不會變成兩端全圓的膠囊。和 --sheet-row-h 是一組 */
+       **圓角是那一列基本高度的一半**，不是 9999px：心得筆記打成好幾行、卡片變高時，
+       圓角維持不變，不會變成兩端全圓的膠囊。列高兩級（2026-11-23），圓角也兩級：
+         --radius-pill       28px    56 的列（沒有膠囊）的單列卡片、滿寬按鈕。和 --sheet-row-h 是一組
+         --radius-pill-tall  32.5px  65 的列（有膠囊）的單列卡片。和 --sheet-row-h-tall 是一組 */
     --radius-pill: calc(var(--sheet-row-h) / 2);
+    --radius-pill-tall: calc(var(--sheet-row-h-tall) / 2);
     /* 轉角形狀（CSS corner-shape，2026-11-19）：圓弧和直線接在一起時曲率不連續，
        膠囊的兩端看起來有「骨頭感」；superellipse(K) 的 K 只要大於 1，接點的曲率就是連續的。
        **漸進增強**：只有 Chrome／Edge 139 以後支援，正式版的 Safari（含 iPhone 上所有瀏覽器）與 Firefox 忽略，
@@ -282,7 +285,8 @@
        數值是使用者在開發環境的 /dev/corners 一個一個調出來的（2026-11-19）。改值之前先在那一頁調，
        那一頁的預設值（dev/corners.vue 的 kinds）要跟著這裡改。
        正圓（浮動按鈕、完成按鈕、目標的加減按鈕、強度圓點）不套：沒有直線段，套了會變成圓角方塊 */
-    --corner-card-pill: superellipse(1.2);    /* 只有一列的表單卡片（AppCard 的 pill） */
+    --corner-card-pill: superellipse(1.2);    /* 只有一列的表單卡片，56 的列（AppCard 的 pill） */
+    --corner-card-pill-tall: superellipse(1.2); /* 只有一列的表單卡片，65 的列（AppCard 的 pill-tall，2026-11-23） */
     --corner-block-button: superellipse(1.2); /* 滿寬的實心與外框按鈕（AppButton 的 block） */
     --corner-sheet-pill: superellipse(1.1);   /* 下拉與日期的膠囊、沖煮時間的分秒框（.sheet-pill） */
     --corner-chip: superellipse(1.1);         /* 風味標籤（ChoiceChip） */
@@ -301,6 +305,7 @@
     --radius-card-md: 24px;
     --radius-card-lg: var(--radius-lg);
     --radius-card-pill: var(--radius-pill);
+    --radius-card-pill-tall: var(--radius-pill-tall);
     --radius-block-button: var(--radius-pill);
 
     /* ══ 陰影 ═══════════════════════════════════════════════
@@ -328,8 +333,14 @@
     --gap-group: 20px;
     --gap-section: 30px;
     /* 表單的一列（Figma 的 Sheet Row）的高度，**含**列與列之間的分隔線（分隔線畫在列裡，不另外佔高度）。
-       單行的列一律這個高度；多行的（風味標籤的分類、心得筆記打成好幾行）照內容長高（2026-11-17） */
-    --sheet-row-h: 65px;
+       **兩級**（2026-11-23，取代原本一律 65px）：
+         --sheet-row-h       56px  沒有膠囊的列：一般輸入、開關、評分、強度、標題列、動作列、多行文字的基本高度。
+                                   滿寬按鈕（AppButton 的 block）也是這個高度
+         --sheet-row-h-tall  65px  裡面有膠囊的列：下拉、器材欄位、原生的 select／日期／時刻、沖煮時間的分秒框
+                                   （.sheet-row--tall、FormRow 的 tall）。風味標籤的分類列一排時也是這個高度
+       多行的（風味標籤換成好幾排、心得筆記打成好幾行、長豆名換成兩行）照內容長高。對照表在《03》§4.1 */
+    --sheet-row-h: 56px;
+    --sheet-row-h-tall: 65px;
     /* 卡片的左右內距：表單的列、卡片下方的小字、區塊標題都對齊這條線。
        **維持 16px**（2026-11-16 使用者看過 16px 與 Figma 的 24px 兩種截圖之後選的），不照 Figma。 */
     --card-pad: 16px;

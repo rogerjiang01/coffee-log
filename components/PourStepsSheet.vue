@@ -127,8 +127,9 @@ function removeStep(index: number) {
         <div class="mx-auto flex flex-col pt-6 pb-16" :style="{ maxWidth: 'var(--content-max)', gap: 'var(--gap-section)', paddingInline: 'var(--form-gutter)' }">
           <!-- 沖煮手法與記錄停水時長是同一組（這一杯怎麼記），卡片之間 --gap-group -->
           <div class="flex flex-col" :style="{ gap: 'var(--gap-group)' }">
-          <FormCard pill>
-            <FormRow label="沖煮手法" for="brew-method">
+          <!-- 下拉（膠囊）：65px 的列，卡片圓角 32.5px（tall） -->
+          <FormCard pill tall>
+            <FormRow label="沖煮手法" for="brew-method" tall>
               <SelectField :text="methodName ?? '選填'" :empty="!methodName">
                 <select
                   id="brew-method"

@@ -15,12 +15,12 @@ export default function run() {
   const tokens = read('assets/css/tokens.css')
   r.section('每一類元素一個 token（2026-11-19 使用者在 /dev/corners 調好的值）')
   const values = [
-    ['--corner-card-pill', 'superellipse(1.2)'], ['--corner-block-button', 'superellipse(1.2)'], ['--corner-sheet-pill', 'superellipse(1.1)'],
+    ['--corner-card-pill', 'superellipse(1.2)'], ['--corner-card-pill-tall', 'superellipse(1.2)'], ['--corner-block-button', 'superellipse(1.2)'], ['--corner-sheet-pill', 'superellipse(1.1)'],
     ['--corner-chip', 'superellipse(1.1)'], ['--corner-toggle', 'superellipse(1.1)'], ['--corner-bar', 'superellipse(1.1)'],
     ['--corner-card-ml', 'superellipse(1.1)'], ['--corner-card-md', 'superellipse(1.1)'], ['--corner-card-lg', 'superellipse(1.1)'],
   ]
   for (const [token, value] of values) r.check(tokens.includes(`${token}: ${value};`), `${token}: ${value}`)
-  for (const [token, value] of [['--radius-card-ml', '18px'], ['--radius-card-md', '24px'], ['--radius-card-lg', 'var(--radius-lg)'], ['--radius-card-pill', 'var(--radius-pill)'], ['--radius-block-button', 'var(--radius-pill)']])
+  for (const [token, value] of [['--radius-card-ml', '18px'], ['--radius-card-md', '24px'], ['--radius-card-lg', 'var(--radius-lg)'], ['--radius-card-pill', 'var(--radius-pill)'], ['--radius-card-pill-tall', 'var(--radius-pill-tall)'], ['--radius-block-button', 'var(--radius-pill)']])
     r.check(tokens.includes(`${token}: ${value};`), `${token}: ${value}`)
   r.check(tokens.includes('--radius-md: 12px;'), '--radius-md 本身維持 12px：卡片吃的是 --radius-card-*')
   const overviewSkeletons = read('pages/index.vue').match(/<SkeletonBlock[^>]*>/g) || []
@@ -35,15 +35,18 @@ export default function run() {
   }
   r.check(/token: '--radius-card-ml', value: 18, default: 18/.test(dev), 'dev/corners.vue：分頁第一層的卡片從 18px 開始')
   r.check(/token: '--radius-card-md', value: 24, default: 24/.test(dev), 'dev/corners.vue：其他獨立的卡片從 24px 開始')
+  r.check(/token: '--radius-card-pill', value: 28, default: 28/.test(dev), 'dev/corners.vue：56 的列的單列卡片從 28px 開始')
+  r.check(/token: '--radius-card-pill-tall', value: 32\.5, default: 32\.5/.test(dev), 'dev/corners.vue：65 的列的單列卡片從 32.5px 開始')
+  r.check(/token: '--radius-block-button', value: 28, default: 28/.test(dev), 'dev/corners.vue：滿寬按鈕從 28px 開始')
 
   r.check(!/--pill-corner-shape/.test(tokens), '共用的 --pill-corner-shape 已經拆掉')
 
   r.section('元件吃自己的 token')
   const css = read('assets/css/main.css')
   const card = read('components/AppCard.vue')
-  for (const kind of ['ml', 'md', 'lg', 'pill'])
+  for (const kind of ['ml', 'md', 'lg', 'pill', 'pill-tall'])
     r.check(new RegExp(`\\.app-card--${kind} \\{\\s*border-radius: var\\(--radius-card-${kind}\\);\\s*corner-shape: var\\(--corner-card-${kind}\\);`).test(card), `AppCard 的 ${kind}`)
-  r.check(/\.app-button--block \{[^}]*min-height: var\(--sheet-row-h\);[^}]*border-radius: var\(--radius-block-button\);[^}]*corner-shape: var\(--corner-block-button\);/.test(read('components/AppButton.vue')), '滿寬按鈕：65px、圓角是高度的一半、轉角')
+  r.check(/\.app-button--block \{[^}]*min-height: var\(--sheet-row-h\);[^}]*border-radius: var\(--radius-block-button\);[^}]*corner-shape: var\(--corner-block-button\);/.test(read('components/AppButton.vue')), '滿寬按鈕：56px（--sheet-row-h）、圓角是高度的一半、轉角')
   r.check(/\.sheet-pill \{[^}]*corner-shape: var\(--corner-sheet-pill\);/.test(css), '下拉與日期的膠囊、分秒框（.sheet-pill）')
   r.check(/\.choice-chip \{[^}]*corner-shape: var\(--corner-chip\);/.test(read('components/ChoiceChip.vue')), '風味標籤')
   r.check(/\.corner-toggle \{\s*corner-shape: var\(--corner-toggle\);/.test(css) && (read('components/ToggleSwitch.vue').match(/class="corner-toggle /g) || []).length === 2, '開關的軌道與圓鈕')
@@ -51,7 +54,7 @@ export default function run() {
 
   r.section('滿寬按鈕一律膠囊形（2026-11-19）')
   const button = read('components/AppButton.vue')
-  r.check(/props\.block && props\.variant !== 'text' \? 'app-button--block' : ''/.test(button), '滿寬而且不是文字按鈕：膠囊形、65px')
+  r.check(/props\.block && props\.variant !== 'text' \? 'app-button--block' : ''/.test(button), '滿寬而且不是文字按鈕：膠囊形、56px')
   r.check(!/\bshape\?:|props\.shape|'default' \| 'pill'|app-button--pill/.test(button), '原本只給儲存按鈕的 shape="pill" 拿掉了')
   const vueFiles = (dir) => readdirSync(new URL(dir, root)).flatMap((name) => {
     const path = `${dir}/${name}`
@@ -68,7 +71,7 @@ export default function run() {
     `用 AppCard 的只有表單、總覽、結算頁的本週目標與調整頁（${appCardUsers.join('、')}）`)
 
   r.section('卡片的圓角：分頁第一層 18px（ml），其他 24px（2026-11-23）')
-  r.check(/radius\?: 'ml' \| 'md' \| 'lg' \| 'pill'/.test(card) && /\{ radius: 'md',/.test(card), 'AppCard 的預設是 md：要 ml 就明確傳')
+  r.check(/radius\?: 'ml' \| 'md' \| 'lg' \| 'pill' \| 'pill-tall'/.test(card) && /\{ radius: 'md',/.test(card), 'AppCard 的預設是 md：要 ml 就明確傳')
   const goal = read('components/GoalWeekCard.vue')
   r.check(/radius\?: 'ml' \| 'md'/.test(goal) && /radius: 'md' \}\)/.test(goal) && /:radius="radius"/.test(goal), 'GoalWeekCard 的預設是 md（結算頁）')
   const overview = read('pages/index.vue')

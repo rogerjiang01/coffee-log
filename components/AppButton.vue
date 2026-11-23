@@ -10,8 +10,8 @@
 //
 // 有 to 時渲染成連結，外觀相同。
 //
-// **滿寬（block）的實心與外框按鈕一律是膠囊形**（2026-11-19，《03》§4.18 的通則）：高度和表單的列一樣是 65px
-// （--sheet-row-h）、圓角是高度的一半（--radius-block-button）、轉角 --corner-block-button（corner-shape，漸進增強）。
+// **滿寬（block）的實心與外框按鈕一律是膠囊形**（2026-11-19，《03》§4.18 的通則）：高度和沒有膠囊的表單列一樣是 56px
+// （--sheet-row-h，2026-11-23 從 65px 改）、圓角是高度的一半（28px，--radius-block-button）、轉角 --corner-block-button（corner-shape，漸進增強）。
 // 原本只有表單最下方的儲存按鈕是膠囊形（shape="pill"，2026-11-17），現在改成看「是不是滿寬」，那個 prop 拿掉了。
 // 不是滿寬的按鈕維持 44px（觸控目標下限）、--radius-sm；文字按鈕沒有外框，滿寬也維持原樣。
 
@@ -22,7 +22,7 @@ const props = withDefaults(defineProps<{
   /** 進行中：停用，外觀不變 */
   busy?: boolean
   disabled?: boolean
-  /** 佔滿容器寬度。實心與外框的滿寬按鈕是膠囊形、65px（見檔頭） */
+  /** 佔滿容器寬度。實心與外框的滿寬按鈕是膠囊形、56px（見檔頭） */
   block?: boolean
   to?: string
 }>(), { variant: 'filled', tone: 'accent', type: 'button' })
@@ -96,7 +96,7 @@ const classes = computed(() => [
   color: var(--danger);
 }
 
-/* 滿寬的實心與外框按鈕：和表單的列同高（--sheet-row-h，65px）、圓角是高度的一半（32.5px），
+/* 滿寬的實心與外框按鈕：和沒有膠囊的表單列同高（--sheet-row-h，56px）、圓角是高度的一半（28px），
    轉角 superellipse（tokens.css 的 --corner-block-button，漸進增強）。2026-11-19 從「只有儲存按鈕」改成通則 */
 .app-button--block {
   min-height: var(--sheet-row-h);

@@ -9,7 +9,7 @@ useHead({ htmlAttrs: { class: 'theme-green' } })
 const email = ref('')
 const password = ref('')
 const error = ref('')
-// 哪一格沒填好：訊息顯示在那一格下方，框變成錯誤狀態（TextField）。其他錯誤（帳密不對、連線）顯示在按鈕上方
+// 哪一格沒填好：訊息顯示在那一格的卡片下方，標籤右邊加 circle-alert（表單的列的做法）。其他錯誤（帳密不對、連線）顯示在按鈕上方
 const fieldError = ref<{ email?: string, password?: string }>({})
 const sending = ref(false)
 
@@ -44,28 +44,43 @@ async function submit() {
     <h1 class="sr-only">登入</h1>
 
     <form novalidate @submit.prevent="submit">
-      <div class="flex flex-col gap-4">
-        <!-- 有框的輸入框（《03》§4.1）：登入、註冊不在卡片裡 -->
-        <TextField
-          id="email"
-          v-model="email"
-          label="電子郵件"
-          type="email"
-          autocomplete="email"
-          placeholder="example@email.com"
-          example
-          :error="fieldError.email"
-        />
+      <!-- 每個欄位各自一張單列卡片（2026-11-23，Figma 的 login 新版）：和表單同一個元件（FormCard pill ＋ FormRow），
+           左邊欄位名稱、右邊輸入，56px、膠囊形 28px，卡片之間 12px。綠底模式下卡片不畫外框（FormCard）。
+           提示字照表單的規則「輸入＋欄位名」，顏色是 --text-muted（帶有必要資訊，《03》§4.1）。
+           錯誤照表單的列：標籤右邊 circle-alert，訊息在那張卡片下方（FormNote），輸入框用 aria-describedby 指過去 -->
+      <div class="flex flex-col gap-3">
+        <FormCard pill>
+          <FormRow label="電子郵件" for="email" :error="!!fieldError.email">
+            <SheetText
+              id="email"
+              v-model="email"
+              type="email"
+              autocomplete="email"
+              inputmode="email"
+              autocapitalize="off"
+              spellcheck="false"
+              placeholder="輸入電子郵件"
+              :aria-invalid="!!fieldError.email || undefined"
+              :aria-describedby="fieldError.email ? 'email-error' : undefined"
+            />
+          </FormRow>
+          <FormNote v-if="fieldError.email" id="email-error" tone="error">{{ fieldError.email }}</FormNote>
+        </FormCard>
 
-        <!-- 密碼不放提示字（Figma 寫的「Password」不照抄） -->
-        <TextField
-          id="password"
-          v-model="password"
-          label="密碼"
-          type="password"
-          autocomplete="current-password"
-          :error="fieldError.password"
-        />
+        <FormCard pill>
+          <FormRow label="密碼" for="password" :error="!!fieldError.password">
+            <SheetText
+              id="password"
+              v-model="password"
+              type="password"
+              autocomplete="current-password"
+              placeholder="輸入密碼"
+              :aria-invalid="!!fieldError.password || undefined"
+              :aria-describedby="fieldError.password ? 'password-error' : undefined"
+            />
+          </FormRow>
+          <FormNote v-if="fieldError.password" id="password-error" tone="error">{{ fieldError.password }}</FormNote>
+        </FormCard>
       </div>
 
       <p v-if="error" role="alert" class="mt-4 flex items-start gap-1.5 text-sm" :style="{ color: 'var(--danger)' }">
@@ -73,10 +88,11 @@ async function submit() {
         <span>{{ error }}</span>
       </p>
 
+      <!-- 卡片到按鈕 32px（Figma）。滿寬按鈕 56px、膠囊形（《03》§4.18） -->
       <AppButton block
         type="submit"
         :busy="sending"
-        class="mt-10"
+        class="mt-8"
       >
         {{ sending ? '登入中' : '登入' }}
       </AppButton>

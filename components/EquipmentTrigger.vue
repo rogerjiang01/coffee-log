@@ -9,7 +9,8 @@ const id = useId()
 </script>
 
 <template>
-  <div class="sheet-row">
+  <!-- 裡面有膠囊：65px 的列（《03》§4.1） -->
+  <div class="sheet-row sheet-row--tall">
     <label class="sheet-label" :for="id">{{ props.label }}</label>
     <button :id="id" type="button" class="sheet-trigger" @click="$emit('open')">
       <SheetPill :empty="!name">{{ name ?? '選填' }}</SheetPill>

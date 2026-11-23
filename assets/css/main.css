@@ -65,14 +65,19 @@
    這組 class 放在這裡而不是某個元件的 scoped style，是因為自帶標籤的元件
    （四個下拉、器材欄位、研磨刻度、星等、強度、開關）都要排成同一種列。 */
 @layer components {
+  /* 列高兩級（2026-11-23，tokens.css 的 --sheet-row-h）：預設 56px，裡面有膠囊的列加 .sheet-row--tall（65px）。
+     上下內距是 (56 − 44) / 2：44px 的控制項（輸入框、下拉的觸發鈕）放進來剛好 56px。
+     值換成兩行時（長豆名）上下仍有這段留白，不會貼到分隔線或下方的提示 */
   .sheet-row {
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: 0.75rem;
     min-height: var(--sheet-row-h);
-    /* 值換成兩行時（長豆名）上下仍有留白，不會貼到分隔線或下方的提示 */
-    padding: 0.5rem 0;
+    padding: calc((var(--sheet-row-h) - var(--touch-min)) / 2) 0;
+  }
+  .sheet-row--tall {
+    min-height: var(--sheet-row-h-tall);
   }
 
   /* 列的右側。值太長時讓的是這一側：標籤不縮（.sheet-label）。 */
@@ -287,7 +292,7 @@
   }
 
   /* 有框的輸入框（Figma 的 input）給不在卡片裡的單獨輸入用：搜尋、浮層裡的就地新增。
-     有標籤、單位、錯誤訊息的完整版本是 TextField.vue，外觀相同。 */
+     登入、註冊原本用有標籤的版本（TextField.vue），2026-11-23 改成表單的單列卡片，那個元件刪了。 */
   .input-box {
     display: block;
     width: 100%;
@@ -321,7 +326,7 @@
      疊在 --accent 底色上的按鈕（主要行動、浮動按鈕）焦點框會融進去。
      outline 不佔版面空間，不會像 border 那樣把版面推開。
 
-     列裡的文字輸入（.sheet-input）與有框的輸入框（.input-box、TextField）有自己的焦點樣式，排除在外。 */
+     列裡的文字輸入（.sheet-input）與有框的輸入框（.input-box）有自己的焦點樣式，排除在外。 */
   :focus-visible {
     outline: 2px solid var(--accent);
     outline-offset: 2px;

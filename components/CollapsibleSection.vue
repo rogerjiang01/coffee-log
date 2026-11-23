@@ -58,7 +58,7 @@ function toggle() {
       </svg>
     </button>
 
-    <!-- 分隔線畫在內容裡（inset 陰影），不另外佔 1px：列高才會是 --sheet-row-h -->
+    <!-- 分隔線畫在內容裡（inset 陰影），不另外佔 1px：標題列才會是 --sheet-row-h（56px，標題列沒有膠囊） -->
     <div v-show="open" :style="{ boxShadow: 'inset 0 1px 0 var(--border)' }">
       <slot />
     </div>

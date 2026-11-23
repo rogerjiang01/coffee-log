@@ -463,7 +463,7 @@ defineExpose({ clearDraft: () => draft?.clear() })
     <FormSection title="這杯紀錄">
       <FormCard>
         <!-- 日期是 other：事後補記時改日期可能要翻行事曆，那不是參數記錄的時間 -->
-        <FormRow data-section="other" label="沖煮日期" for="brew-at">
+        <FormRow data-section="other" label="沖煮日期" for="brew-at" tall>
           <!-- 日期與時刻各一個膠囊，寫入的是同一個 brewed_at。膠囊上的字自己寫（YYYY/MM/DD、24 小時制 HH:mm，
                utils/formDate.ts），原生的日期與時刻透明蓋在上面，點了照樣開系統的選擇器 -->
           <div class="flex min-w-0 items-center justify-end gap-2">
@@ -581,9 +581,10 @@ defineExpose({ clearDraft: () => draft?.clear() })
         <FormNote v-if="methodNotice" tone="notice">{{ methodNotice }}</FormNote>
       </FormCard>
 
-      <!-- 只有一列的卡片是膠囊形（FormCard 的 pill，2026-11-17）：沖煮時間、心得筆記、評分、收藏 -->
-      <FormCard pill>
-        <FormRow label="沖煮時間" for="brew-total-time">
+      <!-- 只有一列的卡片是膠囊形（FormCard 的 pill，2026-11-17）：沖煮時間、心得筆記、評分、收藏。
+           沖煮時間的分秒框是膠囊：65px 的列，卡片圓角 32.5px（tall，2026-11-23） -->
+      <FormCard pill tall>
+        <FormRow label="沖煮時間" for="brew-total-time" tall>
           <DurationPicker id="brew-total-time" v-model="values.total_time" />
         </FormRow>
       </FormCard>
@@ -596,7 +597,7 @@ defineExpose({ clearDraft: () => draft?.clear() })
       <FormCard>
         <FlavorTagPicker v-model="flavorTagIds" />
       </FormCard>
-      <!-- 打成好幾行、卡片變高時圓角不變（--radius-pill 是單列高度的一半，不是 9999px） -->
+      <!-- 打成好幾行、卡片變高時圓角不變（--radius-pill 是單列基本高度 56px 的一半，不是 9999px） -->
       <FormCard pill>
         <FormRow label="心得筆記" for="brew-notes">
           <textarea

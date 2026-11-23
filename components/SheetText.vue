@@ -8,12 +8,17 @@
 //     沒在輸入而且有值時只是把它的文字藏起來，讓底下那一層顯示
 // 空的時候提示字是「選填」（和下拉列一致，2026-11-16）；必填的欄位由外面傳「輸入＋欄位名」。
 // 用 <input> 而不是 textarea：要支援 datalist（產區的建議），也不必處理換行。
+//
+// type：登入、註冊用 email 與 password（2026-11-23）。**密碼不畫顯示用的那一層**——那一層是明文，
+// 沒在輸入時會把密碼整串露出來；密碼一律只有 <input> 本身（瀏覽器畫圓點）。
 
 defineOptions({ inheritAttrs: false })
 
+const props = withDefaults(defineProps<{ type?: 'text' | 'email' | 'password' }>(), { type: 'text' })
+
 const model = defineModel<string | null>({ default: '' })
 const focused = ref(false)
-const hasValue = computed(() => !!model.value)
+const hasValue = computed(() => !!model.value && props.type !== 'password')
 </script>
 
 <template>
@@ -23,7 +28,7 @@ const hasValue = computed(() => !!model.value)
     <input
       v-bind="$attrs"
       v-model="model"
-      type="text"
+      :type="type"
       :placeholder="($attrs.placeholder as string | undefined) ?? '選填'"
       class="sheet-input sheet-text__input"
       :class="hasValue && !focused ? 'sheet-text__input--hidden' : ''"

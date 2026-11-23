@@ -113,7 +113,7 @@ function onKeydown(event: KeyboardEvent, key: keyof Intensity) {
   padding-block: 0.75rem;
 }
 .rating-row {
-  /* 分隔線不另外佔 1px，列高才會是 --sheet-row-h */
+  /* 分隔線不另外佔 1px，列高才會是 --sheet-row-h（56px，沒有膠囊的列） */
   box-shadow: inset 0 1px 0 var(--border);
 }
 </style>

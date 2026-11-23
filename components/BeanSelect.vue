@@ -250,7 +250,8 @@ async function create() {
   <div ref="root" class="relative">
     <!-- 表單的一列：標籤在左，已選的值在右側的膠囊裡；還沒選時不畫膠囊。
          下拉開著的時候膠囊的文字換成強調色（Figma 的 dropdown_input） -->
-    <div class="sheet-row">
+    <!-- 裡面有膠囊：65px 的列（《03》§4.1） -->
+    <div class="sheet-row sheet-row--tall">
       <label class="sheet-label" for="brew-bean">豆子<span :style="{ color: 'var(--danger)' }" aria-hidden="true">*</span><span class="sr-only">必填</span><AlertIcon v-if="error" class="sheet-label-alert" /></label>
       <button
         ref="trigger"

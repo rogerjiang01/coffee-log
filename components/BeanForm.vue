@@ -287,7 +287,7 @@ defineExpose({ clearDraft: () => draft?.clear() })
     </FormCard>
 
     <FormCard>
-      <FormRow label="烘焙日期" for="bean-roast-date">
+      <FormRow label="烘焙日期" for="bean-roast-date" tall>
         <!-- 膠囊上的字自己寫（utils/formDate.ts）：沒填是「選填」（iOS 的空日期什麼都不畫），
              填了是 YYYY/MM/DD，寬度貼合文字。原生的日期透明蓋在上面，點了照樣開系統的選擇器 -->
         <SelectField :text="pillDate(values.roast_date) ?? '選填'" :empty="!pillDate(values.roast_date)">
@@ -300,7 +300,7 @@ defineExpose({ clearDraft: () => draft?.clear() })
       </FormRow>
       <FormNote field="烘焙日期">填寫後顯示養豆天數</FormNote>
 
-      <FormRow label="烘焙度" for="bean-roast-level">
+      <FormRow label="烘焙度" for="bean-roast-level" tall>
         <SelectField :text="roastLabel ?? '選填'" :empty="!roastLabel">
           <select id="bean-roast-level" v-model="values.roast_level">
             <option :value="null">選填</option>
@@ -350,7 +350,7 @@ defineExpose({ clearDraft: () => draft?.clear() })
     </FormCard>
     </div>
 
-    <!-- 表單最下方的儲存：膠囊形（《03》§4.18 的例外） -->
+    <!-- 表單最下方的儲存：滿寬，所以是膠囊形（AppButton 的 block，《03》§4.18） -->
     <AppButton block
       type="submit"
       :busy="busy"

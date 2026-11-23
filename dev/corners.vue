@@ -21,8 +21,9 @@ type Kind = {
 
 // 預設值和 tokens.css 一致（2026-11-19 使用者調好、貼回來的值）。tokens.css 改了這裡要跟著改（tests/unit/corner-shape.test.mjs 會擋）
 const kinds = reactive<Record<string, Kind>>({
-  cardPill: { label: '只有一列的卡片', note: '沖煮時間、心得筆記、評分、收藏、設為常用、豆子詳情的已喝完……', token: '--corner-card-pill', shape: 1.2, defaultShape: 1.2, radius: { token: '--radius-card-pill', value: 32.5, default: 32.5, max: 32.5, step: 0.5, fallback: 'var(--radius-pill)' } },
-  save: { label: '滿寬按鈕', note: '實心與外框都是，65px 高（儲存、照上次再沖一次、編輯、新增一段……）', token: '--corner-block-button', shape: 1.2, defaultShape: 1.2, radius: { token: '--radius-block-button', value: 32.5, default: 32.5, max: 32.5, step: 0.5, fallback: 'var(--radius-pill)' } },
+  cardPill: { label: '只有一列的卡片（56px 的列）', note: '心得筆記、評分、收藏、設為常用、豆子詳情的已喝完、登入與註冊的欄位……', token: '--corner-card-pill', shape: 1.2, defaultShape: 1.2, radius: { token: '--radius-card-pill', value: 28, default: 28, max: 28, step: 0.5, fallback: 'var(--radius-pill)' } },
+  cardPillTall: { label: '只有一列的卡片（65px 的列）', note: '裡面有膠囊：沖煮時間、分段子頁的沖煮手法', token: '--corner-card-pill-tall', shape: 1.2, defaultShape: 1.2, radius: { token: '--radius-card-pill-tall', value: 32.5, default: 32.5, max: 32.5, step: 0.5, fallback: 'var(--radius-pill-tall)' } },
+  save: { label: '滿寬按鈕', note: '實心與外框都是，56px 高（儲存、照上次再沖一次、編輯、新增一段……）', token: '--corner-block-button', shape: 1.2, defaultShape: 1.2, radius: { token: '--radius-block-button', value: 28, default: 28, max: 28, step: 0.5, fallback: 'var(--radius-pill)' } },
   sheet: { label: '下拉與日期的膠囊', note: '含沖煮時間的分秒輸入框', token: '--corner-sheet-pill', shape: 1.1, defaultShape: 1.1 },
   chip: { label: '風味標籤', token: '--corner-chip', shape: 1.1, defaultShape: 1.1 },
   toggle: { label: '開關', note: '軌道與圓鈕', token: '--corner-toggle', shape: 1.1, defaultShape: 1.1 },
@@ -143,10 +144,16 @@ const ROAST = { light: '淺焙', medium_light: '中淺焙', medium: '中焙', me
       <div class="flex flex-col gap-3">
         <template v-if="key === 'cardPill'">
           <FormCard pill>
-            <FormRow label="沖煮時間"><DurationPicker v-model="total" /></FormRow>
+            <FormRow label="心得筆記" for="dev-note"><SheetText id="dev-note" v-model="note" /></FormRow>
           </FormCard>
           <FormCard pill>
-            <FormRow label="心得筆記" for="dev-note"><SheetText id="dev-note" v-model="note" /></FormRow>
+            <FormRow><ToggleSwitch v-model="fav" label="收藏" row /></FormRow>
+          </FormCard>
+        </template>
+
+        <template v-else-if="key === 'cardPillTall'">
+          <FormCard pill tall>
+            <FormRow label="沖煮時間" tall><DurationPicker v-model="total" /></FormRow>
           </FormCard>
         </template>
 
@@ -157,7 +164,7 @@ const ROAST = { light: '淺焙', medium_light: '中淺焙', medium: '中焙', me
 
         <template v-else-if="key === 'sheet'">
           <FormCard>
-            <FormRow label="烘焙度" for="dev-roast">
+            <FormRow label="烘焙度" for="dev-roast" tall>
               <SelectField :text="ROAST[roast] ?? '選填'" :empty="!ROAST[roast]">
                 <select id="dev-roast" v-model="roast">
                   <option value="">選填</option>
@@ -165,7 +172,7 @@ const ROAST = { light: '淺焙', medium_light: '中淺焙', medium: '中焙', me
                 </select>
               </SelectField>
             </FormRow>
-            <FormRow label="沖煮日期" for="dev-date">
+            <FormRow label="沖煮日期" for="dev-date" tall>
               <div class="flex min-w-0 items-center justify-end gap-2">
                 <SelectField :text="pillDate(brewDate) ?? '選填'" :empty="!pillDate(brewDate)">
                   <input id="dev-date" v-model="brewDate" type="date">
@@ -176,12 +183,12 @@ const ROAST = { light: '淺焙', medium_light: '中淺焙', medium: '中焙', me
               </div>
             </FormRow>
             <FormRow>
-              <div class="sheet-row">
+              <div class="sheet-row sheet-row--tall">
                 <span class="sheet-label">豆子</span>
                 <span class="sheet-value"><SheetPill>瓜地馬拉 微微特南果</SheetPill></span>
               </div>
             </FormRow>
-            <FormRow label="沖煮時間"><DurationPicker v-model="total" /></FormRow>
+            <FormRow label="沖煮時間" tall><DurationPicker v-model="total" /></FormRow>
           </FormCard>
         </template>
 

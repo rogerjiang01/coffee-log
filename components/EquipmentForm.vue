@@ -103,7 +103,7 @@ defineExpose({ clearDraft: () => draft?.clear() })
     <FormCard>
       <FormRow>
         <!-- 必填的列自己寫標籤（tests/unit/required-placeholder.test.mjs 靠這個標記找必填欄位） -->
-        <div class="sheet-row">
+        <div class="sheet-row sheet-row--tall">
           <label class="sheet-label" for="equipment-type">類型<span :style="{ color: 'var(--danger)' }" aria-hidden="true">*</span><span class="sr-only">必填</span></label>
           <div class="sheet-value">
             <SelectField :text="equipmentLabels[values.type]">

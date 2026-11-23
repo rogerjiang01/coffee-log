@@ -19,6 +19,7 @@ const suites = [
   ['unit/form-date.test.ts', '表單膠囊上的日期與時刻'],
   ['unit/form-date-wiring.test.mjs', '表單膠囊上的日期與時刻的接線'],
   ['unit/corner-shape.test.mjs', '轉角形狀'],
+  ['unit/row-height.test.mjs', '列高兩級'],
   ['unit/dev-corners.test.mjs', '開發用的調整頁'],
   ['unit/summary-wiring.test.mjs', '縮圖佔位與範例標籤的接線'],
   ['unit/bean-compare.test.ts', '豆子比較表'],

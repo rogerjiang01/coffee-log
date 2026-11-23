@@ -11,6 +11,10 @@
 //
 // 這一列的提示、錯誤與衍生值不放在列裡：用 FormNote，它會顯示在卡片下方（《03》§4.1）。
 // error：這一列有錯誤時，標籤右邊加 circle-alert——訊息在卡片下方，要看得出是哪一列。
+//
+// **列高兩級**（2026-11-23，《03》§4.1）：預設 56px（--sheet-row-h）；**裡面有膠囊的列傳 tall**（65px，--sheet-row-h-tall）——
+// 原生的 select、日期、時刻（SelectField）與沖煮時間的分秒框。自帶標籤的下拉（BeanSelect、EquipmentTrigger……）
+// 不經過這裡的 label，自己掛 .sheet-row--tall。高度看列的種類，不看有沒有選值：沒選時沒有膠囊，列高也不變。
 
 defineProps<{
   label?: string
@@ -21,12 +25,14 @@ defineProps<{
   /** 不要左右內距：內容自己帶（強度選擇器） */
   flush?: boolean
   error?: boolean
+  /** 裡面有膠囊的列：65px（--sheet-row-h-tall）。只對 label 模式有效 */
+  tall?: boolean
 }>()
 </script>
 
 <template>
   <div class="form-row" :class="flush ? '' : 'card-pad-x'">
-    <div v-if="label" class="sheet-row">
+    <div v-if="label" class="sheet-row" :class="tall ? 'sheet-row--tall' : ''">
       <label class="sheet-label" :for="$props.for">
         {{ label }}<template v-if="required"><span :style="{ color: 'var(--danger)' }" aria-hidden="true">*</span><span class="sr-only">必填</span></template>
         <AlertIcon v-if="error" class="sheet-label-alert" />
@@ -40,8 +46,8 @@ defineProps<{
 </template>
 
 <style scoped>
-/* 分隔線畫在列裡（inset 陰影），不另外佔 1px：單行的列含分隔線一律是 --sheet-row-h（65px），
-   最後一列沒有分隔線也一樣高（2026-11-17，照 Figma 的 Sheet Row） */
+/* 分隔線畫在列裡（inset 陰影），不另外佔 1px：單行的列含分隔線是 56px（--sheet-row-h）或 65px（--sheet-row-h-tall），
+   最後一列沒有分隔線也一樣高（2026-11-17，照 Figma 的 Sheet Row；兩級是 2026-11-23） */
 .form-row:not(:last-child) {
   box-shadow: inset 0 -1px 0 var(--border);
 }
