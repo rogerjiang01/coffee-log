@@ -252,6 +252,7 @@
     color: var(--danger);
   }
   .form-note > svg {
+    color: var(--danger-icon);
     align-self: center;
     flex-shrink: 0;
     margin-right: -0.25rem;
@@ -260,7 +261,7 @@
   /* 出錯的列：標籤右邊的 circle-alert */
   .sheet-label-alert {
     margin-left: 0.375rem;
-    color: var(--danger);
+    color: var(--danger-icon);
   }
 
   /* 轉角形狀（tokens.css 的 --corner-*）：漸進增強，不支援的瀏覽器維持一般圓角。

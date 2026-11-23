@@ -152,6 +152,8 @@
     /* 狀態 */
     --favorite: var(--coral-500); /* 愛心 */
     --danger: var(--coral-700); /* 刪除、錯誤 */
+    /* 錯誤的圖示（circle-alert）。預設和 --danger 一樣；綠底模式另外指定（圖示只需要 3:1，2026-11-23） */
+    --danger-icon: var(--danger);
     --on-danger: var(--white); /* 疊在 --danger 上的文字，9.43:1 */
     /* 針對使用者輸入值出現、但不阻擋儲存的提示（《03》§4.1 的三層）。
        對比：--surface 上 7.43:1、--bg 上 7.31:1、--accent-wash 上 5.45:1。
@@ -463,4 +465,7 @@
     --favorite: var(--coral-50);
     --danger: var(--coral-50);
     --on-danger: var(--coral-900);
+    /* 錯誤的圖示（2026-11-23）：文字維持 coral-50，圖示用 coral-200，由圖示表達「錯誤」。
+       green-600（卡片）上 4.62:1、green-500（頁面）上 3.40:1，都過非文字元素的 3:1 */
+    --danger-icon: var(--coral-200);
 }

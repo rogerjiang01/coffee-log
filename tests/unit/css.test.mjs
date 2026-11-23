@@ -184,5 +184,17 @@ export default function run() {
   r.check(/--font-field: "Taipei Sans TC Field", var\(--font-body\);/.test(tokens), '--font-field 是別名在前、其餘照 --font-body')
   r.check(/input:not\(\[type="checkbox"\], \[type="radio"\], \[type="file"\], \[type="range"\]\),\s*textarea \{\s*font-family: var\(--font-field\);/.test(css), '文字輸入與多行文字用 --font-field')
 
+
+  r.section('綠底的錯誤：文字 coral-50、圖示 coral-200，每個錯誤一個圖示（2026-11-23）')
+  r.check(/--danger-icon: var\(--danger\);/.test(tokens) && /--danger-icon: var\(--coral-200\);/.test(green), '--danger-icon：淺色等於 --danger，綠底 coral-200（不用 Figma 的 coral/400：綠底上 1.72:1）')
+  r.check(/--danger: var\(--coral-50\);/.test(green), '綠底的錯誤文字維持 coral-50')
+  r.check(/\.form-note > svg \{\s*color: var\(--danger-icon\);/.test(css) && /\.sheet-label-alert \{[^}]*color: var\(--danger-icon\);/.test(css), '卡片下方與標籤旁的圖示吃 --danger-icon')
+  for (const page of ['pages/login.vue', 'pages/signup.vue']) {
+    const src = readFileSync(new URL(`../../${page}`, import.meta.url), 'utf8')
+    r.check((src.match(/tone="error" :icon="false"/g) || []).length === 2, `${page}：欄位錯誤的圖示只在標籤旁，卡片下方的訊息不畫`)
+    r.check(/<p v-if="error" role="alert"[^>]*>\s*<AlertIcon class="mt-0\.5" :style="\{ color: 'var\(--danger-icon\)' \}" \/>/.test(src), `${page}：不屬於欄位的錯誤，圖示在訊息前面`)
+  }
+  r.check(/icon\?: boolean/.test(readFileSync(new URL('../../components/FormNote.vue', import.meta.url), 'utf8')) && /icon: true \}/.test(readFileSync(new URL('../../components/FormNote.vue', import.meta.url), 'utf8')), 'FormNote 預設照樣畫圖示（淺色表單不變）')
+
   return r.finish()
 }

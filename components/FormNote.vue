@@ -9,12 +9,15 @@
 //   field  欄位名稱。**只在訊息本身看不出是哪個欄位時才寫**（「例如換刀盤、加裝配件」要寫「備註」；
 //          「養豆 19 天」「粉水比 1:16.0」「刻度 0–40」看得出來，不寫）。同一個欄位有兩則時只寫一次；錯誤訊息不寫
 //   id     讓輸入框用 aria-describedby 指到這則訊息（登入、註冊的錯誤與說明，2026-11-23）
+//   icon   錯誤前面要不要畫 circle-alert（預設要）。登入、註冊傳 false：欄位名稱旁已經有一個，
+//          每個錯誤只出現一個圖示（2026-11-23）。淺色表單維持兩個
 
 withDefaults(defineProps<{
   tone?: 'info' | 'notice' | 'error'
   field?: string
   id?: string
-}>(), { tone: 'info' })
+  icon?: boolean
+}>(), { tone: 'info', icon: true })
 
 // footer 在模板裡會自動解開成元素（掛載前是 null），所以另外記「是不是在卡片裡」
 const footer = inject(FORM_CARD_FOOTER, null)
@@ -24,13 +27,13 @@ const inCard = footer !== null
 <template>
   <Teleport v-if="inCard && footer" :to="footer">
     <p :id="id" class="form-note" :data-tone="tone" :role="tone === 'error' ? 'alert' : undefined">
-      <AlertIcon v-if="tone === 'error'" :size="14" />
+      <AlertIcon v-if="tone === 'error' && icon" :size="14" />
       <span v-if="field" class="font-medium">{{ field }}</span>
       <slot />
     </p>
   </Teleport>
   <p v-else-if="!inCard" :id="id" class="form-note" :data-tone="tone" :role="tone === 'error' ? 'alert' : undefined">
-    <AlertIcon v-if="tone === 'error'" :size="14" />
+    <AlertIcon v-if="tone === 'error' && icon" :size="14" />
     <span v-if="field" class="font-medium">{{ field }}</span>
     <slot />
   </p>
