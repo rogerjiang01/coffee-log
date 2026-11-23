@@ -27,7 +27,8 @@ const kinds = reactive<Record<string, Kind>>({
   chip: { label: '風味標籤', token: '--corner-chip', shape: 1.1, defaultShape: 1.1 },
   toggle: { label: '開關', note: '軌道與圓鈕', token: '--corner-toggle', shape: 1.1, defaultShape: 1.1 },
   bar: { label: '每日長條', note: '總覽的本週目標', token: '--corner-bar', shape: 1.1, defaultShape: 1.1 },
-  cardMd: { label: '獨立的卡片', note: '總覽、結算頁、豆子與器材列表、比較表。1 等於不套用', token: '--corner-card-md', shape: 1.1, defaultShape: 1.1, radius: { token: '--radius-card-md', value: 24, default: 24, max: 48, step: 1, fallback: '24px' } },
+  cardMl: { label: '分頁第一層的卡片', note: '總覽、豆子列表、器材列表（之後的紀錄卡片）。1 等於不套用', token: '--corner-card-ml', shape: 1.1, defaultShape: 1.1, radius: { token: '--radius-card-ml', value: 18, default: 18, max: 48, step: 1, fallback: '18px' } },
+  cardMd: { label: '其他獨立的卡片', note: '結算頁、豆子詳情的比較表。1 等於不套用', token: '--corner-card-md', shape: 1.1, defaultShape: 1.1, radius: { token: '--radius-card-md', value: 24, default: 24, max: 48, step: 1, fallback: '24px' } },
   cardLg: { label: '表單的卡片容器', note: '1 等於不套用', token: '--corner-card-lg', shape: 1.1, defaultShape: 1.1, radius: { token: '--radius-card-lg', value: 24, default: 24, max: 48, step: 1, fallback: 'var(--radius-lg)' } },
 })
 
@@ -200,24 +201,29 @@ const ROAST = { light: '淺焙', medium_light: '中淺焙', medium: '中焙', me
         </template>
 
         <template v-else-if="key === 'bar'">
-          <GoalWeekCard :count="4" :goal="5" :days="[1, 2, 0, 1, 0, 0, 0]" />
+          <GoalWeekCard :count="4" :goal="5" :days="[1, 2, 0, 1, 0, 0, 0]" radius="ml" />
         </template>
 
-        <template v-else-if="key === 'cardMd'">
+        <template v-else-if="key === 'cardMl'">
           <div class="grid grid-cols-2 gap-3">
-            <AppCard title="累計" class="flex flex-col overflow-hidden" :style="{ height: 'var(--overview-card-h)' }">
+            <AppCard title="累計" radius="ml" class="flex flex-col overflow-hidden" :style="{ height: 'var(--overview-card-h)' }">
               <span class="flex flex-col gap-1 px-3 pt-0.5 pb-2">
                 <span class="flex flex-col"><span class="text-sm">總共記錄</span><MetricValue :value="17" unit="筆" /></span>
                 <span class="flex flex-col"><span class="text-sm">喝過豆子</span><MetricValue :value="9" unit="支" /></span>
               </span>
             </AppCard>
-            <AppCard title="本月" class="flex flex-col overflow-hidden" :style="{ height: 'var(--overview-card-h)' }">
+            <AppCard title="本月" radius="ml" class="flex flex-col overflow-hidden" :style="{ height: 'var(--overview-card-h)' }">
               <span class="flex flex-col gap-1 px-3 pt-0.5 pb-2">
                 <span class="flex flex-col"><span class="text-sm">記錄</span><MetricValue :value="5" unit="筆" /></span>
                 <span class="flex flex-col"><span class="text-sm">煮了豆子</span><MetricValue :value="68" unit="克" /></span>
               </span>
             </AppCard>
           </div>
+        </template>
+
+        <template v-else-if="key === 'cardMd'">
+          <!-- 結算頁的本週目標：GoalWeekCard 的預設就是 md -->
+          <GoalWeekCard :count="5" :goal="5" :days="[1, 2, 0, 1, 1, 0, 0]" />
         </template>
 
         <template v-else-if="key === 'cardLg'">

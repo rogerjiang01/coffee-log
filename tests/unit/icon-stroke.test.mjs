@@ -82,7 +82,13 @@ export default function run() {
   r.check(/viewBox="0 0 24 24"/.test(starDisplay), 'Lucide 的 24 格線')
   for (const path of ['pages/brews/[id]/index.vue', 'components/SharedBrewView.vue', 'components/OverviewBeanCard.vue']) {
     r.check(/<StarDisplay /.test(read(path)), `${path}：顯示用的星等走 StarDisplay`)
+    // 2026-11-23：20px、間距 4，三處一致。用的地方不傳 size、不加 gap
+    const uses = read(path).match(/<StarDisplay\b[^>]*>/g) || []
+    r.check(uses.length > 0 && uses.every(u => !/:size=|\bgap-/.test(u)), `${path}：用預設的 20px、間距 4（不傳 size、不加 gap）`)
   }
+  r.check(/size: 20 \}/.test(starDisplay) && /<span class="flex gap-1" role="img"/.test(starDisplay), 'StarDisplay 的預設：20px、間距 4px（gap-1）')
+  r.check(/\.overview-stars \{\s*column-gap: clamp\(2px, calc\(\(100% - 100px\) \/ 4\), 4px\);/.test(read('components/OverviewBeanCard.vue')),
+    '總覽的卡片放不下時只縮間距，最小 2px（5 顆 20px 是 100px），星星維持 20px')
 
   r.section('尺寸')
   const size = svg => Number(svg.match(/\swidth="([\d.]+)"/)[1])

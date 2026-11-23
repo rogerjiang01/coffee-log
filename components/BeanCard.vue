@@ -25,7 +25,7 @@ const days = computed(() => restDays(props.roastDate))
 
 <template>
   <article
-    class="card-corners flex overflow-hidden border"
+    class="card-ml-corners flex overflow-hidden border"
     :style="{ borderColor: 'var(--border)', background: 'var(--surface)', boxShadow: 'var(--shadow-light)' }"
   >
     <div class="size-24 shrink-0">

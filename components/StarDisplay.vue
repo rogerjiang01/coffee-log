@@ -3,6 +3,10 @@
 //
 // 和表單同一套外觀（2026-11-16，Laeta 改版第三批）：**未選也是實心**，顏色 --control-inactive；
 // 已選是 --favorite。描邊和填色同色，只用來把星角補圓；線寬換算後固定是 1.5px。
+//
+// 尺寸 20px、間距 4px（五顆共 116px），總覽、紀錄詳情、分享頁三處一致（2026-11-23，《03》§4.16）。
+// 間距寫在元件裡，用的地方不要再傳 size 或 gap。唯一的例外是總覽的半寬卡片在 320px 寬時放不下，
+// 那裡把間距縮到 2px（OverviewBeanCard 的 .overview-stars），星星維持 20px。
 
 const props = withDefaults(defineProps<{ rating: number, size?: number }>(), { size: 20 })
 
@@ -10,7 +14,7 @@ const strokeWidth = computed(() => (1.5 * 24) / props.size)
 </script>
 
 <template>
-  <span class="flex" role="img" :aria-label="`評分 ${rating} 顆星`">
+  <span class="flex gap-1" role="img" :aria-label="`評分 ${rating} 顆星`">
     <svg
       v-for="level in 5" :key="level"
       :width="size" :height="size" viewBox="0 0 24 24" aria-hidden="true"

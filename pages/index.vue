@@ -125,9 +125,9 @@ const newBrewLink = computed(() => newBrewEntry(activeBeans.value))
 
     <!-- 骨架：目標環一張全寬、兩張半寬，和卡片同高。§6 不做進場動畫，靜態色塊 -->
     <div v-if="loading" aria-busy="true" aria-label="讀取中" class="mt-6 grid grid-cols-2 gap-3">
-      <SkeletonBlock class="card-corners col-span-2" height="var(--overview-card-h)" radius="var(--radius-card-md)" />
-      <SkeletonBlock height="var(--overview-card-h)" radius="var(--radius-card-md)" class="card-corners" />
-      <SkeletonBlock height="var(--overview-card-h)" radius="var(--radius-card-md)" class="card-corners" />
+      <SkeletonBlock class="card-ml-corners col-span-2" height="var(--overview-card-h)" radius="var(--radius-card-ml)" />
+      <SkeletonBlock height="var(--overview-card-h)" radius="var(--radius-card-ml)" class="card-ml-corners" />
+      <SkeletonBlock height="var(--overview-card-h)" radius="var(--radius-card-ml)" class="card-ml-corners" />
     </div>
 
     <div v-else class="mt-6 grid grid-cols-2 gap-3">
@@ -135,6 +135,7 @@ const newBrewLink = computed(() => newBrewEntry(activeBeans.value))
       <GoalWeekCard
         v-if="week"
         class="col-span-2"
+        radius="ml"
         :count="week.count"
         :goal="week.goal"
         :days="week.days"
@@ -143,7 +144,7 @@ const newBrewLink = computed(() => newBrewEntry(activeBeans.value))
       />
 
       <!-- 完全沒有紀錄：一張全寬的卡片，插畫、一句說明、新增紀錄 -->
-      <AppCard v-if="noRecords" class="col-span-2 flex items-center gap-4 p-4">
+      <AppCard v-if="noRecords" radius="ml" class="col-span-2 flex items-center gap-4 p-4">
         <span class="block size-20 shrink-0 overflow-hidden rounded-sm">
           <BeanArt background="var(--roast-unknown)" />
         </span>
@@ -191,6 +192,7 @@ const newBrewLink = computed(() => newBrewEntry(activeBeans.value))
         to="/brews"
         title="累計"
         arrow
+        radius="ml"
         class="flex flex-col overflow-hidden"
         :class="{ 'col-span-2': secondRowWide }"
         :style="CARD_HEIGHT"
@@ -208,7 +210,7 @@ const newBrewLink = computed(() => newBrewEntry(activeBeans.value))
       </AppCard>
 
       <!-- 第二排：本月。卡片不能點，所以沒有 › -->
-      <AppCard v-if="month" title="本月" class="flex flex-col overflow-hidden" :style="CARD_HEIGHT">
+      <AppCard v-if="month" title="本月" radius="ml" class="flex flex-col overflow-hidden" :style="CARD_HEIGHT">
         <span class="flex flex-col gap-1 px-3 pt-0.5 pb-2">
           <span class="flex flex-col">
             <span class="text-sm">記錄</span>

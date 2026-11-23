@@ -134,7 +134,7 @@ export default function run() {
     && /const secondRowWide = computed\(\(\) => !!totals\.value !== !!month\.value\)/.test(homeScript)
     && (homeTemplate.match(/:class="\{ 'col-span-2': firstRowWide \}"/g) ?? []).length === 2 && /:class="\{ 'col-span-2': secondRowWide \}"/.test(homeTemplate),
     '同一排只剩一張：那一張全寬，不往前遞補')
-  r.check(/<AppCard v-if="noRecords" class="col-span-2[^"]*">[\s\S]*?還沒有紀錄[\s\S]*?<AppButton :to="newBrewLink">新增紀錄<\/AppButton>/.test(homeTemplate),
+  r.check(/<AppCard v-if="noRecords" radius="ml" class="col-span-2[^"]*">[\s\S]*?還沒有紀錄[\s\S]*?<AppButton :to="newBrewLink">新增紀錄<\/AppButton>/.test(homeTemplate),
     '完全沒有紀錄：一張全寬的說明卡片加「新增紀錄」')
   r.check(/:note="top\.week === 'last' \? '本週還沒有評分' : ''"/.test(homeTemplate), '上週最高分：多一行「本週還沒有評分」')
   r.check(!/emptyVariant|variantB|OverviewHintCard/.test(homeScript) && !/dashboardRows/.test(read('utils/dashboard.ts')),

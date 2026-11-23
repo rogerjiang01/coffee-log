@@ -22,7 +22,9 @@ const props = withDefaults(defineProps<{
   from?: number | null
   celebrate?: boolean
   clickable?: boolean
-}>(), { from: null, celebrate: false, clickable: false })
+  /** 卡片圓角（AppCard 的 radius）。預設 md（結算頁）；總覽明確傳 ml，之後新用到的地方不會不小心變成 18px */
+  radius?: 'ml' | 'md'
+}>(), { from: null, celebrate: false, clickable: false, radius: 'md' })
 
 const emit = defineEmits<{ click: [] }>()
 
@@ -63,6 +65,7 @@ const status = computed(() => {
     :as="clickable ? 'button' : 'section'"
     :type="clickable ? 'button' : undefined"
     title="本週目標"
+    :radius="radius"
     :arrow="clickable"
     class="flex w-full flex-col text-left"
     :style="{ minHeight: 'var(--overview-card-h)' }"

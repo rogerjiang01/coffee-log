@@ -230,7 +230,9 @@ Playwright 是 devDependency（2026-11-17 加入），**只用來在瀏覽器裡
   **漸進增強**：只有 Chrome／Edge 139 以後支援，正式版 Safari（iPhone 上所有瀏覽器）目前看不到，設計不能依賴它。正圓不套；
   每一類一個 token（`--corner-card-pill`、`--corner-block-button`、`--corner-sheet-pill`、`--corner-chip`、`--corner-toggle`、`--corner-bar`、
   一般卡片 `--corner-card-md`／`--corner-card-lg`），**數值是使用者在開發環境的 `/dev/corners` 調出來的**（膠囊類 1.1、單列卡片與儲存按鈕 1.2、卡片 1.1；`第三批.md` 第十二節）。
-  **卡片一律 24px、轉角 1.1**（總覽、結算頁、豆子與器材列表、比較表、表單，含載入骨架；`--radius-card-md`／`.card-corners`，不是改 `--radius-md`；Figma 的總覽卡片是 12）。要改這些值先在 `/dev/corners` 調，那一頁的預設值要和 tokens.css 一致
+  **卡片兩級、轉角都是 1.1**（2026-11-23，`第三批.md` 第十四節）：**四個分頁第一層的卡片 18px**（ml：總覽、豆子列表、器材列表，含載入骨架；`--radius-card-ml`／`.card-ml-corners`；之後紀錄分頁的卡片也用 ml），
+  **其他 24px**（md：結算頁、比較表；lg：表單的卡片容器與表單骨架）。`AppCard` 與 `GoalWeekCard` 的預設是 md，要 ml 明確傳。不是改 `--radius-md`（12px，留給不是卡片的東西）。要改這些值先在 `/dev/corners` 調，那一頁的預設值要和 tokens.css 一致
+- **顯示用星等**（`StarDisplay`，2026-11-23）：20px、間距 4px，總覽、紀錄詳情、分享頁一致，用的地方不傳 `size`、不加 gap；總覽半寬卡片放不下時（320px）只縮間距到最小 2px
 
 **還沒驗、等使用者回覆的**：
 

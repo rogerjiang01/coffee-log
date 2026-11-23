@@ -288,12 +288,16 @@
     --corner-chip: superellipse(1.1);         /* 風味標籤（ChoiceChip） */
     --corner-toggle: superellipse(1.1);       /* 開關的軌道與圓鈕（ToggleSwitch） */
     --corner-bar: superellipse(1.1);          /* 總覽的每日長條（GoalWeekCard） */
-    --corner-card-md: superellipse(1.1);      /* 獨立的卡片（AppCard 的 md、.card-corners） */
+    --corner-card-ml: superellipse(1.1);      /* 分頁第一層的卡片（AppCard 的 ml、.card-ml-corners） */
+    --corner-card-md: superellipse(1.1);      /* 其他獨立的卡片（AppCard 的 md、.card-corners） */
     --corner-card-lg: superellipse(1.1);      /* 表單的卡片容器（AppCard 的 lg） */
     /* 卡片與儲存按鈕各自的圓角半徑。
-       **卡片一律 24px**（2026-11-19 使用者決定，原本是 --radius-md 的 12px；Figma 的總覽卡片是 12）：
-       總覽、結算頁、豆子與器材列表、比較表（--radius-card-md），表單的卡片容器（--radius-card-lg）。
-       --radius-md 本身沒有改，留給縮圖與提示這些不是卡片的東西。其餘三個等於共用的值 */
+       卡片兩級（2026-11-19 統一成 24px；2026-11-23 加上 18px 的 ml，對應 Figma 的 radius-ml）：
+       ml 18px  四個分頁第一層的卡片：總覽、豆子列表、器材列表（紀錄分頁之後的卡片也用這一級）
+       md 24px  其他獨立的卡片：結算頁、比較表
+       lg 24px  表單的卡片容器
+       --radius-md 本身沒有改（12px），留給縮圖與提示這些不是卡片的東西。後兩個等於共用的值 */
+    --radius-card-ml: 18px;
     --radius-card-md: 24px;
     --radius-card-lg: var(--radius-lg);
     --radius-card-pill: var(--radius-pill);

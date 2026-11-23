@@ -17,14 +17,15 @@ export default function run() {
   const values = [
     ['--corner-card-pill', 'superellipse(1.2)'], ['--corner-block-button', 'superellipse(1.2)'], ['--corner-sheet-pill', 'superellipse(1.1)'],
     ['--corner-chip', 'superellipse(1.1)'], ['--corner-toggle', 'superellipse(1.1)'], ['--corner-bar', 'superellipse(1.1)'],
-    ['--corner-card-md', 'superellipse(1.1)'], ['--corner-card-lg', 'superellipse(1.1)'],
+    ['--corner-card-ml', 'superellipse(1.1)'], ['--corner-card-md', 'superellipse(1.1)'], ['--corner-card-lg', 'superellipse(1.1)'],
   ]
   for (const [token, value] of values) r.check(tokens.includes(`${token}: ${value};`), `${token}: ${value}`)
-  for (const [token, value] of [['--radius-card-md', '24px'], ['--radius-card-lg', 'var(--radius-lg)'], ['--radius-card-pill', 'var(--radius-pill)'], ['--radius-block-button', 'var(--radius-pill)']])
+  for (const [token, value] of [['--radius-card-ml', '18px'], ['--radius-card-md', '24px'], ['--radius-card-lg', 'var(--radius-lg)'], ['--radius-card-pill', 'var(--radius-pill)'], ['--radius-block-button', 'var(--radius-pill)']])
     r.check(tokens.includes(`${token}: ${value};`), `${token}: ${value}`)
-  r.check(tokens.includes('--radius-md: 12px;'), '--radius-md 本身維持 12px：只有總覽的卡片（AppCard 的 md）改成 24px')
-  r.check(/radius="var\(--radius-card-md\)"/.test(read('pages/index.vue')) && !/radius="var\(--radius-md\)"/.test(read('pages/index.vue')),
-    '總覽載入中的骨架和卡片同一個半徑')
+  r.check(tokens.includes('--radius-md: 12px;'), '--radius-md 本身維持 12px：卡片吃的是 --radius-card-*')
+  const overviewSkeletons = read('pages/index.vue').match(/<SkeletonBlock[^>]*>/g) || []
+  r.check(overviewSkeletons.length === 3 && overviewSkeletons.every(s => /radius="var\(--radius-card-ml\)"/.test(s) && /card-ml-corners/.test(s)),
+    '總覽載入中的骨架和卡片同一個半徑（ml）')
 
   r.section('調整頁的預設值和 tokens.css 一致')
   const dev = read('dev/corners.vue')
@@ -32,14 +33,15 @@ export default function run() {
     const k = Number(value.match(/superellipse\(([\d.]+)\)/)[1])
     r.check(new RegExp(`token: '${token}', shape: ${k}, defaultShape: ${k}`).test(dev), `dev/corners.vue：${token} 從 ${k} 開始`)
   }
-  r.check(/token: '--radius-card-md', value: 24, default: 24/.test(dev), 'dev/corners.vue：總覽卡片的半徑從 24px 開始')
+  r.check(/token: '--radius-card-ml', value: 18, default: 18/.test(dev), 'dev/corners.vue：分頁第一層的卡片從 18px 開始')
+  r.check(/token: '--radius-card-md', value: 24, default: 24/.test(dev), 'dev/corners.vue：其他獨立的卡片從 24px 開始')
 
   r.check(!/--pill-corner-shape/.test(tokens), '共用的 --pill-corner-shape 已經拆掉')
 
   r.section('元件吃自己的 token')
   const css = read('assets/css/main.css')
   const card = read('components/AppCard.vue')
-  for (const kind of ['md', 'lg', 'pill'])
+  for (const kind of ['ml', 'md', 'lg', 'pill'])
     r.check(new RegExp(`\\.app-card--${kind} \\{\\s*border-radius: var\\(--radius-card-${kind}\\);\\s*corner-shape: var\\(--corner-card-${kind}\\);`).test(card), `AppCard 的 ${kind}`)
   r.check(/\.app-button--block \{[^}]*min-height: var\(--sheet-row-h\);[^}]*border-radius: var\(--radius-block-button\);[^}]*corner-shape: var\(--corner-block-button\);/.test(read('components/AppButton.vue')), '滿寬按鈕：65px、圓角是高度的一半、轉角')
   r.check(/\.sheet-pill \{[^}]*corner-shape: var\(--corner-sheet-pill\);/.test(css), '下拉與日期的膠囊、分秒框（.sheet-pill）')
@@ -63,18 +65,30 @@ export default function run() {
   r.check(/<FormCard pill class="mt-4">\s*<FormRow>\s*<ToggleSwitch[\s\S]*?label="已喝完"\s*row/.test(beanDetail), '豆子詳情的「已喝完」：FormCard pill、開關是一列')
   const appCardUsers = all.filter(f => f !== 'components/AppCard.vue' && /<AppCard\b/.test(read(f)))
   r.check(appCardUsers.sort().join(',') === ['components/FormCard.vue', 'components/GoalWeekCard.vue', 'components/OverviewBeanCard.vue', 'dev/corners.vue', 'pages/index.vue'].join(','),
-    `AppCard 的 md 只剩總覽與結算頁（${appCardUsers.join('、')}）`)
+    `用 AppCard 的只有表單、總覽、結算頁的本週目標與調整頁（${appCardUsers.join('、')}）`)
 
-  r.section('卡片的圓角統一成 24px（2026-11-19）')
+  r.section('卡片的圓角：分頁第一層 18px（ml），其他 24px（2026-11-23）')
+  r.check(/radius\?: 'ml' \| 'md' \| 'lg' \| 'pill'/.test(card) && /\{ radius: 'md',/.test(card), 'AppCard 的預設是 md：要 ml 就明確傳')
+  const goal = read('components/GoalWeekCard.vue')
+  r.check(/radius\?: 'ml' \| 'md'/.test(goal) && /radius: 'md' \}\)/.test(goal) && /:radius="radius"/.test(goal), 'GoalWeekCard 的預設是 md（結算頁）')
+  const overview = read('pages/index.vue')
+  r.check(/<GoalWeekCard[^>]*\bradius="ml"/.test(overview), '總覽的本週目標明確傳 ml')
+  r.check(!/radius=/.test((read('pages/brews/[id]/summary.vue').match(/<GoalWeekCard[^>]*>/) || [''])[0]), '結算頁的本週目標不傳 radius（md）')
+  const overviewCards = overview.match(/<AppCard\b[^>]*>/g) || []
+  r.check(overviewCards.length === 3 && overviewCards.every(c => /\bradius="ml"/.test(c)), '總覽的說明卡片、累計、本月是 ml')
+  r.check(/<AppCard\b[^>]*\bradius="ml"/.test(read('components/OverviewBeanCard.vue')), '最近沖煮、最高分是 ml')
+  r.check(/\.card-ml-corners \{\s*border-radius: var\(--radius-card-ml\);\s*corner-shape: var\(--corner-card-ml\);/.test(css), '.card-ml-corners')
   r.check(/\.card-corners \{\s*border-radius: var\(--radius-card-md\);\s*corner-shape: var\(--corner-card-md\);/.test(css), '.card-corners')
   r.check(/\.form-card-corners \{\s*border-radius: var\(--radius-card-lg\);\s*corner-shape: var\(--corner-card-lg\);/.test(css), '.form-card-corners')
   for (const [path, re, label] of [
-    ['components/BeanCard.vue', /class="card-corners flex overflow-hidden border"/, '豆子列表的卡片'],
-    ['components/BeanCompareTable.vue', /class="card-corners overflow-hidden border shadow-light"/, '比較表'],
-    ['pages/equipment/index.vue', /class="card-corners border p-4 shadow-light"/, '器材列表的每一台'],
-    ['pages/beans/index.vue', /<SkeletonBlock height="5\.5rem" radius="var\(--radius-card-md\)" class="card-corners" \/>/, '豆子列表的骨架'],
-    ['pages/equipment/index.vue', /height="3\.5rem" radius="var\(--radius-card-md\)" class="card-corners"/, '器材列表的骨架'],
+    ['components/BeanCard.vue', /class="card-ml-corners flex overflow-hidden border"/, '豆子列表的卡片：ml'],
+    ['pages/equipment/index.vue', /class="card-ml-corners border p-4 shadow-light"/, '器材列表的每一台：ml'],
+    ['pages/beans/index.vue', /<SkeletonBlock height="5\.5rem" radius="var\(--radius-card-ml\)" class="card-ml-corners" \/>/, '豆子列表的骨架：ml'],
+    ['pages/equipment/index.vue', /height="3\.5rem" radius="var\(--radius-card-ml\)" class="card-ml-corners"/, '器材列表的骨架：ml'],
+    ['components/BeanCompareTable.vue', /class="card-corners overflow-hidden border shadow-light"/, '比較表維持 md（24px）'],
   ]) r.check(re.test(read(path)), label)
+  const mdUsers = all.filter(f => f !== 'components/AppCard.vue' && /\bcard-corners\b|--radius-card-md/.test(read(f).replace(/card-ml-corners|form-card-corners/g, '')))
+  r.check(mdUsers.sort().join(',') === ['components/BeanCompareTable.vue', 'dev/corners.vue'].join(','), `.card-corners（md）只剩比較表（${mdUsers.join('、')}）`)
   for (const path of ['pages/brews/new.vue', 'pages/brews/[id]/edit.vue', 'pages/beans/[id]/edit.vue', 'pages/equipment/[id]/edit.vue'])
     r.check(/class="form-card-corners border p-5"/.test(read(path)), `${path}：表單的骨架和表單的卡片同一個圓角`)
 
