@@ -339,8 +339,10 @@ async function retry() {
         <p>無法複製，請長按連結手動複製</p>
         <!-- 一般文字，不做成連結：點下去會離開這一頁。select-all 讓長按一次選到整串 -->
         <p class="mt-2 select-all break-all tabular-nums" :style="{ color: 'var(--text)' }">{{ manualLink }}</p>
-        <AppButton variant="outline" block
-          class="mt-3"
+        <!-- 撐滿寬度但不用 block：浮動容器裡的按鈕一律 44px、8px 圓角，和「分享建立失敗」那則一致
+             （滿寬膠囊 56px 只用在頁面上；28px 的膠囊放進 12px 的提示框會比外層還圓，《03》§2.3.1、§4.18） -->
+        <AppButton variant="outline"
+          class="mt-3 w-full"
           @click="manualLink = null"
         >
           關閉
