@@ -85,7 +85,9 @@ function handle(req, res) {
   if (url.pathname === '/auth/v1/user') return res.end(JSON.stringify(USER))
   if (url.pathname.startsWith('/storage/v1/object/sign/') && req.method === 'POST') {
     let body = ''; req.on('data', c => body += c); req.on('end', () => {
-      const { paths = [] } = JSON.parse(body || '{}')
+      const { paths } = JSON.parse(body || '{}')
+      // 一次要很多張（createSignedUrls，body 有 paths）回陣列；只要一張（createSignedUrl，路徑在網址上）回物件
+      if (!paths) return res.end(JSON.stringify({ signedURL: `${url.pathname.slice('/storage/v1'.length)}?token=x` }))
       res.end(JSON.stringify(paths.map(p => ({ path: p, signedURL: `/object/sign/bean-photos/${p}?token=x`, error: null }))))
     }); return
   }

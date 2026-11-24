@@ -93,8 +93,7 @@ onBeforeUnmount(() => {
 
 <template>
   <div>
-    <p class="text-sm">豆袋照片</p>
-
+    <!-- 不寫欄位標籤（2026-11-24 拿掉「豆袋照片」）：框裡的「拍照或上傳照片」本身就說了是照片 -->
     <!-- 單一檔案輸入，兩個按鈕都觸發它 -->
     <input
       ref="fileInput"
@@ -104,8 +103,10 @@ onBeforeUnmount(() => {
       @change="onPick"
     >
 
+    <!-- 圓角和下方表單的卡片一致（--radius-card-lg 24px 與它的轉角形狀，2026-11-24）。
+         裡面的照片沒有自己的圓角，由這個框裁切，所以沒有內外圓角的問題（《03》§2.3.1） -->
     <div
-      class="mt-3 overflow-hidden rounded-md border"
+      class="form-card-corners overflow-hidden border"
       :style="{ borderColor: 'var(--border)', background: 'var(--surface)', boxShadow: 'var(--shadow-light)' }"
     >
       <!-- 正方形，與裁切框、列表縮圖同一個比例：使用者在裁切畫面框的，
@@ -124,7 +125,7 @@ onBeforeUnmount(() => {
         :style="{ minHeight: '132px' }"
         @click="openPicker"
       >
-        <span :style="{ color: 'var(--accent-text)' }">{{ working ? '處理中' : '拍照或選一張' }}</span>
+        <span :style="{ color: 'var(--accent-text)' }">{{ working ? '處理中' : '拍照或上傳照片' }}</span>
       </button>
     </div>
 

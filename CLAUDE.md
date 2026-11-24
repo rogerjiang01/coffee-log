@@ -249,6 +249,7 @@ Playwright 是 devDependency（2026-11-17 加入），**只用來在瀏覽器裡
   例外是照片與縮圖（紀錄卡片的縮圖維持 8px）、形狀由高度決定而且沒有大於外層的膠囊與開關。**滿寬膠囊只用在頁面上**，
   提示與對話框裡的按鈕一律 44px、8px（要滿寬用 `w-full`，不用 `block`）；全螢幕浮層算頁面。
   新增元件或改圓角、內距之後重跑盤點：`node scripts/radius-audit/run.mjs`（不在 `pnpm test` 裡，結果在 `tmp-screenshots/radius-audit/`）
+- **表單的區塊標題與豆袋照片框**（2026-11-24）：紀錄表單的區塊標題（`FormSection`）是 `text-heading-l font-medium`（20px），頁面標題不動；豆子與器材表單沒有區塊標題。豆袋照片的框（`PhotoField`）圓角和表單卡片一致（`.form-card-corners`，24px），框上方不寫「豆袋照片」，沒有照片時框裡寫「拍照或上傳照片」（《04》六）
 - **顯示用星等**（`StarDisplay`，2026-11-23）：20px、間距 4px，總覽、紀錄詳情、分享頁一致，用的地方不傳 `size`、不加 gap；總覽半寬卡片放不下時（320px）只縮間距到最小 2px
 
 **還沒驗、等使用者回覆的**：
