@@ -92,14 +92,17 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <div>
-    <!-- 不寫欄位標籤（2026-11-24 拿掉「豆袋照片」）：框裡的「拍照或上傳照片」本身就說了是照片 -->
-    <!-- 單一檔案輸入，兩個按鈕都觸發它 -->
+  <div role="group" aria-label="豆袋照片">
+    <!-- 不寫欄位標籤（2026-11-24 拿掉「豆袋照片」）：框裡的「拍照或上傳照片」本身就說了是照片。
+         畫面上沒有的這四個字留給螢幕閱讀器：整個欄位是「豆袋照片」這一組（外層的 aria-label） -->
+    <!-- 單一檔案輸入，兩個按鈕都觸發它。tabindex -1：sr-only 只是看不見，
+         鍵盤照樣會停在它上面，而它沒有名稱；要選照片走框裡的按鈕或「換一張」 -->
     <input
       ref="fileInput"
       type="file"
       accept="image/*"
       class="sr-only"
+      tabindex="-1"
       @change="onPick"
     >
 
@@ -147,12 +150,15 @@ onBeforeUnmount(() => {
     />
 
     <div v-if="shown" class="mt-2 flex gap-3">
+      <!-- 畫面上的字靠位置就知道是照片；螢幕閱讀器單獨唸按鈕時要說出是哪一張 -->
       <AppButton variant="outline"
+        aria-label="換一張豆袋照片"
         @click="openPicker"
       >
         換一張
       </AppButton>
       <AppButton variant="outline"
+        aria-label="移除豆袋照片"
         @click="clear"
       >
         移除
