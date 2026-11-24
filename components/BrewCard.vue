@@ -16,7 +16,10 @@
 // 和日期（16px Regular、--text-muted）靠字重與顏色區分。
 //
 // 五欄等寬、沒填的寫「—」，位置保留，每張卡片的欄位上下對齊（utils/brewCard.ts）。
-// 360px 寬時一欄約 52px，最寬的值「1:16.0」約 46px、標籤「粉水比」45px。
+// 最寬的值「1:16.0」約 46px、「20.5 g」約 45px，標籤「粉水比」45px。欄間距兩級（2026-11-24）：
+//   兩行版面 6px：360px 寬時一欄約 52px
+//   三行版面 2px：320px 寬時卡片內容 246px，一欄 (246 − 4×2) / 5 = 47.6px，不縮字
+//   （比照總覽半寬卡片的星等在 320px 先縮間距）
 
 import { NuxtLink } from '#components'
 
@@ -77,7 +80,7 @@ const params = computed(() => cardParams(props))
     <!-- 分隔線，寬度等於內容寬度 -->
     <span class="my-3 block h-px" :style="{ background: 'var(--border)' }" aria-hidden="true" />
 
-    <span class="grid grid-cols-5 gap-1.5 py-2.5">
+    <span class="brew-card__params grid grid-cols-5 py-2.5">
       <span v-for="param in params" :key="param.label" class="flex min-w-0 flex-col gap-0.5">
         <span class="text-body-l whitespace-nowrap text-muted">{{ param.label }}</span>
         <span class="text-heading-s font-medium whitespace-nowrap">{{ param.value }}</span>
@@ -100,6 +103,10 @@ const params = computed(() => cardParams(props))
   height: 80px;
   border-radius: var(--radius-md);
 }
+/* 三行時卡片窄，五欄的間距縮成 2px，每欄才至少 46px（「1:16.0」）；不縮字 */
+.brew-card__params {
+  column-gap: 2px;
+}
 
 /* 兩行：第二行放得下星等＋最長的日期時（卡片內容寬 ≥ 276px） */
 @container (min-width: 276px) {
@@ -112,6 +119,9 @@ const params = computed(() => cardParams(props))
     flex-direction: row;
     align-items: center;
     gap: 8px;
+  }
+  .brew-card__params {
+    column-gap: 6px;
   }
 }
 </style>

@@ -180,7 +180,7 @@ const newBrewLink = computed(() => newBrewEntry(activeBeans.value))
             </div>
           </div>
           <div class="my-3 h-px" :style="{ background: 'var(--border)' }" />
-          <div class="grid grid-cols-5 gap-1.5 py-2.5">
+          <div class="brew-skeleton__params grid grid-cols-5 py-2.5">
             <div v-for="m in 5" :key="m" class="space-y-2 pt-1">
               <SkeletonBlock width="70%" height="0.875rem" />
               <SkeletonBlock width="80%" height="1rem" />
@@ -250,6 +250,10 @@ const newBrewLink = computed(() => newBrewEntry(activeBeans.value))
   padding: var(--card-pad) var(--card-pad) 14px;
   container-type: inline-size;
 }
+/* 五欄的間距也和卡片同一套：三行 2px、兩行 6px */
+.brew-skeleton__params {
+  column-gap: 2px;
+}
 .brew-skeleton__thumb {
   width: 80px;
   height: 80px;
@@ -264,6 +268,9 @@ const newBrewLink = computed(() => newBrewEntry(activeBeans.value))
   }
   .brew-skeleton__date {
     display: none;
+  }
+  .brew-skeleton__params {
+    column-gap: 6px;
   }
 }
 </style>
