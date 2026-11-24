@@ -170,12 +170,13 @@ const newBrewLink = computed(() => newBrewEntry(activeBeans.value))
     <ul v-if="loading" aria-busy="true" aria-label="讀取中" class="mt-6 space-y-3">
       <li v-for="n in 4" :key="n">
         <AppCard radius="ml" class="brew-card-skeleton">
-          <div class="flex items-start gap-3">
-            <SkeletonBlock width="3rem" height="3rem" radius="var(--radius-md)" class="shrink-0" />
-            <div class="flex-1 space-y-2 pt-1">
-              <SkeletonBlock width="65%" height="1rem" />
-              <SkeletonBlock width="7.25rem" height="1rem" />
-              <SkeletonBlock width="45%" height="1rem" />
+          <!-- 標題區和 BrewCard 同一套切換：卡片內容寬 ≥ 276px 是兩行（縮圖 52），否則三行（縮圖 80） -->
+          <div class="flex items-start gap-4">
+            <div class="brew-skeleton__thumb shrink-0" />
+            <div class="brew-skeleton__lines flex flex-1 flex-col gap-1">
+              <div class="flex h-6 items-center"><SkeletonBlock width="65%" height="1rem" /></div>
+              <div class="flex h-6 items-center"><SkeletonBlock width="7.25rem" height="1rem" /></div>
+              <div class="brew-skeleton__date flex h-6 items-center"><SkeletonBlock width="45%" height="1rem" /></div>
             </div>
           </div>
           <div class="my-3 h-px" :style="{ background: 'var(--border)' }" />
@@ -244,8 +245,25 @@ const newBrewLink = computed(() => newBrewEntry(activeBeans.value))
 </template>
 
 <style scoped>
-/* 骨架和紀錄卡片同一個內距（BrewCard：上 16、左右 16、下 14） */
+/* 骨架和紀錄卡片同一個內距與同一個切換點（BrewCard：上 16、左右 16、下 14；卡片內容寬 276px） */
 .brew-card-skeleton {
   padding: var(--card-pad) var(--card-pad) 14px;
+  container-type: inline-size;
+}
+.brew-skeleton__thumb {
+  width: 80px;
+  height: 80px;
+  border-radius: var(--radius-md);
+  background: var(--border);
+}
+@container (min-width: 276px) {
+  .brew-skeleton__thumb {
+    width: 52px;
+    height: 52px;
+    border-radius: var(--radius-sm);
+  }
+  .brew-skeleton__date {
+    display: none;
+  }
 }
 </style>

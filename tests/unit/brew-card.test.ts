@@ -12,16 +12,19 @@ const full = { dose: 18, grindSetting: 28, waterTemp: 92, totalTime: 132, totalW
 export default function run() {
   const r = createReport('紀錄卡片')
 
-  r.section('沖煮日期：M/D 週X HH:mm')
-  r.check(cardBrewDate(local(2026, 10, 12, 8, 30), now) === '10/12 週一 08:30', `今年：10/12 週一 08:30（實際 ${cardBrewDate(local(2026, 10, 12, 8, 30), now)}）`)
-  r.check(cardBrewDate(local(2026, 3, 5, 7, 4), now) === '3/5 週四 07:04', '月日不補零，時分補零：3/5 週四 07:04')
-  r.check(cardBrewDate(local(2026, 1, 1, 0, 0), now) === '1/1 週四 00:00', '午夜是 00:00（24 小時制）')
-  r.check(cardBrewDate(local(2026, 11, 22, 23, 59), now) === '11/22 週日 23:59', '晚上是 23:59，不是 11:59')
+  r.section('沖煮日期（今年）：M/D 週X，只到日')
+  r.check(cardBrewDate(local(2026, 11, 21, 8, 30), now) === '11/21 週六', `今年：11/21 週六（實際 ${cardBrewDate(local(2026, 11, 21, 8, 30), now)}）`)
+  r.check(cardBrewDate(local(2026, 3, 5, 7, 4), now) === '3/5 週四', '月日不補零：3/5 週四')
+  r.check(cardBrewDate(local(2026, 1, 1, 0, 0), now) === '1/1 週四', '午夜算當天：1/1 週四')
+  r.check(cardBrewDate(local(2026, 11, 22, 23, 59), now) === '11/22 週日', '23:59 也還是當天：11/22 週日')
+  r.check(!/:/.test(cardBrewDate(local(2026, 11, 22, 23, 59), now)), '不寫時刻（完整的日期時間在紀錄詳情頁）')
 
-  r.section('不是今年的紀錄前面加年份')
-  r.check(cardBrewDate(local(2025, 10, 12, 8, 30), now) === '2025/10/12 週日 08:30', '去年：2025/10/12 週日 08:30')
-  r.check(cardBrewDate(local(2025, 12, 31, 23, 0), new Date(2026, 0, 1, 1, 0)) === '2025/12/31 週三 23:00', '跨年後的第一天看前一晚：帶年份')
-  r.check(cardBrewDate(local(2027, 1, 2, 9, 0), now) === '2027/1/2 週六 09:00', '未來的年份也帶年份（月日仍不補零）')
+  r.section('沖煮日期（不是今年）：YYYY/M/D，不加星期')
+  r.check(cardBrewDate(local(2025, 11, 21, 8, 30), now) === '2025/11/21', `去年：2025/11/21（實際 ${cardBrewDate(local(2025, 11, 21, 8, 30), now)}）`)
+  r.check(cardBrewDate(local(2025, 3, 5, 8, 30), now) === '2025/3/5', '月日不補零：2025/3/5')
+  r.check(cardBrewDate(local(2025, 12, 31, 23, 0), new Date(2026, 0, 1, 1, 0)) === '2025/12/31', '跨年後的第一天看前一晚：帶年份')
+  r.check(cardBrewDate(local(2027, 1, 2, 9, 0), now) === '2027/1/2', '未來的年份也帶年份')
+  r.check(!/週/.test(cardBrewDate(local(2025, 11, 21, 8, 30), now)), '不加星期')
 
   r.section('五欄的順序與格式（和紀錄詳情頁同一套）')
   const params = cardParams(full)

@@ -10,17 +10,17 @@ export const CARD_EMPTY = '—'
 const WEEKDAYS = ['日', '一', '二', '三', '四', '五', '六'] as const
 
 /**
- * 沖煮日期：`M/D 週X HH:mm`（10/12 週日 08:30）。月日不補零，時分 24 小時制補零。
- * 不是今年的紀錄前面加年份：`2025/10/12 週日 08:30`。
+ * 沖煮日期，只到日（2026-11-24 縮短；完整的日期時間在紀錄詳情頁）：
+ *   今年       `M/D 週X`（11/21 週六），月日不補零
+ *   不是今年   `YYYY/M/D`（2025/11/21），不加星期
  * 「今年」與時區都照瀏覽器的本地時間（《01》§0 第 7 條：存 UTC，轉換在前端）。
  */
 export function cardBrewDate(iso: string, now: Date = new Date()): string {
   const d = new Date(iso)
-  const pad = (n: number) => String(n).padStart(2, '0')
   const day = `${d.getMonth() + 1}/${d.getDate()}`
-  const time = `${pad(d.getHours())}:${pad(d.getMinutes())}`
-  const date = d.getFullYear() === now.getFullYear() ? day : `${d.getFullYear()}/${day}`
-  return `${date} 週${WEEKDAYS[d.getDay()]} ${time}`
+  return d.getFullYear() === now.getFullYear()
+    ? `${day} 週${WEEKDAYS[d.getDay()]}`
+    : `${d.getFullYear()}/${day}`
 }
 
 export interface CardParamInput {
