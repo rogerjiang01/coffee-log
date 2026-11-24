@@ -15,7 +15,7 @@ export interface StatBean {
   photo_path: string | null
   roast_level: RoastLevel | null
   is_finished: boolean
-  /** 範例豆子：總覽的上一杯與最高分在豆名同一行加「範例」標籤（《03》§4.12） */
+  /** 範例豆子：總覽的最近沖煮與最高分在豆名同一行加「範例」標籤（《03》§4.12） */
   is_sample?: boolean
 }
 
@@ -66,7 +66,7 @@ export interface LastBeanCard {
   count: number
 }
 
-/** 上一杯：未喝完的豆子裡，最近一筆紀錄所屬的那支豆子 */
+/** 最近沖煮：未喝完的豆子裡，最近一筆紀錄所屬的那支豆子 */
 export function lastBeanCard(brews: readonly StatBrew[]): LastBeanCard | null {
   let latest: StatBrew | null = null
   for (const brew of real(brews)) {
@@ -127,8 +127,8 @@ export function recordCount(brews: readonly StatBrew[]): number {
 /**
  * 結算頁的目標環：從存檔前的杯數前進到存檔後的杯數。
  *   這一筆不在本週        不顯示環與「本週」的文字（null）
- *   存檔前未達標、存檔後達標  crossed：補滿的瞬間強調，文字換成「本週目標達成」
- *   已經超過目標之後        照樣前進（第二圈），不出現「本週目標達成」
+ *   存檔前未達標、存檔後達標  crossed：補滿的瞬間強調，「N／M 杯」下方顯示「已達成」
+ *   已經超過目標之後        環停在一圈（不畫第二圈），不出現「已達成」；卡片寫「超過 N 杯」
  */
 export function summaryRing(
   brews: readonly StatBrew[], goals: readonly GoalRow[], brewId: string, now: Date,
@@ -141,22 +141,4 @@ export function summaryRing(
   const after = real(brews).filter(brew => inRange(brew.brewed_at, range)).length
   const before = after - (self.is_sample ? 0 : 1)
   return { goal, before, after, crossed: before < goal && after >= goal }
-}
-
-export type DashboardCard = 'last' | 'top' | 'totals' | 'month'
-
-/**
- * 卡片排成固定的兩排（《02》§4.1、《03》§4.16），目標環全寬永遠在最上面：
- *   第一排  上一杯、本週最高分（某一杯或某支豆子，點進去是詳情）
- *   第二排  累計、本月（數字）
- * 同一排只剩一張時那一張改成全寬；兩張都不顯示時整排不出現。
- * 不往前遞補：遞補會把不同性質的卡片排在一起，也會讓卡片落單。
- * 回傳要顯示的卡片與它佔幾欄（2 欄的格線）。
- */
-export function dashboardRows(visible: Record<DashboardCard, boolean>): { card: DashboardCard, span: 1 | 2 }[][] {
-  const rows: DashboardCard[][] = [['last', 'top'], ['totals', 'month']]
-  return rows
-    .map(row => row.filter(card => visible[card]))
-    .filter(row => row.length)
-    .map(row => row.map(card => ({ card, span: row.length === 1 ? 2 as const : 1 as const })))
 }

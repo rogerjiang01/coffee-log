@@ -248,40 +248,29 @@ async function create() {
 
 <template>
   <div ref="root" class="relative">
-    <label class="block text-sm" for="brew-bean">
-      豆子
-      <span :style="{ color: 'var(--danger)' }" aria-hidden="true">*</span>
-      <span class="sr-only">必填</span>
-    </label>
-
-    <button
-      ref="trigger"
-      id="brew-bean"
-      type="button"
-      role="combobox"
-      :aria-expanded="open"
-      :disabled="loading"
-      class="mt-1 flex w-full items-center justify-between field px-3 py-2.5 text-left"
-      data-field
-      :data-filled="!!selected"
-      :style="{ minHeight: 'var(--touch-min)' }"
-      @click="toggle"
-    >
-      <!-- 豆子是必填（《02》§0），不寫「選填」：那是選填欄位還沒選時的字，
-           與標籤上的 * 互相矛盾（tests/unit/required-placeholder.test.mjs） -->
-      <span :style="{ color: selected ? 'var(--text)' : 'var(--text-muted)' }">
-        {{ selected?.name ?? '選擇豆子' }}
-      </span>
-      <svg
-        width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"
-        fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round"
-        :style="{ color: 'var(--text-muted)', transform: open ? 'rotate(180deg)' : 'none', transition: 'transform var(--motion-duration) var(--motion-ease)' }"
+    <!-- 表單的一列：標籤在左，已選的值在右側的膠囊裡；還沒選時不畫膠囊。
+         下拉開著的時候膠囊的文字換成強調色（Figma 的 dropdown_input） -->
+    <!-- 裡面有膠囊：65px 的列（《03》§4.1） -->
+    <div class="sheet-row sheet-row--tall">
+      <label class="sheet-label" for="brew-bean">豆子<span :style="{ color: 'var(--danger)' }" aria-hidden="true">*</span><span class="sr-only">必填</span><AlertIcon v-if="error" class="sheet-label-alert" /></label>
+      <button
+        ref="trigger"
+        id="brew-bean"
+        type="button"
+        role="combobox"
+        :aria-expanded="open"
+        :disabled="loading"
+        class="sheet-trigger"
+        @click="toggle"
       >
-        <path d="m6 9 6 6 6-6" />
-      </svg>
-    </button>
+        <!-- 豆子是必填（《02》§0），不寫「選填」：那是選填欄位還沒選時的字，
+             與標籤上的 * 互相矛盾（tests/unit/required-placeholder.test.mjs） -->
+        <SheetPill :empty="!selected" :active="open">{{ selected?.name ?? '選擇豆子' }}</SheetPill>
+      </button>
+    </div>
 
-    <p v-if="error" class="mt-2 text-sm" :style="{ color: 'var(--danger)' }">{{ error }}</p>
+    <!-- 錯誤顯示在卡片下方（FormNote 會傳送過去），這一列的標籤右邊有 circle-alert -->
+    <FormNote v-if="error" tone="error">{{ error }}</FormNote>
 
     <Teleport :to="portalTarget">
       <div
@@ -299,8 +288,7 @@ async function create() {
               v-model="query"
               type="text"
               placeholder="搜尋"
-              class="block w-full field px-3 py-2"
-              :style="{ minHeight: 'var(--touch-min)' }"
+              class="input-box"
             >
           </div>
 
@@ -316,7 +304,7 @@ async function create() {
               </button>
             </li>
             <template v-if="finished.length">
-              <li class="px-3 pt-2 text-xs text-muted">已喝完</li>
+              <li class="px-3 pt-2 text-sm text-muted">已喝完</li>
               <li v-for="bean in finished" :key="bean.id">
                 <button
                   type="button"
@@ -353,8 +341,7 @@ async function create() {
             id="new-bean-name"
             v-model="draftName"
             type="text"
-            class="mt-1 block w-full field px-3 py-2.5"
-            :style="{ minHeight: 'var(--touch-min)' }"
+            class="mt-1 input-box"
           >
 
           <div class="mt-3">
@@ -368,23 +355,19 @@ async function create() {
           <!-- 次要在左、主要在右，與 ConfirmDialog／DraftOverlay／
                器材選擇器一致。這裡原本是反的。 -->
           <div class="mt-3 flex gap-2">
-            <button
-              type="button"
-              class="flex-1 rounded-sm border px-3 py-2"
-              :style="{ borderColor: 'var(--border)', minHeight: 'var(--touch-min)' }"
+            <AppButton variant="outline"
+              class="flex-1"
               @click="cancelCreate"
             >
               取消
-            </button>
-            <button
-              type="button"
-              :disabled="saving"
-              class="flex-1 rounded-sm px-3 py-2 font-medium disabled:opacity-60"
-              :style="{ background: 'var(--accent)', color: 'var(--on-accent)', minHeight: 'var(--touch-min)' }"
+            </AppButton>
+            <AppButton
+              :busy="saving"
+              class="flex-1"
               @click="create"
             >
               {{ saving ? '儲存中' : '儲存' }}
-            </button>
+            </AppButton>
           </div>
         </div>
       </div>

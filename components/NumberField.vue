@@ -1,11 +1,13 @@
 <script setup lang="ts">
-// 數值輸入（《03-介面規範》§4.1）。
+// 數值輸入（《03-介面規範》§4.1）。放在表單列的右側：數字靠右、沒有框，單位接在後面。
 //
 // 用 type="text" + inputmode="decimal" 而不是 type="number"：
 // 規範要求移除上下箭頭（手機上是誤觸來源），而 type=number 的箭頭
 // 各家瀏覽器要用不同的偽元素才藏得掉，直接不用它更乾淨。
 //
-// 單位顯示在輸入框內右側，不用 placeholder 表達單位。
+// 空的時候提示字是「選填」（和下拉列一致，2026-11-16）；必填的欄位由外面傳「輸入＋欄位名」。
+// 單位顯示在數字右側，不用 placeholder 表達單位。顏色是 --text-muted：
+// 單位帶有必要資訊，要 4.5:1（Figma 綁的 --text-placeholder 只有 2.45:1）。
 
 const props = withDefaults(defineProps<{
   modelValue: number | null
@@ -14,7 +16,7 @@ const props = withDefaults(defineProps<{
   placeholder?: string
   ariaLabel?: string
   id?: string
-}>(), { integer: false })
+}>(), { integer: false, placeholder: '選填' })
 
 const emit = defineEmits<{ 'update:modelValue': [number | null] }>()
 
@@ -41,28 +43,17 @@ function onInput(event: Event) {
 </script>
 
 <template>
-  <div class="relative">
+  <div class="flex min-w-0 flex-1 items-center justify-end gap-1">
     <input
       :id="id"
       :value="draft"
-      :data-filled="draft !== ''"
       type="text"
       inputmode="decimal"
       :placeholder="placeholder"
       :aria-label="ariaLabel"
-      class="block w-full field px-3 py-2.5 tabular-nums"
-      :style="{
-        minHeight: 'var(--touch-min)',
-        paddingRight: unit ? '2.75rem' : undefined,
-      }"
+      class="sheet-input tabular-nums"
       @input="onInput"
     >
-    <span
-      v-if="unit"
-      class="pointer-events-none absolute inset-y-0 right-3 flex items-center text-sm"
-      :style="{ color: 'var(--text-muted)' }"
-    >
-      {{ unit }}
-    </span>
+    <span v-if="unit" class="sheet-unit">{{ unit }}</span>
   </div>
 </template>

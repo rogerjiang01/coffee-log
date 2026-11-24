@@ -2,16 +2,24 @@
 // 總覽（《02-功能規格》§4.1）。
 //
 // 目的是讓使用者持續記錄，用可視化製造成就感。目標環全寬永遠在最上面，下面是固定的兩排：
-//   第一排  上一杯、本週最高分（某一杯或某支豆子，點進去是詳情）
+//   第一排  最近沖煮、本週最高分（某一杯或某支豆子，點進去是詳情）
 //   第二排  累計、本月（數字）
-// 同一排只剩一張時那一張改成全寬，兩張都不顯示時整排不出現（utils/dashboard.ts 的 dashboardRows）。
-// 每張卡片的資料與顯示條件也在 utils/dashboard.ts。**所有統計都排除範例資料。**
+// 每張卡片的資料與顯示條件在 utils/dashboard.ts。**所有統計都排除範例資料。**
 //
-// 每張卡片的第一個元素都是標題，靠左上，位置與樣式相同（《03》§4.16）。
-// 字級：標題 --text-lg、主要數字 --text-xl（不大過頁面標題「總覽」）、單位與次要文字 --text-sm。
+// 卡片照 Figma 的 Card（AppCard）：標題列在上（16px、字重 500，可點的卡片右端有 ›），內容在下。
+// 最近沖煮、最高分、累計、本月固定同一個高度（--overview-card-h），全寬時也一樣。
+// 數字是 --accent-text 的指標數字（text-display-s）加單位（text-metric-unit）。
+//
+// 空狀態（2026-11-16 使用者選定，《02》§4.1）：
+//   完全沒有紀錄      目標卡片照常；下面一張全寬的說明卡片加「新增紀錄」
+//   一排只剩一張卡    剩下那張全寬，內容橫向展開（高度不變）
+//   上週最高分        標題「上週最高分」，最下面一行寫「上週六，本週未評分」（不換行，放不下時截斷）
+//   超過目標          環停在一圈，數字下方寫「超過 N 杯」
 //
 // 本週、本月都以沖煮日期計算，週一開始，瀏覽器的本地時間。
 // 顏色一律用語意 token（品牌色會更換）。
+
+import { NuxtLink } from '#components'
 
 definePageMeta({ screen: 'browse' })
 
@@ -19,6 +27,7 @@ const { thumbnailUrls } = useBeanPhotos()
 const fetchActiveBeans = useActiveBeans()
 const { fetchStats, fetchGoals } = useBrewStats()
 const cache = useQueryCache()
+const { ready: splashReady } = useSplash()
 
 const stats = ref<StatBrew[]>([])
 const goals = ref<GoalRow[]>([])
@@ -37,11 +46,18 @@ const top = computed(() => topRatedCard(stats.value, now.value))
 const totals = computed(() => totalsCard(stats.value))
 const month = computed(() => monthCard(stats.value, now.value))
 
-const rows = computed(() => dashboardRows({ last: !!last.value, top: !!top.value, totals: !!totals.value, month: !!month.value }))
-const spanOf = (card: DashboardCard) => rows.value.flat().find(item => item.card === card)?.span ?? 1
+const noRecords = computed(() => !totals.value)
+// 同一排只剩一張：那一張全寬（兩張都沒有時整排不出現）。不往前遞補：
+// 遞補會把不同性質的卡片排在一起，也會讓卡片落單
+const firstRowWide = computed(() => !!last.value !== !!top.value)
+const secondRowWide = computed(() => !!totals.value !== !!month.value)
+const CARD_HEIGHT = { height: 'var(--overview-card-h)' }
 
+const WEEKDAYS = ['一', '二', '三', '四', '五', '六', '日']
+const weekdayShort = (iso: string) => WEEKDAYS[weekdayIndex(new Date(iso))]
+const weekdayOf = (iso: string) => `星期${weekdayShort(iso)}`
 
-// 上一杯與最高分的縮圖：長邊 384px 的縮圖檔（《01》§7.1），沒有縮圖檔時退回原圖
+// 最近沖煮與最高分的縮圖：長邊 384px 的縮圖檔（《01》§7.1），沒有縮圖檔時退回原圖
 const photoPaths = computed(() => [last.value?.bean.photo_path, top.value?.brew.beans?.photo_path].filter((p): p is string => !!p))
 watch(() => photoPaths.value.join('|'), async () => {
   const paths = photoPaths.value
@@ -63,6 +79,8 @@ async function load() {
   loading.value = !(statQuery.hit && goalQuery.hit)
   await Promise.all([statQuery.settled, goalQuery.settled])
   loading.value = false
+  // 開場的首圖在等這個：資料到了就可以淡出（composables/useSplash.ts）
+  splashReady.value = true
 }
 
 onMounted(load)
@@ -106,20 +124,19 @@ const newBrewLink = computed(() => newBrewEntry(activeBeans.value))
       {{ loadError }}
     </p>
 
-    <!-- 骨架：目標環一張全寬、兩張半寬。§6 不做進場動畫，靜態色塊 -->
+    <!-- 骨架：目標環一張全寬、兩張半寬，和卡片同高。§6 不做進場動畫，靜態色塊 -->
     <div v-if="loading" aria-busy="true" aria-label="讀取中" class="mt-6 grid grid-cols-2 gap-3">
-      <SkeletonBlock class="col-span-2" height="13rem" radius="var(--radius-md)" />
-      <SkeletonBlock height="13rem" radius="var(--radius-md)" />
-      <SkeletonBlock height="13rem" radius="var(--radius-md)" />
+      <SkeletonBlock class="card-ml-corners col-span-2" height="var(--overview-card-h)" radius="var(--radius-card-ml)" />
+      <SkeletonBlock height="var(--overview-card-h)" radius="var(--radius-card-ml)" class="card-ml-corners" />
+      <SkeletonBlock height="var(--overview-card-h)" radius="var(--radius-card-ml)" class="card-ml-corners" />
     </div>
 
-    <!-- 目標環全寬在最上面；下面固定兩排（dashboardRows）：同一排只剩一張時那一張全寬，兩張都不顯示時整排不出現。
-         每張卡片的第一個元素是標題，靠左上（《03》§4.16） -->
     <div v-else class="mt-6 grid grid-cols-2 gap-3">
       <!-- 目標環：有目標就一定顯示，0 杯也顯示。點了修改目標 -->
       <GoalWeekCard
         v-if="week"
         class="col-span-2"
+        radius="ml"
         :count="week.count"
         :goal="week.goal"
         :days="week.days"
@@ -127,88 +144,83 @@ const newBrewLink = computed(() => newBrewEntry(activeBeans.value))
         @click="editing = true"
       />
 
-      <!-- 第一排：上一杯。點了進豆子詳情，卡片上不放任何按鈕 -->
-      <NuxtLink
+      <!-- 完全沒有紀錄：一張全寬的卡片，插畫、一句說明、新增紀錄 -->
+      <AppCard v-if="noRecords" radius="ml" class="col-span-2 flex items-center gap-4 p-4">
+        <span class="block size-20 shrink-0 overflow-hidden rounded-sm">
+          <BeanArt background="var(--roast-unknown)" />
+        </span>
+        <span class="flex min-w-0 flex-1 flex-col items-start gap-2">
+          <span class="text-body-m font-medium">還沒有紀錄</span>
+          <span class="text-sm text-muted">記下第一杯之後，最近沖煮、最高分與累計會顯示在這裡。</span>
+          <AppButton :to="newBrewLink">新增紀錄</AppButton>
+        </span>
+      </AppCard>
+
+      <!-- 第一排：最近沖煮。點了進豆子詳情，卡片上不放任何按鈕 -->
+      <OverviewBeanCard
         v-if="last"
+        title="最近沖煮"
         :to="`/beans/${last.beanId}`"
-        class="block rounded-md border p-3"
-        :class="{ 'col-span-2': spanOf('last') === 2 }"
-        :style="{ borderColor: 'var(--border)', background: 'var(--surface)' }"
-      >
-        <h2 class="font-serif text-lg font-bold">上一杯</h2>
-        <div class="mt-3 flex items-start gap-2.5">
-          <span class="block size-16 shrink-0 overflow-hidden rounded-md">
-            <BeanThumb :photo-url="photoOf(last.bean.photo_path)" :roast-level="last.bean.roast_level" :alt="last.bean.name" />
-          </span>
-          <span class="min-w-0 flex-1">
-            <!-- 範例豆子：豆名同一行加標籤，放不下時換到下一行（《03》§4.12） -->
-            <span class="flex flex-wrap items-baseline gap-x-1.5 gap-y-1">
-              <span class="line-clamp-3 text-sm font-medium break-keep wrap-anywhere">{{ last.bean.name }}</span>
-              <SampleBadge v-if="last.bean.is_sample" />
-            </span>
-            <span class="mt-1 block text-sm tabular-nums text-muted">第 {{ last.count }} 杯</span>
-          </span>
-        </div>
-      </NuxtLink>
+        :name="last.bean.name"
+        :photo-url="photoOf(last.bean.photo_path)"
+        :roast-level="last.bean.roast_level"
+        :footer="`第 ${last.count} 杯`"
+        :wide="firstRowWide"
+        :class="{ 'col-span-2': firstRowWide }"
+      />
 
       <!-- 第一排：本週最高分（本週沒有就是上週最高分）。點了進紀錄詳情 -->
-      <NuxtLink
+      <OverviewBeanCard
         v-if="top"
+        :title="top.week === 'this' ? '本週最高分' : '上週最高分'"
         :to="`/brews/${top.brew.id}`"
-        class="block rounded-md border p-3"
-        :class="{ 'col-span-2': spanOf('top') === 2 }"
-        :style="{ borderColor: 'var(--border)', background: 'var(--surface)' }"
-      >
-        <h2 class="font-serif text-lg font-bold">{{ top.week === 'this' ? '本週最高分' : '上週最高分' }}</h2>
-        <div class="mt-3 flex items-start gap-2.5">
-          <span class="block size-16 shrink-0 overflow-hidden rounded-md">
-            <BeanThumb :photo-url="photoOf(top.brew.beans?.photo_path)" :roast-level="top.brew.beans?.roast_level ?? null" :alt="top.brew.beans?.name ?? ''" />
-          </span>
-          <span class="min-w-0 flex-1">
-            <span class="flex flex-wrap items-baseline gap-x-1.5 gap-y-1">
-              <span class="line-clamp-3 text-sm font-medium break-keep wrap-anywhere">{{ top.brew.beans?.name ?? '沒有指定豆子' }}</span>
-              <SampleBadge v-if="top.brew.beans?.is_sample" />
-            </span>
-            <span class="mt-1 flex" :aria-label="`評分 ${top.brew.rating} 顆星`">
-              <svg
-                v-for="level in 5" :key="level"
-                width="12" height="12" viewBox="0 0 24 24" aria-hidden="true"
-                stroke-width="3" stroke-linecap="round" stroke-linejoin="round"
-                :fill="top.brew.rating! >= level ? 'var(--favorite)' : 'transparent'"
-                :stroke="top.brew.rating! >= level ? 'var(--favorite)' : 'var(--control-empty)'"
-              >
-                <path d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.123 2.123 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.123 2.123 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.122 2.122 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.122 2.122 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.122 2.122 0 0 0 1.597-1.16z" />
-              </svg>
-            </span>
-            <span class="mt-1 block text-sm tabular-nums text-muted">{{ monthDay(top.brew.brewed_at) }}</span>
-          </span>
-        </div>
-      </NuxtLink>
+        :name="top.brew.beans?.name ?? '沒有指定豆子'"
+        :photo-url="photoOf(top.brew.beans?.photo_path)"
+        :roast-level="top.brew.beans?.roast_level ?? null"
+        :rating="top.brew.rating"
+        :name-lines="top.week === 'last' ? 1 : 2"
+        :footer="top.week === 'last' ? `上週${weekdayShort(top.brew.brewed_at)}，本週未評分` : weekdayOf(top.brew.brewed_at)"
+        :wide="firstRowWide"
+        :class="{ 'col-span-2': firstRowWide }"
+      />
 
-      <!-- 第二排：累計。點了進紀錄分頁 -->
-      <NuxtLink
+      <!-- 第二排：累計。點了進紀錄分頁。全寬時兩組數字並排，高度不變 -->
+      <AppCard
         v-if="totals"
+        :as="NuxtLink"
         to="/brews"
-        class="block rounded-md border p-3"
-        :class="{ 'col-span-2': spanOf('totals') === 2 }"
-        :style="{ borderColor: 'var(--border)', background: 'var(--surface)' }"
+        title="累計"
+        arrow
+        radius="ml"
+        class="flex flex-col overflow-hidden"
+        :class="{ 'col-span-2': secondRowWide }"
+        :style="CARD_HEIGHT"
       >
-        <h2 class="font-serif text-lg font-bold">累計</h2>
-        <p class="mt-3 tabular-nums"><span class="font-serif text-xl font-bold">{{ totals.records }}</span><span class="ml-1 text-sm text-muted">筆紀錄</span></p>
-        <p class="mt-1 tabular-nums"><span class="text-sm text-muted">喝過</span><span class="mx-1 font-serif text-xl font-bold">{{ totals.beans }}</span><span class="text-sm text-muted">支豆子</span></p>
-      </NuxtLink>
+        <span class="px-3 pt-0.5 pb-2" :class="secondRowWide ? 'grid grid-cols-2 gap-3' : 'flex flex-col gap-1'">
+          <span class="flex flex-col">
+            <span class="text-sm">總共記錄</span>
+            <MetricValue :value="totals.records" unit="筆" />
+          </span>
+          <span class="flex flex-col">
+            <span class="text-sm">喝過豆子</span>
+            <MetricValue :value="totals.beans" unit="支" />
+          </span>
+        </span>
+      </AppCard>
 
-      <!-- 第二排：本月。卡片不能點 -->
-      <div
-        v-if="month"
-        class="rounded-md border p-3"
-        :class="{ 'col-span-2': spanOf('month') === 2 }"
-        :style="{ borderColor: 'var(--border)', background: 'var(--surface)' }"
-      >
-        <h2 class="font-serif text-lg font-bold">本月</h2>
-        <p class="mt-3 tabular-nums"><span class="font-serif text-xl font-bold">{{ month.cups }}</span><span class="ml-1 text-sm text-muted">杯</span></p>
-        <p class="mt-1 tabular-nums"><span class="font-serif text-xl font-bold">{{ month.dose }}</span><span class="ml-1 text-sm text-muted">g</span></p>
-      </div>
+      <!-- 第二排：本月。卡片不能點，所以沒有 › -->
+      <AppCard v-if="month" title="本月" radius="ml" class="flex flex-col overflow-hidden" :style="CARD_HEIGHT">
+        <span class="flex flex-col gap-1 px-3 pt-0.5 pb-2">
+          <span class="flex flex-col">
+            <span class="text-sm">記錄</span>
+            <MetricValue :value="month.cups" unit="筆" />
+          </span>
+          <span class="flex flex-col">
+            <span class="text-sm">煮了豆子</span>
+            <MetricValue :value="month.dose" unit="克" />
+          </span>
+        </span>
+      </AppCard>
     </div>
 
     <GoalDialog

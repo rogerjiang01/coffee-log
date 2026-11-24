@@ -13,14 +13,6 @@
     const loading = ref(true);
     const loadError = ref("");
 
-    function displayName(row: UserEquipmentRow) {
-        if (row.equipment_catalog) {
-            const c = row.equipment_catalog;
-            return `${c.brand} ${c.model}${c.variant ? ` ${c.variant}` : ""}`;
-        }
-        return row.custom_name ?? "未命名器材";
-    }
-
     const grouped = computed(() => equipmentTypes.map((type) => ({ type, rows: items.value.filter((item) => item.type === type) })).filter((group) => group.rows.length > 0));
 
     // 欄位與排序走 utils/equipment.ts 的共用定義。這一頁與沖煮表單共用
@@ -91,7 +83,7 @@
             <section v-for="n in 2" :key="n">
                 <SkeletonBlock width="4rem" height="0.875rem" />
                 <div class="mt-3 space-y-3">
-                    <SkeletonBlock v-for="row in 2" :key="row" height="3.5rem" radius="4px" />
+                    <SkeletonBlock v-for="row in 2" :key="row" height="3.5rem" radius="var(--radius-card-ml)" class="card-ml-corners" />
                 </div>
             </section>
         </div>
@@ -102,15 +94,15 @@
             <section v-for="group in grouped" :key="group.type">
                 <h2 class="text-sm text-muted">{{ equipmentLabels[group.type] }}</h2>
                 <ul class="mt-2 space-y-3">
-                    <li v-for="row in group.rows" :key="row.id" class="rounded-md border p-4" :style="{ borderColor: 'var(--border)', background: 'var(--surface)' }">
+                    <li v-for="row in group.rows" :key="row.id" class="card-ml-corners border p-4 shadow-light" :style="{ borderColor: 'var(--border)', background: 'var(--surface)' }">
                         <!-- 固定兩行，高度由結構決定不由內容決定。
                  左邊回答「這是什麼」（名稱 ＋ 常用標籤），右邊回答「能做什麼」（編輯）。
                  標籤緊跟名稱是因為它是名稱的修飾語，屬於身分而非動作；
                  與「編輯」並列會讓人以為標籤可以點。 -->
                         <div class="flex items-center justify-between gap-2" :style="{ minHeight: 'var(--touch-min)' }">
                             <div class="flex min-w-0 flex-1 items-center gap-2">
-                                <h3 class="min-w-0 truncate font-medium">{{ displayName(row) }}</h3>
-                                <span v-if="row.is_default" class="shrink-0 rounded-sm px-2 py-0.5 text-xs" :style="{ background: 'var(--accent-wash)', color: 'var(--on-accent-wash)' }">常用</span>
+                                <h3 class="min-w-0 truncate font-medium">{{ equipmentOptionName(row) }}</h3>
+                                <span v-if="row.is_default" class="shrink-0 rounded-sm px-2 py-0.5 text-sm" :style="{ background: 'var(--accent-wash)', color: 'var(--on-accent-wash)' }">常用</span>
                                 <SampleBadge v-if="row.is_sample" />
                             </div>
 

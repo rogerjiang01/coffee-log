@@ -5,67 +5,315 @@
    shadow-overlay 這類 utility 可用。使用 inline 讓 utility 直接輸出
    var()，之後改 token 不需重編譯即可全站生效。
 
-   --radius-* 與 --text-* 不在這裡對應：tokens.css 已直接沿用
-   Tailwind 的 theme 命名並覆蓋其預設值，rounded-* / text-* 會自動吃到。 */
+   --radius-*、--text-* 與 --shadow-light 不在這裡對應：tokens.css 已直接沿用
+   Tailwind 的 theme 命名（內建主題沒有的名字在那邊用 @theme static 登記），
+   rounded-* / text-* / shadow-light 會自動吃到。 */
 @theme inline {
   --color-bg: var(--bg);
   --color-surface: var(--surface);
   --color-accent: var(--accent);
   --color-accent-soft: var(--accent-soft);
   --color-accent-wash: var(--accent-wash);
+  --color-accent-text: var(--accent-text);
+  --color-on-accent: var(--on-accent);
+  --color-on-accent-wash: var(--on-accent-wash);
+  --color-on-accent-wash-muted: var(--on-accent-wash-muted);
   --color-text: var(--text);
   --color-muted: var(--text-muted);
+  --color-placeholder: var(--text-placeholder);
+  --color-icon-muted: var(--icon-muted);
+  --color-surface-muted: var(--surface-muted);
+  --color-control-inactive: var(--control-inactive);
+  --color-control-thumb: var(--control-thumb);
   --color-border: var(--border);
   --color-favorite: var(--favorite);
   --color-danger: var(--danger);
   --color-notice: var(--notice);
   --color-diff: var(--diff);
-  --color-wash-warm: var(--wash-warm);
 
   --color-roast-light: var(--roast-light);
-  --color-roast-light-text: var(--roast-light-text);
+  --color-on-roast-light: var(--on-roast-light);
   --color-roast-medium-light: var(--roast-medium-light);
-  --color-roast-medium-light-text: var(--roast-medium-light-text);
+  --color-on-roast-medium-light: var(--on-roast-medium-light);
   --color-roast-medium: var(--roast-medium);
-  --color-roast-medium-text: var(--roast-medium-text);
+  --color-on-roast-medium: var(--on-roast-medium);
   --color-roast-medium-dark: var(--roast-medium-dark);
-  --color-roast-medium-dark-text: var(--roast-medium-dark-text);
+  --color-on-roast-medium-dark: var(--on-roast-medium-dark);
   --color-roast-dark: var(--roast-dark);
-  --color-roast-dark-text: var(--roast-dark-text);
+  --color-on-roast-dark: var(--on-roast-dark);
+  --color-roast-unknown: var(--roast-unknown);
+  --color-on-roast-unknown: var(--on-roast-unknown);
+  --color-roast-art: var(--roast-art);
 
   --font-sans: var(--font-body);
-  --font-serif: var(--font-heading);
-
-  /* 唯一一級陰影，只給浮出層。卡片與表單區塊不得使用。 */
+  /* 浮出層的陰影：對話框、浮動按鈕、下拉面板。卡片與輸入框用的是 shadow-light，不是這個。 */
   --shadow-overlay: var(--overlay-shadow);
 }
 
-/* 表單欄位一律是底線制。
-   底線同時扮演該列的分隔線，所以卡片內不另外畫線——線的總數不增加。
-   輸入區左右由 FormRow 的內距撐開，底線不會碰到卡片外框。
+/* font-medium 同時切換字重與字體。
+   台北黑體沒有 500；只設 font-weight: 500 的話，瀏覽器會在台北黑體裡挑最接近的 400，
+   畫面上完全沒有變化。所以 500 一律換成 Noto Sans TC（tokens.css 的 --font-body-medium）。
+   這裡只補字體，字重由 Tailwind 內建的 font-medium 設定。
+   **不要在元件裡直接寫 font-weight: 500**，那樣拿不到 Medium。 */
+@utility font-medium {
+  font-family: var(--font-body-medium);
+}
 
-   三個狀態只變顏色與粗細，線的位置不動，聚焦時不會跳版：
-     未填  --border      已填  --text-muted      聚焦  --accent 且加粗
+/* 表單的列（Figma 的 Sheet Row，《03》§4.1）：標籤在左、值在右，列與列之間一條分隔線。
+   2026-11-13 取代原本的底線制（.field）：欄位不再各自畫底線。
 
-   加粗用 box-shadow 疊一條線而不是改 border-width，
-   後者會讓元素高度變化，整列跟著位移。 */
+   這組 class 放在這裡而不是某個元件的 scoped style，是因為自帶標籤的元件
+   （四個下拉、器材欄位、研磨刻度、星等、強度、開關）都要排成同一種列。 */
 @layer components {
-  .field {
+  /* 列高兩級（2026-11-23，tokens.css 的 --sheet-row-h）：預設 56px，裡面有膠囊的列加 .sheet-row--tall（65px）。
+     上下內距是 (56 − 44) / 2：44px 的控制項（輸入框、下拉的觸發鈕）放進來剛好 56px。
+     值換成兩行時（長豆名）上下仍有這段留白，不會貼到分隔線或下方的提示 */
+  .sheet-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    min-height: var(--sheet-row-h);
+    padding: calc((var(--sheet-row-h) - var(--touch-min)) / 2) 0;
+  }
+  .sheet-row--tall {
+    min-height: var(--sheet-row-h-tall);
+  }
+
+  /* 列的右側。值太長時讓的是這一側：標籤不縮（.sheet-label）。 */
+  .sheet-value {
+    display: flex;
+    flex: 1;
+    min-width: 0;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 0.25rem;
+    font-size: var(--text-heading-m);
+    line-height: var(--text-heading-m--line-height);
+    color: var(--text);
+  }
+
+  /* 列裡的文字輸入：靠右、沒有框。輸入中只用游標表示，不另外改變這一列的樣式（《03》§4.1），
+     所以不畫全站的焦點框。 */
+  .sheet-input {
+    display: block;
+    width: 100%;
+    min-width: 0;
+    min-height: var(--touch-min);
     border: 0;
-    border-bottom: 1px solid var(--field-border);
-    border-radius: 0;
     background: transparent;
+    text-align: right;
+    font-size: var(--text-heading-m);
+    line-height: var(--text-heading-m--line-height);
+    color: var(--text);
   }
-
-  .field[data-filled="true"] {
-    border-bottom-color: var(--text-muted);
-  }
-
-  .field:focus,
-  .field:focus-visible {
+  .sheet-input:focus,
+  .sheet-input:focus-visible {
     outline: none;
-    border-bottom-color: var(--accent);
-    box-shadow: 0 1px 0 0 var(--accent);
+  }
+  /* 多行文字（心得筆記、官方風味描述）：靠左。支援 field-sizing 的瀏覽器高度跟著內容走，
+     只有一行字時標籤和文字才會對齊；不支援的照 rows 的高度。 */
+  textarea.sheet-input {
+    text-align: left;
+    padding: 0.5625rem 0;
+    resize: none;
+    field-sizing: content;
+  }
+
+  /* 有建議清單（datalist）的輸入：藏掉瀏覽器加的箭頭，值與提示字才會貼齊列的右緣 */
+  .sheet-input[list]::-webkit-calendar-picker-indicator {
+    display: none !important;
+  }
+
+  /* 多行文字空的時候，「選填」靠右，和其他列的提示字對齊 */
+  textarea.sheet-input::placeholder {
+    text-align: right;
+  }
+
+  /* 單位：帶有必要資訊，要 4.5:1，所以是 --text-muted 而不是 Figma 綁的 --text-placeholder */
+  .sheet-unit {
+    flex-shrink: 0;
+    color: var(--text-muted);
+  }
+
+  /* 下拉的觸發鈕：佔滿列的右側，可點範圍至少 44px 高 */
+  .sheet-trigger {
+    display: flex;
+    flex: 1;
+    min-width: 0;
+    min-height: var(--touch-min);
+    align-items: center;
+    justify-content: flex-end;
+    text-align: left;
+  }
+
+  /* 膠囊：已選的值。值最多兩行，超過省略（SheetPill.vue）。
+     圓角用單行高度的一半（17px）而不是 9999px：兩行時不會變成一顆橢圓。
+     也用在沖煮時間的分秒輸入上。原生的 select、日期、時刻不掛這個 class：它們攤成透明，
+     看得到的是 SelectField 裡的 SheetPill（2026-11-17）。 */
+  .sheet-pill {
+    max-width: 100%;
+    padding: 0.25rem 0.75rem;
+    border: 0;
+    border-radius: 17px;
+    corner-shape: var(--corner-sheet-pill);
+    background: var(--surface-muted);
+    font-size: var(--text-heading-m);
+    line-height: var(--text-heading-m--line-height);
+    color: var(--text);
+  }
+  /* 正在輸入或下拉開著（Figma 的 dropdown_input）：文字換成強調色，--surface-muted 上 4.92:1 */
+  .sheet-pill[data-active="true"],
+  input.sheet-pill:focus {
+    color: var(--accent-text);
+  }
+  /* 還沒選值：不畫膠囊，提示字直接寫在卡片底色上（--text-muted，5.05:1）。
+     放進膠囊的話 --text-muted 在 --surface-muted 上只有 4.35:1。 */
+  .sheet-pill[data-empty="true"] {
+    padding-left: 0;
+    padding-right: 0;
+    background: transparent;
+    color: var(--text-muted);
+  }
+  /* SelectField 給了 text：看得到的是 SheetPill，原生的 select、日期、時刻攤成透明蓋在上面（SelectField.vue）。
+     原生控制項不參與排版，膠囊的寬度只看文字 */
+  .select-field[data-overlay="true"] > select,
+  .select-field[data-overlay="true"] > input {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    opacity: 0;
+  }
+  /* 日期與時刻的月曆／時鐘圖示攤成蓋住整個控制項：桌面的 Chromium 點在數字上只會選到那一格、不開選擇器，
+     攤開之後點哪裡都會開。手機本來就是點了就開系統的選擇器 */
+  .select-field[data-overlay="true"] > input::-webkit-calendar-picker-indicator {
+    position: absolute;
+    inset: 0;
+    width: auto;
+    height: auto;
+    opacity: 0;
+  }
+  /* 聚焦（手機上就是系統的選擇器開著）：膠囊的文字換成強調色，和下拉開著同一個狀態 */
+  .select-field[data-overlay="true"]:focus-within .sheet-pill {
+    color: var(--accent-text);
+  }
+  /* 鍵盤聚焦才畫焦點框（和全站的 :focus-visible 同一個樣子），畫在看得到的膠囊上。
+     不直接用原生控制項的 :focus-visible：select 被手指點到時瀏覽器也可能算它 focus-visible，
+     那就是原本「選填」外面那一圈。用手指還是鍵盤由 SelectField 判斷（data-keyboard-focus） */
+  .select-field[data-keyboard-focus="true"] .sheet-pill {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+  /* 沒選值時沒有膠囊、也沒有內距：框照膠囊的圓角畫會貼著「選填」變成一顆圓。改成圓角矩形、離字遠一點 */
+  .select-field[data-keyboard-focus="true"] .sheet-pill[data-empty="true"] {
+    border-radius: var(--radius-sm);
+    outline-offset: 4px;
+  }
+  .sheet-clamp {
+    display: -webkit-box;
+    overflow: hidden;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    overflow-wrap: anywhere;
+  }
+
+  /* 卡片下方的小字（footer，《03》§4.1）：說明、提示、錯誤、衍生值一律放在卡片外面的下方，
+     緊貼卡片、左側和卡片內的列文字對齊（iOS inset grouped 列表的 footer）。
+     內容由卡片裡的 FormNote 傳送進來；沒有任何一則時整塊不佔空間。 */
+  .form-card-footer {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    margin-top: 6px;
+    padding-inline: var(--card-pad);
+  }
+  .form-card-footer:not(:has(*)) {
+    display: none;
+  }
+  /* 一則小字。顏色三層（《03》§4.1）：參考資訊 --text-muted、提示 --notice、錯誤 --danger。
+     錯誤前面有 circle-alert：綠底上 --danger 幾乎是白色，不能只靠顏色。 */
+  .form-note {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    column-gap: 0.5rem;
+    font-size: var(--text-body-m);
+    line-height: var(--text-body-m--line-height);
+    color: var(--text-muted);
+    font-variant-numeric: tabular-nums;
+    /* 避免最後一行只剩一兩個字（2026-11-17）。沒有支援的瀏覽器照一般的換行，不影響內容 */
+    text-wrap: pretty;
+  }
+  .form-note[data-tone="notice"] {
+    color: var(--notice);
+  }
+  .form-note[data-tone="error"] {
+    color: var(--danger);
+  }
+  .form-note > svg {
+    color: var(--danger-icon);
+    align-self: center;
+    flex-shrink: 0;
+    margin-right: -0.25rem;
+  }
+
+  /* 出錯的列：標籤右邊的 circle-alert */
+  .sheet-label-alert {
+    margin-left: 0.375rem;
+    color: var(--danger-icon);
+  }
+
+  /* 轉角形狀（tokens.css 的 --corner-*）：漸進增強，不支援的瀏覽器維持一般圓角。
+     卡片、儲存按鈕、下拉的膠囊、風味標籤在各自的樣式裡寫；這兩個給 Tailwind 排版的元素用 */
+  /* 卡片的圓角與轉角（tokens.css 的 --radius-card-*）。AppCard 自己有；這三個給沒有用 AppCard 的卡片與載入骨架用。
+     ml（18px）：分頁第一層的卡片（總覽、豆子與器材列表）；md（24px）：結算頁、比較表；form：表單的卡片容器 */
+  .card-ml-corners {
+    border-radius: var(--radius-card-ml);
+    corner-shape: var(--corner-card-ml);
+  }
+  .card-corners {
+    border-radius: var(--radius-card-md);
+    corner-shape: var(--corner-card-md);
+  }
+  .form-card-corners {
+    border-radius: var(--radius-card-lg);
+    corner-shape: var(--corner-card-lg);
+  }
+  .corner-toggle {
+    corner-shape: var(--corner-toggle);
+  }
+  .corner-bar {
+    corner-shape: var(--corner-bar);
+  }
+
+  /* 卡片的左右內距：列、收合區的標題列、強度的每一列共用 */
+  .card-pad-x {
+    padding-inline: var(--card-pad);
+  }
+
+  /* 有框的輸入框（Figma 的 input）給不在卡片裡的單獨輸入用：搜尋、浮層裡的就地新增。
+     登入、註冊原本用有標籤的版本（TextField.vue），2026-11-23 改成表單的單列卡片，那個元件刪了。 */
+  .input-box {
+    display: block;
+    width: 100%;
+    min-width: 0;
+    min-height: var(--touch-min);
+    padding: 0 0.75rem;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    background: var(--surface);
+    box-shadow: var(--shadow-light);
+  }
+  .input-box:focus,
+  .input-box:focus-visible {
+    outline: none;
+    border-color: var(--accent-active);
+    box-shadow: var(--shadow-focus);
+  }
+  .input-box:disabled {
+    background: var(--surface-muted);
+    color: var(--text-placeholder);
   }
 
   /* 《03-介面規範》§7：所有互動元素可鍵盤操作，focus 狀態明確可見。
@@ -79,42 +327,78 @@
      疊在 --accent 底色上的按鈕（主要行動、浮動按鈕）焦點框會融進去。
      outline 不佔版面空間，不會像 border 那樣把版面推開。
 
-     .field 有自己的焦點樣式（底線變色），排除在外。 */
+     列裡的文字輸入（.sheet-input）與有框的輸入框（.input-box）有自己的焦點樣式，排除在外。 */
   :focus-visible {
     outline: 2px solid var(--accent);
     outline-offset: 2px;
   }
 
-  .field:focus-visible {
-    outline: none;
-  }
-
-  /* 觸發用的按鈕（下拉、器材選擇）行為與輸入框一致 */
-  .field:focus-visible {
-    border-bottom-color: var(--accent);
-  }
-
-  /* 原生 select 不重設 appearance 的話，瀏覽器會用作業系統的樣式畫它，
-     包括一圈深色外框——那個顏色不在 token 系統內也蓋不掉。
-     重設後原生箭頭會消失，由 SelectField 自己補一個。 */
-  select.field {
-    appearance: none;
-    padding-right: 1.25rem;
-  }
-
-  /* 段落備註：附屬於該段的次要資訊，上方已經有注水／停留兩格的底線在
-     分隔，不需要再一條。文字比 --text-muted 再淡一階。 */
-  .field--note {
-    border-bottom: 0;
+  /* 表單列的標籤（Figma 的 Sheet Row）：標籤在左、值在右。
+     標籤不縮、不截斷、不換行——值太長時讓的是值（《03》§4.1）。
+     FormRow、開關、強度圓點、星等共用，所以放在這裡而不是某一個元件的 scoped style。 */
+  .sheet-label {
+    display: inline-flex;
+    align-items: center;
+    flex-shrink: 0;
+    white-space: nowrap;
+    font-size: var(--text-heading-m);
+    line-height: var(--text-heading-m--line-height);
     color: var(--text-muted);
-  }
-
-  .field--note::placeholder {
-    color: var(--text-faint);
   }
 }
 
+/* ══ 輸入框的字（2026-11-23）══════════════════════════════
+   台北黑體宣告的下緣（hhea／typo descent）只有 123／1024，但 g、j、p、q、y 的字形往下到 234–256，| 到 286。
+   一般文字照樣畫出去，看不出來；**<input> 會把字裁在字型宣告的上下緣**——輸入時 g、@ 的下半部被切掉
+   （Chromium 與 WebKit 都是；改 line-height、padding、overflow 都沒用，換系統字型就不會）。
+
+   修法：給輸入框一個別名字型，只載入 ASCII 那一片（107，U+20–7E 在這一片），
+   上下緣各加 163／1024：上 901→1064（103.9%）、下 123→286（27.93%）。**上下加一樣多，基線位置不變**，
+   所以和沒在輸入時的顯示層（一般的台北黑體）對得上，聚焦、失焦不會跳。
+   別名是輸入框的第一個字型，行的上下緣由它決定；中文與其他字照 --font-body 往後找。
+   **不改字型檔本身**：改了全站的文字都會往上移約 1.4px。
+   檔名寫死 107：tests/unit/css.test.mjs 檢查切片樣式表裡 107 仍然是 ASCII，重新切字型時會擋。 */
+@font-face {
+  font-family: "Taipei Sans TC Field";
+  font-style: normal;
+  font-weight: 300;
+  font-display: swap;
+  src: url("/fonts/taipei-sans/v1/light-107.woff2") format("woff2");
+  unicode-range: U+20-7E, U+A0-FF;
+  ascent-override: 103.9%;
+  descent-override: 27.93%;
+  line-gap-override: 0%;
+}
+@font-face {
+  font-family: "Taipei Sans TC Field";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("/fonts/taipei-sans/v1/regular-107.woff2") format("woff2");
+  unicode-range: U+20-7E, U+A0-FF;
+  ascent-override: 103.9%;
+  descent-override: 27.93%;
+  line-gap-override: 0%;
+}
+@font-face {
+  font-family: "Taipei Sans TC Field";
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url("/fonts/taipei-sans/v1/bold-107.woff2") format("woff2");
+  unicode-range: U+20-7E, U+A0-FF;
+  ascent-override: 103.9%;
+  descent-override: 27.93%;
+  line-gap-override: 0%;
+}
+
 @layer base {
+  /* 文字輸入一律用 --font-field（上面「輸入框的字」）。font-medium 的輸入框照樣被 utility 蓋過去（Noto 沒有這個問題） */
+  input:not([type="checkbox"], [type="radio"], [type="file"], [type="range"]),
+  textarea {
+    font-family: var(--font-field);
+  }
+
   html {
     background-color: var(--bg);
     color: var(--text);
@@ -127,23 +411,24 @@
     line-height: var(--leading-body);
   }
 
-  /* 規範：placeholder 一律用 --text-muted，不得用 --text，
+  /* 《03》§4.1：文字輸入的游標用強調色。適用全站的文字輸入。 */
+  input,
+  textarea,
+  [contenteditable] {
+    caret-color: var(--accent);
+  }
+
+  /* 規範：placeholder 預設用 --text-muted（5.05:1），不得用 --text，
      否則看起來像已經填好的值。opacity 歸零 Firefox 的預設淡化。 */
   ::placeholder {
     color: var(--text-muted);
     opacity: 1;
   }
 
-  /* input[type="date"] 不吃 ::placeholder，未填時顯示的 yyyy/mm/dd
-     是瀏覽器自繪的內容。.date-empty 由元件在無值時掛上。
-     兩條都需要：WebKit 走 ::-webkit-datetime-edit，
-     Firefox 沒有對應偽元素，只能改輸入框本身的 color。 */
-  input[type="date"].date-empty {
-    color: var(--text-muted);
-  }
-
-  input[type="date"].date-empty::-webkit-datetime-edit {
-    color: var(--text-muted);
+  /* 只放範例的提示字（example@email.com、0、00）可以用比較淡的 --text-placeholder：
+     讀不到也不影響填寫。帶有必要資訊的（「選填」「搜尋」）維持上面的 --text-muted（《03》§4.1）。 */
+  .placeholder-example::placeholder {
+    color: var(--text-placeholder);
   }
 
   /* 全站浮層的定位機制。所有用 showModal() 開的 <dialog> 都吃這一條，
@@ -212,5 +497,30 @@
       transition-duration: 0.01ms !important;
       scroll-behavior: auto !important;
     }
+    /* 例外：開場與登入頁的淡入淡出（《03》§6）。減少動態時不做位移，但淡入淡出要留著——
+       整個畫面瞬間換掉比淡出更突兀。位移由元件自己關掉 */
+    .splash-fade {
+      transition-duration: 200ms !important;
+    }
+    html.splash-reveal #__nuxt > * {
+      animation-duration: 200ms !important;
+    }
+  }
+
+  /* 開場期間（composables/useSplash.ts）頁面底色是插畫的深綠：首圖還沒載入時不會白閃 */
+  html.splash-on {
+    background-color: var(--splash-bg);
+  }
+  /* 已登入的開場（AppSplash.vue）：首圖還在的時候，底下的頁面（總覽、分頁列）先藏起來——
+     首圖淡出時只看得到頁面底色，不會和 logo 疊在一起。首圖完全消失之後才淡入（一般的淡入，只動透明度）。 */
+  html.splash-app #__nuxt > :not(.app-splash) {
+    opacity: 0;
+  }
+  html.splash-reveal #__nuxt > * {
+    animation: splash-reveal 200ms var(--motion-ease) both;
+  }
+  @keyframes splash-reveal {
+    from { opacity: 0; }
+    to { opacity: 1; }
   }
 }

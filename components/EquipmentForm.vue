@@ -7,8 +7,6 @@
 
 const props = defineProps<{
   initial?: Partial<EquipmentFormValues>
-  /** 編輯時這台原本的名稱，「已將 X 設為常用」在表單還沒有名稱時用 */
-  currentName?: string | null
   submitLabel: string
   busy?: boolean
   error?: string
@@ -57,27 +55,6 @@ function writeBack(data: EquipmentFormValues) {
   }
 }
 
-/**
- * 這次有沒有按過「設為常用」。
- *
- * 用來決定要不要顯示回饋，而不是拿 values.is_default 直接判斷——
- * 本來就是常用的那台一打開表單就是 true，那不是「剛剛做了什麼」，
- * 是「原本就是這樣」，不該冒出一句回饋。
- */
-const pressedDefault = ref(false)
-
-function toggleDefault() {
-  values.is_default = !values.is_default
-  pressedDefault.value = true
-}
-
-/** 表單上這台的名稱，給回饋文案用。以表單當下的值為準，沒有名字時回 null */
-const formName = computed(() => {
-  if (values.catalog_id && selectedCatalog.value) return catalogDisplayName(selectedCatalog.value)
-  const typed = values.custom_name.trim()
-  if (typed) return typed
-  return props.currentName ?? null
-})
 
 function submit() {
   // 型錄與自訂名稱至少要有一個（DB 的 name_or_catalog check 也擋，
@@ -97,18 +74,12 @@ const draft = draftStorageKey
   ? useFormDraft<EquipmentFormValues>(draftStorageKey, {
       read: () => ({ ...values }),
       restore: data => writeBack({ ...initialValues(), ...data }),
-      reset: () => {
-        writeBack(initialValues())
-        pressedDefault.value = false
-      },
+      reset: () => writeBack(initialValues()),
     })
   : null
 
 defineExpose({ clearDraft: () => draft?.clear() })
 
-const inputStyle = {
-  minHeight: 'var(--touch-min)',
-}
 </script>
 
 <template>
@@ -126,21 +97,24 @@ const inputStyle = {
       @discard="draft.discard()"
     />
 
-    <!-- 與豆子表單同一套分組卡片；只有一張卡片，不另外下標題（頁面標題已經是新增／編輯器材） -->
+    <!-- 與豆子表單同一套分組卡片（Figma 沒有畫這張表單）：是哪一台／名稱與備註，卡片之間 --gap-group。
+         不另外下標題（頁面標題已經是新增／編輯器材）。說明用 FormNote，顯示在所在卡片的下方 -->
+    <div class="flex flex-col" :style="{ gap: 'var(--gap-group)' }">
     <FormCard>
       <FormRow>
-        <label class="block text-sm" for="equipment-type">
-          類型
-          <span :style="{ color: 'var(--danger)' }" aria-hidden="true">*</span>
-          <span class="sr-only">必填</span>
-        </label>
-        <SelectField>
-          <select id="equipment-type" v-model="values.type" class="mt-1 block w-full field py-2.5" :style="inputStyle">
-            <option v-for="type in equipmentTypes" :key="type" :value="type">
-              {{ equipmentLabels[type] }}
-            </option>
-          </select>
-        </SelectField>
+        <!-- 必填的列自己寫標籤（tests/unit/required-placeholder.test.mjs 靠這個標記找必填欄位） -->
+        <div class="sheet-row sheet-row--tall">
+          <label class="sheet-label" for="equipment-type">類型<span :style="{ color: 'var(--danger)' }" aria-hidden="true">*</span><span class="sr-only">必填</span></label>
+          <div class="sheet-value">
+            <SelectField :text="equipmentLabels[values.type]">
+              <select id="equipment-type" v-model="values.type">
+                <option v-for="type in equipmentTypes" :key="type" :value="type">
+                  {{ equipmentLabels[type] }}
+                </option>
+              </select>
+            </SelectField>
+          </div>
+        </div>
       </FormRow>
 
       <FormRow>
@@ -150,91 +124,54 @@ const inputStyle = {
           :type="values.type"
           @selected="selectedCatalog = $event"
         />
-        <!-- 型錄存在的唯一目的是讓刻度這個數字可以被正確解讀（§3.2） -->
-        <div
-          v-if="values.type === 'grinder' && selectedCatalog && (!isFreeformScale(scaleSpec) || scaleSpec.note)"
-          class="mt-3 rounded-sm px-3 py-3 text-sm"
-          :style="{ background: 'var(--accent-wash)', color: 'var(--on-accent-wash)' }"
-        >
-          <!-- 無刻度的機型不說「這台面板沒有刻度標示」：
-               不顯示範圍提示本身就已經表達了 -->
-          <template v-if="!isFreeformScale(scaleSpec)">
-            <p class="tabular-nums">
-              刻度範圍 {{ grindScaleRangeLabel(scaleSpec) }}
-              <span v-if="scaleSpec.increment !== null" class="ml-3">最小間隔 {{ scaleSpec.increment }}</span>
-              <span v-else class="ml-3">連續無段</span>
-            </p>
-            <p v-if="grindScaleSuggestionLabel(scaleSpec)" class="mt-1 tabular-nums">
-              {{ grindScaleSuggestionLabel(scaleSpec) }}
-            </p>
-          </template>
-          <p v-if="scaleSpec.note" class="mt-1">{{ scaleSpec.note }}</p>
-        </div>
       </FormRow>
-
-      <FormRow>
-        <label class="block text-sm" for="equipment-name">
-          自訂名稱
-          <span v-if="!values.catalog_id" :style="{ color: 'var(--danger)' }" aria-hidden="true">*</span>
-          <span v-if="!values.catalog_id" class="sr-only">必填</span>
-        </label>
-        <input
-          id="equipment-name"
-          v-model="values.custom_name"
-          type="text"
-          :disabled="!!values.catalog_id"
-          class="mt-1 block w-full field py-2.5 disabled:opacity-60"
-          :style="inputStyle"
-        >
-        <p class="mt-1 text-xs text-muted">
-          {{ values.catalog_id ? "已選型號，用型錄的名稱" : "型錄沒有的器材，請填寫名稱" }}
-        </p>
-      </FormRow>
-
-      <FormRow>
-        <label class="block text-sm" for="equipment-note">備註</label>
-        <input id="equipment-note" v-model="values.note" type="text" class="mt-1 block w-full field py-2.5" :style="inputStyle">
-        <p class="mt-1 text-xs text-muted">例如換刀盤、加裝配件</p>
-      </FormRow>
-
-      <FormRow>
-        <!-- 動作按鈕而非 toggle。同類型只能有一台常用（DB 有 partial
-             unique index），toggle 表達的是獨立的開關，用它承載單選會讓
-             副作用隱形——使用者看不到「開啟這台會關掉另一台」。
-             改成兩個狀態的按鈕，並把副作用寫在下面那行。 -->
-        <button
-          type="button"
-          class="w-full rounded-sm border px-4 py-3"
-          :style="{
-            borderColor: values.is_default ? 'var(--border-strong)' : 'var(--accent)',
-            color: values.is_default ? 'var(--text)' : 'var(--accent)',
-            minHeight: 'var(--touch-min)',
-          }"
-          @click="toggleDefault"
-        >
-          {{ values.is_default ? "取消常用" : "設為常用" }}
-        </button>
-
-        <!-- 事後回饋，不是事前警告。使用者按下「設為常用」時意圖已經很明確，
-             事前提醒他會換掉哪一台，是把系統的顧慮丟給他判斷——與模糊比對
-             從攔截器改成過濾器是同一個問題。 -->
-        <p v-if="values.is_default && pressedDefault" class="mt-2 text-xs text-muted">
-          {{ formName ? `已將 ${formName} 設為常用` : "已設為常用" }}
-        </p>
-
-        <!-- 沒有任何常用是合法狀態，新使用者本來就沒有。不阻止取消。 -->
-        <p v-else-if="!values.is_default" class="mt-2 text-xs text-muted">新增紀錄時會自動填入</p>
-      </FormRow>
+      <!-- 型錄存在的唯一目的是讓刻度這個數字可以被正確解讀（§3.2）。
+           無刻度的機型不說「這台面板沒有刻度標示」：不顯示範圍提示本身就已經表達了 -->
+      <template v-if="values.type === 'grinder' && selectedCatalog">
+        <FormNote v-if="!isFreeformScale(scaleSpec)">
+          <span>刻度範圍 {{ grindScaleRangeLabel(scaleSpec) }}</span>
+          <span v-if="scaleSpec.increment !== null">最小間隔 {{ scaleSpec.increment }}</span>
+          <span v-else>連續無段</span>
+          <span v-if="grindScaleSuggestionLabel(scaleSpec)">{{ grindScaleSuggestionLabel(scaleSpec) }}</span>
+        </FormNote>
+        <FormNote v-if="scaleSpec.note" :field="isFreeformScale(scaleSpec) ? '型號' : undefined">{{ scaleSpec.note }}</FormNote>
+      </template>
     </FormCard>
 
-    <button
+    <FormCard>
+      <FormRow>
+        <div class="sheet-row">
+          <label class="sheet-label" for="equipment-name">
+            自訂名稱<span v-if="!values.catalog_id" :style="{ color: 'var(--danger)' }" aria-hidden="true">*</span>
+            <span v-if="!values.catalog_id" class="sr-only">必填</span>
+            <AlertIcon v-if="summaryError" class="sheet-label-alert" />
+          </label>
+          <div class="sheet-value">
+            <SheetText id="equipment-name" v-model="values.custom_name" :disabled="!!values.catalog_id" :placeholder="values.catalog_id ? '' : '輸入自訂名稱'" />
+          </div>
+        </div>
+      </FormRow>
+      <FormNote>{{ values.catalog_id ? "已選型號，用型錄的名稱" : "型錄沒有的器材，請填寫名稱" }}</FormNote>
+
+      <FormRow label="備註" for="equipment-note">
+        <SheetText id="equipment-note" v-model="values.note" />
+      </FormRow>
+      <FormNote field="備註">例如換刀盤、加裝配件</FormNote>
+    </FormCard>
+
+    <!-- 設為常用：開關一張卡片（2026-11-17，取代原本的兩態按鈕，《03》§4.0.1）。
+         沒有任何常用是合法狀態，新使用者本來就沒有。不阻止關掉。 -->
+    <DefaultEquipmentCard v-model="values.is_default" />
+    </div>
+
+    <!-- 表單最下方的儲存：膠囊形（《03》§4.18 的例外） -->
+    <AppButton block
       type="submit"
-      :disabled="busy"
-      class="mt-6 w-full rounded-sm px-4 py-3 font-medium disabled:opacity-60"
-      :style="{ background: 'var(--accent)', color: 'var(--on-accent)', minHeight: 'var(--touch-min)' }"
+      :busy="busy"
+      :style="{ marginTop: 'var(--gap-section)' }"
     >
       {{ busy ? "儲存中" : submitLabel }}
-    </button>
+    </AppButton>
 
     <!-- 暫存狀態：使用者在按儲存之前擔心東西安不安全，視線在這裡（《03》§4.11） -->
     <DraftStatus v-if="draft" :status="draft.status.value" class="mt-2" />
@@ -242,10 +179,11 @@ const inputStyle = {
     <p
       v-if="error || summaryError"
       role="alert"
-      class="mt-3 rounded-sm border px-3 py-3 text-sm"
+      class="mt-3 flex items-start gap-2 rounded-sm border px-3 py-3 text-sm"
       :style="{ color: 'var(--danger)', borderColor: 'var(--danger)' }"
     >
-      {{ error || summaryError }}
+      <AlertIcon class="mt-0.5" />
+      <span>{{ error || summaryError }}</span>
     </p>
   </form>
 </template>

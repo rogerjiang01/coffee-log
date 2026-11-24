@@ -1,5 +1,5 @@
 <script setup lang="ts">
-// 紀錄分頁（《02-功能規格》§4）：所有沖煮紀錄的時間軸。
+// 紀錄分頁（《02-功能規格》§4.2）：所有沖煮紀錄，一筆一張紀錄卡片（BrewCard，《03》§4.21）。
 //
 // 紀錄的列表頁。紀錄詳情與編輯紀錄都屬於這個分頁（《03》§3），
 // 詳情的 ‹ 沒有上一頁時、刪除紀錄之後，都回到這裡。
@@ -9,6 +9,7 @@ definePageMeta({ screen: 'browse' })
 
 const supabase = useSupabaseClient()
 const fetchActiveBeans = useActiveBeans()
+const { thumbnailUrls } = useBeanPhotos()
 
 const PAGE_SIZE = 20
 
@@ -16,117 +17,82 @@ interface TimelineEntry {
   id: string
   brewedAt: string
   beanName: string | null
+  photoPath: string | null
+  roastLevel: RoastLevel | null
+  rating: number | null
   dose: number | null
   waterTemp: number | null
   grindSetting: number | null
+  totalTime: number | null
   isFavorite: boolean
-  isSample: boolean
   totalWater: number | null
-  diffs: BrewDiff[]
 }
 
 const activeBeans = ref<ActiveBean[]>([])
 const timeline = ref<TimelineEntry[]>([])
+const photoUrls = ref<Map<string, string>>(new Map())
 const hasMore = ref(false)
 const loading = ref(true)
 const loadingMore = ref(false)
 const loadError = ref('')
 
-// 一筆紀錄要算差異，需要它自己與比較對象的參數、器材名稱與分段
+// 卡片只呈現「這一杯」，不和上一杯比較（《02》§4.2）：不查比較對象，也不算差異。
+// 差異只在紀錄詳情頁與結算頁
 const BREW_SELECT = `
-  id, bean_id, brewed_at, dose, water_temp, grind_setting, total_time, is_favorite, is_sample, copied_from_brew_id,
-  brew_method_id, grinder_id, dripper_id, kettle_id,
-  beans ( name ),
-  brew_methods ( name ),
-  grinder:grinder_id ( custom_name, equipment_catalog ( brand, model, variant ) ),
-  dripper:dripper_id ( custom_name, equipment_catalog ( brand, model, variant ) ),
-  kettle:kettle_id ( custom_name, equipment_catalog ( brand, model, variant ) )
+  id, brewed_at, dose, water_temp, grind_setting, total_time, rating, is_favorite,
+  beans ( name, photo_path, roast_level )
 `
 
 type BrewRow = Record<string, unknown>
+type BeanRow = { name: string, photo_path: string | null, roast_level: RoastLevel | null } | null
 
 /**
- * 先把一頁紀錄變成時間軸項目。
- *
- * 差異與總水量都還沒有——它們需要來源紀錄與分段，那是另一趟來回。
- * 列表先畫出來，那兩樣稍後補上：使用者要看的「哪天沖了哪支豆子」
- * 在第一趟就已經到手，沒有理由陪著差異一起等。
+ * 先把一頁紀錄變成卡片。總水量（粉水比要用）需要分段，那是另一趟來回：
+ * 列表先畫出來，粉水比稍後補上。
  */
 function toEntries(rows: BrewRow[]): TimelineEntry[] {
-  return rows.map(row => ({
-    id: row.id as string,
-    brewedAt: row.brewed_at as string,
-    beanName: (row.beans as { name: string } | null)?.name ?? null,
-    dose: (row.dose as number | null) ?? null,
-    waterTemp: (row.water_temp as number | null) ?? null,
-    grindSetting: (row.grind_setting as number | null) ?? null,
-    isFavorite: (row.is_favorite as boolean | null) ?? false,
-    isSample: (row.is_sample as boolean | null) ?? false,
-    totalWater: null,
-    diffs: [],
-  }))
+  return rows.map((row) => {
+    const bean = row.beans as BeanRow
+    return {
+      id: row.id as string,
+      brewedAt: row.brewed_at as string,
+      beanName: bean?.name ?? null,
+      photoPath: bean?.photo_path ?? null,
+      roastLevel: bean?.roast_level ?? null,
+      rating: (row.rating as number | null) ?? null,
+      dose: (row.dose as number | null) ?? null,
+      waterTemp: (row.water_temp as number | null) ?? null,
+      grindSetting: (row.grind_setting as number | null) ?? null,
+      totalTime: (row.total_time as number | null) ?? null,
+      isFavorite: (row.is_favorite as boolean | null) ?? false,
+      totalWater: null,
+    }
+  })
 }
 
 /**
- * 補上總水量與差異。就地改寫已經在畫面上的項目，不重排列表。
- *
- * 差異的比較對象與紀錄詳情同一條規則（utils/compareTarget.ts）：複製來的比複製來源，
- * 不是的比同一支豆子在它之前的最近一筆。**一頁最多四個請求、兩趟來回，不是每一列各發一次**：
- *   1. 這一頁的豆子的所有紀錄（只要 id、豆子、沖煮日期）＋這一頁的分段，一起發
- *   2. 選出比較對象之後，不在這一頁裡的那些對象與它們的分段，一起發
- * 比較對象多半就是同一頁裡的下一列，那些不必再要。
+ * 補上總水量與縮圖。就地改寫已經在畫面上的項目，不重排列表。
+ * 一頁兩個請求並行（這一頁的分段、縮圖網址），不是每一列各發一次。
  */
-async function enrichEntries(rows: BrewRow[]) {
-  if (!rows.length) return
-  const pageIds = rows.map(row => row.id as string)
-  const beanIds = [...new Set(
-    rows.filter(row => !row.copied_from_brew_id).map(row => row.bean_id as string | null).filter((id): id is string => !!id),
-  )]
-
-  const stepSelect = 'brew_id, step_index, hold_seconds, cumulative_water, step_type, note'
-  const [candidateResult, ownStepResult] = await Promise.all([
-    beanIds.length
-      ? supabase.from('brews').select('id, bean_id, brewed_at').in('bean_id', beanIds)
-      : Promise.resolve({ data: [] }),
-    supabase.from('brew_steps').select(stepSelect).in('brew_id', pageIds).order('step_index'),
+async function enrichEntries(entries: TimelineEntry[]) {
+  if (!entries.length) return
+  const ids = entries.map(entry => entry.id)
+  const [stepResult, urls] = await Promise.all([
+    supabase.from('brew_steps').select('brew_id, cumulative_water').in('brew_id', ids),
+    thumbnailUrls(entries.map(entry => entry.photoPath)).catch(() => new Map<string, string>()),
   ])
-  const candidates = (candidateResult.data ?? []) as unknown as CompareCandidate[]
-  const targetOf = new Map(rows.map(row => [
-    row.id as string,
-    compareTargetId(row as unknown as CompareCandidate, candidates),
-  ]))
 
-  const known = new Map(rows.map(row => [row.id as string, row]))
-  const missing = [...new Set([...targetOf.values()].filter((id): id is string => !!id && !known.has(id)))]
-  const [targetResult, targetStepResult] = missing.length
-    ? await Promise.all([
-        supabase.from('brews').select(BREW_SELECT).in('id', missing),
-        supabase.from('brew_steps').select(stepSelect).in('brew_id', missing).order('step_index'),
-      ])
-    : [{ data: [] }, { data: [] }]
-  for (const row of (targetResult.data ?? []) as unknown as BrewRow[]) known.set(row.id as string, row)
+  photoUrls.value = new Map([...photoUrls.value, ...urls])
 
-  const stepsByBrew = new Map<string, StepRow[]>()
-  for (const row of [...(ownStepResult.data ?? []), ...(targetStepResult.data ?? [])] as unknown as (StepRow & { brew_id: string })[]) {
-    if (!stepsByBrew.has(row.brew_id)) stepsByBrew.set(row.brew_id, [])
-    stepsByBrew.get(row.brew_id)!.push(row)
+  const water = new Map<string, number>()
+  for (const row of (stepResult.data ?? []) as { brew_id: string, cumulative_water: number | null }[]) {
+    if (row.cumulative_water === null) continue
+    water.set(row.brew_id, Math.max(water.get(row.brew_id) ?? 0, Number(row.cumulative_water)))
   }
-
   const byId = new Map(timeline.value.map(entry => [entry.id, entry]))
-  for (const row of rows) {
-    const id = row.id as string
+  for (const id of ids) {
     const entry = byId.get(id)
-    if (!entry) continue
-    const ownSteps = stepsByBrew.get(id) ?? []
-    const targetId = targetOf.get(id)
-    const target = targetId ? known.get(targetId) : undefined
-
-    entry.totalWater = ownSteps.length
-      ? Math.max(...ownSteps.map(step => Number(step.cumulative_water)))
-      : null
-    entry.diffs = target
-      ? computeBrewDiff(toDiffSubject(row, ownSteps), toDiffSubject(target, stepsByBrew.get(targetId!) ?? []))
-      : []
+    if (entry) entry.totalWater = water.get(id) ?? null
   }
 }
 
@@ -156,8 +122,8 @@ async function load() {
     apply: (rows) => {
       timeline.value = toEntries(rows)
       hasMore.value = rows.length === PAGE_SIZE
-      // 差異與總水量需要另一趟來回，不擋這一頁
-      void enrichEntries(rows).catch(e => console.warn('[brews] 差異算不出來', e))
+      // 總水量與縮圖需要另一趟來回，不擋這一頁
+      void enrichEntries(timeline.value).catch(e => console.warn('[brews] 粉水比或縮圖讀不到', e))
     },
     onError: (e) => { loadError.value = `讀不到資料：${errorText(e)}` },
   })
@@ -173,9 +139,10 @@ async function loadMore() {
   const from = timeline.value.length
   await cache.swr(cacheKeys.brewPage(from), () => fetchBrewPage(from), {
     apply: (rows) => {
-      timeline.value = [...timeline.value, ...toEntries(rows)]
+      const added = toEntries(rows)
+      timeline.value = [...timeline.value, ...added]
       hasMore.value = rows.length === PAGE_SIZE
-      void enrichEntries(rows).catch(e => console.warn('[brews] 差異算不出來', e))
+      void enrichEntries(added).catch(e => console.warn('[brews] 粉水比或縮圖讀不到', e))
     },
     onError: (e) => { loadError.value = `讀不到更多紀錄：${errorText(e)}` },
   }).settled
@@ -198,56 +165,65 @@ const newBrewLink = computed(() => newBrewEntry(activeBeans.value))
       {{ loadError }}
     </p>
 
-    <!-- 骨架：先把版面結構畫出來，資料回來再填。
+    <!-- 骨架：卡片的形狀（標題區三行、分隔線、五欄），資料回來再填。
          §6 不做進場動畫，所以這裡是靜態色塊，沒有閃爍效果。 -->
-    <ul v-if="loading" aria-busy="true" aria-label="讀取中" class="mt-6 space-y-6">
+    <ul v-if="loading" aria-busy="true" aria-label="讀取中" class="mt-6 space-y-3">
       <li v-for="n in 4" :key="n">
-        <SkeletonBlock width="7rem" height="0.75rem" />
-        <SkeletonBlock width="65%" height="1.125rem" class="mt-2" />
-        <SkeletonBlock width="45%" height="0.875rem" class="mt-2" />
+        <AppCard radius="ml" class="brew-card-skeleton">
+          <!-- 標題區和 BrewCard 同一套切換：卡片內容寬 ≥ 276px 是兩行（縮圖 52），否則三行（縮圖 80） -->
+          <div class="flex items-start gap-4">
+            <div class="brew-skeleton__thumb shrink-0" />
+            <div class="brew-skeleton__lines flex flex-1 flex-col gap-1">
+              <div class="flex h-6 items-center"><SkeletonBlock width="65%" height="1rem" /></div>
+              <div class="flex h-6 items-center"><SkeletonBlock width="7.25rem" height="1rem" /></div>
+              <div class="brew-skeleton__date flex h-6 items-center"><SkeletonBlock width="45%" height="1rem" /></div>
+            </div>
+          </div>
+          <div class="my-3 h-px" :style="{ background: 'var(--border)' }" />
+          <div class="brew-skeleton__params grid grid-cols-5 py-2.5">
+            <div v-for="m in 5" :key="m" class="space-y-2 pt-1">
+              <SkeletonBlock width="70%" height="0.875rem" />
+              <SkeletonBlock width="80%" height="1rem" />
+            </div>
+          </div>
+        </AppCard>
       </li>
     </ul>
 
     <template v-else>
-      <!-- 這一行說明的是畫面上看不到的機制（複製之後會顯示差異），
-           不重複浮動新增按鈕，所以保留（《03》§5.6 的適用範圍） -->
+      <!-- 這一行說明的是畫面上看不到的機制（複製之後，紀錄詳情頁會顯示和那一杯的差異；
+           列表的卡片不顯示差異），不重複浮動新增按鈕，所以保留（《03》§5.6 的適用範圍） -->
       <p v-if="!timeline.length" class="mt-6 text-muted">
         記錄沖煮後，可以比較每次的調整。
       </p>
 
-      <ul v-else class="mt-4">
-        <li
-          v-for="entry in timeline"
-          :key="entry.id"
-          class="border-t"
-          :style="{ borderColor: 'var(--border)' }"
-        >
-          <NuxtLink :to="`/brews/${entry.id}`" class="block">
-            <BrewTimelineItem
-              :bean-name="entry.beanName"
-              :brewed-at="entry.brewedAt"
-              :dose="entry.dose"
-              :total-water="entry.totalWater"
-              :water-temp="entry.waterTemp"
-              :grind-setting="entry.grindSetting"
-              :is-favorite="entry.isFavorite"
-              :is-sample="entry.isSample"
-              :diffs="entry.diffs"
-            />
-          </NuxtLink>
+      <ul v-else class="mt-6 space-y-3">
+        <li v-for="entry in timeline" :key="entry.id">
+          <BrewCard
+            :id="entry.id"
+            :bean-name="entry.beanName"
+            :photo-url="entry.photoPath ? (photoUrls.get(entry.photoPath) ?? null) : null"
+            :roast-level="entry.roastLevel"
+            :rating="entry.rating"
+            :brewed-at="entry.brewedAt"
+            :is-favorite="entry.isFavorite"
+            :dose="entry.dose"
+            :grind-setting="entry.grindSetting"
+            :water-temp="entry.waterTemp"
+            :total-time="entry.totalTime"
+            :total-water="entry.totalWater"
+          />
         </li>
       </ul>
 
-      <button
+      <AppButton variant="outline" block
         v-if="hasMore"
-        type="button"
-        :disabled="loadingMore"
-        class="mt-4 w-full rounded-sm border px-4 py-3 disabled:opacity-60"
-        :style="{ borderColor: 'var(--border)', color: 'var(--accent)', minHeight: 'var(--touch-min)' }"
+        :busy="loadingMore"
+        class="mt-4"
         @click="loadMore"
       >
         {{ loadingMore ? '載入中' : '載入更多' }}
-      </button>
+      </AppButton>
     </template>
 
     <!-- 列表頁的新增入口一律是右下角浮動按鈕（§3 導覽） -->
@@ -267,3 +243,34 @@ const newBrewLink = computed(() => newBrewEntry(activeBeans.value))
     </NuxtLink>
   </main>
 </template>
+
+<style scoped>
+/* 骨架和紀錄卡片同一個內距與同一個切換點（BrewCard：上 16、左右 16、下 14；卡片內容寬 276px） */
+.brew-card-skeleton {
+  padding: var(--card-pad) var(--card-pad) 14px;
+  container-type: inline-size;
+}
+/* 五欄的間距也和卡片同一套：三行 2px、兩行 6px */
+.brew-skeleton__params {
+  column-gap: 2px;
+}
+.brew-skeleton__thumb {
+  width: 80px;
+  height: 80px;
+  border-radius: var(--radius-md);
+  background: var(--border);
+}
+@container (min-width: 276px) {
+  .brew-skeleton__thumb {
+    width: 52px;
+    height: 52px;
+    border-radius: var(--radius-sm);
+  }
+  .brew-skeleton__date {
+    display: none;
+  }
+  .brew-skeleton__params {
+    column-gap: 6px;
+  }
+}
+</style>

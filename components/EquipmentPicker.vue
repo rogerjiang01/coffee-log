@@ -28,7 +28,7 @@ const lastUsed = ref<Map<string, string>>(new Map())
 const loading = ref(true)
 const loadError = ref('')
 
-// 選擇是暫存的，按「選好了」才送出去
+// 選擇是暫存的，按「確定」才送出去
 const draftId = ref<string | null>(null)
 
 const mode = ref<'list' | 'create'>('list')
@@ -140,25 +140,6 @@ function formatUsed(id: string) {
   return relativeUsed(lastUsed.value.get(id))
 }
 
-/**
- * 這次有沒有按過「設為常用」。用來決定要不要顯示回饋——
- * 不能拿 form.is_default 直接判斷，那分不出「剛剛按的」與「原本就是」。
- */
-const pressedDefault = ref(false)
-
-function toggleDefault() {
-  form.is_default = !form.is_default
-  pressedDefault.value = true
-}
-
-/** 表單上這台的名稱，給回饋文案用 */
-const formName = computed(() => {
-  if (form.catalog_id) {
-    const row = items.value.find(item => item.catalog_id === form.catalog_id)
-    if (row) return equipmentOptionName(row)
-  }
-  return form.custom_name.trim() || null
-})
 
 function confirmChoice() {
   emit('update:modelValue', draftId.value)
@@ -180,7 +161,6 @@ function cancelCreate() {
 function startCreate() {
   mode.value = 'create'
   formError.value = ''
-  pressedDefault.value = false
   // 不清空，改成把上次留下的內容放回來
   Object.assign(form, inlineDraft.value.read())
 }
@@ -242,7 +222,6 @@ async function create() {
   }
 }
 
-const inputStyle = { minHeight: 'var(--touch-min)' }
 </script>
 
 <template>
@@ -274,7 +253,7 @@ const inputStyle = { minHeight: 'var(--touch-min)' }
           </svg>
         </button>
 
-        <h2 class="flex-1 truncate font-serif text-lg font-bold">
+        <h2 class="flex-1 truncate text-heading-m font-medium">
           {{ mode === 'create' ? `新增${equipmentLabels[type]}` : title }}
         </h2>
 
@@ -324,11 +303,21 @@ const inputStyle = { minHeight: 'var(--touch-min)' }
               <EquipmentIcon :type="item.type" />
 
               <span class="min-w-0 flex-1">
-                <span class="block truncate">{{ equipmentOptionName(item) }}</span>
-                <span v-if="formatUsed(item.id)" class="block text-xs tabular-nums text-muted">
+                <span class="block truncate" :style="{ color: draftId === item.id ? 'var(--on-accent-wash)' : undefined }">{{ equipmentOptionName(item) }}</span>
+                <!-- 已選的那一列是 --accent-wash 底：次要文字要換成 --on-accent-wash-muted，
+                     --text-muted 在上面只有 3.70:1（《03》§2.2） -->
+                <span
+                  v-if="formatUsed(item.id)"
+                  class="block text-sm tabular-nums"
+                  :style="{ color: draftId === item.id ? 'var(--on-accent-wash-muted)' : 'var(--text-muted)' }"
+                >
                   {{ formatUsed(item.id) }}
                 </span>
-                <span v-else-if="item.is_default" class="block text-xs text-muted">常用</span>
+                <span
+                  v-else-if="item.is_default"
+                  class="block text-sm"
+                  :style="{ color: draftId === item.id ? 'var(--on-accent-wash-muted)' : 'var(--text-muted)' }"
+                >常用</span>
               </span>
 
               <input
@@ -346,63 +335,36 @@ const inputStyle = { minHeight: 'var(--touch-min)' }
 
       <!-- 就地新增：留在同一個覆蓋層裡，沖煮表單完全不動 -->
       <div v-else class="min-h-0 flex-1 overflow-y-auto px-5 py-4">
-        <CatalogSelect v-model="form.catalog_id" :type="type" />
+        <!-- 與器材表單同一套：卡片裡一列一列，標籤在左、值在右 -->
+        <FormCard>
+          <FormRow>
+            <CatalogSelect v-model="form.catalog_id" :type="type" />
+          </FormRow>
+          <FormNote v-if="type === 'grinder' && form.catalog_id">研磨刻度規格隨型號帶入</FormNote>
 
-        <div v-if="type === 'grinder' && form.catalog_id" class="mt-3">
-          <p class="text-xs text-muted">研磨刻度規格隨型號帶入</p>
-        </div>
+          <FormRow>
+            <div class="sheet-row">
+              <label class="sheet-label" for="picker-name">
+                自訂名稱<span v-if="!form.catalog_id" :style="{ color: 'var(--danger)' }" aria-hidden="true">*</span>
+                <span v-if="!form.catalog_id" class="sr-only">必填</span>
+              </label>
+              <div class="sheet-value">
+                <SheetText id="picker-name" v-model="form.custom_name" :disabled="!!form.catalog_id" :placeholder="form.catalog_id ? '' : '輸入自訂名稱'" />
+              </div>
+            </div>
+          </FormRow>
+          <FormNote>{{ form.catalog_id ? '已選型號，用型錄的名稱' : '型錄沒有的器材，請填寫名稱' }}</FormNote>
 
-        <div class="mt-5">
-          <label class="block text-sm" for="picker-name">
-            自訂名稱
-            <span v-if="!form.catalog_id" :style="{ color: 'var(--danger)' }" aria-hidden="true">*</span>
-            <span v-if="!form.catalog_id" class="sr-only">必填</span>
-          </label>
-          <input
-            id="picker-name"
-            v-model="form.custom_name"
-            type="text"
-            :disabled="!!form.catalog_id"
-            class="mt-1 block w-full field px-3 py-2.5 disabled:opacity-60"
-            :style="inputStyle"
-          >
-          <p class="mt-1 text-xs text-muted">
-            {{ form.catalog_id ? '已選型號，用型錄的名稱' : '型錄沒有的器材，請填寫名稱' }}
-          </p>
-        </div>
+          <FormRow label="備註" for="picker-note">
+            <SheetText id="picker-note" v-model="form.note" />
+          </FormRow>
+        </FormCard>
 
-        <div class="mt-5">
-          <label class="block text-sm" for="picker-note">備註</label>
-          <input
-            id="picker-note"
-            v-model="form.note"
-            type="text"
-            class="mt-1 block w-full field px-3 py-2.5"
-            :style="inputStyle"
-          >
-        </div>
-
-        <!-- 動作按鈕而非 toggle，理由同器材頁：同類型只能有一台常用，
-             toggle 表達的是獨立開關，會讓單選的副作用隱形 -->
-        <div class="mt-5">
-          <button
-            type="button"
-            class="w-full rounded-sm border px-4 py-3"
-            :style="{
-              borderColor: form.is_default ? 'var(--border-strong)' : 'var(--accent)',
-              color: form.is_default ? 'var(--text)' : 'var(--accent)',
-              minHeight: 'var(--touch-min)',
-            }"
-            @click="toggleDefault"
-          >
-            {{ form.is_default ? '取消常用' : '設為常用' }}
-          </button>
-
-          <!-- 事後回饋而非事前警告，理由同器材頁 -->
-          <p v-if="form.is_default && pressedDefault" class="mt-2 text-xs text-muted">
-            {{ formName ? `已將 ${formName} 設為常用` : '已設為常用' }}
-          </p>
-        </div>
+        <!-- 設為常用：和器材表單同一張卡片（開關） -->
+        <DefaultEquipmentCard
+          v-model="form.is_default"
+          :style="{ marginTop: 'var(--gap-group)' }"
+        />
 
         <p v-if="formError" role="alert" class="mt-4 rounded-sm border px-3 py-3 text-sm" :style="{ color: 'var(--danger)', borderColor: 'var(--danger)' }">
           {{ formError }}
@@ -411,36 +373,31 @@ const inputStyle = { minHeight: 'var(--touch-min)' }
 
       <!-- 底部動作。清單畫面沒有「取消」：不選就離開是標題列的 ‹，
            兩個做完全一樣的事的按鈕只會讓人猜哪個會丟東西。
-           新增畫面的「取消」會清掉填到一半的內容，與 ‹（保留）不同，所以留著。 -->
+           新增畫面的「取消」會清掉填到一半的內容，與 ‹（保留）不同，所以留著。
+           清單畫面只有一顆「確定」：滿寬按鈕（56px 膠囊，《03》§4.18）；新增畫面並排兩顆，不是滿寬，維持 44px（2026-11-23） -->
       <footer class="flex shrink-0 gap-3 border-t px-5 py-3" :style="{ borderColor: 'var(--border)' }">
-        <button
+        <AppButton variant="outline"
           v-if="mode === 'create'"
-          type="button"
-          class="flex-1 rounded-sm border px-4 py-3"
-          :style="{ borderColor: 'var(--border)', minHeight: 'var(--touch-min)' }"
+          class="flex-1"
           @click="cancelCreate"
         >
           取消
-        </button>
-        <button
+        </AppButton>
+        <AppButton
           v-if="mode === 'list'"
-          type="button"
-          class="flex-1 rounded-sm px-4 py-3 font-medium"
-          :style="{ background: 'var(--accent)', color: 'var(--on-accent)', minHeight: 'var(--touch-min)' }"
+          block
           @click="confirmChoice"
         >
-          選好了
-        </button>
-        <button
+          確定
+        </AppButton>
+        <AppButton
           v-else
-          type="button"
-          :disabled="saving"
-          class="flex-1 rounded-sm px-4 py-3 font-medium disabled:opacity-60"
-          :style="{ background: 'var(--accent)', color: 'var(--on-accent)', minHeight: 'var(--touch-min)' }"
+          :busy="saving"
+          class="flex-1"
           @click="create"
         >
           {{ saving ? '儲存中' : '儲存' }}
-        </button>
+        </AppButton>
       </footer>
     </div>
   </dialog>

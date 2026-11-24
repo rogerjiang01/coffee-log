@@ -9,7 +9,7 @@
 
 <template>
   <span
-    class="shrink-0 rounded-sm px-2 py-0.5 text-xs"
+    class="shrink-0 rounded-sm px-2 py-0.5 text-sm"
     :style="{ background: 'var(--accent-wash)', color: 'var(--on-accent-wash)' }"
   >範例</span>
 </template>

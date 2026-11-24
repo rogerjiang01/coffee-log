@@ -37,7 +37,7 @@ function step(delta: number) {
     </button>
 
     <p class="flex min-w-[5.5rem] items-baseline justify-center gap-1">
-      <output class="font-serif text-4xl font-bold tabular-nums" aria-live="polite">{{ model }}</output>
+      <output class="text-display-l tabular-nums" aria-live="polite">{{ model }}</output>
       <span>杯</span>
     </p>
 

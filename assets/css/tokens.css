@@ -9,10 +9,17 @@
    元件只能引用第二層。直接使用色階變數等同繞過語意層，
    之後要換色就得回頭掃全站——那正是這套系統要解決的問題。
 
+   與 Figma 的關係（2026-11-11 起）：
+   色階與語意 token 的名字、數值對應 Figma 的 Color Primitives／Color Semantics
+   （neutral/bg → --bg、accent/text → --accent-text、roast/on-roast-light → --on-roast-light）。
+   Figma 的綠底模式（Green Base）是本檔最後的 .theme-green。
+
    與 Tailwind 的關係：
-   本檔的 --radius-* 與 --text-* 刻意沿用 Tailwind v4 的 theme 命名，
-   且宣告在 unlayered 的 :root（Tailwind 預設值在 @layer theme），
-   因此會覆蓋 Tailwind 預設值。色彩與陰影在 main.css 以 @theme inline 對應。
+   本檔的 --radius-* 與既有的 --text-*（2xl、xl、lg、base、sm、xs）刻意沿用 Tailwind v4 的
+   theme 命名，且宣告在 unlayered 的 :root（Tailwind 預設值在 @layer theme），
+   因此會覆蓋 Tailwind 預設值。色彩在 main.css 以 @theme inline 對應。
+   Tailwind 內建主題沒有的名字（text-display-l 這組字級、shadow-light）
+   要用 @theme 登記才會產生 utility，寫在本檔的 @theme static 區塊。
    ============================================================ */
 
 :root {
@@ -31,20 +38,22 @@
     --green-900: #172112;
     --green-950: #0e130c;
 
-    /* 紅 — 愛心與危險 */
-    --red-50: #ffe8e5;
-    --red-100: #ffdbd5;
-    --red-200: #ffb5aa;
-    --red-300: #f18f81;
-    --red-400: #da6c5f;
-    --red-500: #c0453a;
-    --red-600: #9d352c;
-    --red-700: #7f2821;
-    --red-800: #5c1d18;
-    --red-900: #3b130f;
-    --red-950: #210d0a;
+    /* 珊瑚紅 — 愛心與危險。Figma 的名字是 coral（Figma 另有一組桃紅的 red，沒有匯入）。 */
+    --coral-50: #ffe8e5;
+    --coral-100: #ffdbd5;
+    --coral-200: #ffb5aa;
+    --coral-300: #f18f81;
+    --coral-400: #da6c5f;
+    --coral-500: #c0453a;
+    --coral-600: #9d352c;
+    --coral-700: #7f2821;
+    --coral-800: #5c1d18;
+    --coral-900: #3b130f;
+    --coral-950: #210d0a;
 
-    /* 中性暖色 — 底色與邊界 */
+    /* 中性暖色 — 底色。10 與 30 是比 50 更接近白的兩階（卡片底色、頁面底色）。 */
+    --sand-10: #fffefc;
+    --sand-30: #fffcf5;
     --sand-50: #fffaef;
     --sand-100: #f0e7d4;
     --sand-200: #e1d3b3;
@@ -57,12 +66,24 @@
     --sand-900: #32270d;
     --sand-950: #1e1708;
 
-    /* 色階之外的基礎色。刻意不放進上面三組，理由如下。 */
+    /* 暖灰 — 文字、邊界、停用與未啟用的控制項。
+     彩度比 sand 低：sand 的深端偏土黃，用來當內文會讓整頁看起來髒。 */
+    --stone-50: #fcfaf5;
+    --stone-100: #f1ede4;
+    --stone-200: #dad4c5;
+    --stone-300: #c6bda9;
+    --stone-400: #afa48c;
+    --stone-500: #94886c;
+    --stone-600: #796d54;
+    --stone-700: #5d543f;
+    --stone-800: #443d2d;
+    --stone-900: #2d281d;
+    --stone-950: #1b1811;
+
+    /* 色階之外的基礎色。 */
     --white: #ffffff;
-    /* 帶綠調的極深暖灰。不在 sand 色階上是刻意的——sand 的深端偏土黃，
-     用來當內文會讓整頁看起來髒。 */
+    /* 帶綠調的極深暖灰。只剩深色媒體面（照片裁切）在用；內文改用 stone-800。 */
     --ink: #2a2e26;
-    --ink-muted: #6b6f63;
 
     /* ──────────────────────────────────────────────────────
      綠色色階的對比實況（配白字）：
@@ -88,39 +109,60 @@
     /* 疊在 --accent-wash 上的文字。不能用 --accent——green-500 在 green-50 上
      只有 4.18:1，低於 AA。green-700 是 7.38:1。 */
     --on-accent-wash: var(--green-700);
+    /* 疊在 --accent-wash 上的次要文字（選取列裡的說明、日期）。2026-11-13 新增：
+       --text-muted（stone-600）在 green-50 上只有 3.70:1，stone-700 是 5.45:1。
+       比 --on-accent-wash（7.38:1）淡一階，選取列裡主要與次要文字才分得出層級。 */
+    --on-accent-wash-muted: var(--stone-700);
+    /* 用強調色寫的文字：指標數字與單位、文字按鈕、區段小標。
+       和 --accent 分開是因為綠底模式下兩者不同：--accent 是按鈕的底色（淺），
+       --accent-text 是寫在頁面底色上的字。對比：--surface 上 5.70:1、--bg 上 5.60:1 */
+    --accent-text: var(--green-500);
 
     /* 中性 */
-    --bg: var(--sand-50); /* 頁面底色 */
-    --surface: var(--white); /* 卡片、表單區塊，需與 bg 區分 */
-    --text: var(--ink);
-    --text-muted: var(--ink-muted);
-    --border: var(--sand-100); /* 分隔線、一般邊界 */
-    --border-strong: var(--sand-400); /* 需要更明顯的次要按鈕 */
-    --text-faint: var(--sand-400); /* 比 --text-muted 再淡一階的附屬文字 */
+    --bg: var(--sand-30); /* 頁面底色 */
+    /* 卡片、表單區塊。**待實機測試後確認**：和 --bg 的對比只有 1.02:1，
+       分層靠 --shadow-light 與邊界（《03》§2.3），不是靠底色差。 */
+    --surface: var(--sand-10);
+    --text: var(--stone-800); /* --bg 上 10.50:1、--surface 上 10.68:1 */
+    --text-muted: var(--stone-600); /* --bg 上 4.96:1、--surface 上 5.05:1 */
+    /* 輸入框的範例文字。--surface 上只有 2.45:1，**所以只能放範例**（example@email.com）；
+       帶有必要資訊的提示字（「選填」、單位）要達到 4.5:1，不能用這個（《03》§4.1）。
+       2026-11-11 先定義，全域的 ::placeholder 第二批才換。 */
+    --text-placeholder: var(--stone-400);
+    --icon-muted: var(--stone-500); /* 卡片標題列的 › 這類不是主要動作的圖示。--surface 上 3.47:1 */
+    --surface-muted: var(--stone-100); /* 停用的輸入框、下拉的膠囊 */
+    --control-inactive: var(--stone-200); /* 停用的按鈕、開關關閉的軌道、未選的強度圓點與星等（實心） */
+    --control-thumb: var(--white); /* 開關的圓鈕 */
+    --border: var(--stone-100); /* 分隔線、一般邊界。--surface 上 1.16:1 */
+    --border-strong: var(--stone-400); /* 需要更明顯的次要按鈕 */
+    --text-faint: var(--stone-400); /* 比 --text-muted 再淡一階的附屬文字（停用欄位的標籤與單位） */
     /* 首頁右上角的設定齒輪。它在標題旁邊，用 --text 會跟標題搶；
        用 --text-muted 又與內文的參考資訊同一個顏色，看不出是可以按的東西。
-       對比：--bg 上 4.89:1、--surface 上 5.09:1（非文字，門檻 3:1） */
-    --settings-icon: var(--sand-600);
-    /* 未選取的輸入元件輪廓：星等的空心星、收藏的空心愛心、強度的空心圓點。
-       不能用 --border：那是分隔線的顏色（sand-100，白底上 1.23:1），
-       淡到使用者看不出那裡還有五個可點的目標。
-       對比：--surface 上 2.48:1、--bg 上 2.38:1，**刻意低於**《03》§7 非文字元素的 3:1，
-       用來換取較輕的視覺重量——sand-500（3.53:1）過得了門檻，但未選取的五顆星
-       重到搶過已選取的那幾顆。決定與理由見《03》§2.2，不是漏掉的缺陷。 */
-    --control-empty: var(--sand-400);
+       對比：--bg 上 4.97:1、--surface 上 5.05:1（非文字，門檻 3:1） */
+    --settings-icon: var(--stone-600);
+    /* 未選取的輸入元件**輪廓**：收藏的空心愛心、勾選框未勾的方框。
+       不能用 --border：那是分隔線的顏色（stone-100，--surface 上 1.16:1），
+       淡到使用者看不出那裡有可以點的目標。
+       對比：--surface 上 2.45:1、--bg 上 2.41:1，**刻意低於**《03》§7 非文字元素的 3:1，
+       用來換取較輕的視覺重量。決定與理由見《03》§2.2，不是漏掉的缺陷。
+       2026-11-13：和其他中性色一起從 sand-400 改成 stone-400（照 Figma）。
+       強度圓點與星等不再用它：那兩個未選時是**實心**的 --control-inactive（《03》§2.2）。 */
+    --control-empty: var(--stone-400);
 
     /* 狀態 */
-    --favorite: var(--red-500); /* 愛心 */
-    --danger: var(--red-700); /* 刪除、錯誤 */
+    --favorite: var(--coral-500); /* 愛心 */
+    --danger: var(--coral-700); /* 刪除、錯誤 */
+    /* 錯誤的圖示（circle-alert）。預設和 --danger 一樣；綠底模式另外指定（圖示只需要 3:1，2026-11-23） */
+    --danger-icon: var(--danger);
     --on-danger: var(--white); /* 疊在 --danger 上的文字，9.43:1 */
     /* 針對使用者輸入值出現、但不阻擋儲存的提示（《03》§4.1 的三層）。
-       對比：--surface 上 7.49:1、--bg 上 7.20:1、--accent-wash 上 5.45:1。
+       對比：--surface 上 7.43:1、--bg 上 7.31:1、--accent-wash 上 5.45:1。
 
        為什麼是 sand-700 而不是紅或灰：
        紅在這個產品裡只代表「這樣送不出去」，而這種提示存得起來；
        --text-muted 是不隨輸入改變的參考資訊，使用者看久了會自動略過，
        提示混進去就等於不存在。sand 是第三個色相家族，深端讀起來是琥珀／赭，
-       既不是警報也不是背景。刻意比 --text-muted（5.15:1）更深：
+       既不是警報也不是背景。刻意比 --text-muted（5.05:1）更深：
        同一行裡它要比旁邊的參考資訊重，而不是一樣重。 */
     --notice: var(--sand-700);
     --diff: var(--green-600); /* 差異標記。主要靠字重，顏色為輔 */
@@ -134,73 +176,149 @@
        淺色底會讓照片看起來偏暗，所以這一面反過來用 ink。
        對比（ink 為底）：on-media 13.84:1、
        on-media-danger 8.20:1、
-       media-border 5.58:1（非文字，門檻 3:1） */
+       media-border 5.61:1（非文字，門檻 3:1） */
     --media-bg: var(--ink);
     --on-media: var(--white);
-    --on-media-danger: var(--red-200);
-    --media-border: var(--sand-400);
+    --on-media-danger: var(--coral-200);
+    --media-border: var(--stone-400);
 
     /* ══ 烘焙度色階 ═════════════════════════════════════════
-     獨立的語意色階，不併入上面三組——它表達的是被記錄的事物本身，
-     不是介面狀態。無豆袋照片時的卡片填充，色塊上會疊豆名，
-     因此每一級都配一個經對比驗算的文字色。 */
+     獨立的語意色階，不併入上面幾組——它表達的是被記錄的事物本身，
+     不是介面狀態。無豆袋照片時的縮圖與色塊填充，色塊上會疊豆名，
+     因此每一級都配一個經對比驗算的文字色（--on-roast-*）。
 
-    --roast-light: #f5e3b8;
-    --roast-light-text: var(--text); /* 10.92:1 */
-    --roast-medium-light: #e0c089;
-    --roast-medium-light-text: var(--text); /*  7.96:1 */
-    --roast-medium: #c09a5e;
-    --roast-medium-text: var(--text); /*  5.29:1 */
-    --roast-medium-dark: #8a6136;
-    --roast-medium-dark-text: var(--white); /*  5.46:1 */
-    --roast-dark: #4a3323;
-    --roast-dark-text: var(--white); /* 11.74:1 */
+     2026-11-11 換成 Figma 的色票。舊色票的中焙以下太淺、偏黃，看不出是咖啡。 */
+
+    --roast-light: #b67f4d;
+    --on-roast-light: var(--stone-950); /* 5.17:1（白字只有 3.42:1） */
+    --roast-medium-light: #9d6338;
+    --on-roast-medium-light: var(--white); /*  4.91:1 */
+    --roast-medium: #804c2b;
+    --on-roast-medium: var(--white); /*  7.03:1 */
+    --roast-medium-dark: #623721;
+    --on-roast-medium-dark: var(--white); /* 10.06:1 */
+    --roast-dark: #432518;
+    --on-roast-dark: var(--white); /* 13.85:1 */
+    /* 沒有照片、也沒填烘焙度（《03》§4.5）。中性的暖灰，不假裝它是某一級烘焙度。 */
+    --roast-unknown: var(--stone-400);
+    /* Figma 沒有這一個。--text（stone-800）在 stone-400 上只有 4.36:1，stone-950 是 7.18:1。 */
+    --on-roast-unknown: var(--stone-950);
+    /* 沒有豆袋照片時，縮圖上咖啡豆插畫的線條（《03》§4.5）。Figma 是裸值 #fefefe，
+       程式不寫裸色碼，2026-11-13 決定用這個 token。五級烘焙度與暖灰上都用同一個。 */
+    --roast-art: var(--white);
+
+    /* 開場與登入頁（《03》§6 的開場動畫）。
+       --splash-bg    首圖還沒載入時的底色：插畫的深綠，避免白閃
+       --brand-mark   疊在首圖上的 logo。Figma 是 sand-50
+       --splash-scrim 首圖上面一層 10% 的黑，讓 logo 與表單讀得到（照 Figma）。純黑不取自色階，和其他遮罩一樣 */
+    --splash-bg: var(--green-800);
+    --brand-mark: var(--sand-50);
+    --splash-scrim: rgb(0 0 0 / 0.1);
 
     /* ══ 表單欄位的外觀 ═════════════════════════════════════
-     欄位是底線制（見 main.css 的 .field）。底線比分隔線深一階：
-     它同時扮演該列的分隔線，但更重要的角色是讓使用者一眼看出
-     「這裡可以填、填到哪裡為止」，太淡就失去這個作用。 */
+     Choice chip 未選時的框線這類「可以按的東西」的邊界，比分隔線（--border）深一階。
+     2026-11-13 從 sand-200 改成 stone-200（照 Figma）。--surface 上 1.47:1。 */
 
-    --field-border: var(--sand-200);
+    --field-border: var(--stone-200);
 
-    /* ══ 字體 ═══════════════════════════════════════════════ */
+    /* ══ 字體 ═══════════════════════════════════════════════
+     內文是台北黑體（Light 300、Regular 400、Bold 700，自己放，見 fonts.css）。
+     **台北黑體沒有 500。** 只把 Noto Sans TC 排在它後面是沒用的：瀏覽器遇到字重 500，
+     會在台北黑體裡挑最接近的 400，根本不會走到 Noto。所以 Medium 是另一個字體家族
+     （--font-body-medium），main.css 讓 font-medium 同時切換字重與字體。
+     Figma 也是這樣分的（Chinese-Medium 那組樣式用 Noto Sans TC Medium）。
 
-    --font-heading: "Noto Serif TC", ui-serif, Georgia, "Songti TC", serif;
-    --font-body: "Noto Sans TC", ui-sans-serif, system-ui, -apple-system, "PingFang TC", "Microsoft JhengHei", sans-serif;
+     --font-body 裡的 Noto Sans TC 只負責補台北黑體沒有的字（韓文、西里爾字母、部分拉丁擴充），
+     Google Fonts 只載入 500 這一個字重。
 
-    /* 字級階層（五級，基準 16px）。
-     中文文字不得小於 0.875rem。使用者的情境是沖煮當下——站著、手可能是濕的、
-     注意力在水流上、螢幕離眼睛比坐著遠，12px 在那個情境下看不清楚。
-     內文級距行高維持 ≥1.7；標題級距收緊，中文標題行高過大會散。 */
+     標題（--font-heading）是 Noto Sans TC Medium，和 Figma 的頁面標題一致。
+     2026-11-11 起不再使用 Noto Serif TC。 */
 
-    --text-2xl: 2rem;
-    --text-2xl--line-height: 1.3;
-    --text-xl: 1.5rem;
-    --text-xl--line-height: 1.35;
-    --text-lg: 1.125rem;
-    --text-lg--line-height: 1.5;
-    --text-base: 1rem;
-    --text-base--line-height: 1.75;
-    --text-sm: 0.875rem;
-    --text-sm--line-height: 1.7;
+    --font-body: "Taipei Sans TC Beta", "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", system-ui, sans-serif;
+    --font-body-medium: "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", system-ui, sans-serif;
+    --font-heading: var(--font-body-medium);
+    /* 輸入框與多行文字用（2026-11-23）：最前面多一個「台北黑體的 ASCII 那一片、改過上下高度」的別名，
+       其餘照 --font-body。理由與 @font-face 在 main.css 的「輸入框的字」。 */
+    --font-field: "Taipei Sans TC Field", var(--font-body);
+
+    /* 字級。Figma 的文字樣式（display、heading、body、label）在本檔最後的 @theme static，
+     下面這六個是改版前的名字，留著當別名，指到最接近的 Figma 樣式：只帶字級與行高，不帶字重。
+     元件逐一重做成 Figma 的名字之後，這組別名的使用次數會自然歸零。
+
+     字級下限（《03》§2.4）：有輸入欄位的畫面，中文文字不得小於 14px——使用者的情境是
+     沖煮當下，站著、手可能是濕的、螢幕離眼睛比坐著遠。沒有輸入欄位的瀏覽型與檢視型畫面，
+     次要資訊可以用到 12px（text-label-m）。 */
+
+    --text-4xl: var(--text-display-l); /* 36／44 */
+    --text-4xl--line-height: var(--text-display-l--line-height);
+    --text-2xl: var(--text-display-m); /* 28／36（原本 32px，Figma 沒有這一級） */
+    --text-2xl--line-height: var(--text-display-m--line-height);
+    --text-xl: var(--text-display-s); /* 24／32 */
+    --text-xl--line-height: var(--text-display-s--line-height);
+    --text-lg: var(--text-heading-m); /* 18／26 */
+    --text-lg--line-height: var(--text-heading-m--line-height);
+    --text-base: var(--text-heading-s); /* 16／24 */
+    --text-base--line-height: var(--text-heading-s--line-height);
+    --text-sm: var(--text-body-m); /* 14／22 */
+    --text-sm--line-height: var(--text-body-m--line-height);
     /* --text-xs 併入 --text-sm，名字保留：刪掉的話 text-xs 會悄悄回到
-       Tailwind 內建的 12px，而且不會報錯。原本的 41 處之後順手改成 text-sm。 */
+       Tailwind 內建的 12px，而且不會報錯。**12px 只能透過 text-label-m 取得**，
+       既有的 text-xs 不會無聲縮小。 */
     --text-xs: var(--text-sm);
     --text-xs--line-height: var(--text-sm--line-height);
 
-    --leading-body: 1.75;
+    --leading-body: 1.5; /* body 預設，等於 Heading S 的 16／24 */
 
     /* ══ 圓角 ═══════════════════════════════════════════════
-     不同層級的元件用不同級距，不得全站共用同一個值。 */
+     不同層級的元件用不同級距，不得全站共用同一個值。
+     正圓用 rounded-full，不要用 --radius-lg 湊。 */
 
-    --radius-sm: 4px; /* 輸入框、按鈕、標籤、徽章 */
-    --radius-md: 8px; /* 卡片、表單區塊 */
-    --radius-lg: 12px; /* 對話框、浮出層 */
+    --radius-sm: 8px; /* 輸入框、按鈕 */
+    --radius-md: 12px; /* 卡片 */
+    --radius-lg: 24px; /* 對話框、表單的卡片容器 */
+    /* 只有一列、獨立成一張卡片的與滿寬的按鈕：膠囊形（2026-11-17；按鈕 2026-11-19 從「只有儲存按鈕」改成「滿寬就是」）。
+       **圓角是那一列基本高度的一半**，不是 9999px：心得筆記打成好幾行、卡片變高時，
+       圓角維持不變，不會變成兩端全圓的膠囊。列高兩級（2026-11-23），圓角也兩級：
+         --radius-pill       28px    56 的列（沒有膠囊）的單列卡片、滿寬按鈕。和 --sheet-row-h 是一組
+         --radius-pill-tall  32.5px  65 的列（有膠囊）的單列卡片。和 --sheet-row-h-tall 是一組 */
+    --radius-pill: calc(var(--sheet-row-h) / 2);
+    --radius-pill-tall: calc(var(--sheet-row-h-tall) / 2);
+    /* 轉角形狀（CSS corner-shape，2026-11-19）：圓弧和直線接在一起時曲率不連續，
+       膠囊的兩端看起來有「骨頭感」；superellipse(K) 的 K 只要大於 1，接點的曲率就是連續的。
+       **漸進增強**：只有 Chrome／Edge 139 以後支援，正式版的 Safari（含 iPhone 上所有瀏覽器）與 Firefox 忽略，
+       維持一般的圓角（《03》§2.3 的圓角段落）。
+       數值是使用者在開發環境的 /dev/corners 一個一個調出來的（2026-11-19）。改值之前先在那一頁調，
+       那一頁的預設值（dev/corners.vue 的 kinds）要跟著這裡改。
+       正圓（浮動按鈕、完成按鈕、目標的加減按鈕、強度圓點）不套：沒有直線段，套了會變成圓角方塊 */
+    --corner-card-pill: superellipse(1.2);    /* 只有一列的表單卡片，56 的列（AppCard 的 pill） */
+    --corner-card-pill-tall: superellipse(1.2); /* 只有一列的表單卡片，65 的列（AppCard 的 pill-tall，2026-11-23） */
+    --corner-block-button: superellipse(1.2); /* 滿寬的實心與外框按鈕（AppButton 的 block） */
+    --corner-sheet-pill: superellipse(1.1);   /* 下拉與日期的膠囊、沖煮時間的分秒框（.sheet-pill） */
+    --corner-chip: superellipse(1.1);         /* 風味標籤（ChoiceChip） */
+    --corner-toggle: superellipse(1.1);       /* 開關的軌道與圓鈕（ToggleSwitch） */
+    --corner-bar: superellipse(1.1);          /* 總覽的每日長條（GoalWeekCard） */
+    --corner-card-ml: superellipse(1.1);      /* 分頁第一層的卡片（AppCard 的 ml、.card-ml-corners） */
+    --corner-card-md: superellipse(1.1);      /* 其他獨立的卡片（AppCard 的 md、.card-corners） */
+    --corner-card-lg: superellipse(1.1);      /* 表單的卡片容器（AppCard 的 lg） */
+    /* 卡片與儲存按鈕各自的圓角半徑。
+       卡片兩級（2026-11-19 統一成 24px；2026-11-23 加上 18px 的 ml，對應 Figma 的 radius-ml）：
+       ml 18px  四個分頁第一層的卡片：總覽、豆子列表、器材列表（紀錄分頁之後的卡片也用這一級）
+       md 24px  其他獨立的卡片：結算頁、比較表
+       lg 24px  表單的卡片容器
+       --radius-md 本身沒有改（12px），留給縮圖與提示這些不是卡片的東西。後兩個等於共用的值 */
+    --radius-card-ml: 18px;
+    --radius-card-md: 24px;
+    --radius-card-lg: var(--radius-lg);
+    --radius-card-pill: var(--radius-pill);
+    --radius-card-pill-tall: var(--radius-pill-tall);
+    --radius-block-button: var(--radius-pill);
 
-    /* ══ 陰影（只有一級）════════════════════════════════════
-     僅供浮出層：對話框、浮動按鈕、下拉面板。
-     卡片與表單區塊一律不用陰影，改以邊界或底色差異分層。
-     色相取自 --ink 而非中性灰，避免在暖底色上顯冷。 */
+    /* ══ 陰影 ═══════════════════════════════════════════════
+     兩種，用途不同，不互相代替：
+       --shadow-light（本檔最後的 @theme static）  卡片與輸入框。卡片底色和頁面底色幾乎一樣，
+                                                    靠這層很淡的陰影分層。
+       --overlay-shadow                             浮出層：對話框、浮動按鈕、下拉面板。
+     --overlay-shadow 的色相取自 --ink 而非中性灰，避免在暖底色上顯冷。 */
 
     --overlay-shadow: 0 8px 24px -4px rgb(42 46 38 / 0.18), 0 2px 6px -1px rgb(42 46 38 / 0.1);
 
@@ -213,9 +331,141 @@
        不是可以視情況調整的間距——散在 70 幾處硬寫的 44px 沒辦法一起改。 */
     --touch-min: 44px;
 
+    /* 表單的間距（Figma 的記錄表單，2026-11-16）。兩層：
+         --gap-group    同一區塊內：區塊標題到第一張卡片、卡片與卡片之間、卡片下方的小字到下一張卡片
+         --gap-section  不同區塊之間
+       **30px 是刻意的節奏，不套用「間距調到 4 的倍數」那條規則。** */
+    --gap-group: 20px;
+    --gap-section: 30px;
+    /* 表單的一列（Figma 的 Sheet Row）的高度，**含**列與列之間的分隔線（分隔線畫在列裡，不另外佔高度）。
+       **兩級**（2026-11-23，取代原本一律 65px）：
+         --sheet-row-h       56px  沒有膠囊的列：一般輸入、開關、評分、強度、標題列、動作列、多行文字的基本高度。
+                                   滿寬按鈕（AppButton 的 block）也是這個高度
+         --sheet-row-h-tall  65px  裡面有膠囊的列：下拉、器材欄位、原生的 select／日期／時刻、沖煮時間的分秒框
+                                   （.sheet-row--tall、FormRow 的 tall）。風味標籤的分類列一排時也是這個高度
+       多行的（風味標籤換成好幾排、心得筆記打成好幾行、長豆名換成兩行）照內容長高。對照表在《03》§4.1 */
+    --sheet-row-h: 56px;
+    --sheet-row-h-tall: 65px;
+    /* 卡片的左右內距：表單的列、卡片下方的小字、區塊標題都對齊這條線。
+       **維持 16px**（2026-11-16 使用者看過 16px 與 Figma 的 24px 兩種截圖之後選的），不照 Figma。 */
+    --card-pad: 16px;
+    /* 表單頁面左右的邊距。和 --card-pad 是一組（Figma 是卡片內距 24px、卡片離螢幕約 5px） */
+    --form-gutter: 20px;
+    /* 總覽卡片的高度（Figma 的 Card，169px）。最近沖煮、最高分、累計、本月固定這個高度，
+       改成全寬時也一樣；本週目標最少這麼高。內容放不下時省略，不撐高卡片（《03》§4.16） */
+    --overview-card-h: 169px;
+
     /* ══ 動態 ═══════════════════════════════════════════════
      只做回應操作的動態，時長 150–200ms。 */
 
     --motion-duration: 175ms;
     --motion-ease: cubic-bezier(0.2, 0, 0, 1);
+}
+
+/* ══ Tailwind 內建主題沒有的名字 ═══════════════════════════
+   text-display-l 這組字級與 shadow-light 不在 Tailwind 的預設主題裡，
+   要用 @theme 登記，對應的 utility 才會產生。static 讓這些變數一律輸出到 :root——
+   元件的 scoped style 直接寫 var(--shadow-light) 時，Tailwind 掃不到那個用法。
+
+   字級照 Figma 的文字樣式：名字、字級、行高、字重都一樣（字級／行高／字重）。
+   字重跟著樣式走，所以 text-display-s 不必再加 font-bold；
+   Figma 的 Chinese-Medium 那組用「字級 ＋ font-medium」表示（例：text-body-m font-medium）。
+   Label S 與 Caption（都是 11px）沒有納入。 */
+@theme static {
+    --text-display-l: 2.25rem; /* 36／44／700 */
+    --text-display-l--line-height: calc(44 / 36);
+    --text-display-l--font-weight: 700;
+    --text-display-m: 1.75rem; /* 28／36／700 */
+    --text-display-m--line-height: calc(36 / 28);
+    --text-display-m--font-weight: 700;
+    --text-display-s: 1.5rem; /* 24／32／700 */
+    --text-display-s--line-height: calc(32 / 24);
+    --text-display-s--font-weight: 700;
+    --text-heading-l: 1.25rem; /* 20／28／400 */
+    --text-heading-l--line-height: calc(28 / 20);
+    --text-heading-l--font-weight: 400;
+    --text-heading-m: 1.125rem; /* 18／26／400 */
+    --text-heading-m--line-height: calc(26 / 18);
+    --text-heading-m--font-weight: 400;
+    --text-heading-s: 1rem; /* 16／24／400 */
+    --text-heading-s--line-height: calc(24 / 16);
+    --text-heading-s--font-weight: 400;
+    --text-body-l: 0.9375rem; /* 15／24／400 */
+    --text-body-l--line-height: calc(24 / 15);
+    --text-body-l--font-weight: 400;
+    --text-body-m: 0.875rem; /* 14／22／400 */
+    --text-body-m--line-height: calc(22 / 14);
+    --text-body-m--font-weight: 400;
+    /* 以下三個小於 14px：只能用在沒有輸入欄位的畫面的次要資訊（《03》§2.4） */
+    --text-body-s: 0.8125rem; /* 13／20／400 */
+    --text-body-s--line-height: calc(20 / 13);
+    --text-body-s--font-weight: 400;
+    --text-label-l: 0.8125rem; /* 13／20／300 */
+    --text-label-l--line-height: calc(20 / 13);
+    --text-label-l--font-weight: 300;
+    --text-label-m: 0.75rem; /* 12／18／300 */
+    --text-label-m--line-height: calc(18 / 12);
+    --text-label-m--font-weight: 300;
+    --text-metric-unit: 1.125rem; /* 18／28／700，指標數字後面的單位 */
+    --text-metric-unit--line-height: calc(28 / 18);
+    --text-metric-unit--font-weight: 700;
+
+    /* 卡片與輸入框的陰影。純黑 3%，不取自色階：它淡到看不出色相。 */
+    --shadow-light: 0 0 15.7px rgb(0 0 0 / 0.03);
+}
+
+/* 輸入框聚焦與錯誤時的光暈：--shadow-light 再疊一層。2026-11-11 先定義，第二批的輸入框元件才用。
+   和 .theme-green 寫在一起，是因為它們引用了語意 token——只寫在 :root 的話，
+   值在 :root 就算好了，綠底模式裡拿到的還是預設模式的顏色。 */
+:root,
+.theme-green {
+    --shadow-focus: var(--shadow-light), 0 0 5.2px -1px var(--accent-active);
+    --shadow-error: var(--shadow-light), 0 0 5.2px -1px var(--danger);
+}
+
+/* ══ 綠底模式（Figma 的 Green Base）════════════════════════
+   登入、註冊頁用。只重新定義語意 token，元件不需要知道自己在哪一種底色上。
+   掛在 <html> 上（頁面用 useHead 加），頁面底色與焦點框才會跟著換。
+
+   對比（文字在 --bg 上／在 --surface 上）：
+     --text 5.74／7.79      --text-muted 4.92／6.67      --text-placeholder —／4.18
+     --accent-text 4.67／6.34      --danger 4.90／6.65
+     --accent 在 --bg 上 5.52（按鈕底色）、--on-accent 在 --accent 上 12.86
+
+   沒有重新定義的：
+     --notice              Figma 指到黃色色階，登入、註冊頁用不到，黃色色階沒有匯入。
+                           **在綠底上不要用 --notice**，現在的值（sand-700）在綠底上讀不到。
+     --icon-muted、--control-inactive、--surface-muted、--control-thumb
+                           Figma 兩種模式的值相同。放在綠底上會是淺色塊，登入、註冊頁沒用到。
+     遮罩、深色媒體面、烘焙度  和底色無關。 */
+.theme-green {
+    --bg: var(--green-500);
+    --surface: var(--green-600);
+    --text: var(--white);
+    --text-muted: var(--stone-100);
+    --text-placeholder: var(--stone-300);
+    --text-faint: var(--sand-100);
+    --border: var(--green-200);
+    --border-strong: var(--stone-200);
+    --field-border: var(--green-100);
+    --control-empty: var(--stone-300);
+    --settings-icon: var(--sand-100);
+
+    --accent: var(--sand-50);
+    --accent-hover: var(--stone-100);
+    --accent-active: var(--sand-100);
+    --accent-soft: var(--sand-100);
+    --accent-wash: var(--green-700);
+    --on-accent: var(--green-800);
+    --on-accent-wash: var(--sand-50);
+    --on-accent-wash-muted: var(--stone-100); /* green-700 上 8.68:1 */
+    --accent-text: var(--sand-100);
+    --diff: var(--sand-100);
+
+    --favorite: var(--coral-50);
+    --danger: var(--coral-50);
+    --on-danger: var(--coral-900);
+    /* 錯誤的圖示（2026-11-23）：文字維持 coral-50，圖示用 coral-200，由圖示表達「錯誤」。
+       green-600（卡片）上 4.62:1、green-500（頁面）上 3.40:1，都過非文字元素的 3:1 */
+    --danger-icon: var(--coral-200);
 }

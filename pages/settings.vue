@@ -1,9 +1,9 @@
 <script setup lang="ts">
 // 設定：帳號與登出。
 //
-// 「記錄停水時間」的入口只有一個，在沖煮表單的分段注水區（《02》§5 區塊三）。
+// 「記錄停水時長」的入口只有一個，在沖煮表單的分段注水區（《02》§5 區塊三）。
 // 這裡不再放第二個控制點：同一個偏好兩個入口要同步、文案要一致、
-// 改行為要記得改兩次，而「使用者不在填表時為什麼會想關掉時間欄位」
+// 改行為要記得改兩次，而「使用者不在填表時為什麼會想關掉停水時長」
 // 這個情境想不出來。
 //
 // 檢視型畫面（《03》§3）：左上 ‹ 回上一頁，沒有上一頁時回總覽（父層），分頁列保留。
@@ -48,14 +48,12 @@ async function signOut() {
       <p class="mt-1">{{ email }}</p>
     </section>
 
-    <button
-      type="button"
-      :disabled="signingOut"
-      class="mt-8 rounded-sm border px-4 py-3 font-medium disabled:opacity-60"
-      :style="{ borderColor: 'var(--border)', background: 'var(--surface)', minHeight: 'var(--touch-min)' }"
+    <AppButton variant="outline"
+      :busy="signingOut"
+      class="mt-8"
       @click="signOut"
     >
       {{ signingOut ? '登出中' : '登出' }}
-    </button>
+    </AppButton>
   </main>
 </template>

@@ -24,7 +24,9 @@ export default function run() {
     hardcoded.length ? `這些還寫死 body：${hardcoded.join('、')}` : '全部改用 usePortalTarget')
 
   r.section('每個 Teleport 都用共用的目標')
-  const users = sources.filter(([, src]) => src.includes('<Teleport'))
+  // FormNote 不是浮層：它把小字傳送到同一張卡片下方的 footer（FormCard 提供的元素），
+  // 目標和來源在同一個 dialog／頁面裡，沒有 inert 的問題，不適用這一條
+  const users = sources.filter(([name, src]) => src.includes('<Teleport') && name !== 'FormNote.vue')
   r.check(users.length >= 3, `有 ${users.length} 個元件用到 Teleport`)
   for (const [name, src] of users) {
     r.check(src.includes('usePortalTarget'), `${name} 用 usePortalTarget 決定目標`)
@@ -79,12 +81,12 @@ export default function run() {
   // 只看 <button> 的內容：DraftOverlay 的標題就有「繼續填寫」四個字，
   // 拿整份 template 比對會量到標題的位置而不是按鈕的位置。
   const SECONDARY = ['取消', '重新開始']
-  const PRIMARY = ['confirmLabel', '繼續填寫', '選好了', "'儲存'"]
+  const PRIMARY = ['confirmLabel', '繼續填寫', '確定', "'儲存'"]
 
   for (const name of ['ConfirmDialog.vue', 'DraftOverlay.vue', 'EquipmentPicker.vue', 'BeanSelect.vue']) {
     const whole = readFileSync(new URL(name, dir), 'utf8')
     const template = whole.slice(whole.indexOf('<template>'))
-    const buttons = [...template.matchAll(/<button[\s\S]*?<\/button>/g)].map(m => m[0])
+    const buttons = [...template.matchAll(/<(button|AppButton)\b[\s\S]*?<\/\1>/g)].map(m => m[0])
 
     const secondaryAt = buttons.findIndex(b => SECONDARY.some(w => b.includes(w)))
     const primaryAt = buttons.findIndex(b => PRIMARY.some(w => b.includes(w)))

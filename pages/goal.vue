@@ -48,7 +48,7 @@ async function start() {
     class="mx-auto flex min-h-dvh flex-col px-5 pt-16 pb-10"
     :style="{ maxWidth: 'var(--content-max-narrow)' }"
   >
-    <h1 class="font-serif text-2xl font-bold">設定每週記錄目標</h1>
+    <h1 class="text-display-m font-medium">設定每週記錄目標</h1>
 
     <div class="mt-12">
       <GoalStepper v-model="cups" />
@@ -58,14 +58,12 @@ async function start() {
 
     <p v-if="error" role="alert" class="mt-6 text-sm" :style="{ color: 'var(--danger)' }">{{ error }}</p>
 
-    <button
-      type="button"
-      :disabled="saving"
-      class="mt-auto w-full rounded-sm px-4 py-3 font-medium disabled:opacity-60"
-      :style="{ background: 'var(--accent)', color: 'var(--on-accent)', minHeight: 'var(--touch-min)' }"
+    <AppButton block
+      :busy="saving"
+      class="mt-auto"
       @click="start"
     >
       開始
-    </button>
+    </AppButton>
   </main>
 </template>

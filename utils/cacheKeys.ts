@@ -84,7 +84,7 @@ export type Mutation =
  * **動到豆子就要一起清 `brews:`**，刪除與編輯都是，理由不同：
  * 刪除是因為外鍵 cascade，紀錄會跟著消失（確認對話框上就寫著「這支豆子的
  * N 筆沖煮紀錄會一併刪除」），不清的話時間軸會留著已經不存在的紀錄。
- * 編輯是因為豆子的欄位被**內嵌在沖煮查詢裡**——時間軸帶 `beans(name)`，
+ * 編輯是因為豆子的欄位被**內嵌在沖煮查詢裡**——紀錄分頁帶 `beans(name, photo_path, roast_level)`（卡片的豆名與縮圖），
  * 紀錄詳情帶 `beans(id, name, roast_date)`，而養豆天數是拿 roast_date
  * 算出來的。改豆名或烘焙日期而不清 `brews:`，時間軸會顯示舊豆名、
  * 詳情頁會顯示錯的養豆天數。
@@ -106,7 +106,7 @@ export function invalidationsFor(mutation: Mutation): string[] {
       return ['beans:*', 'brews:*']
 
     case 'bean-finished':
-      // 總覽的「上一杯」只算未喝完的豆子：統計要跟著重算
+      // 總覽的「最近沖煮」只算未喝完的豆子：統計要跟著重算
       return ['beans:*', cacheKeys.brewStats()]
 
     case 'equipment':

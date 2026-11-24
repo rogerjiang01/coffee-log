@@ -4,7 +4,19 @@ export default defineNuxtConfig({
   compatibilityDate: '2025-08-31',
   devtools: { enabled: true },
 
-  modules: ['@nuxtjs/supabase'],
+  modules: [
+    '@nuxtjs/supabase',
+    // 開發用的頁面：只在 nuxt dev 時加進路由，正式 build 沒有這些路由（不只是藏起來，是根本不存在）。
+    // 檔案放在 dev/ 而不是 pages/：放在 pages/ 的話 build 一定會掃進去。
+    // tests/unit/dev-corners.test.mjs 檢查這裡的條件，以及 build 之後的伺服器程式裡沒有 /dev/corners。
+    (_options, nuxt) => {
+      if (!nuxt.options.dev) return
+      nuxt.hook('pages:extend', (pages) => {
+        // 轉角形狀的調整頁（2026-11-19）
+        pages.push({ name: 'dev-corners', path: '/dev/corners', file: `${nuxt.options.rootDir}/dev/corners.vue` })
+      })
+    },
+  ],
 
   experimental: {
     // dev 啟動時每次噴五筆 #app-manifest 的 pre-transform error。
@@ -54,13 +66,16 @@ export default defineNuxtConfig({
   $development: {
     supabase: {
       cookieOptions: { secure: false },
+      // 開發用的頁面（上面 modules 裡加的）不需要登入。和上面的 exclude 合併成一份（defu 會串接陣列）；
+      // login、callback 是型別要求的，值和上面相同
+      redirectOptions: { login: '/login', callback: '/confirm', exclude: ['/dev/*'] },
     },
   },
 
   app: {
     head: {
       htmlAttrs: { lang: 'zh-Hant-TW' },
-      title: '手沖咖啡紀錄',
+      title: 'Laeta',
       // theme_color 決定手機瀏覽器的網址列底色，以及獨立視窗的狀態列。
       // 值必須與 manifest 一致，兩邊都取自 --accent（green-500）。
       // 這裡不能寫 var(--accent)：meta 與 manifest 都不吃 CSS 變數。
@@ -68,7 +83,7 @@ export default defineNuxtConfig({
         { name: 'theme-color', content: '#516e41' },
         { name: 'apple-mobile-web-app-capable', content: 'yes' },
         { name: 'apple-mobile-web-app-status-bar-style', content: 'default' },
-        { name: 'apple-mobile-web-app-title', content: '咖啡紀錄' },
+        { name: 'apple-mobile-web-app-title', content: 'Laeta' },
       ],
       link: [
         // 加到主畫面後以獨立視窗開啟，不帶瀏覽器 UI（display: standalone）。
@@ -80,11 +95,17 @@ export default defineNuxtConfig({
         { rel: 'apple-touch-icon', sizes: '180x180', href: '/apple-touch-icon.png' },
         { rel: 'preconnect', href: 'https://fonts.googleapis.com' },
         { rel: 'preconnect', href: 'https://fonts.gstatic.com', crossorigin: '' },
+        // 內文字體：台北黑體 300／400／700，自己放（《03》§8）。
+        // 這份樣式表只有 @font-face（324 條），由 scripts/slice-fonts.py 產生。
+        // 用 <link> 而不是併進 main.css：Nuxt 會把全站 CSS 寫進每一頁的 HTML，
+        // 併進去的話這 330 KB 每開一頁都要重新下載；獨立成檔可以快取（vercel.json 設了一年）。
+        // 路徑裡的 v1 是字型檔的版本，重切字型時要跟著改。
+        { rel: 'stylesheet', href: '/fonts/taipei-sans/v1/fonts.css' },
         {
           rel: 'stylesheet',
-          // 只載入實際會用到的字重：Sans 400/500/700、Serif 500/700。
-          // CJK 全字重過重。display=swap 對應《03-介面規範》第 8 節。
-          href: 'https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&family=Noto+Serif+TC:wght@500;700&display=swap',
+          // 只載入 Noto Sans TC 的 500：Medium（font-medium、標題）用它，
+          // 也補台北黑體沒有的字。display=swap 對應《03-介面規範》第 8 節。
+          href: 'https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@500&display=swap',
         },
       ],
     },

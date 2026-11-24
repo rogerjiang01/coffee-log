@@ -122,7 +122,7 @@ async function destroy() {
 </script>
 
 <template>
-  <main class="mx-auto px-5 pt-10 pb-16" :style="{ maxWidth: 'var(--content-max)' }">
+  <main class="mx-auto pt-10 pb-16" :style="{ maxWidth: 'var(--content-max)', paddingInline: 'var(--form-gutter)' }">
     <!-- 離開的入口不跟著資料走：讀取中、讀取失敗、找不到都要看得到 -->
     <PageHeader
       :title="view === 'notFound' ? '找不到這個器材' : '編輯器材'"
@@ -132,7 +132,7 @@ async function destroy() {
 
     <div v-if="view === 'loading'" aria-busy="true" aria-label="讀取中" class="mt-8">
       <div
-        class="rounded-sm border p-5"
+        class="form-card-corners border p-5"
         :style="{ borderColor: 'var(--border)', background: 'var(--surface)' }"
       >
         <div class="space-y-4">
@@ -144,14 +144,12 @@ async function destroy() {
     <!-- 讀取失敗不渲染表單（loadState.ts） -->
     <div v-else-if="view === 'error'" class="mt-8">
       <p role="alert" class="text-sm" :style="{ color: 'var(--danger)' }">{{ loadError }}</p>
-      <button
-        type="button"
-        class="mt-4 w-full rounded-sm border px-4 py-3"
-        :style="{ borderColor: 'var(--border-strong)', minHeight: 'var(--touch-min)' }"
+      <AppButton variant="outline" block
+        class="mt-4"
         @click="load"
       >
         重試
-      </button>
+      </AppButton>
     </div>
 
     <template v-else-if="view === 'ready'">
@@ -160,7 +158,6 @@ async function destroy() {
           ref="form"
           :draft-key="`draft:equipment:${id}`"
           :initial="initial ?? undefined"
-          :current-name="currentName"
           submit-label="儲存"
           :busy="saving"
           :error="error"
@@ -171,14 +168,12 @@ async function destroy() {
       <p v-if="actionError" role="alert" class="mt-4 text-sm" :style="{ color: 'var(--danger)' }">{{ actionError }}</p>
 
       <!-- 低頻且不可復原：儲存之後、不帶邊框，是這一頁權重最低的動作 -->
-      <button
-        type="button"
-        class="mt-3 w-full rounded-sm px-4 py-3 text-sm"
-        :style="{ color: 'var(--danger)', minHeight: 'var(--touch-min)' }"
+      <AppButton variant="text" tone="danger" block
+        class="mt-3"
         @click="confirmOpen = true"
       >
         刪除
-      </button>
+      </AppButton>
 
       <ConfirmDialog
         :open="confirmOpen"

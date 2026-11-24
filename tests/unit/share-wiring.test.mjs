@@ -104,7 +104,7 @@ export default function run() {
   r.check(both.indexOf('複製連結') > -1 && both.indexOf('複製連結') < both.indexOf('分享\n'),
     '支援系統分享：「複製連結」次要在左、「分享」主要在右')
   const only = actions.slice(actions.indexOf('v-else'))
-  r.check(/background: 'var\(--accent\)'/.test(only) && /複製連結/.test(only) && !/>\s*分享\s*</.test(only),
+  r.check(/^v-else\s+class="flex-1"/.test(only) && !/variant=/.test(only.slice(0, only.indexOf('>'))) && /複製連結/.test(only) && !/>\s*分享\s*</.test(only),
     '不支援系統分享：只有「複製連結」一顆，而且是主要按鈕')
   r.check(!/取消|完成|已分享過/.test(actions), '沒有「取消」「完成」，也沒有「已分享過」的狀態')
   r.check(!/朋友不用登入也能看|只能看、不能改/.test(panel), '沒有說明句')
@@ -141,7 +141,7 @@ export default function run() {
   r.check(/v-if="signedIn"[\s\S]{0,200}回總覽/.test(gone) && /to="\/"/.test(gone), '失效畫面：登入時才有「回總覽」，目的地是 /')
   r.check(!/<PageHeader|<BackButton/.test(page + view), '沒有 ‹')
   r.check(!/\.rpc\(|useSupabaseClient/.test(view + gone), '內容與失效畫面不碰資料庫，讀取只在頁面做一次')
-  r.check(!/NuxtLink[^>]*>\s*手沖咖啡紀錄/.test(page) && /手沖咖啡紀錄/.test(page), '頂部的產品名不是連結')
+  r.check(!/NuxtLink[^>]*>\s*Laeta/.test(page) && />Laeta</.test(page), '頂部的產品名不是連結')
   r.check(/definePageMeta\(\{ screen: 'share' \}\)/.test(read('pages/s/[code].vue')), '宣告成分享頁（分頁列看登入狀態）')
   r.check(/exclude: \[[^\]]*'\/s\/\*'/.test(read('nuxt.config.ts')), '未登入的人不會被導去登入頁（redirectOptions.exclude）')
 
@@ -149,7 +149,7 @@ export default function run() {
   const detail = read('pages/brews/[id]/index.vue')
   const titleRow = detail.match(/<div class="mt-4 flex items-baseline gap-2">[\s\S]*?<\/div>/)?.[0] ?? ''
   r.check(/<BrewShare\b/.test(titleRow), '分享圖示在標題列（豆名那一行）')
-  r.check(titleRow.indexOf('<BrewShare') > titleRow.indexOf('<SampleBadge'), '在最右端')
+  r.check(titleRow.indexOf('<BrewShare') > titleRow.indexOf('</h1>'), '在最右端（豆名之後）')
   r.check(/aria-label="分享"[\s\S]*?self-center|self-center[\s\S]*?aria-label="分享"/.test(panel.split('<dialog')[0]),
     '圖示自己垂直置中，不跟著標題對齊基線')
   r.check(/ml-auto/.test(panel.split('<dialog')[0]) && /shrink-0/.test(panel.split('<dialog')[0]), '靠右、不讓位給長豆名')

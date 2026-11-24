@@ -1,19 +1,19 @@
 // 分段注水（《01-資料庫規格》§3.6、《02-功能規格》§5 區塊三）。
 //
 // **介面填什麼就存什麼，沒有換算層。**
-//   累積水量  「注到 160 g」→ cumulative_water = 160
-//   停水時間  「停 30 秒」  → hold_seconds = 30
+//   累積水量  160 g → cumulative_water = 160
+//   停水時長  30 秒 → hold_seconds = 30
 //
-// 停留＝注完之後到下一注之前的**停水時間**，不含注水動作本身。
+// 停留＝注完之後到下一注之前的**停水時長**，不含注水動作本身。
 //
 // 舊版存的是累積時間點（time_offset），「停留」被定義成「這段開始注水到
 // 下一段開始注水」的全部時間。那個定義要求使用者提供一個他不知道的數字
 // ——注水花了幾秒——兩位實機測試者都填不出來（「我以為是下沖的時間」；
 // 被告知定義之後仍然「不知道怎麼填」）。給水速率依器材與手法而異，
-// 還有行動誤差，無法預期；能預期、也真的在被調整的是停水時間。
+// 還有行動誤差，無法預期；能預期、也真的在被調整的是停水時長。
 // **換算層與它的測試一起移除了，不要再加回來。**
 //
-// 最後一段不存停水時間（一律 null）：最後一注之後沒有下一注，「停水」
+// 最後一段不存停水時長（一律 null）：最後一注之後沒有下一注，「停水」
 // 這件事不存在，剩下的只是等它滴完，那段時間由 total_time 記錄。
 //
 // hold_seconds 可為 NULL：沒記錄就是 NULL。舊版 NOT NULL 逼得「沒記錄」
@@ -30,10 +30,80 @@ export interface StepInput {
   note: string
 }
 
+/**
+ * 攪拌標記已經從介面移除（2026-11-16，Laeta 改版第三批）：需要的話寫在備註。
+ * 資料庫的 step_type 還留著 'stir'（清理用的 migration 等 redesign 上線時處理，見 CLAUDE.md），
+ * 所以舊紀錄裡還讀得到。**withoutStir 是唯一決定「舊的攪拌段在新介面長什麼樣子」的地方**：
+ * 載入表單（編輯、照這次再沖一次、還原暫存）與顯示（紀錄詳情、分享頁）都先過它，
+ * 清理的 migration 也照同一套規則。新的介面不會再產生 'stir'。
+ *
+ * **攪拌段併進相鄰的段，不留成獨立的一段。** 攪拌不注水，它的累積水量和前一段相同，
+ * 單純改成一般段會多出一段「+0 g」，看起來像填錯。
+ *
+ *   一般情況            併進前一段：前一段的停水時長加上攪拌段的，備註後面補上「攪拌」（攪拌段自己的備註接在後面）
+ *   攪拌段是第一段      併進下一段：備註前面補上「攪拌」，停水時長加到下一段
+ *   連續好幾個攪拌段    都併進同一段，停水時長全部加起來；中間沒有別的備註時「攪拌」只寫一次
+ *   攪拌段是最後一段    併進前一段；前一段變成最後一段，最後一段不存停水時長（toStepRows）
+ *   停水時長沒記錄      null 當作沒有：兩邊都是 null 才是 null，不會憑空變成 0 秒
+ *   攪拌段的累積水量比前一段多  那一段其實注了水，併掉會少算水量：留成一般段，備註前面補上「攪拌」
+ *   （第一段前面的水量是 0，所以第一段攪拌段只要填了大於 0 的水量就屬於這一條）
+ *   攪拌段的累積水量比前一段少  攪拌不注水，那個數字沒有意義：照樣併進前一段
+ *   整組只有攪拌段      沒有可以併的對象：留一段一般段，備註「攪拌」
+ */
+export const STIR_NOTE = '攪拌'
+
+const joinNotes = (parts: string[]) => parts.map(part => part.trim()).filter(Boolean).join('，')
+const addSeconds = (a: number | null, b: number | null) => (a === null && b === null ? null : (a ?? 0) + (b ?? 0))
+/** 補上「攪拌」。連續的攪拌段只寫一次 */
+function withStirNote(parts: string[], note: string): string[] {
+  const kept = parts.filter(part => part.trim())
+  return [...(kept.at(-1) === STIR_NOTE ? kept : [...kept, STIR_NOTE]), note]
+}
+
+export function withoutStir(steps: StepInput[]): StepInput[] {
+  if (!steps.some(step => step.stepType === 'stir')) return steps
+
+  const merged: { step: StepInput, notes: string[] }[] = []
+  // 開頭的攪拌段：等下一段出現再併進去
+  // as：迴圈裡會重新指派，不加的話 TypeScript 把它收窄成永遠是 null
+  let leading = null as { hold: number | null, notes: string[] } | null
+  let water = 0
+
+  for (const step of steps) {
+    const adds = step.cumulativeWater !== null && step.cumulativeWater > water
+    if (step.stepType === 'stir' && !adds) {
+      const target = merged.at(-1)
+      if (target) {
+        target.step = { ...target.step, holdSeconds: addSeconds(target.step.holdSeconds, step.holdSeconds) }
+        target.notes = withStirNote(target.notes, step.note)
+      }
+      else {
+        leading = { hold: addSeconds(leading?.hold ?? null, step.holdSeconds), notes: withStirNote(leading?.notes ?? [], step.note) }
+      }
+      continue
+    }
+    const stirred = step.stepType === 'stir'
+    merged.push({
+      step: {
+        ...step,
+        stepType: stirred ? 'pour' : step.stepType,
+        holdSeconds: addSeconds(step.holdSeconds, leading?.hold ?? null),
+      },
+      notes: [...(leading?.notes ?? []), ...(stirred ? [STIR_NOTE] : []), step.note],
+    })
+    leading = null
+    if (step.cumulativeWater !== null) water = step.cumulativeWater
+  }
+  // 整組只有攪拌段
+  if (leading) merged.push({ step: { ...emptyStep('pour'), cumulativeWater: steps[0]!.cumulativeWater, holdSeconds: leading.hold }, notes: leading.notes })
+
+  return merged.map(({ step, notes }) => ({ ...step, note: joinNotes(notes) }))
+}
+
 /** 資料庫裡的一段 */
 export interface StepRow {
   step_index: number
-  /** 停水時間。沒記錄是 null；最後一段永遠是 null */
+  /** 停水時長。沒記錄是 null；最後一段永遠是 null */
   hold_seconds: number | null
   cumulative_water: number
   step_type: StepType
@@ -113,7 +183,7 @@ export interface MethodTemplateStep {
   type: StepType
   basis: StepBasis
   factor: number
-  /** 該段的停水時間。最後一段沒有下一注，是 null */
+  /** 該段的停水時長。最後一段沒有下一注，是 null */
   duration: number | null
   note?: string
 }
@@ -209,7 +279,7 @@ export function stepsFromTemplate(
       stepType: step.type,
       // 磅秤讀的是累積數字，這裡直接給累積值
       cumulativeWater: cumulative,
-      // 模板的 duration 是停水時間，直接給，不換算
+      // 模板的 duration 是停水時長，直接給，不換算
       holdSeconds: step.duration ?? null,
       note: step.note ?? '',
     }

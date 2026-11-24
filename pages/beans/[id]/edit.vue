@@ -136,7 +136,7 @@ async function onSubmit(
 </script>
 
 <template>
-  <main class="mx-auto px-5 py-10" :style="{ maxWidth: 'var(--content-max)' }">
+  <main class="mx-auto py-10" :style="{ maxWidth: 'var(--content-max)', paddingInline: 'var(--form-gutter)' }">
     <!-- ‹ 在所有狀態判斷之外。它是「離開」不是「取消」：暫存留著，回來還在（《04》）。
          有上一頁就退回上一頁，沒有才去那支豆子。
          找不到這一筆時直接去豆子列表，不看上一頁——回到它的詳情頁只會再看到一次「找不到」 -->
@@ -151,7 +151,7 @@ async function onSubmit(
       <div v-if="view === 'loading'" aria-busy="true" aria-label="讀取中" class="mt-8 space-y-4">
         <div
           v-for="card in 2" :key="card"
-          class="rounded-sm border p-5"
+          class="form-card-corners border p-5"
           :style="{ borderColor: 'var(--border)', background: 'var(--surface)' }"
         >
           <SkeletonBlock width="5rem" height="0.875rem" />
@@ -165,14 +165,12 @@ async function onSubmit(
            而儲存會用空白的內容覆蓋這支豆子 -->
       <div v-else-if="view === 'error'" class="mt-8">
         <p role="alert" class="text-sm" :style="{ color: 'var(--danger)' }">{{ loadError }}</p>
-        <button
-          type="button"
-          class="mt-4 w-full rounded-sm border px-4 py-3"
-          :style="{ borderColor: 'var(--border-strong)', minHeight: 'var(--touch-min)' }"
+        <AppButton variant="outline" block
+          class="mt-4"
           @click="load"
         >
           重試
-        </button>
+        </AppButton>
       </div>
 
       <div v-else-if="view === 'ready'" class="mt-8">

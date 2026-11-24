@@ -130,20 +130,7 @@ async function openDetail() {
   <main class="mx-auto px-5 pt-10 pb-16" :style="{ maxWidth: 'var(--content-max)' }">
     <!-- 右上角：完成。《03》§3 圖示表的「完成」 -->
     <header class="flex justify-end" :style="{ minHeight: 'var(--touch-min)' }">
-      <button
-        type="button"
-        aria-label="完成"
-        class="-mr-1 flex shrink-0 items-center justify-center rounded-full"
-        :style="{ width: 'var(--touch-min)', height: 'var(--touch-min)', background: 'var(--accent)', color: 'var(--on-accent)' }"
-        @click="done"
-      >
-        <svg
-          width="22" height="22" viewBox="0 0 24 24" aria-hidden="true"
-          fill="none" stroke="currentColor" stroke-width="2.18" stroke-linecap="round" stroke-linejoin="round"
-        >
-          <path d="M20 6 9 17l-5-5" />
-        </svg>
-      </button>
+      <DoneButton class="-mr-1" @click="done" />
     </header>
 
     <div v-if="!ready" aria-busy="true" aria-label="讀取中" class="mt-4 space-y-6">
@@ -180,12 +167,12 @@ async function openDetail() {
         :celebrate="ring.crossed"
       />
       <!-- 第一筆紀錄（不含範例）是里程碑：字級提高到和比較區標題同一級 -->
-      <p v-if="firstRecord" class="mt-4 font-serif text-lg font-bold">第一筆紀錄</p>
+      <p v-if="firstRecord" class="mt-4 text-heading-m font-medium">第一筆紀錄</p>
       <p v-else class="mt-4 tabular-nums">第 {{ records }} 筆紀錄</p>
 
       <!-- 3. 比較區 -->
       <section v-if="comparison?.target" class="mt-8">
-        <h2 class="font-serif text-lg font-bold">和 {{ monthDay(comparison.target.brewed_at) }} 那一杯相比</h2>
+        <h2 class="text-heading-m font-medium">和 {{ monthDay(comparison.target.brewed_at) }} 那一杯相比</h2>
         <p v-if="!comparison.diffs.length" class="mt-3">參數和 {{ monthDay(comparison.target.brewed_at) }} 那一杯相同</p>
         <dl v-if="compareRows.length" class="mt-3">
           <div
@@ -207,7 +194,7 @@ async function openDetail() {
       <!-- 第一杯（沒有比較對象）：比較區換成「這支豆子」與「這一杯」 -->
       <template v-else-if="firstCup">
         <section class="mt-8">
-          <h2 class="font-serif text-lg font-bold">這支豆子</h2>
+          <h2 class="text-heading-m font-medium">這支豆子</h2>
           <dl v-if="firstCup.bean.rows.length" class="mt-3">
             <div
               v-for="row in firstCup.bean.rows"
@@ -224,7 +211,7 @@ async function openDetail() {
         </section>
 
         <section class="mt-8">
-          <h2 class="font-serif text-lg font-bold">這一杯</h2>
+          <h2 class="text-heading-m font-medium">這一杯</h2>
           <dl v-if="firstCup.rows.length" class="mt-3">
             <div
               v-for="row in firstCup.rows"
@@ -242,7 +229,7 @@ async function openDetail() {
       </template>
 
       <!-- 4. 回饋句：有比較對象、兩筆都有評分才出現；第一杯固定是「恭喜開箱新豆子。」 -->
-      <p v-if="feedback" class="mt-8 font-serif text-lg">{{ feedback }}</p>
+      <p v-if="feedback" class="mt-8 text-heading-m font-medium">{{ feedback }}</p>
     </template>
   </main>
 </template>

@@ -6,6 +6,8 @@ import * as brewSteps from '../../utils/brewSteps.ts'
 Object.assign(globalThis, {
   secondsToClock: brewSteps.secondsToClock,
   toStepInputs: brewSteps.toStepInputs,
+  toStepRows: brewSteps.toStepRows,
+  withoutStir: brewSteps.withoutStir,
   hasStepTiming: brewSteps.hasStepTiming,
 })
 const { computeBrewDiff, ratingDiff } = await import('../../utils/brewDiff.ts')
@@ -57,7 +59,7 @@ export default function run() {
   r.check(computeBrewDiff(base({ brew_method_id: 'm1', methodName: '四六法' }), base()).length === 0,
     '比較對象沒選手法、這一筆選了：不列（不是調整，是記得比較詳細）')
   r.check(computeBrewDiff(base({ total_time: null }), base()).length === 0, '一邊沒填沖煮時間：不列')
-  r.check(computeBrewDiff(base({ steps: [] }), base()).length === 0, '一邊沒有分段：段數、水量、停水時間都不列')
+  r.check(computeBrewDiff(base({ steps: [] }), base()).length === 0, '一邊沒有分段：段數、水量、停水時長都不列')
   r.check(!JSON.stringify(computeBrewDiff(base({ dose: null, steps: [] }), base({ water_temp: null }))).includes('沒填'),
     '畫面上不再出現「沒填」')
 
@@ -93,11 +95,22 @@ export default function run() {
   r.check(untimedFewer.some(d => d.field === 'step_count') && !untimedFewer.some(d => d.field === 'step_time'),
     '兩邊都沒記錄、段數不同：比出段數，不比停留秒數')
   const oneSide = computeBrewDiff(base({ steps: untimed }), base())
-  r.check(!oneSide.some(d => d.field === 'step_time'), '只有一邊有記錄：略過停水時間（一邊沒填就略過）')
+  r.check(!oneSide.some(d => d.field === 'step_time'), '只有一邊有記錄：略過停水時長（一邊沒填就略過）')
   const bloomOnly = [step(1, null, 40)]
   r.check(!computeBrewDiff(base({ steps: bloomOnly, total_time: 120 }), base({ steps: bloomOnly }))
     .some(d => d.field === 'step_time'),
   '只有一段：它就是最後一段，沒有停留可比——沖煮時間自己有一條')
+
+  r.section('舊紀錄的攪拌段：先併掉再比（和畫面上的分段一致）')
+  const stir = (i: number, hold: number | null, w: number) => ({ ...step(i, hold, w), step_type: 'stir' as const })
+  const plain = [step(1, 30, 40), step(2, 45, 160), step(3, null, 240)]
+  const stirred = [step(1, 30, 40), stir(2, 10, 40), step(3, 45, 160), step(4, null, 240)]
+  const withStir = computeBrewDiff(base({ steps: stirred }), base({ steps: plain }))
+  r.check(!withStir.some(d => d.field === 'step_count'), '攪拌段不算一段：悶蒸＋攪拌＋兩注 和 悶蒸＋兩注 段數相同')
+  r.check(!withStir.some(d => /40 \/ 40/.test(d.after)), '累積水量不出現畫面上看不到的那一段（40 / 40 / 160 / 240）')
+  const stirTime = withStir.find(d => d.field === 'step_time')
+  r.check(stirTime?.before === '30 / 45' && stirTime.after === '40 / 45', `停水時長相加之後才比：${stirTime?.before} → ${stirTime?.after}`)
+  r.check(computeBrewDiff(base({ steps: stirred }), base({ steps: stirred })).length === 0, '兩邊是同一組含攪拌的分段：沒有差異')
 
   return r.finish()
 }

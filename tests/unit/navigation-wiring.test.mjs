@@ -94,74 +94,70 @@ export default function run() {
   const homeScript = read('pages/index.vue')
   const homeTemplate = stripComments(home)
   r.check(/<PageHeader title="總覽">/.test(homeTemplate), '標題是「總覽」，保留齒輪')
-  r.check(!/沖煮中的豆子|HomeBeanCard/.test(homeTemplate), '「沖煮中的豆子」拿掉了，由「上一杯」取代')
+  r.check(!/沖煮中的豆子|HomeBeanCard/.test(homeTemplate), '「沖煮中的豆子」拿掉了，由「最近沖煮」取代')
   r.check(!/BrewTimelineItem|載入更多|brewPage/.test(homeScript), '時間軸不在這裡（紀錄分頁）')
   const cardOrder = ['v-if="week"', 'v-if="last"', 'v-if="top"', 'v-if="totals"', 'v-if="month"'].map(marker => homeTemplate.indexOf(marker))
-  r.check(cardOrder.every((at, i) => at > 0 && (i === 0 || at > cardOrder[i - 1])), '由上到下：目標環、上一杯、本週最高分、累計、本月')
+  r.check(cardOrder.every((at, i) => at > 0 && (i === 0 || at > cardOrder[i - 1])), '由上到下：目標環、最近沖煮、本週最高分、累計、本月')
   const goalCard = stripComments(templateOf(read('components/GoalWeekCard.vue')))
-  const goalCardScript = read('components/GoalWeekCard.vue')
+  const beanCard = stripComments(templateOf(read('components/OverviewBeanCard.vue')))
+  const appCard = stripComments(templateOf(read('components/AppCard.vue')))
   r.check(/class="mt-6 grid grid-cols-2 gap-3"/.test(homeTemplate) && /<GoalWeekCard\s+v-if="week"\s+class="col-span-2"/.test(homeTemplate),
     '目標環全寬，永遠在最上面（GoalWeekCard，結算頁共用）')
-  r.check(/dashboardRows\(\{ last: !!last\.value, top: !!top\.value, totals: !!totals\.value, month: !!month\.value \}\)/.test(homeScript),
-    '下面固定兩排，排列由 dashboardRows 決定（不往前遞補）')
-  for (const card of ['last', 'top', 'totals', 'month']) {
-    r.check(new RegExp(`v-if="${card}"[\\s\\S]{0,200}:class="\\{ 'col-span-2': spanOf\\('${card}'\\) === 2 \\}"`).test(homeTemplate),
-      `${card}：同一排只剩它時改成全寬`)
-  }
-  // 每張卡片的第一個元素都是標題，靠左上，樣式相同
-  const cards = [...homeTemplate.matchAll(/v-if="(last|top|totals|month)"[\s\S]*?>\s*<h2 class="([^"]+)">([\s\S]*?)<\/h2>/g)]
-  const goalTitle = goalCard.match(/<component[\s\S]*?>\s*<h2 class="([^"]+)">([\s\S]*?)<\/h2>/)
-  r.check(cards.length === 4 && cards.every(m => m[2] === 'font-serif text-lg font-bold') && goalTitle?.[1] === 'font-serif text-lg font-bold',
-    '五張卡片的第一個元素都是標題，樣式相同')
-  const titles = Object.fromEntries(cards.map(m => [m[1], m[3].trim()]))
-  titles.week = goalTitle?.[2].trim()
-  r.check(titles.week === '本週目標' && titles.last === '上一杯' && titles.totals === '累計' && titles.month === '本月'
-    && titles.top === "{{ top.week === 'this' ? '本週最高分' : '上週最高分' }}", '標題文字：本週目標、上一杯、本週最高分／上週最高分、累計、本月')
-  r.check(/<GoalRing :count="count" :from="from" :goal="goal" :size="80"[^>]*\/>\s*<div class="min-w-0 flex-1">\s*<p class="tabular-nums">/.test(goalCard) && !/RING_LAYOUT/.test(homeScript),
-    '目標環卡片：環在左，右邊上方是數字、下方是長條圖（方案 A）')
-  r.check(/class="w-2 rounded-sm"/.test(goalCard) && /items-end justify-center" :class="anyCups \? 'h-10' : 'h-0\.5'"/.test(goalCard),
-    '長條寬度固定、明顯窄於欄寬；全部 0 杯時長條區只剩底線')
+  r.check(/<span role="heading" aria-level="2" class="min-w-0 text-heading-s font-medium">\{\{ title \}\}<\/span>/.test(appCard),
+    'AppCard：標題 16px（Heading S）、字重 500，是卡片的第一個元素')
+  r.check(/<AppCard[\s\S]*?title="本週目標"/.test(goalCard) && /<AppCard\s+:as="NuxtLink" :to="to" :title="title" arrow/.test(beanCard)
+    && /<OverviewBeanCard\s+v-if="last"\s+title="最近沖煮"/.test(homeTemplate)
+    && /<OverviewBeanCard\s+v-if="top"\s+:title="top\.week === 'this' \? '本週最高分' : '上週最高分'"/.test(homeTemplate)
+    && /<AppCard\s+v-if="totals"[\s\S]*?title="累計"\s+arrow/.test(homeTemplate) && /<AppCard v-if="month" title="本月"/.test(homeTemplate),
+    '標題文字：本週目標、最近沖煮、本週最高分／上週最高分、累計、本月')
+  r.check(/<GoalRing :count="ringCount" :from="ringFrom" :goal="goal" :size="100"/.test(goalCard) && />記錄<\/span>/.test(goalCard),
+    '目標環卡片：左邊 100px 的環，中間是「記錄」與數字，右邊是長條圖（Figma）')
+  r.check(/class="corner-bar relative w-full rounded-full" :style="\{ height: `\$\{BAR_HEIGHT\}px`, background: 'var\(--accent-wash\)' \}">\s*<span\s+v-if="cups"\s+class="corner-bar absolute inset-x-0 bottom-0 rounded-full"/.test(goalCard),
+    '每一天都有全高的底軌（--accent-wash），杯數的長條疊在上面；0 杯的那一天只有底軌')
+  const goalCardFile = read('components/GoalWeekCard.vue')
+  r.check(!/over-?[tT]ext/.test(homeTemplate + goalCard) && !/props\.overText/.test(goalCardFile)
+    && /if \(props\.count > props\.goal\) return `超過 \$\{props\.count - props\.goal\} 杯`/.test(goalCardFile)
+    && /const ringCount = computed\(\(\) => Math\.min\(props\.count, props\.goal\)\)/.test(goalCardFile)
+    && /<GoalRing :count="ringCount" :from="ringFrom"/.test(goalCard)
+    && !/accent-active|laps\.second/.test(read('components/GoalRing.vue')),
+    '超過目標：環停在一圈，寫「超過 N 杯」，不畫第二圈——總覽與結算頁共用同一張卡片，沒有開關')
+  r.check(/const filled = ref\(ringFrom\.value === null \|\| ringFrom\.value === ringCount\.value\)/.test(goalCardFile),
+    '結算頁上已經超過目標之後的紀錄：環沒有動畫，數字直接是存檔後的杯數')
+
+  r.section('總覽：固定高度與空狀態（2026-11-16 定案）')
+  r.check(/--overview-card-h: 169px/.test(read('assets/css/tokens.css')), '卡片高度是一個 token（Figma 的 169px）')
+  r.check(/:style="\{ height: 'var\(--overview-card-h\)' \}"/.test(beanCard) && !/aspect-square': !wide|aspect-square'\s*:/.test(beanCard),
+    '最近沖煮、最高分：固定高度，全寬時也一樣')
+  r.check((homeTemplate.match(/:style="CARD_HEIGHT"/g) ?? []).length === 2 && /const CARD_HEIGHT = \{ height: 'var\(--overview-card-h\)' \}/.test(homeScript)
+    && !/aspect-square/.test(homeTemplate), '累計、本月：同一個固定高度，不再是正方形')
+  r.check(/const firstRowWide = computed\(\(\) => !!last\.value !== !!top\.value\)/.test(homeScript)
+    && /const secondRowWide = computed\(\(\) => !!totals\.value !== !!month\.value\)/.test(homeScript)
+    && (homeTemplate.match(/:class="\{ 'col-span-2': firstRowWide \}"/g) ?? []).length === 2 && /:class="\{ 'col-span-2': secondRowWide \}"/.test(homeTemplate),
+    '同一排只剩一張：那一張全寬，不往前遞補')
+  r.check(/<AppCard v-if="noRecords" radius="ml" class="col-span-2[^"]*">[\s\S]*?還沒有紀錄[\s\S]*?<AppButton :to="newBrewLink">新增紀錄<\/AppButton>/.test(homeTemplate),
+    '完全沒有紀錄：一張全寬的說明卡片加「新增紀錄」')
+  r.check(/:footer="top\.week === 'last' \? `上週\$\{weekdayShort\(top\.brew\.brewed_at\)\}，本週未評分` : weekdayOf\(top\.brew\.brewed_at\)"/.test(homeTemplate)
+    && /:name-lines="top\.week === 'last' \? 1 : 2"/.test(homeTemplate),
+    '上週最高分：最下面一行「上週六，本週未評分」，豆名一行（2026-11-23）')
+  const overviewBeanCard = read('components/OverviewBeanCard.vue')
+  r.check(!/\bnote\b/.test(overviewBeanCard.replace(/\/\/.*$/gm, '')) && (overviewBeanCard.match(/class="[^"]*\btruncate text-body-s tabular-nums text-muted"/g) || []).length === 2,
+    '最下面一行不換行、放不下截斷；note 拿掉了')
+  r.check(!/emptyVariant|variantB|OverviewHintCard/.test(homeScript) && !/dashboardRows/.test(read('utils/dashboard.ts')),
+    '方案開關、沒選上的方案與沒有在用的 dashboardRows 都刪掉了')
   r.check(/\{\{ shown \}\}／\{\{ goal \}\}<\/span>\s*<span[^>]*>杯<\/span>/.test(goalCard) && !/本週 \{\{/.test(goalCard + homeTemplate),
     '「N／M 杯」，不和標題重複「本週」')
-  // 字級：標題 lg、主要數字 xl（不大過頁面標題的 xl）、單位與次要文字 sm
-  r.check(!/text-2xl|text-3xl|text-4xl/.test(homeTemplate), '卡片上的數字不大過頁面標題（text-xl）')
-  const numbers = [...(homeTemplate + goalCard).matchAll(/<span class="([^"]*)">\{\{ (shown|totals\.records|totals\.beans|month\.cups|month\.dose)/g)]
-  r.check(numbers.length === 5 && numbers.every(m => /font-serif text-xl font-bold/.test(m[1])), '主要數字同一級：--text-xl')
-  r.check(/>杯<\/span>/.test(goalCard) && [...(homeTemplate + goalCard).matchAll(/<span class="([^"]*)">(杯|筆紀錄|喝過|支豆子|g)<\/span>/g)].every(m => /text-sm text-muted/.test(m[1])),
-    '單位與次要文字同一級：--text-sm')
+  const metrics = [...homeTemplate.matchAll(/<MetricValue :value="([\w.]+)" unit="(.)" \/>/g)].map(m => `${m[1]}${m[2]}`)
+  r.check(metrics.join() === 'totals.records筆,totals.beans支,month.cups筆,month.dose克', '累計與本月：指標數字加單位')
   r.check(/@click="editing = true"/.test(homeTemplate) && /<GoalDialog/.test(homeTemplate), '點目標環卡片打開修改目標的對話框')
-  r.check(/:to="`\/beans\/\$\{last\.beanId\}`"/.test(homeTemplate), '上一杯：點了進豆子詳情')
-  const lastCard = homeTemplate.match(/v-if="last"[\s\S]*?<\/NuxtLink>/)?.[0] ?? ''
-  r.check(!/<button/.test(lastCard), '上一杯：卡片上不放任何按鈕')
-  r.check(/<span class="block size-16 shrink-0[^"]*">\s*<BeanThumb :photo-url="photoOf\(last\.bean\.photo_path\)"/.test(lastCard) && /thumbnailUrls\(paths\)/.test(homeScript),
-    '上一杯：64px 縮圖（縮圖檔，沒有照片時用烘焙度色塊），不是全寬照片')
-  const topCard = homeTemplate.match(/v-if="top"[\s\S]*?<\/NuxtLink>/)?.[0] ?? ''
-  r.check(/<span class="block size-16 shrink-0[^"]*">\s*<BeanThumb/.test(topCard) && /評分 \$\{top\.brew\.rating\} 顆星/.test(topCard)
-    && /monthDay\(top\.brew\.brewed_at\)/.test(topCard) && !/・/.test(topCard), '最高分：同樣的縮圖，右邊分行是豆名、評分、沖煮日期，不用中間點')
-  r.check(/第 \{\{ last\.count \}\} 杯/.test(lastCard), '上一杯：「第 N 杯」')
+  r.check(/:to="`\/beans\/\$\{last\.beanId\}`"/.test(homeTemplate) && !/<button/.test(beanCard), '最近沖煮：點了進豆子詳情，卡片上不放按鈕')
   r.check(/:to="`\/brews\/\$\{top\.brew\.id\}`"/.test(homeTemplate), '最高分：點了進紀錄詳情')
-  r.check(/v-if="totals"\s+to="\/brews"/.test(homeTemplate), '累計：點了進紀錄分頁')
-  r.check(/<div\s+v-if="month"/.test(homeTemplate), '本月：卡片不能點')
-  r.check(/\{\{ totals\.records \}\}<\/span><span[^>]*>筆紀錄<\/span>/.test(homeTemplate) && /喝過<\/span><span[^>]*>\{\{ totals\.beans \}\}<\/span><span[^>]*>支豆子/.test(homeTemplate),
-    '累計：「N 筆紀錄」「喝過 N 支豆子」')
-  r.check(/\{\{ month\.cups \}\}<\/span><span[^>]*>杯<\/span>/.test(homeTemplate) && /\{\{ month\.dose \}\}<\/span><span[^>]*>g<\/span>/.test(homeTemplate), '本月：「N 杯」「N g」')
-  r.check(/weekCard\(stats\.value, goals\.value, now\.value\)/.test(homeScript) && /lastBeanCard\(stats\.value\)/.test(homeScript)
-    && /topRatedCard\(stats\.value, now\.value\)/.test(homeScript) && /totalsCard\(stats\.value\)/.test(homeScript)
-    && /monthCard\(stats\.value, now\.value\)/.test(homeScript), '每張卡片的資料與顯示條件都在 utils/dashboard.ts')
+  r.check(/v-if="totals"\s+:as="NuxtLink"\s+to="\/brews"/.test(homeTemplate), '累計：點了進紀錄分頁')
   r.check(/\.eq\('is_sample', false\)/.test(read('composables/useBrewStats.ts')), '統計的查詢排除範例紀錄')
   r.check(/newBrewEntry\(activeBeans\.value\)/.test(homeScript), '浮動新增按鈕：只有一支未喝完的豆子時帶入')
-  // 規定以外的文案：卡片標題、規格寫明的文字、星期的單字以外，不放任何字（標題不算說明句，《02》§4.1）
-  const homeText = homeTemplate
-    .replace(/<PageHeader[\s\S]*?<\/PageHeader>/, '')
-    .replace(/\{\{[\s\S]*?\}\}/g, '')
-    .replace(/<(?:[^>"']|"[^"]*"|'[^']*')*>/g, ' ').split(/\s+/).filter(Boolean)
-  const allowed = new Set(['本週目標', '／', '上一杯', '第', '杯', '累計', '筆紀錄', '喝過', '支豆子', '本月', 'g'])
-  const extra = homeText.filter(word => !allowed.has(word))
-  r.check(extra.length === 0, `總覽沒有規定以外的文案${extra.length ? `：${extra.join('、')}` : ''}`)
   r.check(!/#[0-9a-f]{3,6}\b/i.test(homeTemplate + read('components/GoalRing.vue') + read('components/GoalStepper.vue') + read('components/BeanThumb.vue')),
     '沒有寫死的色碼（品牌色會更換）')
 
-  r.section('紀錄分頁：時間軸原樣搬過來')
+  r.section('紀錄分頁：一筆一張紀錄卡片（2026-11-23）')
   const brews = read('pages/brews/index.vue')
   const brewsTemplate = stripComments(templateOf(brews))
   r.check(/<PageHeader title="紀錄" \/>/.test(brewsTemplate), '標題是「紀錄」')
@@ -169,12 +165,17 @@ export default function run() {
   r.check(/\.order\('brewed_at', \{ ascending: false \}\)\s*\.order\('id', \{ ascending: false \}\)/.test(brews), '依沖煮日期新到舊')
   const brewsQuery = brews.slice(brews.indexOf('async function fetchBrewPage'), brews.indexOf('async function load()'))
   r.check(!/\.eq\(|\.ilike\(|\.filter\(|\.in\(/.test(brewsQuery) && !/type="search"|<select/.test(brewsTemplate), '沒有篩選、排序、搜尋')
-  r.check(/compareTargetId\(/.test(brews) && !/supabase[\s\S]{0,40}for \(const row of rows\)/.test(brews), '差異提示用同一條比較規則')
+  // 卡片只呈現「這一杯」，差異只在紀錄詳情與結算頁（《02》§4.2）
+  r.check(!/compareTargetId|computeBrewDiff|diffs/.test(brews), '列表不算比較對象與差異')
   const enrich = brews.slice(brews.indexOf('async function enrichEntries'), brews.indexOf('const cache = useQueryCache()'))
-  r.check((enrich.match(/supabase\.from\(/g) || []).length === 4 && !/for \([^)]*\)\s*\{[^}]*supabase/.test(enrich),
-    '一頁最多四個請求，不是每一列各發一次')
-  r.check(/<NuxtLink :to="`\/brews\/\$\{entry\.id\}`" class="block">\s*<BrewTimelineItem/.test(brewsTemplate), '整列點進紀錄詳情，沿用 BrewTimelineItem')
-  r.check(/:diffs="entry\.diffs"/.test(brewsTemplate) && /computeBrewDiff\(/.test(brews), '每一列帶差異提示')
+  r.check((enrich.match(/supabase\.from\(/g) || []).length === 1 && /thumbnailUrls\(/.test(enrich) && !/for \([^)]*\)\s*\{[^}]*supabase/.test(enrich),
+    '一頁只補一次分段（總水量）與一次縮圖網址，不是每一列各發一次')
+  r.check(/<BrewCard\b[\s\S]*?:id="entry\.id"/.test(brewsTemplate) && !/BrewTimelineItem/.test(brews), '每一筆是一張紀錄卡片（BrewCard）')
+  const card = read('components/BrewCard.vue')
+  r.check(/<AppCard :as="NuxtLink" :to="`\/brews\/\$\{id\}`" radius="ml"/.test(card) && !/<button|<AppButton/.test(card),
+    '整張卡片連到紀錄詳情，圓角 ml，卡片上沒有按鈕')
+  r.check(/<ul v-else class="mt-6 space-y-3">/.test(brewsTemplate) && !/border-t/.test(brewsTemplate),
+    '卡片間距和豆子列表一樣（space-y-3），每列上方沒有分隔線')
   r.check(/載入更多/.test(brewsTemplate) && /v-if="hasMore"/.test(brewsTemplate), '「載入更多」')
   r.check(/<p v-if="!timeline\.length"[^>]*>\s*記錄沖煮後，可以比較每次的調整。\s*<\/p>/.test(brewsTemplate), '空狀態保留那一行')
   r.check(/newBrewEntry\(activeBeans\.value\)/.test(brews), '浮動新增按鈕與總覽同一條規則')
@@ -208,7 +209,7 @@ export default function run() {
 
   r.section('紀錄詳情：豆名是通往豆子詳情的連結')
   const brewDetailTemplate = stripComments(templateOf(brewDetail))
-  const title = brewDetailTemplate.match(/<h1 class="min-w-0 font-serif text-2xl font-bold">([\s\S]*?)<\/h1>/)?.[1] ?? ''
+  const title = brewDetailTemplate.match(/<h1 class="min-w-0 text-display-m font-medium">([\s\S]*?)<\/h1>/)?.[1] ?? ''
   r.check(/<NuxtLink\s+v-if="brew\.beans"\s+:to="`\/beans\/\$\{brew\.beans\.id\}`"/.test(title), '標題列的豆名連到 /beans/[id]')
   r.check(/>\{\{ brew\.beans\.name \}\}<\/NuxtLink>/.test(title), '連結的文字就是豆名')
   r.check(/class="[^"]*\bunderline\b[^"]*"/.test(title) && /color: 'var\(--accent\)'/.test(title), '連結樣式：--accent、底線（《03》）')
@@ -258,7 +259,10 @@ export default function run() {
   r.check(/async function done\(\) \{\s*leavingByPage = true\s*await navigateTo\('\/', \{ replace: true \}\)/.test(summary), '勾勾：用取代的方式去總覽')
   r.check(/async function openDetail\(\) \{\s*leavingByPage = true\s*await navigateTo\(`\/brews\/\$\{id\}`, \{ replace: true \}\)/.test(summary),
     '摘要：用取代的方式進紀錄詳情，返回時不會回到結算頁')
-  r.check(/aria-label="完成"[\s\S]{0,600}<path d="M20 6 9 17l-5-5" \/>/.test(summaryTemplate) && /rounded-full/.test(summaryTemplate), '右上角是圓形按鈕，中間放勾勾（完成）')
+  // 2026-11-17：按鈕抽成 DoneButton，分段子頁也用同一個
+  const doneButton = read('components/DoneButton.vue')
+  r.check(/<DoneButton[^>]*@click="done"/.test(summaryTemplate)
+    && /aria-label="完成"[\s\S]{0,600}<path d="M20 6 9 17l-5-5" \/>/.test(doneButton) && /rounded-full/.test(doneButton), '右上角是圓形按鈕，中間放勾勾（完成）')
   const summaryRow = summaryTemplate.match(/<a\s+:href="`\/brews\/\$\{id\}`"[\s\S]*?<\/a>/)?.[0] ?? ''
   r.check(/<span class="block font-medium">\{\{ brew\.beans\?\.name \?\? '沒有指定豆子' \}\}<\/span>\s*<span class="block[^"]*">\{\{ monthDay\(brew\.brewed_at\) \}\}<\/span>/.test(summaryRow),
     '摘要：縮圖右邊兩行，豆名與沖煮日期')
@@ -266,14 +270,14 @@ export default function run() {
     '摘要：不用中間點、不加 ›，整列可點（《03》§1）')
   r.check(/<GoalWeekCard\s+v-if="ring && week"[\s\S]*?:count="ring\.after"\s+:from="ring\.before"\s+:goal="ring\.goal"\s+:days="week\.days"\s+:celebrate="ring\.crossed"/.test(summaryTemplate),
     '本週目標：與總覽同一個卡片元件，環從存檔前的杯數前進到存檔後的杯數；不在本週時不顯示')
-  r.check(/<p v-if="celebrate && filled"[^>]*>已達成<\/p>/.test(goalCard) && !/本週目標達成/.test(summaryTemplate + goalCard),
+  r.check(/if \(props\.celebrate\) return filled\.value \? '已達成' : ''/.test(read('components/GoalWeekCard.vue')) && !/本週目標達成/.test(summaryTemplate + goalCard),
     '剛好跨過目標：「N／M 杯」下方顯示「已達成」（不再寫「本週目標達成」）')
-  r.check(/<p v-if="firstRecord" class="mt-4 font-serif text-lg font-bold">第一筆紀錄<\/p>\s*<p v-else[^>]*>第 \{\{ records \}\} 筆紀錄<\/p>/.test(summaryTemplate)
+  r.check(/<p v-if="firstRecord" class="mt-4 text-heading-m font-medium">第一筆紀錄<\/p>\s*<p v-else[^>]*>第 \{\{ records \}\} 筆紀錄<\/p>/.test(summaryTemplate)
     && /isFirstRecord\(stats\.value, id\)/.test(summary), '第一筆紀錄：換成「第一筆紀錄」，字級和比較區標題同一級')
   r.check(/<section v-if="comparison\?\.target"/.test(summaryTemplate)
     && /和 \{\{ monthDay\(comparison\.target\.brewed_at\) \}\} 那一杯相比/.test(summaryTemplate)
     && /參數和 \{\{ monthDay\(comparison\.target\.brewed_at\) \}\} 那一杯相同/.test(summaryTemplate), '有比較對象：比較區')
-  r.check(/<template v-else-if="firstCup">[\s\S]*<h2 class="font-serif text-lg font-bold">這支豆子<\/h2>[\s\S]*<h2 class="font-serif text-lg font-bold">這一杯<\/h2>[\s\S]*下一杯會和這一杯比較。/.test(summaryTemplate),
+  r.check(/<template v-else-if="firstCup">[\s\S]*<h2 class="text-heading-m font-medium">這支豆子<\/h2>[\s\S]*<h2 class="text-heading-m font-medium">這一杯<\/h2>[\s\S]*下一杯會和這一杯比較。/.test(summaryTemplate),
     '沒有比較對象：「這支豆子」與「這一杯」兩個區塊，標題樣式與比較區相同')
   r.check(/養豆第 \{\{ firstCup\.bean\.restDay \}\} 天/.test(summaryTemplate) && /v-if="firstCup\.bean\.restDay !== null"/.test(summaryTemplate)
     && /第 \{\{ firstCup\.bean\.beanOrdinal \}\} 支豆子/.test(summaryTemplate), '「養豆第 N 天」（有烘焙日期才有）、「第 N 支豆子」')
@@ -299,6 +303,8 @@ export default function run() {
   r.check(/needsGoalSetup\(to\.path, userId !== null, false\)/.test(middleware) && /navigateTo\(GOAL_SETUP_PATH, \{ replace: true \}\)/.test(middleware),
     '已登入、沒有任何目標時，先到目標設定頁（全站的 middleware）')
   r.check(/if \(error\) return/.test(middleware), '查詢失敗不擋')
+  r.check(!/import\.meta\.server\) return/.test(middleware) && /import\.meta\.client && useNuxtApp\(\)\.isHydrating\) return/.test(middleware),
+    '整頁載入由伺服器判斷（直接 302），瀏覽器不在 hydration 途中導向——那會讓 /goal 沿用前一頁 HTML 的屬性')
   const stepper = read('components/GoalStepper.vue')
   r.check(/:disabled="atMin"/.test(stepper) && /:disabled="atMax"/.test(stepper) && /<span>杯<\/span>/.test(stepper), '加減按鈕：到邊界時停用，數字旁是「杯」')
   const goalDialog = read('components/GoalDialog.vue')

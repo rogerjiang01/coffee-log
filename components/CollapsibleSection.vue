@@ -2,15 +2,18 @@
 // L2 收合區（《03-介面規範》§4.2）。
 // 展開狀態需記憶：使用者展開過一次，之後預設展開。
 // 這是本產品唯一的使用者分級機制——用行為推斷，不用問卷詢問。
+//
+// 放在分組卡片裡：標題列是表單的一列（標籤的樣式、右端一個收合箭頭），
+// 展開的內容接在下面，與標題列之間一條分隔線。左右內距自己帶，外面用 <FormRow flush>。
+//
+// v-model:open：外面的卡片要知道現在是不是收合著——收合時只有一列，卡片是膠囊形（FormCard 的 pill）。
 
 const props = defineProps<{
   title: string
   storageKey: string
-  // 放在分組卡片內時不要自己的上緣線與外距——分隔線由 FormRow 提供
-  flat?: boolean
 }>()
 
-const open = ref(false)
+const open = defineModel<boolean>('open', { default: false })
 
 onMounted(() => {
   try {
@@ -34,20 +37,19 @@ function toggle() {
 </script>
 
 <template>
-  <section :class="flat ? '' : 'mt-8 border-t pt-5'" :style="flat ? undefined : { borderColor: 'var(--border)' }">
+  <section>
     <button
       type="button"
-      class="flex w-full items-center justify-between text-left"
-      :style="{ minHeight: 'var(--touch-min)' }"
+      class="sheet-row card-pad-x w-full text-left"
       :aria-expanded="open"
       @click="toggle"
     >
-      <span class="font-medium">{{ title }}</span>
+      <span class="sheet-label">{{ title }}</span>
       <svg
         width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"
         fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round"
         :style="{
-          color: 'var(--text-muted)',
+          color: 'var(--icon-muted)',
           transform: open ? 'rotate(180deg)' : 'none',
           transition: `transform var(--motion-duration) var(--motion-ease)`,
         }"
@@ -56,7 +58,8 @@ function toggle() {
       </svg>
     </button>
 
-    <div v-show="open" class="mt-4">
+    <!-- 分隔線畫在內容裡（inset 陰影），不另外佔 1px：標題列才會是 --sheet-row-h（56px，標題列沒有膠囊） -->
+    <div v-show="open" :style="{ boxShadow: 'inset 0 1px 0 var(--border)' }">
       <slot />
     </div>
   </section>

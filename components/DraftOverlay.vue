@@ -51,8 +51,8 @@
             <p v-if="note" class="mt-3 text-sm text-muted text-pretty">{{ note }}</p>
 
             <div class="mt-6 flex gap-3">
-                <button type="button" class="flex-1 rounded-sm border px-4 py-3" :style="{ borderColor: 'var(--border-strong)', minHeight: 'var(--touch-min)' }" @click="$emit('discard')">重新開始</button>
-                <button type="button" class="flex-1 rounded-sm px-4 py-3 font-medium" :style="{ background: 'var(--accent)', color: 'var(--on-accent)', minHeight: 'var(--touch-min)' }" @click="$emit('accept')">繼續填寫</button>
+                <AppButton variant="outline" class="flex-1" @click="$emit('discard')">重新開始</AppButton>
+                <AppButton class="flex-1" @click="$emit('accept')">繼續填寫</AppButton>
             </div>
         </div>
     </dialog>

@@ -117,36 +117,24 @@ function pick(row: CatalogRow | null) {
 
 <template>
   <div ref="root" class="relative">
-    <label class="block text-sm" for="catalog-select">型號</label>
-
-    <button
-      ref="trigger"
-      id="catalog-select"
-      type="button"
-      role="combobox"
-      :aria-expanded="open"
-      :disabled="loading"
-      class="mt-1 flex w-full items-center justify-between field px-3 py-2.5 text-left"
-      data-field
-      :data-filled="!!selected"
-      :style="{ minHeight: 'var(--touch-min)' }"
-      @click="toggle"
-    >
-      <span :style="{ color: selected ? 'var(--text)' : 'var(--text-muted)' }">
-        {{ selected ? catalogDisplayName(selected) : '選填' }}
-      </span>
-      <svg
-        width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"
-        fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round"
-        :style="{
-          color: 'var(--text-muted)',
-          transform: open ? 'rotate(180deg)' : 'none',
-          transition: 'transform var(--motion-duration) var(--motion-ease)',
-        }"
+    <!-- 表單的一列：標籤在左，已選的值在右側的膠囊裡；還沒選時不畫膠囊。
+         下拉開著的時候膠囊的文字換成強調色（Figma 的 dropdown_input） -->
+    <!-- 裡面有膠囊：65px 的列（《03》§4.1） -->
+    <div class="sheet-row sheet-row--tall">
+      <label class="sheet-label" for="catalog-select">型號</label>
+      <button
+        ref="trigger"
+        id="catalog-select"
+        type="button"
+        role="combobox"
+        :aria-expanded="open"
+        :disabled="loading"
+        class="sheet-trigger"
+        @click="toggle"
       >
-        <path d="m6 9 6 6 6-6" />
-      </svg>
-    </button>
+        <SheetPill :empty="!selected" :active="open">{{ selected ? catalogDisplayName(selected) : '選填' }}</SheetPill>
+      </button>
+    </div>
 
     <Teleport :to="portalTarget">
       <div
@@ -163,8 +151,7 @@ function pick(row: CatalogRow | null) {
             v-model="query"
             type="text"
             placeholder="搜尋"
-            class="block w-full field px-3 py-2"
-            :style="{ minHeight: 'var(--touch-min)' }"
+            class="input-box"
           >
         </div>
 

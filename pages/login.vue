@@ -2,9 +2,15 @@
 const supabase = useSupabaseClient()
 const user = useSupabaseUser()
 
+// 綠底模式（《03》§2.2「綠底模式」）。掛在 <html> 上，頁面底色與焦點框才會跟著換；
+// 離開這一頁時 useHead 會自己把 class 拿掉。
+useHead({ htmlAttrs: { class: 'theme-green' } })
+
 const email = ref('')
 const password = ref('')
 const error = ref('')
+// 哪一格沒填好：訊息顯示在那一格的卡片下方，標籤右邊加 circle-alert（表單的列的做法）。其他錯誤（帳密不對、連線）顯示在按鈕上方
+const fieldError = ref<{ email?: string, password?: string }>({})
 const sending = ref(false)
 
 // 已登入者不該停在登入頁
@@ -14,9 +20,10 @@ watchEffect(() => {
 
 async function submit() {
   error.value = ''
+  fieldError.value = {}
 
-  if (!email.value.trim()) return (error.value = '電子郵件尚未填寫')
-  if (!password.value) return (error.value = '密碼尚未填寫')
+  if (!email.value.trim()) return (fieldError.value = { email: '電子郵件尚未填寫' })
+  if (!password.value) return (fieldError.value = { password: '密碼尚未填寫' })
 
   sending.value = true
   const { error: err } = await supabase.auth.signInWithPassword({
@@ -31,49 +38,71 @@ async function submit() {
 </script>
 
 <template>
-  <main class="mx-auto px-5 py-12" :style="{ maxWidth: 'var(--content-max-narrow)' }">
-    <h1 class="font-serif text-xl font-bold">登入</h1>
+  <!-- 版面照 Figma 的 login：首圖、綠色漸層、logo、300px 寬的表單（AuthShell）。
+       「忘記密碼」先隱藏，等接上自己的 SMTP 再打開（CLAUDE.md「暫緩」） -->
+  <AuthShell>
+    <h1 class="sr-only">登入</h1>
 
-    <form class="mt-8" novalidate @submit.prevent="submit">
-      <label class="block text-sm" for="email">電子郵件</label>
-      <input
-        id="email"
-        v-model="email"
-        type="email"
-        autocomplete="email"
-        class="mt-1 block w-full field px-3 py-2.5"
-        :style="{ minHeight: 'var(--touch-min)' }"
-      >
+    <form novalidate @submit.prevent="submit">
+      <!-- 每個欄位各自一張單列卡片（2026-11-23，Figma 的 login 新版）：和表單同一個元件（FormCard pill ＋ FormRow），
+           左邊欄位名稱、右邊輸入，56px、膠囊形 28px，卡片之間 12px。綠底模式下卡片不畫外框（FormCard）。
+           提示字照表單的規則「輸入＋欄位名」，顏色是 --text-muted（帶有必要資訊，《03》§4.1）。
+           錯誤照表單的列：標籤右邊 circle-alert，訊息在那張卡片下方（FormNote），輸入框用 aria-describedby 指過去。
+           **每個錯誤只有一個圖示**（2026-11-23）：欄位的錯誤圖示在標籤旁，所以卡片下方的訊息不再畫（:icon="false"）；
+           不屬於欄位的錯誤（帳密、連線）圖示在訊息前面。綠底上文字是 --danger（coral-50）、圖示是 --danger-icon（coral-200） -->
+      <div class="flex flex-col gap-3">
+        <FormCard pill>
+          <FormRow label="電子郵件" for="email" :error="!!fieldError.email">
+            <SheetText
+              id="email"
+              v-model="email"
+              type="email"
+              autocomplete="email"
+              inputmode="email"
+              autocapitalize="off"
+              spellcheck="false"
+              placeholder="輸入電子郵件"
+              :aria-invalid="!!fieldError.email || undefined"
+              :aria-describedby="fieldError.email ? 'email-error' : undefined"
+            />
+          </FormRow>
+          <FormNote v-if="fieldError.email" id="email-error" tone="error" :icon="false">{{ fieldError.email }}</FormNote>
+        </FormCard>
 
-      <label class="mt-5 block text-sm" for="password">密碼</label>
-      <input
-        id="password"
-        v-model="password"
-        type="password"
-        autocomplete="current-password"
-        class="mt-1 block w-full field px-3 py-2.5"
-        :style="{ minHeight: 'var(--touch-min)' }"
-      >
+        <FormCard pill>
+          <FormRow label="密碼" for="password" :error="!!fieldError.password">
+            <SheetText
+              id="password"
+              v-model="password"
+              type="password"
+              autocomplete="current-password"
+              placeholder="輸入密碼"
+              :aria-invalid="!!fieldError.password || undefined"
+              :aria-describedby="fieldError.password ? 'password-error' : undefined"
+            />
+          </FormRow>
+          <FormNote v-if="fieldError.password" id="password-error" tone="error" :icon="false">{{ fieldError.password }}</FormNote>
+        </FormCard>
+      </div>
 
-      <p v-if="error" class="mt-4 text-sm" :style="{ color: 'var(--danger)' }">
-        {{ error }}
+      <p v-if="error" role="alert" class="mt-4 flex items-start gap-1.5 text-sm" :style="{ color: 'var(--danger)' }">
+        <AlertIcon class="mt-0.5" :style="{ color: 'var(--danger-icon)' }" />
+        <span>{{ error }}</span>
       </p>
 
-      <button
+      <!-- 卡片到按鈕 32px（Figma）。滿寬按鈕 56px、膠囊形（《03》§4.18） -->
+      <AppButton block
         type="submit"
-        :disabled="sending"
-        class="mt-7 w-full rounded-sm px-4 py-3 font-medium disabled:opacity-60"
-        :style="{ background: 'var(--accent)', color: 'var(--on-accent)', minHeight: 'var(--touch-min)' }"
+        :busy="sending"
+        class="mt-8"
       >
         {{ sending ? '登入中' : '登入' }}
-      </button>
+      </AppButton>
     </form>
 
-    <p class="mt-8 text-sm text-muted">
-      還沒有帳號？
-      <NuxtLink to="/signup" class="underline" :style="{ color: 'var(--accent)' }">
-        註冊
-      </NuxtLink>
+    <p class="mt-3 flex items-center gap-1">
+      還沒有帳號嗎？
+      <AppButton variant="text" to="/signup">註冊</AppButton>
     </p>
-  </main>
+  </AuthShell>
 </template>

@@ -11,7 +11,7 @@
 import {
   stepLabel,
   toStepRows, toStepInputs, incrementalWater, totalWater, brewRatioLabel,
-  secondsToClock, clockToSeconds, initialSteps, waterOrderHints, hasStepTiming,
+  secondsToClock, clockToSeconds, initialSteps, waterOrderHints, hasStepTiming, withoutStir,
 } from '../../utils/brewSteps.ts'
 import { createReport, equal } from '../helpers/report.mjs'
 
@@ -61,6 +61,32 @@ export default function run() {
   const noteBack = toStepInputs(noteRows)
   r.check(noteBack[1]!.note === '', 'null 還原成空字串，介面不會顯示 null')
   r.check(equal(toStepRows(noteBack), noteRows), '含備註與攪拌時來回轉換仍守恆')
+
+  r.section('舊紀錄的攪拌段：併進相鄰的段（withoutStir）')
+  const flat4 = (rows: Step[]) => withoutStir(rows).map(x => [x.stepType, x.cumulativeWater, x.holdSeconds, x.note])
+  r.check(equal(flat4([step('bloom', 40, 30, '中心'), step('stir', 40, 10), step('pour', 160, 20)]),
+    [['bloom', 40, 40, '中心，攪拌'], ['pour', 160, 20, '']]), '併進前一段：停水時長相加、備註後面補上「攪拌」，不留「+0 g」的那一段')
+  r.check(incrementalWater(withoutStir([step('bloom', 40, 30), step('stir', 40, 10), step('pour', 160, null)])).every(d => d !== 0), '併完之後沒有增量 0 的段')
+  r.check(equal(flat4([step('bloom', 40, 30), step('stir', 40, 10, '輕輕轉兩圈'), step('pour', 160, null)])[0], ['bloom', 40, 40, '攪拌，輕輕轉兩圈']),
+    '攪拌段自己的備註接在「攪拌」後面')
+  r.check(equal(flat4([step('stir', 0, 10, '先攪'), step('pour', 160, 20, '繞圈'), step('pour', 240, null)]),
+    [['pour', 160, 30, '攪拌，先攪，繞圈'], ['pour', 240, null, '']]), '攪拌段是第一段：併進下一段，備註前面補上「攪拌」，停水時長加到下一段')
+  r.check(equal(flat4([step('bloom', 40, 30), step('stir', 40, 10), step('stir', 40, 5), step('pour', 160, null)])[0], ['bloom', 40, 45, '攪拌']),
+    '連續的攪拌段：都併進同一段，「攪拌」只寫一次')
+  const tail = withoutStir([step('bloom', 40, 30), step('pour', 160, 20), step('stir', 160, null)])
+  r.check(tail.length === 2 && tail[1]!.note === '攪拌' && toStepRows(tail)[1]!.hold_seconds === null, '攪拌段是最後一段：併進前一段，前一段變成最後一段、不存停水時長')
+  r.check(equal(flat4([step('bloom', 40, null), step('stir', 40, null), step('pour', 160, null)])[0], ['bloom', 40, null, '攪拌']),
+    '兩邊都沒記停水時長：還是 null，不會變成 0 秒')
+  r.check(equal(flat4([step('bloom', 40, null), step('stir', 40, 10), step('pour', 160, null)])[0], ['bloom', 40, 10, '攪拌']), '只有一邊有記：用有記的那個')
+  r.check(equal(flat4([step('bloom', 40, 30), step('stir', 100, 10), step('pour', 160, null)]),
+    [['bloom', 40, 30, ''], ['pour', 100, 10, '攪拌'], ['pour', 160, null, '']]), '攪拌段的累積水量比前一段多（其實注了水）：留成一般段，不併掉水量')
+  r.check(equal(flat4([step('bloom', 40, 30), step('stir', 20, 10), step('pour', 160, null)]), [['bloom', 40, 40, '攪拌'], ['pour', 160, null, '']]),
+    '攪拌段的累積水量比前一段少：照樣併進前一段')
+  r.check(equal(flat4([step('stir', null, null)]), [['pour', null, null, '攪拌']]) && equal(flat4([step('stir', 40, 10)]), [['pour', 40, 10, '攪拌']]),
+    '整組只有攪拌段：留一段一般段')
+  const plain = [step('bloom', 40, 45), step('pour', 160, null)]
+  r.check(withoutStir(plain) === plain, '沒有攪拌段時原樣回傳（不產生新的陣列，表單不會以為內容變了）')
+  r.check(withoutStir([step('bloom', 40, 30), step('stir', 40, 10), step('pour', 160, null)]).every(x => x.stepType !== 'stir'), '轉換之後不再有 stir')
 
   r.section('段落標題')
   const withBloom = [step('bloom', 40, 45), step('pour', 160, 30), step('stir', 160, 10)]

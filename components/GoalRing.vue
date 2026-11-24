@@ -1,9 +1,9 @@
 <script setup lang="ts">
 // 每週記錄目標的環（《03》§4.15）。總覽的目標環卡片與結算頁共用。
 //
-// 第一圈是本週杯數占目標的比例；超過目標時第二圈疊在第一圈上繼續畫（像 Apple Fitness），
-// 看得出超出多少。顏色一律是語意 token：底圈 --accent-wash、第一圈 --accent、
-// 第二圈 --accent-active（比第一圈深一階，疊上去分得出來）。
+// 一圈是本週杯數占目標的比例；達到或超過目標時停在滿的一圈，**不畫第二圈**
+// （2026-11-16：總覽與結算頁一致，超出多少由卡片上的「超過 N 杯」說明）。
+// 顏色一律是語意 token：底圈 --accent-wash、進度 --accent。
 //
 // from：結算頁用。環從 from 畫到 count；手機開啟「減少動態效果」時直接顯示最後的狀態。
 // 動畫只用 CSS 的 transition，不用動畫函式庫。
@@ -20,13 +20,14 @@ const props = withDefaults(defineProps<{
 
 const emit = defineEmits<{ filled: [] }>()
 
-const STROKE = 10
+// 線寬 22px（2026-11-17 照 Figma 加粗：外徑 100、內徑 56）。只用在 100px 的環上
+const STROKE = 22
 const radius = computed(() => (props.size - STROKE) / 2)
 const circumference = computed(() => 2 * Math.PI * radius.value)
 
 const shown = ref(props.from ?? props.count)
-const laps = computed(() => ringLaps(shown.value, props.goal))
-const offset = (fraction: number) => circumference.value * (1 - fraction)
+const fraction = computed(() => ringFraction(shown.value, props.goal))
+const offset = (part: number) => circumference.value * (1 - part)
 
 const DURATION_MS = 900
 const animating = ref(false)
@@ -66,22 +67,14 @@ onMounted(() => {
       :cx="size / 2" :cy="size / 2" :r="radius" fill="none" :stroke-width="STROKE" stroke-linecap="round"
       stroke="var(--accent)"
       :stroke-dasharray="circumference"
-      :stroke-dashoffset="offset(laps.first)"
-      :style="{ transition: animating ? `stroke-dashoffset ${DURATION_MS}ms ease-out` : 'none', opacity: laps.first > 0 ? 1 : 0 }"
-    />
-    <!-- 第二圈一直在，沒有超出時透明：圓頭線端在長度 0 時會畫出一個點 -->
-    <circle
-      :cx="size / 2" :cy="size / 2" :r="radius" fill="none" :stroke-width="STROKE" stroke-linecap="round"
-      stroke="var(--accent-active)"
-      :stroke-dasharray="circumference"
-      :stroke-dashoffset="offset(laps.second)"
-      :style="{ transition: animating ? `stroke-dashoffset ${DURATION_MS}ms ease-out` : 'none', opacity: laps.second > 0 ? 1 : 0 }"
+      :stroke-dashoffset="offset(fraction)"
+      :style="{ transition: animating ? `stroke-dashoffset ${DURATION_MS}ms ease-out` : 'none', opacity: fraction > 0 ? 1 : 0 }"
     />
   </svg>
 </template>
 
 <style scoped>
-/* 補滿的瞬間：環放大一下再回來。暫定的簡單版本，品牌色定案時與第二圈的顏色一起決定（《03》§4.17） */
+/* 補滿的瞬間：環放大一下再回來。暫定的簡單版本，品牌色定案時一起決定（《03》§4.17） */
 .goal-ring-pulse {
   animation: goal-ring-pulse 600ms ease-out 1;
   transform-origin: center;

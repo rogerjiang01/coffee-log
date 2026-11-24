@@ -88,6 +88,8 @@ function onPhotoPicked(picked: CompressedImage | null) {
 const roastOptions: { value: RoastLevel; label: string }[] = (
   ['light', 'medium_light', 'medium', 'medium_dark', 'dark'] as RoastLevel[]
 ).map(value => ({ value, label: roastLabels[value] }))
+// 膠囊上的文字（SelectField）：沒選時是 null，膠囊寫「選填」
+const roastLabel = computed(() => values.roast_level ? roastLabels[values.roast_level] : null)
 
 function submit() {
   // 錯誤訊息只在送出時顯示，不在輸入過程中即時跳出（《03》§4.1）
@@ -225,14 +227,7 @@ if (storageKey) {
 // 儲存成功後由頁面呼叫
 defineExpose({ clearDraft: () => draft?.clear() })
 
-const inputStyle = {
-  minHeight: 'var(--touch-min)',
-}
 
-// 未選取的下拉要用 --text-muted，否則黑字看起來像已經填好的值
-function selectStyle(value: unknown) {
-  return { ...inputStyle, color: value == null ? 'var(--text-muted)' : 'var(--text)' }
-}
 </script>
 
 <template>
@@ -268,61 +263,46 @@ function selectStyle(value: unknown) {
       @picked="onPhotoPicked"
     />
 
-    <FormCard class="mt-6">
+    <!-- 卡片的分組（Figma 沒有畫這張表單，照記錄表單的做法與 iOS inset grouped 列表的慣例分）：
+         這支豆子是誰／烘焙／產地與處理／官方風味描述。卡片之間 --gap-group。
+         說明與錯誤用 FormNote，顯示在所在卡片的下方 -->
+    <div class="flex flex-col" :style="{ gap: 'var(--gap-group)', marginTop: 'var(--gap-group)' }">
+    <FormCard>
       <FormRow>
-        <!-- 只有必填欄位有標示，其他不標，讓對比本身說明「其他都可空」 -->
-        <label class="block text-sm" for="bean-name">
-          豆名
-          <span :style="{ color: 'var(--danger)' }" aria-hidden="true">*</span>
-          <span class="sr-only">必填</span>
-        </label>
-        <input
-          id="bean-name"
-          v-model="values.name"
-          :data-filled="!!values.name"
-          type="text"
-          class="mt-1 block w-full field py-2.5"
-          :style="inputStyle"
-        >
-        <p v-if="nameError" class="mt-2 text-sm" :style="{ color: 'var(--danger)' }">{{ nameError }}</p>
+        <!-- 只有必填欄位有標示，其他不標，讓對比本身說明「其他都可空」。
+             必填的列自己寫標籤（tests/unit/required-placeholder.test.mjs 靠這個標記找必填欄位） -->
+        <div class="sheet-row">
+          <label class="sheet-label" for="bean-name">豆名<span :style="{ color: 'var(--danger)' }" aria-hidden="true">*</span><span class="sr-only">必填</span><AlertIcon v-if="nameError" class="sheet-label-alert" /></label>
+          <div class="sheet-value">
+            <SheetText id="bean-name" v-model="values.name" placeholder="輸入豆名" />
+          </div>
+        </div>
+      </FormRow>
+      <FormNote v-if="nameError" tone="error">{{ nameError }}</FormNote>
+
+      <FormRow label="咖啡店名" for="bean-roaster">
+        <SheetText id="bean-roaster" v-model="values.roaster" />
       </FormRow>
 
-      <FormRow>
-        <label class="block text-sm" for="bean-roaster">咖啡店名</label>
-        <input
-          id="bean-roaster"
-          v-model="values.roaster"
-          :data-filled="!!values.roaster"
-          type="text"
-          class="mt-1 block w-full field py-2.5"
-          :style="inputStyle"
-        >
-      </FormRow>
+    </FormCard>
 
-      <FormRow>
-        <label class="block text-sm" for="bean-roast-date">烘焙日期</label>
-        <input
-          id="bean-roast-date"
-          v-model="values.roast_date"
-          :data-filled="!!values.roast_date"
-          type="date"
-          class="mt-1 block w-full field py-2.5"
-          :class="{ 'date-empty': !values.roast_date }"
-          :style="inputStyle"
-        >
-        <p class="mt-1 text-xs text-muted">填寫後顯示養豆天數</p>
-      </FormRow>
-
-      <FormRow>
-        <label class="block text-sm" for="bean-roast-level">烘焙度</label>
-        <SelectField>
-          <select
-            id="bean-roast-level"
-            v-model="values.roast_level"
-            :data-filled="values.roast_level !== null"
-            class="mt-1 block w-full field py-2.5"
-            :style="selectStyle(values.roast_level)"
+    <FormCard>
+      <FormRow label="烘焙日期" for="bean-roast-date" tall>
+        <!-- 膠囊上的字自己寫（utils/formDate.ts）：沒填是「選填」（iOS 的空日期什麼都不畫），
+             填了是 YYYY/MM/DD，寬度貼合文字。原生的日期透明蓋在上面，點了照樣開系統的選擇器 -->
+        <SelectField :text="pillDate(values.roast_date) ?? '選填'" :empty="!pillDate(values.roast_date)">
+          <input
+            id="bean-roast-date"
+            v-model="values.roast_date"
+            type="date"
           >
+        </SelectField>
+      </FormRow>
+      <FormNote field="烘焙日期">填寫後顯示養豆天數</FormNote>
+
+      <FormRow label="烘焙度" for="bean-roast-level" tall>
+        <SelectField :text="roastLabel ?? '選填'" :empty="!roastLabel">
+          <select id="bean-roast-level" v-model="values.roast_level">
             <option :value="null">選填</option>
             <option v-for="option in roastOptions" :key="option.value" :value="option.value">
               {{ option.label }}
@@ -331,21 +311,15 @@ function selectStyle(value: unknown) {
         </SelectField>
       </FormRow>
 
+    </FormCard>
+
+    <FormCard>
       <FormRow>
         <CountrySelect v-model="values.country_id" />
       </FormRow>
 
-      <FormRow>
-        <label class="block text-sm" for="bean-region">產區</label>
-        <input
-          id="bean-region"
-          v-model="values.region"
-          :data-filled="!!values.region"
-          type="text"
-          list="bean-region-options"
-          class="mt-1 block w-full field py-2.5"
-          :style="inputStyle"
-        >
+      <FormRow label="產區" for="bean-region">
+        <SheetText id="bean-region" v-model="values.region" list="bean-region-options" />
         <!-- 建議來自使用者填過的值，沒有歷史就沒有建議，不擋任何輸入 -->
         <datalist id="bean-region-options">
           <option v-for="suggestion in regionSuggestions" :key="suggestion" :value="suggestion" />
@@ -360,26 +334,30 @@ function selectStyle(value: unknown) {
         <LookupSelect v-model="values.variety_id" label="品種" table="varieties" />
       </FormRow>
 
-      <FormRow>
-        <label class="block text-sm" for="bean-notes">官方風味描述</label>
+    </FormCard>
+
+    <!-- 只有一列：膠囊形（FormCard 的 pill）。打成好幾行時圓角不變 -->
+    <FormCard pill>
+      <FormRow label="官方風味描述" for="bean-notes">
         <textarea
           id="bean-notes"
           v-model="values.official_notes"
-          :data-filled="!!values.official_notes"
           rows="3"
-          class="mt-1 block w-full field py-2.5"
+          placeholder="選填"
+          class="sheet-input"
         />
       </FormRow>
     </FormCard>
+    </div>
 
-    <button
+    <!-- 表單最下方的儲存：滿寬，所以是膠囊形（AppButton 的 block，《03》§4.18） -->
+    <AppButton block
       type="submit"
-      :disabled="busy"
-      class="mt-6 w-full rounded-sm px-4 py-3 font-medium disabled:opacity-60"
-      :style="{ background: 'var(--accent)', color: 'var(--on-accent)', minHeight: 'var(--touch-min)' }"
+      :busy="busy"
+      :style="{ marginTop: 'var(--gap-section)' }"
     >
       {{ busy ? '儲存中' : submitLabel }}
-    </button>
+    </AppButton>
 
     <!-- 暫存狀態：使用者在按儲存之前擔心東西安不安全，視線在這裡（《03》§4.11） -->
     <DraftStatus v-if="draft" :status="draft.status.value" class="mt-2" />
@@ -389,10 +367,11 @@ function selectStyle(value: unknown) {
     <p
       v-if="error || summaryError || lookupError"
       role="alert"
-      class="mt-3 rounded-sm border px-3 py-3 text-sm"
+      class="mt-3 flex items-start gap-2 rounded-sm border px-3 py-3 text-sm"
       :style="{ color: 'var(--danger)', borderColor: 'var(--danger)' }"
     >
-      {{ error || summaryError || lookupError }}
+      <AlertIcon class="mt-0.5" />
+      <span>{{ error || summaryError || lookupError }}</span>
     </p>
   </form>
 </template>

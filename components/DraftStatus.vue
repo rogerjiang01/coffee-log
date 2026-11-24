@@ -23,17 +23,18 @@ defineProps<{ status: DraftSaveStatus }>()
     class="flex items-center gap-1 text-sm"
     :style="{ color: 'var(--text-muted)' }"
   >
-    <!-- 暫存中：雙箭頭圍圈（sync） -->
+    <!-- 暫存中：兩支箭頭繞成一圈（Lucide 的 refresh-cw）。2026-11-13 從自繪換成 Lucide，
+         同一個元件裡的打勾早就是 Lucide 了 -->
     <svg
       v-if="status === 'saving'"
       width="16" height="16" viewBox="0 0 24 24" fill="none"
       stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round"
       aria-hidden="true"
     >
-      <path d="M20 12a8 8 0 0 1-13.66 5.66" />
-      <path d="M4 12a8 8 0 0 1 13.66-5.66" />
-      <path d="M18 3v4h-4" />
-      <path d="M6 21v-4h4" />
+      <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" />
+      <path d="M21 3v5h-5" />
+      <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16" />
+      <path d="M8 16H3v5" />
     </svg>
     <!-- 已暫存：細線打勾，不加實心圓底——那太像完成的慶祝符號 -->
     <svg

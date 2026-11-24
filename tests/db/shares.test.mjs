@@ -242,7 +242,7 @@ export default async function run() {
   r.check(ownerView.method === method.name, '沖煮手法名稱')
   r.check(JSON.stringify(ownerView.steps.map(s => s.hold_seconds)) === '[30,20,25,null]'
     && ownerView.steps[2].step_type === 'stir' && ownerView.steps[1].note === '繞圈',
-    '分段依段號排序，停水時間原樣、最後一段 null、攪拌標記與備註都在')
+    '分段依段號排序，停水時長原樣、最後一段 null、攪拌標記與備註都在')
   r.check(ownerView.flavor_tags.length === 2, '風味標籤名稱')
   r.check(ownerView.bean.roaster === '山頂咖啡' && ownerView.bean.roast_level === 'light' && ownerView.bean.roast_date === '2026-09-01',
     '豆子資訊：咖啡店名、烘焙度、烘焙日期')

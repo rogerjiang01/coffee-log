@@ -17,7 +17,6 @@ interface BeanDetail {
   roast_level: RoastLevel | null
   official_notes: string | null
   is_finished: boolean
-  is_sample: boolean
   countries: { name_zh: string } | null
   region: string | null
   processing_methods: { name: string } | null
@@ -56,7 +55,7 @@ async function fetchBean() {
   const { data, error } = await supabase
     .from('beans')
     .select(`
-      id, name, photo_path, roaster, roast_date, roast_level, region, official_notes, is_finished, is_sample,
+      id, name, photo_path, roaster, roast_date, roast_level, region, official_notes, is_finished,
       countries ( name_zh ),
       processing_methods ( name ), varieties ( name )
     `)
@@ -208,15 +207,13 @@ async function destroy() {
 
     <p v-if="loadError" role="alert" class="mt-4 text-sm" :style="{ color: 'var(--danger)' }">{{ loadError }}</p>
     <!-- 整頁都讀不到時才給重試；豆子已經顯示（例如只有紀錄讀不到）時，紅字就夠了 -->
-    <button
+    <AppButton variant="outline" block
       v-if="loadError && !bean && !notFound && !loading"
-      type="button"
-      class="mt-4 w-full rounded-sm border px-4 py-3"
-      :style="{ borderColor: 'var(--border-strong)', minHeight: 'var(--touch-min)' }"
+      class="mt-4"
       @click="load"
     >
       重試
-    </button>
+    </AppButton>
 
     <div v-if="loading" aria-busy="true" aria-label="讀取中">
       <SkeletonBlock height="10rem" radius="4px" class="mt-4" />
@@ -228,7 +225,7 @@ async function destroy() {
     </div>
 
     <template v-else-if="notFound">
-      <h1 class="mt-4 font-serif text-xl font-bold">找不到這支豆子</h1>
+      <h1 class="mt-4 text-display-s font-medium">找不到這支豆子</h1>
     </template>
 
     <template v-else-if="bean">
@@ -240,20 +237,18 @@ async function destroy() {
         :alt="bean.name"
         class="mt-4 block aspect-square w-full rounded-md object-cover"
       >
+      <!-- 沒有照片：烘焙度的色塊，右邊是咖啡豆插畫（和縮圖同一個 BeanArt），豆名在左邊、不疊在插畫上 -->
       <div
         v-else
-        class="mt-4 flex h-32 items-center rounded-md px-4"
+        class="relative mt-4 flex h-32 items-center overflow-hidden rounded-md pr-32 pl-4"
         :style="roastFill(bean.roast_level)"
       >
-        <span class="font-serif text-lg font-bold">{{ bean.name }}</span>
+        <span class="line-clamp-3 text-heading-m font-medium">{{ bean.name }}</span>
+        <BeanArt class="bean-hero-art" background="transparent" />
       </div>
 
-      <!-- 標籤是標題的修飾語，不是另一段內容。對齊基線不置中：
-           長豆名會換成兩行，置中的話標籤會飄在兩行之間 -->
-      <div class="mt-5 flex items-baseline gap-2">
-        <h1 class="min-w-0 font-serif text-2xl font-bold">{{ bean.name }}</h1>
-        <SampleBadge v-if="bean.is_sample" />
-      </div>
+      <!-- 範例豆子的標示寫在豆名裡（「範例-…」，《01》§13.2），不另外放標籤 -->
+      <h1 class="mt-5 min-w-0 text-display-m font-medium">{{ bean.name }}</h1>
 
       <dl class="mt-6">
         <div
@@ -300,7 +295,7 @@ async function destroy() {
       <!-- 沒有紀錄時整區不出現，不寫文案也不留空標題：
            下方的「用這支豆子沖一杯」就是下一步（《03》§5.6） -->
       <section v-if="compareRows.length" class="mt-8">
-        <h2 class="font-serif text-lg font-bold">每次怎麼沖的</h2>
+        <h2 class="text-heading-m font-medium">每次怎麼沖的</h2>
         <p v-if="compareRows.length === 1" class="mt-2 text-muted">
           記錄第二筆後可以比較，改動的數值會標示出來。
         </p>
@@ -319,48 +314,47 @@ async function destroy() {
         違反可預測性。想複製收藏那筆，從比較表點進去再複製。
       -->
       <div class="mt-8">
-        <NuxtLink
+        <AppButton block
           :to="latestBrew ? `/brews/new?copy=${latestBrew.id}` : `/brews/new?bean=${bean.id}`"
-          class="flex w-full items-center justify-center rounded-sm px-4 py-3 text-center font-medium"
-          :style="{ background: 'var(--accent)', color: 'var(--on-accent)', minHeight: 'var(--touch-min)' }"
         >
           {{ latestBrew ? '照上次再沖一次' : '用這支豆子沖一杯' }}
-        </NuxtLink>
+        </AppButton>
         <!-- 帶入哪一筆寫在按鈕下方，按鈕文字不塞資訊。日期格式與比較表一致 -->
-        <p v-if="latestBrew" class="mt-1 text-center text-xs tabular-nums text-muted">
+        <p v-if="latestBrew" class="mt-1 text-center text-sm tabular-nums text-muted">
           帶入 {{ latestBrew.date }} 那次的參數
         </p>
       </div>
 
-      <!-- 狀態不是動作，用 role="switch" 的開關而不是按鈕 -->
-      <div class="mt-4">
-        <ToggleSwitch
-          :model-value="bean.is_finished"
-          label="已喝完"
-          @update:model-value="toggleFinished"
-        />
-      </div>
+      <!-- 狀態不是動作，用 role="switch" 的開關而不是按鈕。
+           只有一列、獨立成一張卡片：和表單裡的單列卡片同一個元件（56px、膠囊形 28px，2026-11-19；列高 2026-11-23） -->
+      <FormCard pill class="mt-4">
+        <FormRow>
+          <ToggleSwitch
+            :model-value="bean.is_finished"
+            label="已喝完"
+            row
+            @update:model-value="toggleFinished"
+          />
+        </FormRow>
+      </FormCard>
 
       <p v-if="actionError" class="mt-4 text-sm" :style="{ color: 'var(--danger)' }">{{ actionError }}</p>
 
       <!-- 編輯與刪除在內容區，不在頂部角落（《03》§3）：頂部角落只留給 ‹。
            權重依頻率排：再沖一次（主要）→ 編輯（次要，有框）→ 刪除（最低，無框） -->
-      <NuxtLink
+      <AppButton variant="outline" block
         :to="`/beans/${bean.id}/edit`"
-        class="mt-4 flex w-full items-center justify-center rounded-sm border px-4 py-3"
-        :style="{ borderColor: 'var(--border)', minHeight: 'var(--touch-min)' }"
+        class="mt-4"
       >
         編輯
-      </NuxtLink>
+      </AppButton>
 
-      <button
-        type="button"
-        class="mt-3 w-full rounded-sm px-4 py-3"
-        :style="{ color: 'var(--danger)', minHeight: 'var(--touch-min)' }"
+      <AppButton variant="text" tone="danger" block
+        class="mt-3"
         @click="confirmOpen = true"
       >
         刪除
-      </button>
+      </AppButton>
 
       <ConfirmDialog
         :open="confirmOpen"
@@ -376,3 +370,13 @@ async function destroy() {
     </template>
   </main>
 </template>
+
+<style scoped>
+/* 色塊右端的插畫：和色塊同高的正方形 */
+.bean-hero-art {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 8rem;
+}
+</style>

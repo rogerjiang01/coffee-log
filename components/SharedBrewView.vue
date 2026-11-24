@@ -25,7 +25,8 @@ const brew = computed(() => props.brew)
 const steps = computed(() => toStepInputs(brew.value.steps))
 const water = computed(() => totalWater(steps.value))
 const ratio = computed(() => brewRatioLabel(water.value, brew.value.dose))
-const increments = computed(() => incrementalWater(steps.value))
+// 顯示用：舊紀錄的攪拌段併進相鄰的段（utils/brewSteps.ts）
+const displaySteps = computed(() => withoutStir(steps.value))
 const restedDays = computed(() =>
   restDays(brew.value.bean.roast_date, new Date(brew.value.brewed_at)),
 )
@@ -93,7 +94,7 @@ function formatDate(iso: string) {
     </div>
 
     <!-- 標題是整頁的定位點，維持全寬、不為照片讓出寬度 -->
-    <h1 class="mt-6 font-serif text-2xl font-bold">{{ brew.bean.name }}</h1>
+    <h1 class="mt-6 text-display-m font-medium">{{ brew.bean.name }}</h1>
     <!-- 日期與星等在左、豆袋照片在右，垂直置中（《03》§4.13.4）。
          有照片時縮圖的位置一開始就在（has_photo），網址晚到也不跳動。
          沒有照片時只剩左邊一欄，與加入照片之前的版面相同 -->
@@ -101,17 +102,7 @@ function formatDate(iso: string) {
       <div class="min-w-0 flex-1">
         <p class="text-sm tabular-nums text-muted">{{ formatDate(brew.brewed_at) }}</p>
         <div v-if="brew.rating !== null || brew.is_favorite" class="mt-3 flex items-center gap-3">
-          <span v-if="brew.rating !== null" class="flex" :aria-label="`評分 ${brew.rating} 顆星`">
-            <svg
-              v-for="level in 5" :key="level"
-              width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"
-              stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"
-              :fill="brew.rating >= level ? 'var(--favorite)' : 'transparent'"
-              :stroke="brew.rating >= level ? 'var(--favorite)' : 'var(--control-empty)'"
-            >
-              <path d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.123 2.123 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.123 2.123 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.122 2.122 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.122 2.122 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.122 2.122 0 0 0 1.597-1.16z" />
-            </svg>
-          </span>
+          <StarDisplay v-if="brew.rating !== null" :rating="brew.rating" />
           <span v-if="brew.is_favorite" class="flex items-center gap-1 text-sm" :style="{ color: 'var(--favorite)' }">
             <svg
               width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"
@@ -145,40 +136,15 @@ function formatDate(iso: string) {
     </dl>
 
     <section v-if="steps.length" class="mt-8">
-      <h2 class="font-serif text-lg font-bold">分段</h2>
-      <ul class="mt-3">
-        <li
-          v-for="(step, index) in steps"
-          :key="index"
-          class="flex items-baseline justify-between border-t py-3"
-          :style="{ borderColor: 'var(--border)' }"
-        >
-          <span class="min-w-0 flex-1 text-sm">
-            <span class="flex items-center gap-1.5">
-              {{ stepLabel(steps, index) }}
-              <StirIcon
-                v-if="step.stepType === 'stir'"
-                label="這一段有攪拌"
-                :style="{ color: 'var(--accent)' }"
-              />
-            </span>
-            <span v-if="step.note" class="block text-xs text-muted">{{ step.note }}</span>
-          </span>
-          <span class="tabular-nums">
-            注到 {{ step.cumulativeWater }}g
-            <span v-if="increments[index] !== null" class="ml-2 text-sm text-muted">
-              +{{ increments[index] }}g
-            </span>
-            <span v-if="step.holdSeconds !== null" class="ml-3 text-sm text-muted">
-              停 {{ step.holdSeconds }} 秒
-            </span>
-          </span>
-        </li>
-      </ul>
+      <h2 class="text-heading-m font-medium">分段</h2>
+      <!-- 和記錄表單的分段摘要同一種寫法（PourStepList）。舊紀錄的攪拌段已經併進相鄰的段（withoutStir） -->
+      <div class="mt-3">
+        <PourStepList :steps="displaySteps" increments />
+      </div>
     </section>
 
     <section v-if="intensityRows.length" class="mt-8">
-      <h2 class="font-serif text-lg font-bold">強度</h2>
+      <h2 class="text-heading-m font-medium">強度</h2>
       <dl class="mt-3">
         <div
           v-for="row in intensityRows"
@@ -193,7 +159,7 @@ function formatDate(iso: string) {
     </section>
 
     <section v-if="brew.flavor_tags.length" class="mt-8">
-      <h2 class="font-serif text-lg font-bold">風味</h2>
+      <h2 class="text-heading-m font-medium">風味</h2>
       <div class="mt-3 flex flex-wrap gap-2">
         <span
           v-for="tag in brew.flavor_tags"
@@ -208,7 +174,7 @@ function formatDate(iso: string) {
 
     <!-- 沒勾「包含心得筆記」時，函式根本不回傳這個 key：整段不出現，不留佔位 -->
     <section v-if="brew.tasting_notes" class="mt-8">
-      <h2 class="font-serif text-lg font-bold">心得</h2>
+      <h2 class="text-heading-m font-medium">心得</h2>
       <p class="mt-2 whitespace-pre-line">{{ brew.tasting_notes }}</p>
     </section>
   </div>

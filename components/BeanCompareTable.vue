@@ -36,10 +36,12 @@ function rowBackground(row: CompareRow) {
 
 <template>
   <div
-    class="overflow-hidden rounded-md border"
+    class="card-corners overflow-hidden border shadow-light"
     :style="{ borderColor: 'var(--border)', background: 'var(--surface)' }"
   >
-    <div class="overflow-x-auto">
+    <!-- relative：表格裡只給螢幕閱讀器的文字（sr-only，絕對定位）要以這個捲動容器為定位基準。
+         沒有的話它們的定位基準是 body，會逃出捲動範圍、把整頁撐寬——手機上整頁可以左右滑（2026-11-17 修） -->
+    <div class="relative overflow-x-auto">
       <table class="w-full border-collapse text-sm tabular-nums">
         <thead>
           <tr :style="{ background: 'var(--surface)' }">
@@ -83,7 +85,7 @@ function rowBackground(row: CompareRow) {
               <NuxtLink
                 :to="`/brews/${row.id}`"
                 class="underline underline-offset-2"
-                :style="{ color: 'var(--accent)' }"
+                :style="{ color: row.isFavorite ? 'var(--on-accent-wash)' : 'var(--accent)' }"
               >
                 {{ row.date }}
                 <span class="sr-only">，查看這筆紀錄</span>
@@ -96,12 +98,13 @@ function rowBackground(row: CompareRow) {
               class="whitespace-nowrap px-3 py-3 text-right"
             >
               <!-- 與前一列不同的數值加字重與顏色。
-                   §2：色彩不得作為唯一的資訊載體，所以字重也一起變。 -->
+                   §2：色彩不得作為唯一的資訊載體，所以字重也一起變。
+                   字重 500 要連字體一起換：內文的台北黑體沒有 500，只設字重畫面上不會變（《03》§2.4）。 -->
               <NuxtLink
                 :to="`/brews/${row.id}`"
                 class="block"
                 :style="cell.changed
-                  ? { color: 'var(--diff)', fontWeight: 500 }
+                  ? { color: 'var(--diff)', fontWeight: 500, fontFamily: 'var(--font-body-medium)' }
                   : { color: 'var(--text)' }"
               >
                 {{ cell.value }}

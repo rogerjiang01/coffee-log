@@ -31,7 +31,7 @@ function reload() {
     class="mx-auto flex min-h-dvh flex-col justify-center px-5 py-12"
     :style="{ maxWidth: 'var(--content-max-narrow)' }"
   >
-    <h1 class="font-serif text-xl font-bold">
+    <h1 class="text-display-s font-medium">
       {{ notFound ? '找不到這個頁面' : '這一頁沒有載入成功' }}
     </h1>
 
@@ -47,26 +47,20 @@ function reload() {
     </p>
 
     <div class="mt-8 flex flex-col gap-3">
-      <button
-        type="button"
-        class="w-full rounded-sm px-4 py-3 font-medium"
-        :style="{ background: 'var(--accent)', color: 'var(--on-accent)', minHeight: 'var(--touch-min)' }"
+      <AppButton block
         @click="goHome"
       >
         回總覽
-      </button>
-      <button
+      </AppButton>
+      <AppButton variant="outline" block
         v-if="!notFound"
-        type="button"
-        class="w-full rounded-sm border px-4 py-3"
-        :style="{ borderColor: 'var(--border-strong)', minHeight: 'var(--touch-min)' }"
         @click="reload"
       >
         重試
-      </button>
+      </AppButton>
     </div>
 
-    <p v-if="!notFound" class="mt-8 text-xs tabular-nums text-muted">
+    <p v-if="!notFound" class="mt-8 text-sm tabular-nums text-muted">
       錯誤代碼 {{ code }}
     </p>
   </main>

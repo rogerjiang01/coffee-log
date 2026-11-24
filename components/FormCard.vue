@@ -1,39 +1,40 @@
 <script setup lang="ts">
-// 分組卡片。卡片內的欄位用分隔線區隔，輸入區直接坐在卡片內。
+// 分組卡片：表單的卡片容器（《03》§4.19）。裡面是一列一列的 FormRow，
+// 列與列之間的分隔線由 FormRow 畫，左右內距也由 FormRow 提供（--card-pad）。
 //
-// 欄位是底線制（見 main.css 的 .field）：底線同時扮演該列的分隔線，
-// 卡片內不另外畫線。使用者一眼看得出哪裡可以填、填到哪裡為止，
-// 同時不會出現框中框。
+// **卡片下方的小字（footer）**：說明、提示、錯誤、衍生值都不放進卡片，放在卡片外面的下方，
+// 緊貼卡片、左側和列文字對齊（iOS inset grouped 列表的慣例，2026-11-16）。
+// 卡片裡的 FormNote 會自己傳送到這裡，所以訊息仍然寫在它的欄位旁邊。
 //
-// 標題放在卡片上方外側，小字、--text-muted。它是標籤不是段落標題，
-// 不搶欄位的視覺權重。
+// 區塊標題不在這裡：一個區塊有好幾張卡片，標題由 FormSection 畫。
+//
+// pill：**只有一列**、獨立成一張卡片的（沖煮時間、心得筆記、評分、收藏、設為常用……），
+// 圓角是膠囊形（2026-11-17）。可收合的卡片收合時是單列、傳 true，展開後傳 false。
+// **圓角是那一列基本高度的一半**（2026-11-23，列高兩級）：56 的列 28px（--radius-pill）；
+// 那一列裡面有膠囊（65 的列，FormRow 的 tall）時一起傳 tall，32.5px（--radius-pill-tall）。
+// 卡片長高時（心得筆記打成好幾行）圓角不變。一般的圓角是 --radius-lg。
+//
+// 綠底模式（登入、註冊，html.theme-green）不畫外框，照 Figma 的新版登入頁（2026-11-23）；淺色的表單維持外框。
 
-defineProps<{ title?: string }>()
+defineProps<{ pill?: boolean, tall?: boolean }>()
+
+const footer = ref<HTMLElement | null>(null)
+provide(FORM_CARD_FOOTER, footer)
 </script>
 
 <template>
-  <section>
-    <p v-if="title" class="mb-1.5 px-1 text-sm" :style="{ color: 'var(--text-muted)' }">
-      {{ title }}
-    </p>
-    <div
-      class="form-card overflow-hidden rounded-md border"
-      :style="{ borderColor: 'var(--border)', background: 'var(--surface)' }"
-    >
+  <div>
+    <!-- 外框畫在內側，不另外佔高度：單列卡片的高度就是那一列的高度（56 或 65），膠囊形的兩端剛好是半圓 -->
+    <AppCard :radius="pill ? (tall ? 'pill-tall' : 'pill') : 'lg'" border-inside class="form-card overflow-hidden">
       <slot />
-    </div>
-  </section>
+    </AppCard>
+    <div ref="footer" class="form-card-footer" />
+  </div>
 </template>
 
 <style scoped>
-/* 水平內距由 FormRow 提供，欄位本身貼齊列的內容邊界——
-   底線因此不會碰到卡片外框，左右各有一個 FormRow 內距的呼吸空間。
-   padding 是用 class 設的（px-3），不是 inline style，不需要 !important。 */
-.form-card :deep(input),
-.form-card :deep(select),
-.form-card :deep(textarea),
-.form-card :deep([data-field]) {
-  padding-left: 0;
-  padding-right: 0;
+/* 綠底模式（登入、註冊）不畫外框，照 Figma 的新版登入頁（2026-11-23）。淺色的表單維持外框 */
+:global(.theme-green) .form-card {
+  --card-border: transparent;
 }
 </style>

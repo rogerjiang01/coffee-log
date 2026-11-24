@@ -31,10 +31,12 @@ function stripComments(text) {
 
 // 詞 → 該用什麼（與《04-詞彙表》第三欄一致）
 const banned = {
-  停水時長: '停水時間',
-  停水秒數: '停水時間',
-  純停水: '停水時間',
+  停水時間: '停水時長',
+  停水秒數: '停水時長',
+  純停水: '停水時長',
   斷水: '停水',
+  // 分段子頁的開關與回饋（2026-11-17）：欄位叫「停水時長」，不叫「時間欄位」
+  時間欄位: '停水時長',
   給水: '注水',
   總沖煮時間: '沖煮時間',
   萃取時間: '沖煮時間',
@@ -58,10 +60,19 @@ const banned = {
   回豆子列表: '‹（返回，圖示）',
   // 分頁改名之後，同一個地方不能有兩個名字（《04》九）
   回首頁: '回總覽',
+  // 豆袋照片框的文字按鈕（2026-11-24，《04》六）：框上方的標籤拿掉之後，「選一張」沒說選的是什麼
+  拍照或選一張: '拍照或上傳照片',
+  // 記錄表單的區塊標題（2026-11-17，《04》八）：「紀錄」是名詞、「記錄」是動作
+  喝起來: '品飲',
+  // 上週最高分的那一行（2026-11-23，《04》十一）
+  本週還沒有評分: '上週六，本週未評分',
+  這杯記錄: '這杯紀錄',
   // 比較對象不一定是上一次了（《02》§7）
   相對上一次: '和 M/D 那一杯相比',
   // 結算頁的本週目標卡片已經有標題「本週目標」（《04》十一）
   本週目標達成: '已達成',
+  // 器材選擇器的確認按鈕（2026-11-23，《04》九）
+  選好了: '確定',
   首頁: '總覽',
   示範資料: '範例',
   假資料: '範例',
@@ -126,20 +137,22 @@ export default function run() {
 
   r.section('兩種時間分開叫')
   const form = read('components/BrewForm.vue')
-  r.check(/for="brew-at">沖煮日期</.test(form), 'brewed_at 的標籤是「沖煮日期」')
-  r.check(/for="brew-total-time">沖煮時間</.test(form), 'total_time 的標籤是「沖煮時間」')
+  r.check(/label="沖煮日期" for="brew-at"/.test(form), 'brewed_at 的標籤是「沖煮日期」')
+  r.check(/label="沖煮時間" for="brew-total-time"/.test(form), 'total_time 的標籤是「沖煮時間」')
   r.check(/'total_time', '沖煮時間'/.test(read('utils/brewDiff.ts')), '差異區的 total_time 也叫「沖煮時間」')
   r.check(/label: '沖煮時間'/.test(read('pages/brews/[id]/index.vue')), '紀錄詳情頁的 total_time 也叫「沖煮時間」')
 
   r.section('差異區的分段標籤')
   const diff = read('utils/brewDiff.ts')
   r.check(/'各段累積水量'/.test(diff), '「各段累積水量」')
-  r.check(/'各段停水時間'/.test(diff), '「各段停水時間」')
+  r.check(/'各段停水時長'/.test(diff), '「各段停水時長」')
 
-  r.section('「停留」只當欄位標籤')
-  const uiWithStay = texts.filter(([, text]) => /停留/.test(text.replace(/>停留<\/label>/g, '')))
+  r.section('分段的欄位標籤照 Figma：累積水量、停水時長（2026-11-16）')
+  const sheet = read('components/PourStepsSheet.vue')
+  r.check(/label="累積水量"/.test(sheet) && /label="停水時長"/.test(sheet), '子頁的兩個欄位標籤')
+  const uiWithStay = texts.filter(([, text]) => />(停留|注到)<\/label>|label="(停留|注到)"/.test(text))
   r.check(uiWithStay.length === 0,
-    `「停留」只出現在分段的欄位標籤${uiWithStay.length ? `：${uiWithStay.map(([p]) => p).join('、')}` : ''}`)
+    `「停留」「注到」不再當欄位標籤${uiWithStay.length ? `：${uiWithStay.map(([p]) => p).join('、')}` : ''}`)
 
   return r.finish()
 }

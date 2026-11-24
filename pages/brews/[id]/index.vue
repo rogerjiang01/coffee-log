@@ -29,7 +29,6 @@ interface BrewDetail {
   brewed_at: string
   rating: number | null
   is_favorite: boolean
-  is_sample: boolean
   tasting_notes: string | null
   intensity: Intensity | null
   beans: { id: string; name: string; roast_date: string | null; photo_path: string | null } | null
@@ -85,7 +84,7 @@ async function fetchBrew() {
     .select(`
       id, bean_id, copied_from_brew_id, brew_method_id, grinder_id, dripper_id, kettle_id,
       dose, water_temp, grind_setting, total_time, brewed_at,
-      rating, is_favorite, is_sample, tasting_notes, intensity,
+      rating, is_favorite, tasting_notes, intensity,
       beans ( id, name, roast_date, photo_path ),
       brew_methods ( name ),
       grinder:grinder_id ( custom_name, equipment_catalog ( brand, model, variant ) ),
@@ -169,7 +168,8 @@ async function loadDiff() {
 
 const water = computed(() => totalWater(steps.value))
 const ratio = computed(() => brewRatioLabel(water.value, brew.value?.dose ?? null))
-const increments = computed(() => incrementalWater(steps.value))
+// 顯示用：舊紀錄的攪拌段併進相鄰的段（utils/brewSteps.ts）。差異計算自己也會先併掉攪拌段（utils/brewDiff.ts），和這裡顯示的是同一組段；複製用的仍是原本的 steps（表單載入時再併）
+const displaySteps = computed(() => withoutStir(steps.value))
 const restedDays = computed(() =>
   restDays(brew.value?.beans?.roast_date, brew.value ? new Date(brew.value.brewed_at) : undefined),
 )
@@ -232,15 +232,13 @@ async function destroy() {
 
     <p v-if="loadError" role="alert" class="mt-4 text-sm" :style="{ color: 'var(--danger)' }">{{ loadError }}</p>
     <!-- 整頁都讀不到時才給重試；已經有內容（例如只有分段讀不到）時，紅字就夠了 -->
-    <button
+    <AppButton variant="outline" block
       v-if="loadError && !brew && !notFound && !loading"
-      type="button"
-      class="mt-4 w-full rounded-sm border px-4 py-3"
-      :style="{ borderColor: 'var(--border-strong)', minHeight: 'var(--touch-min)' }"
+      class="mt-4"
       @click="load"
     >
       重試
-    </button>
+    </AppButton>
 
     <!-- 骨架：版面結構立刻畫出來，資料回來再填。
          這不會讓資料變快，但空白加「讀取中」與有形狀的頁面，感受差很多。 -->
@@ -253,14 +251,14 @@ async function destroy() {
     </div>
 
     <template v-else-if="notFound">
-      <h1 class="mt-4 font-serif text-xl font-bold">找不到這筆紀錄</h1>
+      <h1 class="mt-4 text-display-s font-medium">找不到這筆紀錄</h1>
     </template>
 
     <template v-else-if="brew">
-      <!-- 對齊基線不置中：長豆名換成兩行時，置中的標籤會飄在兩行之間。
-           最右端是分享（《03》§4.13.1）：它自己垂直置中，不跟著對齊基線 -->
+      <!-- 最右端是分享（《03》§4.13.1）：它自己垂直置中，不跟著豆名對齊基線。
+           範例紀錄的標示寫在豆名裡（「範例-…」，《01》§13.2），不另外放標籤 -->
       <div class="mt-4 flex items-baseline gap-2">
-        <h1 class="min-w-0 font-serif text-2xl font-bold">
+        <h1 class="min-w-0 text-display-m font-medium">
           <!-- 豆名通往豆子詳情（《02》§7.2）。連結樣式照《03》：--accent、底線。
                行內元素的上下內距不影響行高，只把可點範圍加到 44px -->
           <NuxtLink
@@ -271,7 +269,6 @@ async function destroy() {
           >{{ brew.beans.name }}</NuxtLink>
           <template v-else>沒有指定豆子</template>
         </h1>
-        <SampleBadge v-if="brew.is_sample" />
         <BrewShare
           :brew-id="brew.id"
           :bean-name="brew.beans?.name ?? '沒有指定豆子'"
@@ -287,17 +284,7 @@ async function destroy() {
           <p class="text-sm tabular-nums text-muted">{{ formatDate(brew.brewed_at) }}</p>
           <!-- 評分與收藏是兩個獨立欄位，分開顯示 -->
           <div v-if="brew.rating !== null || brew.is_favorite" class="mt-3 flex items-center gap-3">
-            <span v-if="brew.rating !== null" class="flex" :aria-label="`評分 ${brew.rating} 顆星`">
-              <svg
-                v-for="level in 5" :key="level"
-                width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"
-                stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"
-                :fill="brew.rating >= level ? 'var(--favorite)' : 'transparent'"
-                :stroke="brew.rating >= level ? 'var(--favorite)' : 'var(--control-empty)'"
-              >
-                <path d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.123 2.123 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.123 2.123 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.122 2.122 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.122 2.122 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.122 2.122 0 0 0 1.597-1.16z" />
-              </svg>
-            </span>
+            <StarDisplay v-if="brew.rating !== null" :rating="brew.rating" />
             <span v-if="brew.is_favorite" class="flex items-center gap-1 text-sm" :style="{ color: 'var(--favorite)' }">
               <svg
                 width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"
@@ -331,42 +318,15 @@ async function destroy() {
       </dl>
 
       <section v-if="steps.length" class="mt-8">
-        <h2 class="font-serif text-lg font-bold">分段</h2>
-        <ul class="mt-3">
-          <li
-            v-for="(step, index) in steps"
-            :key="index"
-            class="flex items-baseline justify-between border-t py-3"
-            :style="{ borderColor: 'var(--border)' }"
-          >
-            <span class="min-w-0 flex-1 text-sm">
-              <span class="flex items-center gap-1.5">
-                {{ stepLabel(steps, index) }}
-                <!-- 唯讀頁沒有按鈕可以變色，改成掛一個強調色圖示，
-                     形狀與編輯器的切換鈕相同 -->
-                <StirIcon
-                  v-if="step.stepType === 'stir'"
-                  label="這一段有攪拌"
-                  :style="{ color: 'var(--accent)' }"
-                />
-              </span>
-              <span v-if="step.note" class="block text-xs text-muted">{{ step.note }}</span>
-            </span>
-            <span class="tabular-nums">
-              注到 {{ step.cumulativeWater }}g
-              <span v-if="increments[index] !== null" class="ml-2 text-sm text-muted">
-                +{{ increments[index] }}g
-              </span>
-              <span v-if="step.holdSeconds !== null" class="ml-3 text-sm text-muted">
-                停 {{ step.holdSeconds }} 秒
-              </span>
-            </span>
-          </li>
-        </ul>
+        <h2 class="text-heading-m font-medium">分段</h2>
+        <!-- 和記錄表單的分段摘要同一種寫法（PourStepList）。舊紀錄的攪拌段已經併進相鄰的段（withoutStir） -->
+        <div class="mt-3">
+          <PourStepList :steps="displaySteps" increments />
+        </div>
       </section>
 
       <section v-if="intensityRows.length" class="mt-8">
-        <h2 class="font-serif text-lg font-bold">強度</h2>
+        <h2 class="text-heading-m font-medium">強度</h2>
         <dl class="mt-3">
           <div
             v-for="row in intensityRows"
@@ -381,7 +341,7 @@ async function destroy() {
       </section>
 
       <section v-if="tags.length" class="mt-8">
-        <h2 class="font-serif text-lg font-bold">風味</h2>
+        <h2 class="text-heading-m font-medium">風味</h2>
         <div class="mt-3 flex flex-wrap gap-2">
           <span
             v-for="tag in tags"
@@ -395,13 +355,13 @@ async function destroy() {
       </section>
 
       <section v-if="brew.tasting_notes" class="mt-8">
-        <h2 class="font-serif text-lg font-bold">心得</h2>
+        <h2 class="text-heading-m font-medium">心得</h2>
         <p class="mt-2 whitespace-pre-line">{{ brew.tasting_notes }}</p>
       </section>
 
       <!-- 和 M/D 那一杯相比。沒有比較對象、或沒有任何一列（參數相同、沒有兩邊的評分）時整個區塊不顯示 -->
       <section v-if="comparison?.target && compareRows.length" class="mt-8">
-        <h2 class="font-serif text-lg font-bold">和 {{ monthDay(comparison.target.brewed_at) }} 那一杯相比</h2>
+        <h2 class="text-heading-m font-medium">和 {{ monthDay(comparison.target.brewed_at) }} 那一杯相比</h2>
         <dl class="mt-3">
           <div
             v-for="diff in compareRows"
@@ -426,31 +386,27 @@ async function destroy() {
 
       <!-- 本產品最高頻的操作是複製而非從空白新增，
            所以這是此頁權重最高的按鈕，編輯與刪除退居次要。 -->
-      <NuxtLink
+      <AppButton block
         :to="`/brews/new?copy=${brew.id}`"
-        class="mt-8 block w-full rounded-sm px-4 py-3 text-center font-medium"
-        :style="{ background: 'var(--accent)', color: 'var(--on-accent)', minHeight: 'var(--touch-min)' }"
+        class="mt-8"
       >
         照這次再沖一次
-      </NuxtLink>
+      </AppButton>
 
       <!-- 編輯與刪除在內容區，不在頂部角落（《03》§3）：頂部角落只留給 ‹ -->
-      <NuxtLink
+      <AppButton variant="outline" block
         :to="`/brews/${brew.id}/edit`"
-        class="mt-3 flex w-full items-center justify-center rounded-sm border px-4 py-3"
-        :style="{ borderColor: 'var(--border)', minHeight: 'var(--touch-min)' }"
+        class="mt-3"
       >
         編輯
-      </NuxtLink>
+      </AppButton>
 
-      <button
-        type="button"
-        class="mt-3 w-full rounded-sm px-4 py-3"
-        :style="{ color: 'var(--danger)', minHeight: 'var(--touch-min)' }"
+      <AppButton variant="text" tone="danger" block
+        class="mt-3"
         @click="confirmOpen = true"
       >
         刪除
-      </button>
+      </AppButton>
 
       <ConfirmDialog
         :open="confirmOpen"
