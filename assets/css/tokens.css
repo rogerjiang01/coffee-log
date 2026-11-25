@@ -300,6 +300,10 @@
     --corner-card-ml: superellipse(1.1);      /* 分頁第一層的卡片（AppCard 的 ml、.card-ml-corners） */
     --corner-card-md: superellipse(1.1);      /* 其他獨立的卡片（AppCard 的 md、.card-corners） */
     --corner-card-lg: superellipse(1.1);      /* 表單的卡片容器（AppCard 的 lg） */
+    /* 底部分頁列與選中的膠囊：**round**（2026-11-25 實機比對後從 1.2 改回）。兩端要是正半圓，和 iOS 原生的
+       浮動分頁列（健身、Instagram）一致；superellipse 讓兩端看起來比原生的扁 */
+    --corner-tab-bar: round;                  /* 底部分頁列（BottomNav） */
+    --corner-tab-indicator: round;            /* 分頁列裡選中那一格的膠囊底 */
     /* 卡片與儲存按鈕各自的圓角半徑。
        卡片兩級（2026-11-19 統一成 24px；2026-11-23 加上 18px 的 ml，對應 Figma 的 radius-ml）：
        ml 18px  四個分頁第一層的卡片：總覽、豆子列表、器材列表（紀錄分頁之後的卡片也用這一級）
@@ -312,6 +316,9 @@
     --radius-card-pill: var(--radius-pill);
     --radius-card-pill-tall: var(--radius-pill-tall);
     --radius-block-button: var(--radius-pill);
+    /* 分頁列：膠囊，圓角是高度的一半；選中的膠囊和外層同心（《03》§2.3.1：外層 − 間距），32 − 4 = 28 */
+    --radius-tab-bar: calc(var(--tab-bar-h) / 2);
+    --radius-tab-indicator: calc(var(--radius-tab-bar) - var(--tab-bar-pad));
 
     /* ══ 陰影 ═══════════════════════════════════════════════
      兩種，用途不同，不互相代替：
@@ -354,6 +361,33 @@
     /* 總覽卡片的高度（Figma 的 Card，169px）。最近沖煮、最高分、累計、本月固定這個高度，
        改成全寬時也一樣；本週目標最少這麼高。內容放不下時省略，不撐高卡片（《03》§4.16） */
     --overview-card-h: 169px;
+
+    /* 底部分頁列（2026-11-25，Figma 的「Tab Bar 草稿」3580:1037；《03》§3）。浮動的膠囊，不貼底。
+         --tab-bar-h       64px  分頁列的高度
+         --tab-bar-pad      4px  內距：選中膠囊離外緣的距離（四格各是 56 高）
+         --tab-bar-bottom        下緣離螢幕底：**對齊 iOS 原生的浮動分頁列**（2026-11-25 量實機截圖：
+                                 Apple 健身、Instagram 都約 20pt）。iPhone（安全區 34）是 34 − 14 = 20；
+                                 沒有安全區的裝置與橫向（安全區 21）是 12，不貼死螢幕邊緣。
+                                 不是「安全區之上再加 8」：那樣是 42，比原生的高一倍，看起來浮太高
+         --tab-bar-top           分頁列頂端離螢幕底（iPhone 84，沒有安全區 76）
+       **env(safe-area-inset-*) 要有 viewport-fit=cover 才有值**（nuxt.config.ts 的 viewport，2026-11-25 加上）。
+       沒有它的話 iPhone 上一律是 0，分頁列會壓在 home indicator 上 */
+    --tab-bar-h: 64px;
+    --tab-bar-pad: 4px;
+    --tab-bar-bottom: max(12px, calc(env(safe-area-inset-bottom) - 14px));
+    --tab-bar-top: calc(var(--tab-bar-bottom) + var(--tab-bar-h));
+    /* 有分頁列的頁面最底下要讓出的空白（app.vue 的 spacer 用，頁面不自己留）：**只有這一個基準**。
+         --tab-bar-clearance  最後一張卡片離分頁列 24px（檢視型、已登入的分享頁）
+         --fab-clearance      瀏覽型多一顆浮動新增按鈕：最後一張卡片離按鈕 16px
+       --fab-bottom 是浮動新增按鈕的下緣：分頁列之上 12px（.fab-position） */
+    --tab-bar-clearance: calc(var(--tab-bar-top) + 24px);
+    --fab-bottom: calc(var(--tab-bar-top) + 12px);
+    --fab-clearance: calc(var(--fab-bottom) + 56px + 16px);
+    /* 固定在畫面上、要和內容欄對齊的元素（分頁列、浮動新增按鈕、分享的頁底提示）的左右位置。
+       內容欄是 --content-max 置中、左右 --form-gutter；橫向時再避開左右的安全區（body 的 padding）。
+       100% 在 position: fixed 的 left／right 裡是視窗寬 */
+    --fixed-left: calc(env(safe-area-inset-left) + max(var(--form-gutter), (100% - env(safe-area-inset-left) - env(safe-area-inset-right) - var(--content-max)) / 2 + var(--form-gutter)));
+    --fixed-right: calc(env(safe-area-inset-right) + max(var(--form-gutter), (100% - env(safe-area-inset-left) - env(safe-area-inset-right) - var(--content-max)) / 2 + var(--form-gutter)));
 
     /* ══ 動態 ═══════════════════════════════════════════════
      只做回應操作的動態，時長 150–200ms。 */

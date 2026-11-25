@@ -45,8 +45,12 @@ async function start() {
 
 <template>
   <main
-    class="mx-auto flex min-h-dvh flex-col px-5 pt-16 pb-10"
-    :style="{ maxWidth: 'var(--content-max-narrow)' }"
+    class="mx-auto flex min-h-dvh flex-col px-5 pt-16"
+    :style="{
+      maxWidth: 'var(--content-max-narrow)',
+      // 「開始」貼在畫面底部：iPhone 上 40px 只比 home indicator（34）多 6px，安全區之上至少留 12px
+      paddingBottom: 'max(2.5rem, calc(env(safe-area-inset-bottom) + 0.75rem))',
+    }"
   >
     <h1 class="text-display-m font-medium">設定每週記錄目標</h1>
 

@@ -27,8 +27,10 @@ const EDGE = 8
  * 而 position: fixed 使頁面捲不到它，底部的動作因此永遠點不到，
  * 且不會有任何錯誤訊息。
  */
-export function computePanelPlacement(rect: AnchorRect, viewportHeight: number): Record<string, string> {
-  const spaceBelow = viewportHeight - rect.bottom - GAP - EDGE
+export function computePanelPlacement(rect: AnchorRect, viewportHeight: number, bottomInset = 0): Record<string, string> {
+  // bottomInset：iPhone 的 home indicator（底部安全區，2026-11-25 加上 viewport-fit=cover 之後才有值）。
+  // 往下開時底緣停在它之上；往上開的定位仍然從視窗底算，不受影響
+  const spaceBelow = viewportHeight - bottomInset - rect.bottom - GAP - EDGE
   const spaceAbove = rect.top - GAP - EDGE
 
   // 優先往下開；只有下方明顯不夠而上方比較寬時才翻面
@@ -50,6 +52,19 @@ export function computePanelPlacement(rect: AnchorRect, viewportHeight: number):
     : { ...common, top: `${rect.bottom + GAP}px` }
 }
 
+/**
+ * 底部安全區的高度（px）。env() 只能在 CSS 裡讀，所以放一個看不見的元素量它的高度。
+ * 沒有 viewport-fit=cover 或不是 iPhone 時是 0
+ */
+function safeAreaBottom(): number {
+  const probe = document.createElement('div')
+  probe.style.cssText = 'position:fixed;bottom:0;left:0;width:0;height:env(safe-area-inset-bottom);visibility:hidden;pointer-events:none'
+  document.body.appendChild(probe)
+  const height = probe.getBoundingClientRect().height
+  probe.remove()
+  return height
+}
+
 export function useAnchoredPanel(
   trigger: Ref<HTMLElement | null>,
   panel: Ref<HTMLElement | null>,
@@ -64,6 +79,7 @@ export function useAnchoredPanel(
     style.value = computePanelPlacement(
       { top: rect.top, bottom: rect.bottom, left: rect.left, width: rect.width },
       window.innerHeight,
+      safeAreaBottom(),
     )
   }
 

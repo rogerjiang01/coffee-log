@@ -168,7 +168,8 @@ export default function run() {
 
 
   r.section('登入、註冊的寬度（2026-11-23）')
-  r.check(/padding: 18dvh var\(--form-gutter\) 2rem;/.test(shell), '左右是表單頁的 --form-gutter（20px）')
+  r.check(/calc\(18dvh \+ env\(safe-area-inset-top\)\)\s*calc\(var\(--form-gutter\) \+ env\(safe-area-inset-right\)\)\s*calc\(2rem \+ env\(safe-area-inset-bottom\)\)\s*calc\(var\(--form-gutter\) \+ env\(safe-area-inset-left\)\);/.test(shell),
+    '左右是表單頁的 --form-gutter（20px），再加上安全區（2026-11-25）')
   r.check(/\.auth__form \{\s*width: 100%;\s*max-width: var\(--content-max-narrow\);/.test(shell) && !/300px;/.test(shell), '表單撐滿內容寬度，寬螢幕最多 --content-max-narrow（不再固定 300px）')
 
   r.section('輸入框的字：台北黑體的下緣（2026-11-23）')

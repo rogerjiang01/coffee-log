@@ -14,8 +14,10 @@ export function useInputModality() {
     installed = true
     document.addEventListener('pointerdown', () => { modality.value = 'pointer' }, true)
     document.addEventListener('keydown', (event) => {
-      // 單獨按修飾鍵（例如 iOS 外接鍵盤的 Cmd）不算開始用鍵盤操作
-      if (event.metaKey || event.altKey || event.ctrlKey) return
+      // 單獨按修飾鍵（例如 iOS 外接鍵盤的 Cmd）不算開始用鍵盤操作。
+      // 例外是 Tab：Safari 預設 Tab 跳不到連結，要 Option＋Tab——分頁列的四格是連結，
+      // 不算的話用 Safari 的鍵盤使用者看不到焦點框（2026-11-25）
+      if ((event.metaKey || event.altKey || event.ctrlKey) && event.key !== 'Tab') return
       modality.value = 'keyboard'
     }, true)
   }

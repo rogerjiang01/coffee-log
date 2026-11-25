@@ -127,6 +127,24 @@ export default function run() {
       `${file}：${marker.slice(0, 12)}… 的 viewBox 是 24`)
   }
 
+  r.section('分頁列的四個圖示（TabIcon，2026-11-25，照 Figma）')
+  // 有填色（home、brew）也有描邊（bean、equip）：兩種都用 currentColor，跟著那一格的文字顏色變
+  const tab = read('components/TabIcon.vue')
+  const tabSvg = svgsWith(tab, 'viewBox')
+  r.check(tabSvg.length === 1, '一個 <svg>，四個圖示用 v-if 切換')
+  const svg = tabSvg[0] ?? ''
+  r.check(/viewBox="0 0 24 24"/.test(svg) && /\swidth="24"/.test(svg) && /\sheight="24"/.test(svg), '24×24、24 格線')
+  r.check(rendered(svg).length === 2 && rendered(svg).every(w => Math.abs(w - 2) < 0.02), `描邊的實際線寬 2px（算出 ${rendered(svg).join('、')}）`)
+  r.check(/aria-hidden="true"/.test(svg), '裝飾：名稱由旁邊的文字提供')
+  const paints = [...svg.matchAll(/\s(fill|stroke)="([^"]+)"/g)].map(m => m[2])
+  r.check(paints.every(p => p === 'currentColor' || p === 'none'), `顏色一律 currentColor，沒有寫死的色碼（${[...new Set(paints)].join('、')}）`)
+  r.check((svg.match(/fill="currentColor"/g) || []).length === 3 && (svg.match(/stroke="currentColor"/g) || []).length === 2,
+    '填色三處（home、brew、器材的濾杯）、描邊兩組（bean、器材）')
+  r.check(/name === 'bean'"[\s\S]*?stroke-linecap="round" stroke-linejoin="round"/.test(svg), '豆子：圓頭（照 Figma）')
+  r.check(/stroke-linecap="butt" stroke-linejoin="miter"/.test(svg), '器材：平頭直角（照 Figma；《03》§3 的例外，這一組不套圓頭規則）')
+  r.check(/transform="translate\(4 4\)"/.test(svg) && /transform="translate\(3 3\)"/.test(svg), '豆子與器材放回 Figma 在 24 格裡的位置')
+  r.check(/'home' \| 'brew' \| 'bean' \| 'equip'/.test(tab), '四個名稱')
+
   r.section('未選取的輪廓用 --control-empty，不得退回 --border')
   // --border 是分隔線的顏色（stone-100，卡片上 1.16:1）。畫在「可以按」的東西上
   // 淡到看不見，使用者看不出那裡還有五個可點的目標。
@@ -168,6 +186,8 @@ export default function run() {
   const notice = read('NOTICE.md')
   r.check(/Lucide/.test(notice) && /ISC License/.test(notice), 'NOTICE.md 記了 Lucide 與 ISC License')
   r.check(/Lucide/.test(read('docs/03-介面規範.md')), '《03》§3 註明圖示來源')
+  r.check(/Material Symbols/.test(notice) && /Apache License/.test(notice) && /streamline-plump:coffee-bean/.test(notice) && /CC BY 4\.0/.test(notice) && !/待確認/.test(notice),
+    'NOTICE.md 記了分頁列的圖示：Material Symbols（Apache 2.0）、Streamline Plump 的 coffee-bean（CC BY 4.0）')
 
   r.section('字級下限（《03》§2.4）')
   // 2026-11-11 起分兩種畫面：有輸入欄位的畫面維持 14px；沒有輸入欄位的瀏覽型與檢視型畫面，

@@ -299,11 +299,11 @@ async function retry() {
   </dialog>
 
   <!-- 頁面層級的回饋：對話框已經關了，這些要在頁面上看得到。
-       疊在分頁列與 iPhone 底部安全區域之上（《03》§4.13.3） -->
+       在分頁列之上 12px，左右和分頁列、內容欄對齊（《03》§4.13.3；tokens.css 的 --tab-bar-top、--fixed-*） -->
   <Teleport :to="portalTarget">
     <div
-      class="pointer-events-none fixed inset-x-0 z-40 mx-auto flex flex-col gap-2 px-5"
-      :style="{ bottom: 'calc(52px + env(safe-area-inset-bottom) + 12px)', maxWidth: 'var(--content-max)' }"
+      class="pointer-events-none fixed z-40 flex flex-col gap-2"
+      :style="{ bottom: 'calc(var(--tab-bar-top) + 12px)', left: 'var(--fixed-left)', right: 'var(--fixed-right)' }"
     >
       <!-- 不自動消失：連結已經傳出去了，失敗一定要被看到 -->
       <div
