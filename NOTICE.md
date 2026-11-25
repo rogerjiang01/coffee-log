@@ -56,11 +56,18 @@ THIS SOFTWARE.
 |---|---|---|---|
 | 總覽 | `home` | **Google Material Symbols**（<https://fonts.google.com/icons>） | Apache License 2.0 |
 | 紀錄 | brew | **Google Material Symbols** | Apache License 2.0 |
-| 豆子 | bean | **Iconify**（<https://icon-sets.iconify.design>），**圖示集名稱待確認** | **待確認**（依圖示集而定） |
+| 豆子 | bean | **Streamline 的 Plump free icons**，`coffee-bean`（經由 Iconify：`streamline-plump:coffee-bean`，<https://icon-sets.iconify.design/streamline-plump/>） | CC BY 4.0 |
 | 器材 | equip | 專案自繪 | — |
 
-豆子的圖示集確認之後，把上表的「待確認」換成圖示集名稱與它的授權（Iconify 本身只是集合，
-每個圖示集的授權不同）。
+Iconify 本身只是集合，授權看圖示集：`streamline-plump` 是 Streamline（<https://github.com/webalys-hq/streamline-vectors>）的
+Plump free icons，授權 **CC BY 4.0**（<https://creativecommons.org/licenses/by/4.0/>），要標示作者並註明修改。
+
+### CC BY 4.0（Streamline Plump：coffee-bean）
+
+「Coffee Bean」icon by **Streamline**（Plump free icons），licensed under
+[CC BY 4.0](https://creativecommons.org/licenses/by/4.0/)。
+**有修改**：原圖是 48 格線、線寬 3；本專案在 Figma 裡縮成 15px、線寬改成 2px，再放進 24 格線（`components/TabIcon.vue`），
+顏色改成 `currentColor`。路徑的形狀未改。
 
 ### Apache License 2.0（Material Symbols）
 

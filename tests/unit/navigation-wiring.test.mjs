@@ -100,7 +100,7 @@ export default function run() {
   r.check(/background: var\(--surface\);/.test(bar) && /box-shadow: inset 0 0 0 1px var\(--border\), var\(--shadow-light\);/.test(bar) && !/backdrop-filter/.test(navCss), '--surface 底、內側 1px --border、--shadow-light，沒有毛玻璃')
   const tokens = read('assets/css/tokens.css')
   r.check(tokens.includes('--tab-bar-h: 64px;') && tokens.includes('--tab-bar-pad: 4px;'), 'token：64 高、內距 4')
-  r.check(tokens.includes('--tab-bar-bottom: max(12px, calc(env(safe-area-inset-bottom) + 8px));'), '下緣：安全區之上 8px，沒有安全區時 12px')
+  r.check(tokens.includes('--tab-bar-bottom: max(12px, calc(env(safe-area-inset-bottom) - 14px));'), '下緣：iPhone 20（對齊 iOS 原生的浮動分頁列），沒有安全區與橫向 12')
   const indicator = rule('.tab-bar__indicator')
   r.check(/background: var\(--surface-muted\);/.test(indicator) && /width: calc\(\(100% - 2 \* var\(--tab-bar-pad\)\) \/ 4\);/.test(indicator), '選中的膠囊：--surface-muted、四分之一寬')
   r.check(/transition: transform var\(--motion-duration\) var\(--motion-ease\);/.test(indicator), '膠囊用 transform 滑動，時間與曲線是 motion token')

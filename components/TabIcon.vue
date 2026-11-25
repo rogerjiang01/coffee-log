@@ -6,7 +6,8 @@
 // 有填色也有描邊，兩種都用 currentColor：
 //   總覽  home   填色   Google Material Symbols 的 home（Apache 2.0，NOTICE.md）
 //   紀錄  brew   填色   Google Material Symbols（Apache 2.0，NOTICE.md）
-//   豆子  bean   描邊   Iconify（圖示集待確認，NOTICE.md）。Figma 匯出的 viewBox 是 17，平移到 24 格線裡 Figma 的位置
+//   豆子  bean   描邊   Streamline 的 Plump free icons（Iconify 的 streamline-plump:coffee-bean，CC BY 4.0，NOTICE.md）。
+//                     Figma 匯出的 viewBox 是 17，平移到 24 格線裡 Figma 的位置
 //   器材  equip  描邊＋填色  使用者自己畫的。Figma 匯出的 viewBox 是 20×19，同樣平移到 24 格線裡
 //
 // 描邊的實際線寬 2px（24 格線、24px 顯示、stroke-width 2），是「頂部導覽與主要動作」那一級。

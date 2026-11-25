@@ -363,14 +363,16 @@
     /* 底部分頁列（2026-11-25，Figma 的「Tab Bar 草稿」3580:1037；《03》§3）。浮動的膠囊，不貼底。
          --tab-bar-h       64px  分頁列的高度
          --tab-bar-pad      4px  內距：選中膠囊離外緣的距離（四格各是 56 高）
-         --tab-bar-bottom        下緣離螢幕底：iPhone 的 home indicator（安全區）之上再 8px；
-                                 沒有安全區的裝置 12px，不貼死螢幕邊緣。iPhone（安全區 34）是 42
-         --tab-bar-top           分頁列頂端離螢幕底（iPhone 106，沒有安全區 76）
+         --tab-bar-bottom        下緣離螢幕底：**對齊 iOS 原生的浮動分頁列**（2026-11-25 量實機截圖：
+                                 Apple 健身、Instagram 都約 20pt）。iPhone（安全區 34）是 34 − 14 = 20；
+                                 沒有安全區的裝置與橫向（安全區 21）是 12，不貼死螢幕邊緣。
+                                 不是「安全區之上再加 8」：那樣是 42，比原生的高一倍，看起來浮太高
+         --tab-bar-top           分頁列頂端離螢幕底（iPhone 84，沒有安全區 76）
        **env(safe-area-inset-*) 要有 viewport-fit=cover 才有值**（nuxt.config.ts 的 viewport，2026-11-25 加上）。
        沒有它的話 iPhone 上一律是 0，分頁列會壓在 home indicator 上 */
     --tab-bar-h: 64px;
     --tab-bar-pad: 4px;
-    --tab-bar-bottom: max(12px, calc(env(safe-area-inset-bottom) + 8px));
+    --tab-bar-bottom: max(12px, calc(env(safe-area-inset-bottom) - 14px));
     --tab-bar-top: calc(var(--tab-bar-bottom) + var(--tab-bar-h));
     /* 有分頁列的頁面最底下要讓出的空白（app.vue 的 spacer 用，頁面不自己留）：**只有這一個基準**。
          --tab-bar-clearance  最後一張卡片離分頁列 24px（檢視型、已登入的分享頁）

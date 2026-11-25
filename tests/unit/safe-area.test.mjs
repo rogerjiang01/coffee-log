@@ -34,7 +34,8 @@ export default function run() {
 
   r.section('固定在畫面上的東西')
   const tokens = read('assets/css/tokens.css')
-  r.check(/--tab-bar-bottom: max\(12px, calc\(env\(safe-area-inset-bottom\) \+ 8px\)\);/.test(tokens), '分頁列：home indicator 之上 8px')
+  r.check(/--tab-bar-bottom: max\(12px, calc\(env\(safe-area-inset-bottom\) - 14px\)\);/.test(tokens),
+    '分頁列：iPhone（安全區 34）下緣 20，對齊 iOS 原生的浮動分頁列；沒有安全區與橫向 12')
   r.check(/--fixed-left: calc\(env\(safe-area-inset-left\) \+ max\(/.test(tokens) && /--fixed-right: calc\(env\(safe-area-inset-right\) \+ max\(/.test(tokens),
     '分頁列、浮動按鈕、分享提示的左右：避開橫向的瀏海')
   r.check(/dialog:modal \{[^}]*padding:\s*max\(1\.25rem, env\(safe-area-inset-top\)\)\s*max\(1\.25rem, env\(safe-area-inset-right\)\)\s*max\(1\.25rem, env\(safe-area-inset-bottom\)\)\s*max\(1\.25rem, env\(safe-area-inset-left\)\);/.test(css),

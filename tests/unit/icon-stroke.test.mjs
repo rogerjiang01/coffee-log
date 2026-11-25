@@ -186,8 +186,8 @@ export default function run() {
   const notice = read('NOTICE.md')
   r.check(/Lucide/.test(notice) && /ISC License/.test(notice), 'NOTICE.md 記了 Lucide 與 ISC License')
   r.check(/Lucide/.test(read('docs/03-介面規範.md')), '《03》§3 註明圖示來源')
-  r.check(/Material Symbols/.test(notice) && /Apache License/.test(notice) && /Iconify/.test(notice) && /待確認/.test(notice),
-    'NOTICE.md 記了分頁列的圖示：Material Symbols（Apache 2.0）、Iconify（圖示集待確認）')
+  r.check(/Material Symbols/.test(notice) && /Apache License/.test(notice) && /streamline-plump:coffee-bean/.test(notice) && /CC BY 4\.0/.test(notice) && !/待確認/.test(notice),
+    'NOTICE.md 記了分頁列的圖示：Material Symbols（Apache 2.0）、Streamline Plump 的 coffee-bean（CC BY 4.0）')
 
   r.section('字級下限（《03》§2.4）')
   // 2026-11-11 起分兩種畫面：有輸入欄位的畫面維持 14px；沒有輸入欄位的瀏覽型與檢視型畫面，

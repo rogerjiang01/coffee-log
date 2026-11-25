@@ -248,10 +248,10 @@ Laeta 改版：把 Figma 的新設計導入程式，分三批——第一批 tok
   新增元件或改圓角、內距之後重跑盤點：`node scripts/radius-audit/run.mjs`（不在 `pnpm test` 裡，結果在 `tmp-screenshots/radius-audit/`）
 - **表單的區塊標題與豆袋照片框**（2026-11-24）：紀錄表單的區塊標題（`FormSection`）是 `text-heading-l font-medium`（20px），頁面標題不動；豆子與器材表單沒有區塊標題。豆袋照片的框（`PhotoField`）圓角和表單卡片一致（`.form-card-corners`，24px），框上方不寫「豆袋照片」，沒有照片時框裡寫「拍照或上傳照片」（《04》六）
 - **底部分頁列**（2026-11-25，`BottomNav`／`TabIcon`，《03》§3「分頁列」「安全區」；Figma 3580:1037）：浮動膠囊 64px、圓角 32，左右對齊內容欄，
-  下緣在 home indicator 之上 8px（沒有安全區 12px）；圖示在上、文字 Body S 在下，選中與未選**都是 400**；選中的膠囊（`--surface-muted`，56、28）用 transform 滑過去，重新整理不滑。
+  下緣離螢幕底 iPhone 20（**對齊 iOS 原生的浮動分頁列**，`max(12px, 安全區 − 14px)`；不是安全區之上再加 8，那是 42、浮太高），沒有安全區與橫向 12；圖示在上、文字 Body S 在下，選中與未選**都是 400**；選中的膠囊（`--surface-muted`，56、28）用 transform 滑過去，重新整理不滑。
   **`viewport-fit=cover` 不要拿掉**：沒有它 `env(safe-area-inset-*)` 在 iPhone 上是 0，分頁列會壓在底部的橫線上。
   **頁面底部的空白只在 `app.vue` 留**（`--tab-bar-clearance`／瀏覽型 `--fab-clearance`），頁面的 `main` 不自己留；浮動新增按鈕在分頁列之上 12px（`.fab-position`）。
-  分頁列的圖示照 Figma：器材是平頭直角，**不套 Lucide 的圓頭規則**；home、brew 是 Material Symbols，**bean 的 Iconify 圖示集待使用者補**（`NOTICE.md`）
+  分頁列的圖示照 Figma：器材是平頭直角，**不套 Lucide 的圓頭規則**；home、brew 是 Material Symbols（Apache 2.0），bean 是 Streamline Plump 的 coffee-bean（Iconify，CC BY 4.0，要標作者，`NOTICE.md`）
 - **顯示用星等**（`StarDisplay`，2026-11-23）：20px、間距 4px，總覽、紀錄詳情、分享頁一致，用的地方不傳 `size`、不加 gap；總覽半寬卡片放不下時（320px）只縮間距到最小 2px
 
 **還沒驗、等使用者回覆的**：
