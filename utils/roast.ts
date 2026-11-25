@@ -43,3 +43,13 @@ export function restDays(roastDate: string | null | undefined, since: Date = new
   const days = Math.floor((since.getTime() - roasted.getTime()) / 86400000)
   return days >= 0 ? days : null
 }
+
+/**
+ * 養豆天數的寫法（紀錄詳情、分享頁、結算頁共用；《04》「養豆天數」）。
+ * 0 是「烘焙當天」（「養豆第 0 天」讀起來不像一個日子）；1 以上是「養豆第 N 天」。
+ * 算不出來（沒有烘焙日期）或沖煮日期早於烘焙日期（負數）時回 null，介面不顯示。
+ */
+export function restDayLabel(days: number | null | undefined): string | null {
+  if (days === null || days === undefined || !Number.isFinite(days) || days < 0) return null
+  return days === 0 ? '烘焙當天' : `養豆第 ${days} 天`
+}

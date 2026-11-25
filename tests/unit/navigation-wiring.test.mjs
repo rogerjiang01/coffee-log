@@ -329,8 +329,9 @@ export default function run() {
     && /參數和 \{\{ monthDay\(comparison\.target\.brewed_at\) \}\} 那一杯相同/.test(summaryTemplate), '有比較對象：比較區')
   r.check(/<template v-else-if="firstCup">[\s\S]*<h2 class="text-heading-m font-medium">這支豆子<\/h2>[\s\S]*<h2 class="text-heading-m font-medium">這一杯<\/h2>[\s\S]*下一杯會和這一杯比較。/.test(summaryTemplate),
     '沒有比較對象：「這支豆子」與「這一杯」兩個區塊，標題樣式與比較區相同')
-  r.check(/養豆第 \{\{ firstCup\.bean\.restDay \}\} 天/.test(summaryTemplate) && /v-if="firstCup\.bean\.restDay !== null"/.test(summaryTemplate)
-    && /第 \{\{ firstCup\.bean\.beanOrdinal \}\} 支豆子/.test(summaryTemplate), '「養豆第 N 天」（有烘焙日期才有）、「第 N 支豆子」')
+  // 養豆天數的寫法和紀錄詳情、分享頁共用 restDayLabel（2026-11-25；烘焙當天／養豆第 N 天，規則在 rest-day.test.ts）
+  r.check(/<p v-if="restDayLabel\(firstCup\.bean\.restDay\)"[^>]*>\{\{ restDayLabel\(firstCup\.bean\.restDay\) \}\}<\/p>/.test(summaryTemplate)
+    && /第 \{\{ firstCup\.bean\.beanOrdinal \}\} 支豆子/.test(summaryTemplate), '「養豆第 N 天」（有烘焙日期才有，走 restDayLabel）、「第 N 支豆子」')
   r.check(/feedbackLine\(compared\.diffs, compared\.target\.rating, row\.rating, true\)/.test(summary) && /: '恭喜開箱新豆子。'/.test(summary)
     && !/<p v-else-if="comparison">恭喜開箱新豆子/.test(summaryTemplate), '回饋句的位置照舊；第一杯固定是「恭喜開箱新豆子。」，不再取代整個比較區')
   const summaryText = summaryTemplate.replace(/\{\{[\s\S]*?\}\}/g, '').replace(/<(?:[^>"']|"[^"]*"|'[^']*')*>/g, ' ').split(/\s+/).filter(Boolean)

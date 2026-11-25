@@ -16,6 +16,7 @@ const suites = [
   ['unit/compare-feedback.test.ts', '比較對象與回饋句'],
   ['unit/weekly-goal.test.ts', '每週記錄目標與總覽卡片'],
   ['unit/summary.test.ts', '結算頁的第一筆紀錄與第一杯'],
+  ['unit/rest-day.test.ts', '養豆天數的寫法'],
   ['unit/brew-card.test.ts', '紀錄卡片'],
   ['unit/form-date.test.ts', '表單膠囊上的日期與時刻'],
   ['unit/form-date-wiring.test.mjs', '表單膠囊上的日期與時刻的接線'],

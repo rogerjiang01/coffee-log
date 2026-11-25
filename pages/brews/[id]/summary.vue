@@ -206,7 +206,8 @@ async function openDetail() {
               <dd class="min-w-0 text-right">{{ row.value }}</dd>
             </div>
           </dl>
-          <p v-if="firstCup.bean.restDay !== null" class="mt-3 tabular-nums">養豆第 {{ firstCup.bean.restDay }} 天</p>
+          <!-- 寫法和紀錄詳情、分享頁共用（烘焙當天／養豆第 N 天，utils/roast.ts） -->
+          <p v-if="restDayLabel(firstCup.bean.restDay)" class="mt-3 tabular-nums">{{ restDayLabel(firstCup.bean.restDay) }}</p>
           <p class="mt-1 tabular-nums">第 {{ firstCup.bean.beanOrdinal }} 支豆子</p>
         </section>
 

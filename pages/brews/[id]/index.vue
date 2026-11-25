@@ -177,9 +177,10 @@ async function loadDiff() {
 
 // 顯示用：舊紀錄的攪拌段併進相鄰的段（utils/brewSteps.ts）。差異計算自己也會先併掉攪拌段（utils/brewDiff.ts），和這裡顯示的是同一組段；複製用的仍是原本的 steps（表單載入時再併）
 const displaySteps = computed(() => withoutStir(steps.value))
-const restedDays = computed(() =>
+// 養豆天數的寫法（烘焙當天／養豆第 N 天，算不出來是 null）
+const restLabel = computed(() => restDayLabel(
   restDays(brew.value?.beans?.roast_date, brew.value ? new Date(brew.value.brewed_at) : undefined),
-)
+))
 
 // 器材的顯示名稱：型錄是「品牌 · 型號 版本」，自建是自建名稱
 const equipmentName = (row: EquipmentNameRow | null) => row ? equipmentOptionName(row) : null
@@ -264,8 +265,10 @@ async function destroy() {
            標題列不動、維持全寬；沒有照片時只剩左邊一欄 -->
       <div class="mt-1 flex items-center gap-4">
         <div class="min-w-0 flex-1">
-          <!-- 日期後面接養豆天數（2026-11-25，《03》§4.22）；算不出來時只有日期。參數裡不再另列養豆天數 -->
-          <p class="text-sm tabular-nums text-muted">{{ formatDate(brew.brewed_at) }}<template v-if="restedDays !== null"> · 養豆第 {{ restedDays }} 天</template></p>
+          <!-- 日期時間一行、養豆天數一行（2026-11-25，《03》§4.22）：不擠成一行中間點分隔（§1）。
+               算不出養豆天數時只有日期。參數裡不再另列養豆天數 -->
+          <p class="text-sm tabular-nums text-muted">{{ formatDate(brew.brewed_at) }}</p>
+          <p v-if="restLabel" class="text-sm tabular-nums text-muted">{{ restLabel }}</p>
           <!-- 評分與收藏是兩個獨立欄位，分開顯示 -->
           <div v-if="brew.rating !== null || brew.is_favorite" class="mt-3 flex items-center gap-3">
             <StarDisplay v-if="brew.rating !== null" :rating="brew.rating" />

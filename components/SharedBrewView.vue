@@ -29,9 +29,10 @@ const brew = computed(() => props.brew)
 const steps = computed(() => toStepInputs(brew.value.steps))
 // 顯示用：舊紀錄的攪拌段併進相鄰的段（utils/brewSteps.ts）
 const displaySteps = computed(() => withoutStir(steps.value))
-const restedDays = computed(() =>
+// 養豆天數的寫法（烘焙當天／養豆第 N 天，算不出來是 null）
+const restLabel = computed(() => restDayLabel(
   restDays(brew.value.bean.roast_date, new Date(brew.value.brewed_at)),
-)
+))
 
 // 詳情頁沒有、朋友需要的那一段：「豆子」，排在器材之前（《03》§4.13.4）
 const beanRows = computed(() => {
@@ -75,8 +76,9 @@ function formatDate(iso: string) {
          沒有照片時只剩左邊一欄，與加入照片之前的版面相同 -->
     <div class="mt-1 flex items-center gap-4">
       <div class="min-w-0 flex-1">
-        <!-- 日期後面接養豆天數，和紀錄詳情頁一樣；算不出來時只有日期 -->
-        <p class="text-sm tabular-nums text-muted">{{ formatDate(brew.brewed_at) }}<template v-if="restedDays !== null"> · 養豆第 {{ restedDays }} 天</template></p>
+        <!-- 日期時間一行、養豆天數一行，和紀錄詳情頁一樣；算不出養豆天數時只有日期 -->
+        <p class="text-sm tabular-nums text-muted">{{ formatDate(brew.brewed_at) }}</p>
+        <p v-if="restLabel" class="text-sm tabular-nums text-muted">{{ restLabel }}</p>
         <div v-if="brew.rating !== null || brew.is_favorite" class="mt-3 flex items-center gap-3">
           <StarDisplay v-if="brew.rating !== null" :rating="brew.rating" />
           <span v-if="brew.is_favorite" class="flex items-center gap-1 text-sm" :style="{ color: 'var(--favorite)' }">
