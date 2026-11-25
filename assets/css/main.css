@@ -287,6 +287,15 @@
     corner-shape: var(--corner-bar);
   }
 
+  /* 瀏覽型右下角的浮動新增按鈕（《03》§3）：分頁列之上 12px，右緣對齊分頁列的右緣（內容欄）。
+     四個列表頁共用這個位置；按鈕本身（56px 的正圓、--accent 底）留在各頁 */
+  .fab-position {
+    position: fixed;
+    z-index: 30;
+    right: var(--fixed-right);
+    bottom: var(--fab-bottom);
+  }
+
   /* 卡片的左右內距：列、收合區的標題列、強度的每一列共用 */
   .card-pad-x {
     padding-inline: var(--card-pad);
@@ -407,8 +416,16 @@
     letter-spacing: 0;
   }
 
+  /* 安全區（2026-11-25）：nuxt.config.ts 的 viewport 加了 viewport-fit=cover，頁面會鋪到 iPhone 的瀏海、
+     home indicator 與（橫向時）左右兩側底下，env(safe-area-inset-*) 才有值。頁面的內容整個往內縮：
+       上   狀態列。apple-mobile-web-app-status-bar-style 是 default，加到主畫面時頁面本來就從狀態列下面開始，
+            這一項是 0；寫上是為了之後改成 black-translucent 時頁面頂端不會被蓋住
+       左右 橫向時的瀏海與圓角
+       下   不在這裡留：有分頁列的頁面由 app.vue 的 spacer 留（含安全區），表單頁底部本來就有 64px
+     固定在畫面上的東西（分頁列、浮動按鈕、提示、浮層）不受 body 的 padding 影響，各自用 env() 避開 */
   body {
     line-height: var(--leading-body);
+    padding: env(safe-area-inset-top) env(safe-area-inset-right) 0 env(safe-area-inset-left);
   }
 
   /* 《03》§4.1：文字輸入的游標用強調色。適用全站的文字輸入。 */
@@ -458,7 +475,12 @@
     max-width: none;
     max-height: none;
     margin: 0;
-    padding: 1.25rem;
+    /* 20px，iPhone 的安全區比較大時取安全區（浮層離 home indicator、橫向的瀏海至少這麼遠） */
+    padding:
+      max(1.25rem, env(safe-area-inset-top))
+      max(1.25rem, env(safe-area-inset-right))
+      max(1.25rem, env(safe-area-inset-bottom))
+      max(1.25rem, env(safe-area-inset-left));
     border: 0;
     background: transparent;
     display: flex;
@@ -474,11 +496,14 @@
     padding: 0;
   }
 
+  /* 鋪滿視窗的面板（器材選擇器、分段子頁、裁切）：底色鋪到安全區底下，內容（標題列、底部的「確定」
+     「確認裁切」）往內縮，不壓在狀態列、home indicator 與橫向的瀏海底下 */
   dialog:modal.sheet > * {
     width: 100%;
     height: 100%;
     max-height: none;
     overflow: visible;
+    padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
   }
 
   dialog:modal > * {

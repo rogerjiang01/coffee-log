@@ -21,12 +21,12 @@ export function showsTabBar(screen: unknown, signedIn = false): boolean {
   return screen === 'browse' || screen === 'view'
 }
 
-/** 分頁列的四格，依序（《03》§3） */
+/** 分頁列的四格，依序（《03》§3）。icon 是 components/TabIcon.vue 的名稱 */
 export const TABS = [
-  { to: '/', label: '總覽' },
-  { to: '/brews', label: '紀錄' },
-  { to: '/beans', label: '豆子' },
-  { to: '/equipment', label: '器材' },
+  { to: '/', label: '總覽', icon: 'home' },
+  { to: '/brews', label: '紀錄', icon: 'brew' },
+  { to: '/beans', label: '豆子', icon: 'bean' },
+  { to: '/equipment', label: '器材', icon: 'equip' },
 ] as const
 
 export type TabPath = typeof TABS[number]['to']

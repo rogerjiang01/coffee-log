@@ -33,6 +33,7 @@ const suites = [
   ['unit/overlay-history.test.ts', '浮層與返回鍵'],
   ['unit/navigation.test.ts', '導覽規則'],
   ['unit/navigation-wiring.test.mjs', '導覽架構的接線'],
+  ['unit/safe-area.test.mjs', '安全區'],
   ['unit/load-state.test.ts', '編輯頁的載入狀態'],
   ['unit/load-state-wiring.test.mjs', '載入失敗時的頁面接線'],
   ['unit/draft.test.ts', '表單自動暫存'],

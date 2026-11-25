@@ -224,7 +224,7 @@ async function destroy() {
 </script>
 
 <template>
-  <main class="mx-auto px-5 pt-10 pb-16" :style="{ maxWidth: 'var(--content-max)' }">
+  <main class="mx-auto px-5 pt-10" :style="{ maxWidth: 'var(--content-max)' }">
     <!-- ‹ 在所有狀態判斷之外：讀取中、讀取失敗、找不到都要看得到。
          歷史式：回到使用者實際來的地方（紀錄分頁、豆子的比較表、分享頁的「前往紀錄」），
          沒有上一頁（外部連結直接打開）才回紀錄分頁（《03》§3、BREW_BACK_FALLBACK） -->

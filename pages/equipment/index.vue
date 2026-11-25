@@ -70,8 +70,8 @@
 </script>
 
 <template>
-    <!-- 底部留白避開浮動按鈕；分頁列的高度由 app.vue 讓出 -->
-    <main class="mx-auto px-5 pt-10 pb-24" :style="{ maxWidth: 'var(--content-max)' }">
+    <!-- 底部留白（分頁列與浮動按鈕）由 app.vue 讓出，這裡不留 -->
+    <main class="mx-auto px-5 pt-10" :style="{ maxWidth: 'var(--content-max)' }">
         <!-- 瀏覽型：頂部只有標題。回總覽是分頁列的事，這裡不放第二個入口 -->
         <PageHeader title="器材" />
 
@@ -127,7 +127,7 @@
 
         <!-- 列表頁的新增入口一律是右下角浮動按鈕（§3 導覽），而且都導向新增頁——
              這裡原本是 href="#" 加頁內表單，外觀相同、行為不同 -->
-        <NuxtLink to="/equipment/new" aria-label="新增器材" class="fixed right-5 bottom-20 z-30 flex size-14 items-center justify-center rounded-full" :style="{ background: 'var(--accent)', color: 'var(--on-accent)', boxShadow: 'var(--overlay-shadow)' }">
+        <NuxtLink to="/equipment/new" aria-label="新增器材" class="fab-position flex size-14 items-center justify-center rounded-full" :style="{ background: 'var(--accent)', color: 'var(--on-accent)', boxShadow: 'var(--overlay-shadow)' }">
             <svg
                 width="24" height="24" viewBox="0 0 24 24" aria-hidden="true"
                 fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"

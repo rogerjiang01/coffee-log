@@ -44,6 +44,8 @@ onMounted(() => {
 
 const userId = useCurrentUserId()
 const tabBar = computed(() => showsTabBar(route.meta.screen, userId.value !== null))
+// 瀏覽型的右下角還有浮動新增按鈕（《03》§3），要多讓出按鈕的高度
+const tabBarSpace = computed(() => route.meta.screen === 'browse' ? 'var(--fab-clearance)' : 'var(--tab-bar-clearance)')
 </script>
 
 <template>
@@ -94,8 +96,9 @@ const tabBar = computed(() => showsTabBar(route.meta.screen, userId.value !== nu
   </NuxtErrorBoundary>
 
   <template v-if="tabBar">
-    <!-- 分頁列是 fixed，頁面最底下要讓出它的高度，最後一個按鈕才不會被蓋住 -->
-    <div aria-hidden="true" :style="{ height: 'calc(52px + env(safe-area-inset-bottom))' }" />
+    <!-- 分頁列浮在內容上面，頁面最底下要讓出它（與瀏覽型的浮動新增按鈕）佔的高度，最後一張卡片才不會被蓋住。
+         **只在這裡留**，頁面的 main 不再自己留底部空白（tokens.css 的 --tab-bar-clearance、--fab-clearance） -->
+    <div aria-hidden="true" :style="{ height: tabBarSpace }" />
     <BottomNav />
   </template>
 </template>

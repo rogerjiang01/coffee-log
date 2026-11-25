@@ -156,8 +156,8 @@ const newBrewLink = computed(() => newBrewEntry(activeBeans.value))
 </script>
 
 <template>
-  <!-- 底部留白避開浮動按鈕，否則最後一筆會被永久遮住；分頁列的高度由 app.vue 讓出 -->
-  <main class="mx-auto px-5 pt-10 pb-24" :style="{ maxWidth: 'var(--content-max)' }">
+  <!-- 底部留白（分頁列與浮動按鈕）由 app.vue 讓出，這裡不留；少了它最後一筆會被永久遮住 -->
+  <main class="mx-auto px-5 pt-10" :style="{ maxWidth: 'var(--content-max)' }">
     <!-- 瀏覽型：頂部只有標題 -->
     <PageHeader title="紀錄" />
 
@@ -230,7 +230,7 @@ const newBrewLink = computed(() => newBrewEntry(activeBeans.value))
     <NuxtLink
       :to="newBrewLink"
       aria-label="新增紀錄"
-      class="fixed right-5 bottom-20 z-30 flex size-14 items-center justify-center rounded-full"
+      class="fab-position flex size-14 items-center justify-center rounded-full"
       :style="{ background: 'var(--accent)', color: 'var(--on-accent)', boxShadow: 'var(--overlay-shadow)' }"
     >
       <svg

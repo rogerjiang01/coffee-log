@@ -31,6 +31,9 @@ const kinds = reactive<Record<string, Kind>>({
   cardMl: { label: '分頁第一層的卡片', note: '總覽、豆子列表、器材列表（之後的紀錄卡片）。1 等於不套用', token: '--corner-card-ml', shape: 1.1, defaultShape: 1.1, radius: { token: '--radius-card-ml', value: 18, default: 18, max: 48, step: 1, fallback: '18px' } },
   cardMd: { label: '其他獨立的卡片', note: '結算頁、豆子詳情的比較表。1 等於不套用', token: '--corner-card-md', shape: 1.1, defaultShape: 1.1, radius: { token: '--radius-card-md', value: 24, default: 24, max: 48, step: 1, fallback: '24px' } },
   cardLg: { label: '表單的卡片容器', note: '1 等於不套用', token: '--corner-card-lg', shape: 1.1, defaultShape: 1.1, radius: { token: '--radius-card-lg', value: 24, default: 24, max: 48, step: 1, fallback: 'var(--radius-lg)' } },
+  // 2026-11-25：底部分頁列。半徑由高度決定（64 的一半、選中的膠囊再減內距 4），不給滑桿
+  tabBar: { label: '底部分頁列', note: '64px 高的膠囊。點預覽裡的格子可以看選中的膠囊滑過去', token: '--corner-tab-bar', shape: 1.2, defaultShape: 1.2 },
+  tabIndicator: { label: '分頁列裡選中的膠囊', note: '56px 高、圓角 28，和外層同心', token: '--corner-tab-indicator', shape: 1.2, defaultShape: 1.2 },
 })
 
 /** 全部切回一般圓角：對照 Safari（含 iPhone）上看到的樣子。半徑不動 */
@@ -231,6 +234,10 @@ const ROAST = { light: '淺焙', medium_light: '中淺焙', medium: '中焙', me
         <template v-else-if="key === 'cardMd'">
           <!-- 結算頁的本週目標：GoalWeekCard 的預設就是 md -->
           <GoalWeekCard :count="5" :goal="5" :days="[1, 2, 0, 1, 1, 0, 0]" />
+        </template>
+
+        <template v-else-if="key === 'tabBar' || key === 'tabIndicator'">
+          <BottomNav preview />
         </template>
 
         <template v-else-if="key === 'cardLg'">

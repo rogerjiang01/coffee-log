@@ -40,7 +40,7 @@ async function signOut() {
 </script>
 
 <template>
-  <main class="mx-auto px-5 py-10" :style="{ maxWidth: 'var(--content-max)' }">
+  <main class="mx-auto px-5 pt-10" :style="{ maxWidth: 'var(--content-max)' }">
     <PageHeader title="設定" :back="SETTINGS_BACK_FALLBACK" />
 
     <section class="mt-8">

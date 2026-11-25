@@ -42,7 +42,10 @@ onMounted(() => {
 </template>
 
 <style scoped>
+/* 首圖鋪滿整個畫面，連安全區（狀態列、橫向的瀏海）底下也是：抵銷 body 為安全區留的 padding（main.css），
+   logo 與表單再自己往內縮（.auth__body） */
 .auth {
+  margin: calc(-1 * env(safe-area-inset-top)) calc(-1 * env(safe-area-inset-right)) 0 calc(-1 * env(safe-area-inset-left));
   position: relative;
   min-height: 100dvh;
   overflow: hidden;
@@ -75,7 +78,11 @@ onMounted(() => {
   flex-direction: column;
   align-items: center;
   /* Figma：844 高的畫面，logo 在 154、表單在 414 */
-  padding: 18dvh var(--form-gutter) 2rem;
+  padding:
+    calc(18dvh + env(safe-area-inset-top))
+    calc(var(--form-gutter) + env(safe-area-inset-right))
+    calc(2rem + env(safe-area-inset-bottom))
+    calc(var(--form-gutter) + env(safe-area-inset-left));
 }
 .auth__logo {
   transition: translate 500ms var(--motion-ease);

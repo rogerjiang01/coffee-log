@@ -47,6 +47,39 @@ TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF
 THIS SOFTWARE.
 ```
 
+## 圖示：底部分頁列（2026-11-25）
+
+分頁列的四個圖示（`components/TabIcon.vue`）從 Figma 匯出，不是 Lucide。形狀未經修改，
+只把顏色改成 `currentColor`、把豆子與器材平移到 24 格線裡 Figma 的位置。
+
+| 分頁 | 圖示 | 來源 | 授權 |
+|---|---|---|---|
+| 總覽 | `home` | **Google Material Symbols**（<https://fonts.google.com/icons>） | Apache License 2.0 |
+| 紀錄 | brew | **Google Material Symbols** | Apache License 2.0 |
+| 豆子 | bean | **Iconify**（<https://icon-sets.iconify.design>），**圖示集名稱待確認** | **待確認**（依圖示集而定） |
+| 器材 | equip | 專案自繪 | — |
+
+豆子的圖示集確認之後，把上表的「待確認」換成圖示集名稱與它的授權（Iconify 本身只是集合，
+每個圖示集的授權不同）。
+
+### Apache License 2.0（Material Symbols）
+
+```
+Copyright Google LLC
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    https://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+```
+
 ## 字體：台北黑體（Taipei Sans TC Beta）
 
 內文字體是 **台北黑體**（翰字鑄造 JT Foundry，字型檔記載的網址是 bit.ly/jtfoundry），

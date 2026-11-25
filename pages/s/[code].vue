@@ -71,7 +71,7 @@ onMounted(load)
   <!-- 失效畫面：紀錄已刪除、代碼不存在，同一個畫面、不分原因 -->
   <SharedBrewGone v-if="gone" :signed-in="userId !== null" />
 
-  <main v-else class="mx-auto px-5 pt-6 pb-16" :style="{ maxWidth: 'var(--content-max)' }">
+  <main v-else class="mx-auto px-5 pt-6" :class="{ 'pb-16': userId === null }" :style="{ maxWidth: 'var(--content-max)' }">
     <!-- 讓朋友知道自己在看什麼。不是連結：未登入的人點下去只會被帶到登入頁 -->
     <p class="text-sm text-muted">Laeta</p>
 

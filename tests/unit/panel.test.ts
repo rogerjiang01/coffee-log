@@ -45,6 +45,15 @@ export default function run() {
   r.check(atTop.top !== undefined && Number.parseFloat(atTop.maxHeight!) > 0,
     '欄位貼在視窗頂端時往下開且有高度')
 
+  r.section('底部安全區（iPhone 的 home indicator，2026-11-25）')
+  // 下方剩 400px、安全區 34：往下開時底緣停在安全區之上
+  const safe = computePanelPlacement(rect(812 - 400 - 44), 812, 34)
+  r.check(safe.top !== undefined && fitsInViewport(safe, 812 - 34), '往下開時不伸進底部安全區')
+  r.check(Number.parseFloat(safe.maxHeight!) === 400 - 4 - 8 - 34, '可用高度扣掉安全區')
+  const safeUp = computePanelPlacement(rect(600), 812, 34)
+  r.check(safeUp.bottom === `${812 - 600 + 4}px`, '往上開的位置不受安全區影響')
+  r.check(computePanelPlacement(rect(100), 812, 0).maxHeight === roomy.maxHeight, '沒有安全區時和原本一樣')
+
   r.section('浮層要 teleport 到哪裡')
   // 原生 <dialog> 用 showModal() 之後，dialog 以外的內容全部 inert。
   // 浮層送 body 就落在那個「以外」——看得見、點下去沒反應、沒有 console 錯誤。

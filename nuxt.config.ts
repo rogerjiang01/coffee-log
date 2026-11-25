@@ -76,6 +76,11 @@ export default defineNuxtConfig({
     head: {
       htmlAttrs: { lang: 'zh-Hant-TW' },
       title: 'Laeta',
+      // viewport-fit=cover（2026-11-25）：頁面鋪到 iPhone 的 home indicator、瀏海底下，
+      // env(safe-area-inset-*) 才有值。沒有它的話安全區一律是 0——加到主畫面全螢幕開啟時，
+      // 分頁列壓在底部的橫線上，幾乎點不到。鋪過去之後由各處自己避開（main.css 的 body、浮層，
+      // tokens.css 的 --tab-bar-bottom）。Nuxt 的預設只有前兩項
+      viewport: 'width=device-width, initial-scale=1, viewport-fit=cover',
       // theme_color 決定手機瀏覽器的網址列底色，以及獨立視窗的狀態列。
       // 值必須與 manifest 一致，兩邊都取自 --accent（green-500）。
       // 這裡不能寫 var(--accent)：meta 與 manifest 都不吃 CSS 變數。

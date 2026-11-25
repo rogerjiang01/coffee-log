@@ -84,11 +84,61 @@ export default function run() {
 
   r.section('分頁列：四格，亮哪一格由 utils/navigation.ts 決定')
   const nav = read('components/BottomNav.vue')
-  r.check(/v-for="item in TABS"/.test(nav) && /tabSection\(route\.path\) === to/.test(nav), '四格與亮格都來自 utils/navigation.ts')
-  r.check(!/<svg/.test(nav), '維持只有文字的樣式')
+  r.check(/v-for="item in TABS"/.test(nav) && /props\.preview \? previewTab\.value : tabSection\(route\.path\)/.test(nav), '四格與亮格都來自 utils/navigation.ts')
   const navRules = read('utils/navigation.ts')
-  r.check(/\{ to: '\/', label: '總覽' \},\s*\{ to: '\/brews', label: '紀錄' \},\s*\{ to: '\/beans', label: '豆子' \},\s*\{ to: '\/equipment', label: '器材' \},/.test(navRules),
-    '依序：總覽（/）、紀錄（/brews）、豆子（/beans）、器材（/equipment）')
+  r.check(/\{ to: '\/', label: '總覽', icon: 'home' \},\s*\{ to: '\/brews', label: '紀錄', icon: 'brew' \},\s*\{ to: '\/beans', label: '豆子', icon: 'bean' \},\s*\{ to: '\/equipment', label: '器材', icon: 'equip' \},/.test(navRules),
+    '依序：總覽（/）、紀錄（/brews）、豆子（/beans）、器材（/equipment），各自的 icon')
+  r.check(/<TabIcon :name="item\.icon" \/>\s*<span class="text-body-s">\{\{ item\.label \}\}<\/span>/.test(nav), 'icon 在上、文字（Body S）在下（2026-11-25）')
+  r.check(/:aria-current="current === item\.to \? 'page' : undefined"/.test(nav) && /<nav\b/.test(nav), 'nav 與 aria-current 維持')
+
+  r.section('分頁列：浮動膠囊（2026-11-25，Figma 的 Tab Bar 草稿）')
+  const navCss = nav.match(/<style scoped>([\s\S]*)<\/style>/)?.[1] ?? ''
+  const rule = sel => navCss.match(new RegExp(`${sel.replace(/[.[\]]/g, '\\$&')} \\{([^}]*)\\}`))?.[1] ?? ''
+  const bar = rule('.tab-bar')
+  r.check(/left: var\(--fixed-left\);/.test(bar) && /right: var\(--fixed-right\);/.test(bar), '左右和內容欄對齊（--fixed-left／right，含橫向的安全區）')
+  r.check(/bottom: var\(--tab-bar-bottom\);/.test(bar) && /height: var\(--tab-bar-h\);/.test(bar) && /padding: var\(--tab-bar-pad\);/.test(bar), '高 64、內距 4、下緣在安全區之上')
+  r.check(/background: var\(--surface\);/.test(bar) && /box-shadow: inset 0 0 0 1px var\(--border\), var\(--shadow-light\);/.test(bar) && !/backdrop-filter/.test(navCss), '--surface 底、內側 1px --border、--shadow-light，沒有毛玻璃')
+  const tokens = read('assets/css/tokens.css')
+  r.check(tokens.includes('--tab-bar-h: 64px;') && tokens.includes('--tab-bar-pad: 4px;'), 'token：64 高、內距 4')
+  r.check(tokens.includes('--tab-bar-bottom: max(12px, calc(env(safe-area-inset-bottom) + 8px));'), '下緣：安全區之上 8px，沒有安全區時 12px')
+  const indicator = rule('.tab-bar__indicator')
+  r.check(/background: var\(--surface-muted\);/.test(indicator) && /width: calc\(\(100% - 2 \* var\(--tab-bar-pad\)\) \/ 4\);/.test(indicator), '選中的膠囊：--surface-muted、四分之一寬')
+  r.check(/transition: transform var\(--motion-duration\) var\(--motion-ease\);/.test(indicator), '膠囊用 transform 滑動，時間與曲線是 motion token')
+  r.check(/:style="\{ transform: `translateX\(\$\{index \* 100\}%\)` \}"/.test(nav), '位置只由 index 決定（伺服器算繪就寫進 HTML，重新整理不會從第一格滑過去）')
+  r.check(/v-if="index >= 0"/.test(nav), '不亮任何一格（分享頁）時不畫膠囊')
+  const item = rule('.tab-bar__item')
+  r.check(/transition: color var\(--motion-duration\) var\(--motion-ease\);/.test(item) && /color: var\(--text-muted\);/.test(item) && /color: var\(--accent\);/.test(rule('.tab-bar__item--active')),
+    '顏色同時淡入淡出：未選 --text-muted、選中 --accent')
+  r.check(/font-weight: 400;/.test(item) && !/font-body-medium|fontWeight|font-medium/.test(nav), '選中與未選都是 400（照 Figma，字寬不跳）')
+  r.check(/gap: 2px;/.test(item) && /flex: 1 1 0;/.test(item), '四格等寬，icon 與文字間距 2')
+  r.check(!/prefers-reduced-motion/.test(navCss) && /transition-duration: 0\.01ms !important;/.test(read('assets/css/main.css')),
+    '減少動態：靠全站的規則直接切換，分頁列沒有例外')
+  r.check(/useInputModality\(\)/.test(nav) && /\.tab-bar__item:focus-visible \{\s*outline: none;\s*\}/.test(navCss)
+    && /\.tab-bar\[data-keyboard-focus="true"\] \.tab-bar__item:focus \{\s*outline: 2px solid var\(--accent\);\s*outline-offset: -2px;/.test(navCss),
+    '焦點框只在鍵盤操作時畫，畫在格子內側')
+
+  r.section('底部留白只在 app.vue（2026-11-25）')
+  r.check(/:style="\{ height: tabBarSpace \}"/.test(app) && /route\.meta\.screen === 'browse' \? 'var\(--fab-clearance\)' : 'var\(--tab-bar-clearance\)'/.test(app),
+    'app.vue 的 spacer：瀏覽型讓出分頁列加浮動按鈕，其他讓出分頁列')
+  r.check(tokens.includes('--tab-bar-clearance: calc(var(--tab-bar-top) + 24px);') && tokens.includes('--fab-clearance: calc(var(--fab-bottom) + 56px + 16px);'),
+    '最後一張卡片離分頁列 24、離浮動按鈕 16')
+  const tabbed = ['pages/index.vue', 'pages/brews/index.vue', 'pages/beans/index.vue', 'pages/equipment/index.vue', 'pages/brews/[id]/index.vue', 'pages/beans/[id]/index.vue', 'pages/settings.vue']
+  for (const path of tabbed) {
+    const main = read(path).match(/<main\b[^>]*>/)?.[0] ?? ''
+    r.check(main && !/\b(pb|py)-\S+/.test(main), `${path}：main 不自己留底部空白`)
+  }
+  r.check(/<main v-else class="mx-auto px-5 pt-6" :class="\{ 'pb-16': userId === null \}"/.test(read('pages/s/[code].vue')), '分享頁：沒登入（沒有分頁列）時才自己留')
+  const all = [...pages, 'app.vue', ...readdirSync(new URL('../../components', import.meta.url)).filter(n => n.endsWith('.vue')).map(n => `components/${n}`)]
+  r.check(all.every(path => !/52px \+ env|calc\(52px/.test(read(path))), '沒有寫死的舊分頁列高度（52px）')
+
+  r.section('浮動新增按鈕在分頁列上方（2026-11-25）')
+  for (const path of ['pages/index.vue', 'pages/brews/index.vue', 'pages/beans/index.vue', 'pages/equipment/index.vue']) {
+    const src = read(path)
+    r.check(/class="fab-position flex size-14 items-center justify-center rounded-full"/.test(src) && !/bottom-20|right-5 bottom/.test(src), `${path}：位置用 .fab-position`)
+  }
+  r.check(/\.fab-position \{\s*position: fixed;\s*z-index: 30;\s*right: var\(--fixed-right\);\s*bottom: var\(--fab-bottom\);/.test(read('assets/css/main.css')),
+    '.fab-position：右緣對齊分頁列、下緣在分頁列之上')
+  r.check(tokens.includes('--fab-bottom: calc(var(--tab-bar-top) + 12px);'), '按鈕離分頁列 12px')
 
   r.section('總覽：卡片')
   const homeScript = read('pages/index.vue')
