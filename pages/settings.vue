@@ -19,6 +19,7 @@ const email = computed(() =>
   (session.value as { user?: { email?: string } } | null)?.user?.email ?? user.value?.email ?? '')
 
 const cache = useQueryCache()
+const splash = useSplash()
 const signingOut = ref(false)
 
 async function signOut() {
@@ -35,6 +36,8 @@ async function signOut() {
   await supabase.auth.signOut()
   // 查詢快取在登出之後才清：登出前清掉的話，這段空檔裡還掛著的頁面會用舊 session 重抓回來
   cache.clear()
+  // 登入頁演一次和打開 App 時相同的開場（《03》§6.1）：先挑首圖、等它解碼（最多 0.5 秒）再導向
+  await splash.prepareLoginIntro()
   await navigateTo('/login')
 }
 </script>

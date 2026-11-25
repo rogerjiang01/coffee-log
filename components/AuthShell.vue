@@ -5,24 +5,40 @@
 // 表單撐滿內容寬度，左右是表單頁的 --form-gutter（20px，Figma 的 login 新版：390 寬的畫面裡卡片 350）；
 // 寬螢幕最多 --content-max-narrow（2026-11-23；原本固定 300px，手機上長的電子郵件看不完）。
 //
-// **未登入時的開場**（《03》§6 的開場動畫）：打開 App 落在登入頁時（useSplash 的 'login'），
-// 先只看到首圖與置中的 logo，接著漸層升上來、logo 移到上方，最後表單淡入。
-// 站內導覽過來的（登出、從註冊頁回來）不演，直接是完成的樣子。
+// **未登入時的開場**（《03》§6.1 的開場動畫，useSplash 的 'login'）：
+// 先只看到首圖與置中的 logo，接著漸層升上來、logo 移到上方，最後表單淡入。兩個時機會演：
+//   - 打開 App 落在登入頁：伺服器就把 mode 設好了
+//   - 在設定頁按「登出」之後（2026-11-25）：設定頁導向前呼叫 prepareLoginIntro()，這裡掛上時接手
+// 其他站內導覽過來的（從註冊頁回來、登入過期被導回來）不演，直接是完成的樣子。
 // 「減少動態」時不做位移，只淡入淡出（main.css）。
 
-const { mode, cover } = useSplash()
+const { mode, cover, loginIntroPending } = useSplash()
 
-// intro：開場還沒演完。伺服器送來的 HTML 就是這個狀態，瀏覽器接手之後才開始演
+// 登出後的開場：只在登入頁接手（註冊頁也用這個版面）
+if (loginIntroPending.value && useRoute().path === '/login') {
+  loginIntroPending.value = false
+  mode.value = 'login'
+}
+
+// intro：開場還沒演完。打開 App 時伺服器送來的 HTML 就是這個狀態，瀏覽器接手之後才開始演
 const intro = ref(mode.value === 'login')
 
 const HOLD_MS = 600
 
+let timer: number | undefined
+
 onMounted(() => {
   if (!intro.value) return
-  window.setTimeout(() => {
+  timer = window.setTimeout(() => {
     intro.value = false
     mode.value = null
   }, HOLD_MS)
+})
+
+// 開場還沒演完就離開（例如按了返回）：mode 要收回來，不然 <html> 留著 splash-on
+onBeforeUnmount(() => {
+  window.clearTimeout(timer)
+  if (intro.value) mode.value = null
 })
 </script>
 
