@@ -300,8 +300,10 @@
     --corner-card-ml: superellipse(1.1);      /* 分頁第一層的卡片（AppCard 的 ml、.card-ml-corners） */
     --corner-card-md: superellipse(1.1);      /* 其他獨立的卡片（AppCard 的 md、.card-corners） */
     --corner-card-lg: superellipse(1.1);      /* 表單的卡片容器（AppCard 的 lg） */
-    --corner-tab-bar: superellipse(1.2);      /* 底部分頁列（BottomNav，2026-11-25） */
-    --corner-tab-indicator: superellipse(1.2); /* 分頁列裡選中那一格的膠囊底 */
+    /* 底部分頁列與選中的膠囊：**round**（2026-11-25 實機比對後從 1.2 改回）。兩端要是正半圓，和 iOS 原生的
+       浮動分頁列（健身、Instagram）一致；superellipse 讓兩端看起來比原生的扁 */
+    --corner-tab-bar: round;                  /* 底部分頁列（BottomNav） */
+    --corner-tab-indicator: round;            /* 分頁列裡選中那一格的膠囊底 */
     /* 卡片與儲存按鈕各自的圓角半徑。
        卡片兩級（2026-11-19 統一成 24px；2026-11-23 加上 18px 的 ml，對應 Figma 的 radius-ml）：
        ml 18px  四個分頁第一層的卡片：總覽、豆子列表、器材列表（紀錄分頁之後的卡片也用這一級）

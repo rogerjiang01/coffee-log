@@ -198,6 +198,7 @@ Laeta 改版：把 Figma 的新設計導入程式，分三批——第一批 tok
 - **分享時兩則提示同時出現**：「分享建立失敗」和「已複製連結」會一起出現，現象與原因在 `第三批.md` 第十七節，還沒決定怎麼改
 - **分享對話框的日期格式**
 - **LINE 預覽卡上的產品名稱**（還是舊名，《04》「Laeta」那一列）
+- **其他膠囊的轉角要不要也改 `round`**（2026-11-25）：分頁列改成正半圓之後，單列卡片、滿寬按鈕（1.2）與下拉膠囊、風味標籤、開關、每日長條（1.1）在支援 `corner-shape` 的 iPhone（iOS 27.3 beta 起）上同樣比正半圓扁。清單在 `docs/改版紀錄/分頁列.md` 第六節，**先不要改**
 
 以下是**已經定案、已經上線的決定**，是規則：不要改回去，也不要重新問一次。
 
@@ -251,7 +252,7 @@ Laeta 改版：把 Figma 的新設計導入程式，分三批——第一批 tok
   下緣離螢幕底 iPhone 20（**對齊 iOS 原生的浮動分頁列**，`max(12px, 安全區 − 14px)`；不是安全區之上再加 8，那是 42、浮太高），沒有安全區與橫向 12；圖示在上、文字 Body S 在下，選中與未選**都是 400**；選中的膠囊（`--surface-muted`，56、28）用 transform 滑過去，重新整理不滑。
   **`viewport-fit=cover` 不要拿掉**：沒有它 `env(safe-area-inset-*)` 在 iPhone 上是 0，分頁列會壓在底部的橫線上。
   **頁面底部的空白只在 `app.vue` 留**（`--tab-bar-clearance`／瀏覽型 `--fab-clearance`），頁面的 `main` 不自己留；浮動新增按鈕在分頁列之上 12px（`.fab-position`）。
-  分頁列的圖示照 Figma：器材是平頭直角，**不套 Lucide 的圓頭規則**；home、brew 是 Material Symbols（Apache 2.0），bean 是 Streamline Plump 的 coffee-bean（Iconify，CC BY 4.0，要標作者，`NOTICE.md`）
+  分頁列與選中膠囊的轉角是 **`round`**（正半圓，和 iOS 原生的一致；不要改回 superellipse）。分頁列的圖示照 Figma：器材是平頭直角，**不套 Lucide 的圓頭規則**；home、brew 是 Material Symbols（Apache 2.0），bean 是 Streamline Plump 的 coffee-bean（Iconify，CC BY 4.0，要標作者，`NOTICE.md`）
 - **顯示用星等**（`StarDisplay`，2026-11-23）：20px、間距 4px，總覽、紀錄詳情、分享頁一致，用的地方不傳 `size`、不加 gap；總覽半寬卡片放不下時（320px）只縮間距到最小 2px
 
 **還沒驗、等使用者回覆的**：

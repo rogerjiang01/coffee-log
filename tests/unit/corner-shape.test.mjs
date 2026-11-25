@@ -18,8 +18,8 @@ export default function run() {
     ['--corner-card-pill', 'superellipse(1.2)'], ['--corner-card-pill-tall', 'superellipse(1.2)'], ['--corner-block-button', 'superellipse(1.2)'], ['--corner-sheet-pill', 'superellipse(1.1)'],
     ['--corner-chip', 'superellipse(1.1)'], ['--corner-toggle', 'superellipse(1.1)'], ['--corner-bar', 'superellipse(1.1)'],
     ['--corner-card-ml', 'superellipse(1.1)'], ['--corner-card-md', 'superellipse(1.1)'], ['--corner-card-lg', 'superellipse(1.1)'],
-    // 2026-11-25：底部分頁列與選中的膠囊（預設 1.2，和同樣是 56／28 的單列卡片一致）
-    ['--corner-tab-bar', 'superellipse(1.2)'], ['--corner-tab-indicator', 'superellipse(1.2)'],
+    // 2026-11-25：底部分頁列與選中的膠囊是 round（正半圓，和 iOS 原生的浮動分頁列一致；原本 1.2，實機比對後改回）
+    ['--corner-tab-bar', 'round'], ['--corner-tab-indicator', 'round'],
   ]
   for (const [token, value] of values) r.check(tokens.includes(`${token}: ${value};`), `${token}: ${value}`)
   for (const [token, value] of [['--radius-card-ml', '18px'], ['--radius-card-md', '24px'], ['--radius-card-lg', 'var(--radius-lg)'], ['--radius-card-pill', 'var(--radius-pill)'], ['--radius-card-pill-tall', 'var(--radius-pill-tall)'], ['--radius-block-button', 'var(--radius-pill)']])
@@ -32,7 +32,7 @@ export default function run() {
   r.section('調整頁的預設值和 tokens.css 一致')
   const dev = read('dev/corners.vue')
   for (const [token, value] of values) {
-    const k = Number(value.match(/superellipse\(([\d.]+)\)/)[1])
+    const k = value === 'round' ? 1 : Number(value.match(/superellipse\(([\d.]+)\)/)[1])
     r.check(new RegExp(`token: '${token}', shape: ${k}, defaultShape: ${k}`).test(dev), `dev/corners.vue：${token} 從 ${k} 開始`)
   }
   r.check(/token: '--radius-card-ml', value: 18, default: 18/.test(dev), 'dev/corners.vue：分頁第一層的卡片從 18px 開始')

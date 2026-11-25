@@ -32,8 +32,9 @@ const kinds = reactive<Record<string, Kind>>({
   cardMd: { label: '其他獨立的卡片', note: '結算頁、豆子詳情的比較表。1 等於不套用', token: '--corner-card-md', shape: 1.1, defaultShape: 1.1, radius: { token: '--radius-card-md', value: 24, default: 24, max: 48, step: 1, fallback: '24px' } },
   cardLg: { label: '表單的卡片容器', note: '1 等於不套用', token: '--corner-card-lg', shape: 1.1, defaultShape: 1.1, radius: { token: '--radius-card-lg', value: 24, default: 24, max: 48, step: 1, fallback: 'var(--radius-lg)' } },
   // 2026-11-25：底部分頁列。半徑由高度決定（64 的一半、選中的膠囊再減內距 4），不給滑桿
-  tabBar: { label: '底部分頁列', note: '64px 高的膠囊。點預覽裡的格子可以看選中的膠囊滑過去', token: '--corner-tab-bar', shape: 1.2, defaultShape: 1.2 },
-  tabIndicator: { label: '分頁列裡選中的膠囊', note: '56px 高、圓角 28，和外層同心', token: '--corner-tab-indicator', shape: 1.2, defaultShape: 1.2 },
+  // 預設 1（round，正半圓）：2026-11-25 和 iOS 原生的浮動分頁列比對後從 1.2 改回
+  tabBar: { label: '底部分頁列', note: '64px 高的膠囊。點預覽裡的格子可以看選中的膠囊滑過去。預設是正半圓（和 iOS 原生的一致）', token: '--corner-tab-bar', shape: 1, defaultShape: 1 },
+  tabIndicator: { label: '分頁列裡選中的膠囊', note: '56px 高、圓角 28，和外層同心。預設是正半圓', token: '--corner-tab-indicator', shape: 1, defaultShape: 1 },
 })
 
 /** 全部切回一般圓角：對照 Safari（含 iPhone）上看到的樣子。半徑不動 */
