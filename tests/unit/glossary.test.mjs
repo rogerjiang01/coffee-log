@@ -140,7 +140,8 @@ export default function run() {
   r.check(/label="沖煮日期" for="brew-at"/.test(form), 'brewed_at 的標籤是「沖煮日期」')
   r.check(/label="沖煮時間" for="brew-total-time"/.test(form), 'total_time 的標籤是「沖煮時間」')
   r.check(/'total_time', '沖煮時間'/.test(read('utils/brewDiff.ts')), '差異區的 total_time 也叫「沖煮時間」')
-  r.check(/label: '沖煮時間'/.test(read('pages/brews/[id]/index.vue')), '紀錄詳情頁的 total_time 也叫「沖煮時間」')
+  // 2026-11-25：紀錄詳情與分享頁的列在 BrewReadonlySections
+  r.check(/label: '沖煮時間'/.test(read('components/BrewReadonlySections.vue')), '紀錄詳情頁的 total_time 也叫「沖煮時間」')
 
   r.section('差異區的分段標籤')
   const diff = read('utils/brewDiff.ts')

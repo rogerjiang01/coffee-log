@@ -53,11 +53,18 @@ export default function run() {
   // 而它讀了每一個 key
   r.check(/toStepInputs\(brew\.value\.steps\)/.test(view), '分段交給 toStepInputs（與紀錄詳情頁同一個轉換）')
   const toStepInputs = functionBody(steps, 'toStepInputs')
+  // 強度的四個 key：分享頁把整個 intensity 交給共用的唯讀段落（2026-11-25），由 IntensityDisplay 依 INTENSITY_DIMENSIONS 逐一顯示
+  const passesIntensity = /:intensity="brew\.intensity"/.test(view)
+    && /<IntensityDisplay\b[^>]*:intensity="intensity"/.test(read('components/BrewReadonlySections.vue'))
+    && /INTENSITY_DIMENSIONS\.map/.test(read('components/IntensityDisplay.vue'))
+  const dimensions = read('utils/brew.ts').match(/INTENSITY_DIMENSIONS[\s\S]*?\n\]/)?.[0] ?? ''
   for (const key of SHARED_BREW_KEYS) {
     const leaf = key.replace(/\[\]$/, '').split(/\.|\[\]\./).pop()
     const used = key.startsWith('steps[].')
       ? new RegExp(`row\\.${leaf}|a\\.${leaf}`).test(toStepInputs)
-      : new RegExp(`\\.${leaf}\\b|\\['${leaf}'`).test(view)
+      : key.startsWith('intensity.')
+        ? passesIntensity && new RegExp(`key: '${leaf}'`).test(dimensions)
+        : new RegExp(`\\.${leaf}\\b|\\['${leaf}'`).test(view)
     r.check(used, `${key}`)
   }
 

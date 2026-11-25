@@ -33,7 +33,7 @@ export default function run() {
   r.check(/label="停水時長"/.test(holdBlock), '標籤是「停水時長」，和切換入口同一個詞')
   const summary = read('components/PourStepsSummary.vue')
   const stepList = read('components/PourStepList.vue')
-  r.check(/<PourStepList :steps="steps" :show-times="showTimes" in-card \/>/.test(summary)
+  r.check(/<PourStepList :steps="steps" :show-times="showTimes" in-card :increments="readonly" \/>/.test(summary)
     && /v-if="showTimes && at < rows\.length - 1 && row\.step\.holdSeconds !== null"/.test(stepList), '主表單的摘要也跟著開關：關閉時不顯示停水時長')
   r.check(count(editor, /holdSeconds:/g) === 1,
     '編輯器只在使用者輸入時寫 holdSeconds（整份檔案只有那一處），不會因為欄位藏起來而清掉它')
@@ -120,10 +120,14 @@ export default function run() {
   r.check(/const baseSteps = \(\) => withoutStir\(props\.initialSteps \?\? initialSteps\(\)\)/.test(form) && /steps: baseSteps\(\),/.test(form),
     '轉換算表單的初始狀態（暫存的 initial 用同一份），不觸發暫存')
   r.check(/steps\.value = withoutStir\(data\.steps\)/.test(form), '還原暫存時也轉換（舊的暫存裡可能還有攪拌段）')
+  // 2026-11-25：兩頁的分段在 BrewReadonlySections 裡，用記錄表單的摘要（PourStepsSummary）的唯讀版
+  const sections = read('components/BrewReadonlySections.vue')
+  r.check(/<PourStepsSummary v-if="hasSteps" :steps="steps" :method-name="methodName" readonly \/>/.test(sections)
+    && !/StirIcon|注到 \{\{|停 \{\{/.test(sections), 'BrewReadonlySections：分段和記錄表單的摘要同一種寫法（PourStepsSummary 的 readonly）')
   for (const path of ['pages/brews/[id]/index.vue', 'components/SharedBrewView.vue']) {
     const view = read(path)
-    r.check(/const displaySteps = computed\(\(\) => withoutStir\(steps\.value\)\)/.test(view) && /<PourStepList :steps="displaySteps" increments \/>/.test(view)
-      && !/StirIcon|注到 \{\{|停 \{\{/.test(view), `${path}：分段和記錄表單的摘要同一種寫法（PourStepList），攪拌段先併掉`)
+    r.check(/const displaySteps = computed\(\(\) => withoutStir\(steps\.value\)\)/.test(view) && /<BrewReadonlySections\b[\s\S]*?:steps="displaySteps"/.test(view)
+      && !/StirIcon|注到 \{\{|停 \{\{/.test(view), `${path}：分段交給 BrewReadonlySections 之前先併掉攪拌段`)
   }
 
   return r.finish()

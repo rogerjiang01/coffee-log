@@ -3,6 +3,9 @@
 //
 // 衍生值在此頁完整顯示，全部即時計算，不存資料庫（§8）。
 //
+// **記錄表單的唯讀版**（2026-11-25，《03》§4.22）：頁首之後是器材、沖煮、品飲三段（BrewReadonlySections，
+// 和分享頁共用），最後是「和 M/D 那一杯相比」與動作按鈕。
+//
 // 檢視型畫面（《03》§3）：左上 ‹ 回上一頁（歷史式），分頁列保留（亮「紀錄」），編輯與刪除在內容區。
 
 definePageMeta({ screen: 'view' })
@@ -22,6 +25,8 @@ interface BrewDetail {
   grinder_id: string | null
   dripper_id: string | null
   kettle_id: string | null
+  filter_id: string | null
+  server_id: string | null
   dose: number | null
   water_temp: number | null
   grind_setting: number | null
@@ -36,6 +41,8 @@ interface BrewDetail {
   grinder: EquipmentNameRow | null
   dripper: EquipmentNameRow | null
   kettle: EquipmentNameRow | null
+  filter: EquipmentNameRow | null
+  server: EquipmentNameRow | null
 }
 interface EquipmentNameRow {
   custom_name: string | null
@@ -82,14 +89,16 @@ async function fetchBrew() {
   const { data, error } = await supabase
     .from('brews')
     .select(`
-      id, bean_id, copied_from_brew_id, brew_method_id, grinder_id, dripper_id, kettle_id,
+      id, bean_id, copied_from_brew_id, brew_method_id, grinder_id, dripper_id, kettle_id, filter_id, server_id,
       dose, water_temp, grind_setting, total_time, brewed_at,
       rating, is_favorite, tasting_notes, intensity,
       beans ( id, name, roast_date, photo_path ),
       brew_methods ( name ),
       grinder:grinder_id ( custom_name, equipment_catalog ( brand, model, variant ) ),
       dripper:dripper_id ( custom_name, equipment_catalog ( brand, model, variant ) ),
-      kettle:kettle_id ( custom_name, equipment_catalog ( brand, model, variant ) )
+      kettle:kettle_id ( custom_name, equipment_catalog ( brand, model, variant ) ),
+      filter:filter_id ( custom_name, equipment_catalog ( brand, model, variant ) ),
+      server:server_id ( custom_name, equipment_catalog ( brand, model, variant ) )
     `)
     .eq('id', id.value)
     .maybeSingle()
@@ -166,40 +175,14 @@ async function loadDiff() {
   comparison.value = await compare(current as unknown as Parameters<typeof compare>[0], rawSteps.value)
 }
 
-const water = computed(() => totalWater(steps.value))
-const ratio = computed(() => brewRatioLabel(water.value, brew.value?.dose ?? null))
 // 顯示用：舊紀錄的攪拌段併進相鄰的段（utils/brewSteps.ts）。差異計算自己也會先併掉攪拌段（utils/brewDiff.ts），和這裡顯示的是同一組段；複製用的仍是原本的 steps（表單載入時再併）
 const displaySteps = computed(() => withoutStir(steps.value))
 const restedDays = computed(() =>
   restDays(brew.value?.beans?.roast_date, brew.value ? new Date(brew.value.brewed_at) : undefined),
 )
 
-const intensityRows = computed(() => {
-  const source = brew.value?.intensity ?? {}
-  return ([
-    ['acidity', '酸質'], ['sweetness', '甜感'], ['body', '醇厚'], ['bitterness', '苦味'],
-  ] as const)
-    .map(([key, label]) => ({ label, value: source[key] }))
-    .filter(row => row.value !== undefined)
-})
-
-const params = computed(() => {
-  const b = brew.value
-  if (!b) return []
-  return [
-    { label: '粉重', value: b.dose === null ? null : `${b.dose} g` },
-    { label: '總水量', value: water.value === null ? null : `${water.value} g` },
-    { label: '粉水比', value: ratio.value },
-    { label: '水溫', value: b.water_temp === null ? null : `${b.water_temp} °C` },
-    { label: '研磨刻度', value: b.grind_setting === null ? null : String(b.grind_setting) },
-    { label: '沖煮時間', value: b.total_time === null ? null : secondsToClock(b.total_time) },
-    { label: '養豆天數', value: restedDays.value === null ? null : `${restedDays.value} 天` },
-    { label: '磨豆機', value: b.grinder ? equipmentOptionName(b.grinder) : null },
-    { label: '濾杯', value: b.dripper ? equipmentOptionName(b.dripper) : null },
-    { label: '手沖壺', value: b.kettle ? equipmentOptionName(b.kettle) : null },
-    { label: '沖煮手法', value: b.brew_methods?.name ?? null },
-  ].filter(row => row.value)
-})
+// 器材的顯示名稱：型錄是「品牌 · 型號 版本」，自建是自建名稱
+const equipmentName = (row: EquipmentNameRow | null) => row ? equipmentOptionName(row) : null
 
 function formatDate(iso: string) {
   const d = new Date(iso)
@@ -281,7 +264,8 @@ async function destroy() {
            標題列不動、維持全寬；沒有照片時只剩左邊一欄 -->
       <div class="mt-1 flex items-center gap-4">
         <div class="min-w-0 flex-1">
-          <p class="text-sm tabular-nums text-muted">{{ formatDate(brew.brewed_at) }}</p>
+          <!-- 日期後面接養豆天數（2026-11-25，《03》§4.22）；算不出來時只有日期。參數裡不再另列養豆天數 -->
+          <p class="text-sm tabular-nums text-muted">{{ formatDate(brew.brewed_at) }}<template v-if="restedDays !== null"> · 養豆第 {{ restedDays }} 天</template></p>
           <!-- 評分與收藏是兩個獨立欄位，分開顯示 -->
           <div v-if="brew.rating !== null || brew.is_favorite" class="mt-3 flex items-center gap-3">
             <StarDisplay v-if="brew.rating !== null" :rating="brew.rating" />
@@ -305,80 +289,42 @@ async function destroy() {
         />
       </div>
 
-      <dl class="mt-6">
-        <div
-          v-for="row in params"
-          :key="row.label"
-          class="flex justify-between border-t py-3"
-          :style="{ borderColor: 'var(--border)' }"
-        >
-          <dt class="text-sm text-muted">{{ row.label }}</dt>
-          <dd class="tabular-nums">{{ row.value }}</dd>
-        </div>
-      </dl>
+      <!-- 器材、沖煮、品飲、比較：每一段是 FormSection ＋ 一張卡片，段落之間和記錄表單一樣是 --gap-section -->
+      <div class="mt-8 flex flex-col" :style="{ gap: 'var(--gap-section)' }">
+        <BrewReadonlySections
+          :grinder="equipmentName(brew.grinder)"
+          :grind-setting="brew.grind_setting"
+          :dripper="equipmentName(brew.dripper)"
+          :kettle="equipmentName(brew.kettle)"
+          :filter="equipmentName(brew.filter)"
+          :server="equipmentName(brew.server)"
+          :dose="brew.dose"
+          :water-temp="brew.water_temp"
+          :total-time="brew.total_time"
+          :method-name="brew.brew_methods?.name ?? null"
+          :steps="displaySteps"
+          :intensity="brew.intensity"
+          :flavor-tags="tags"
+          :notes="brew.tasting_notes"
+        />
 
-      <section v-if="steps.length" class="mt-8">
-        <h2 class="text-heading-m font-medium">分段</h2>
-        <!-- 和記錄表單的分段摘要同一種寫法（PourStepList）。舊紀錄的攪拌段已經併進相鄰的段（withoutStir） -->
-        <div class="mt-3">
-          <PourStepList :steps="displaySteps" increments />
-        </div>
-      </section>
-
-      <section v-if="intensityRows.length" class="mt-8">
-        <h2 class="text-heading-m font-medium">強度</h2>
-        <dl class="mt-3">
-          <div
-            v-for="row in intensityRows"
-            :key="row.label"
-            class="flex justify-between border-t py-3"
-            :style="{ borderColor: 'var(--border)' }"
-          >
-            <dt class="text-sm text-muted">{{ row.label }}</dt>
-            <dd class="tabular-nums">{{ row.value }} / 5</dd>
-          </div>
-        </dl>
-      </section>
-
-      <section v-if="tags.length" class="mt-8">
-        <h2 class="text-heading-m font-medium">風味</h2>
-        <div class="mt-3 flex flex-wrap gap-2">
-          <span
-            v-for="tag in tags"
-            :key="tag"
-            class="rounded-sm border px-3 py-1 text-sm"
-            :style="{ borderColor: 'var(--border)' }"
-          >
-            {{ tag }}
-          </span>
-        </div>
-      </section>
-
-      <section v-if="brew.tasting_notes" class="mt-8">
-        <h2 class="text-heading-m font-medium">心得</h2>
-        <p class="mt-2 whitespace-pre-line">{{ brew.tasting_notes }}</p>
-      </section>
-
-      <!-- 和 M/D 那一杯相比。沒有比較對象、或沒有任何一列（參數相同、沒有兩邊的評分）時整個區塊不顯示 -->
-      <section v-if="comparison?.target && compareRows.length" class="mt-8">
-        <h2 class="text-heading-m font-medium">和 {{ monthDay(comparison.target.brewed_at) }} 那一杯相比</h2>
-        <dl class="mt-3">
-          <div
-            v-for="diff in compareRows"
-            :key="diff.field"
-            class="flex items-baseline justify-between gap-3 border-t py-3"
-            :style="{ borderColor: 'var(--border)' }"
-          >
-            <dt class="shrink-0 text-sm text-muted">{{ diff.label }}</dt>
-            <dd class="min-w-0 text-right tabular-nums">
-              <!-- 舊值次要、新值主要。此處的箭頭是資料的一部分，不是裝飾。 -->
-              <span class="text-sm" :style="{ color: 'var(--text-muted)' }">{{ diff.before }}</span>
-              <span class="mx-2 text-sm" :style="{ color: 'var(--text-muted)' }">→</span>
-              <span class="font-medium" :style="{ color: 'var(--diff)' }">{{ diff.after }}</span>
-            </dd>
-          </div>
-        </dl>
-      </section>
+        <!-- 和 M/D 那一杯相比。沒有比較對象、或沒有任何一列（參數相同、沒有兩邊的評分）時整個區塊不顯示 -->
+        <FormSection v-if="comparison?.target && compareRows.length" :title="`和 ${monthDay(comparison.target.brewed_at)} 那一杯相比`">
+          <FormCard>
+            <dl>
+              <ReadonlyRow v-for="diff in compareRows" :key="diff.field" :label="diff.label">
+                <!-- 舊值次要、新值主要。此處的箭頭是資料的一部分，不是裝飾。
+                     三者都是 .sheet-value 的字級；舊值與箭頭 --text-muted，新值 --diff 加粗 -->
+                <span>
+                  <span :style="{ color: 'var(--text-muted)' }">{{ diff.before }}</span>
+                  <span class="mx-2" :style="{ color: 'var(--text-muted)' }">→</span>
+                  <span class="font-medium" :style="{ color: 'var(--diff)' }">{{ diff.after }}</span>
+                </span>
+              </ReadonlyRow>
+            </dl>
+          </FormCard>
+        </FormSection>
+      </div>
 
       <p v-if="actionError" role="alert" class="mt-6 text-sm" :style="{ color: 'var(--danger)' }">
         {{ actionError }}

@@ -5,12 +5,17 @@
 // 所以相鄰兩排之間至少要留 8px，可點範圍才不會互相重疊。
 //
 // 已選和未選同時變三樣：底色、框線、文字顏色（《03》§4.10：色彩不是唯一的載體）。
+//
+// readonly（Figma 的 state=readonly，2026-11-25；紀錄詳情與分享頁的風味）：同一個盒子——內距、字級、轉角都一樣，
+// 外框保留 1px 但改成透明，高度和表單裡的 chip 完全一樣。底色 --surface-muted、文字 --text。
+// 它不是按鈕：是 <span>，沒有可點範圍、沒有 aria-pressed。清單語意（ul／li）由呼叫端包。
 
-defineProps<{ selected: boolean }>()
+defineProps<{ selected?: boolean, readonly?: boolean }>()
 </script>
 
 <template>
-  <button type="button" class="choice-chip" :aria-pressed="selected">
+  <span v-if="readonly" class="choice-chip choice-chip--readonly"><slot /></span>
+  <button v-else type="button" class="choice-chip" :aria-pressed="selected">
     <slot />
   </button>
 </template>
@@ -40,5 +45,12 @@ defineProps<{ selected: boolean }>()
   border-color: var(--accent);
   background: var(--accent-wash);
   color: var(--on-accent-wash);
+}
+.choice-chip--readonly {
+  border-color: transparent;
+  background: var(--surface-muted);
+}
+.choice-chip--readonly::before {
+  content: none;
 }
 </style>
