@@ -6,9 +6,14 @@
 //
 // 目前的內容：烘焙度底色鋪滿主圖（沒填烘焙度是 --roast-unknown，roastFill），
 // BeanArt 的三顆豆子以完整、不裁切的方式（whole）畫在上半部中間。沿用 BeanArt 的圖檔與 --roast-art，不另外複製 SVG。
-// 尺寸照 Figma：390×470 的主圖裡，BeanArt 的基準正方形 260px、水平置中、距頂 36px
-// （構圖本身比基準正方形大，見 BeanArt 的 whole）。寬度與高度一起換算（cqw、cqh），
-// 320 寬或矮螢幕（主圖用 svh 限高）時跟著縮，不被裁切。
+//
+// 尺寸（2026-11-26 第二版，符合下面的「上方 55%」）：**三顆豆子整組**在 390×470 時寬 220、高 228，
+// 水平置中、距頂 24，下緣 252（54%）。Figma 3628:1544 是基準正方形 260（整組約 328×340），下緣超過 55%，沒有照它。
+// 整組的外框是從 SVG 路徑取樣算的（以 BeanArt 的基準正方形為 1）：x −0.047〜1.213（寬 1.260）、y −0.061〜1.247（高 1.308）。
+// 所以外層 .hero-fallback__art 是整組的外框（寬高比 1.260：1.308），裡面的 BeanArt 基準正方形是外框寬的 1/1.260，
+// 往右下偏 (0.047, 0.061)。寬取 min(220/390 寬, 主圖高 × 0.55 能放下的寬)：320 寬與矮螢幕時跟著縮，整組一律在上方 55% 以內。
+// 「主圖高」是主圖的基準高度（BrewHero 的 --hero-h，min(470px, 58svh)），不是實際高度：豆名很長、主圖往下長時，
+// 豆子不跟著變大（變大的話下面那顆會掉進標題背後的漸層）。不在 BrewHero 裡時沒有 --hero-h，用整塊的高度
 //
 // ── 之後換圖 ─────────────────────────────────────────────
 // 圖片規格（以 390 寬為準）：
@@ -32,8 +37,12 @@ const fill = computed(() => roastFill(props.roastLevel))
 
 <template>
   <div class="hero-fallback" :style="{ background: fill.background }" aria-hidden="true">
-    <div class="hero-fallback__art">
-      <BeanArt background="transparent" whole />
+    <div class="hero-fallback__frame">
+      <div class="hero-fallback__art">
+        <div class="hero-fallback__base">
+          <BeanArt background="transparent" whole />
+        </div>
+      </div>
     </div>
   </div>
 </template>
@@ -42,14 +51,28 @@ const fill = computed(() => roastFill(props.roastLevel))
 .hero-fallback {
   position: absolute;
   inset: 0;
+}
+/* 換算的基準：主圖的基準高度（不是撐高之後的實際高度），cqw、cqh 都以它為準 */
+.hero-fallback__frame {
+  position: absolute;
+  inset: 0 0 auto;
+  height: var(--hero-h, 100%);
   container-type: size;
 }
-/* 390×470 時 260px（66.67cqw ＝ 55.32cqh）、距頂 36px（7.66cqh）。取較小的那一邊，矮螢幕時跟著縮 */
 .hero-fallback__art {
+  /* 距頂 24/470 ＝ 5.1cqh；高度上限 55% − 5.1% ＝ 49.9cqh，換成寬是 49.9 × 1.260 / 1.308 ＝ 48.07cqh */
   position: absolute;
-  top: 7.66cqh;
+  top: 5.1cqh;
   left: 50%;
-  width: min(66.67cqw, 55.32cqh);
+  width: min(56.41cqw, 48.07cqh);
+  aspect-ratio: 1.26 / 1.308;
   translate: -50% 0;
+}
+/* BeanArt 的基準正方形：外框寬的 1/1.260（79.37%），往右 0.047/1.260（3.73%）、往下 0.061/1.308（4.66%） */
+.hero-fallback__base {
+  position: absolute;
+  left: 3.73%;
+  top: 4.66%;
+  width: 79.37%;
 }
 </style>

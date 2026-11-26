@@ -1,5 +1,5 @@
 <script setup lang="ts">
-// 「本週目標」卡片（《03》§4.16，Figma 的「Card / 本週目標」）：總覽與結算頁共用同一個元件。
+// 「本週目標」卡片（《03》§4.16，Figma 的「Card / 本週目標」）：總覽用。結算頁在 2026-11-26 改版後不再用這張卡片。
 //
 // 標題列在上（AppCard）；下面一排三塊：左邊 100px 的環（線寬 22px），中間是「記錄」（14px、500）與
 // 「N／M」（28px Bold）加「杯」（16px、500），右邊是週一到週日的每日長條圖（10px 寬，星期 13px）。
@@ -22,9 +22,7 @@ const props = withDefaults(defineProps<{
   from?: number | null
   celebrate?: boolean
   clickable?: boolean
-  /** 卡片圓角（AppCard 的 radius）。預設 md（結算頁）；總覽明確傳 ml，之後新用到的地方不會不小心變成 18px */
-  radius?: 'ml' | 'md'
-}>(), { from: null, celebrate: false, clickable: false, radius: 'md' })
+}>(), { from: null, celebrate: false, clickable: false })
 
 const emit = defineEmits<{ click: [] }>()
 
@@ -65,7 +63,7 @@ const status = computed(() => {
     :as="clickable ? 'button' : 'section'"
     :type="clickable ? 'button' : undefined"
     title="本週目標"
-    :radius="radius"
+    radius="ml"
     :arrow="clickable"
     class="flex w-full flex-col text-left"
     :style="{ minHeight: 'var(--overview-card-h)' }"

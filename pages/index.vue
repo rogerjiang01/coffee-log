@@ -136,7 +136,6 @@ const newBrewLink = computed(() => newBrewEntry(activeBeans.value))
       <GoalWeekCard
         v-if="week"
         class="col-span-2"
-        radius="ml"
         :count="week.count"
         :goal="week.goal"
         :days="week.days"

@@ -80,7 +80,7 @@ const goalText = computed(() => {
   const r = ring.value
   if (!r) return ''
   const shown = ringFilled.value || ringFrom.value === ringCount.value ? r.after : r.before
-  return shown >= r.goal ? `本週 ${shown} / ${r.goal} 杯，達成目標` : `本週 ${shown} / ${r.goal} 杯`
+  return shown >= r.goal ? `本週 ${shown}／${r.goal} 杯，達成目標` : `本週 ${shown}／${r.goal} 杯`
 })
 
 // ── 小數據列 ─────────────────────────────────────────
@@ -212,9 +212,11 @@ function formatDate(iso: string) {
         </div>
       </BrewHero>
 
-      <div class="px-5 pt-5">
-        <!-- 小數據列：左邊對齊標題區（40），項目間距 28，放不下就換行。值在上、標籤在下（dt 在 DOM 裡先，畫面上在下） -->
-        <dl v-if="stat.length" class="flex flex-wrap gap-x-7 gap-y-3 pl-5">
+      <!-- 左右是頁面的內距（--form-gutter），和主圖的標題區、下面的段落用同一組 token -->
+      <div class="pt-5" :style="{ paddingInline: 'var(--form-gutter)' }">
+        <!-- 小數據列：左邊和段落標題、主圖的標題區同一條線（--card-pad），項目間距 28，放不下就換行。
+             值在上、標籤在下（dt 在 DOM 裡先，畫面上在下） -->
+        <dl v-if="stat.length" class="flex flex-wrap gap-x-7 gap-y-3" :style="{ paddingLeft: 'var(--card-pad)' }">
           <div v-for="item in stat" :key="item.label" class="flex flex-col-reverse gap-0.5">
             <dt class="text-body-m text-muted">{{ item.label }}</dt>
             <dd class="flex items-center gap-1 text-heading-l font-medium tabular-nums">
@@ -274,7 +276,7 @@ function formatDate(iso: string) {
 
     <!-- 讀取中：主圖的位置先留好（同一個高度），完成鈕在同一個位置，隨時可以離開 -->
     <div v-else aria-busy="true" aria-label="讀取中">
-      <div class="summary-hero-placeholder relative flex flex-col justify-end gap-2 px-10">
+      <div class="summary-hero-placeholder relative flex flex-col justify-end gap-2">
         <div class="absolute top-10 right-5">
           <DoneButton @click="done" />
         </div>
@@ -282,7 +284,7 @@ function formatDate(iso: string) {
         <SkeletonBlock width="80%" height="2.25rem" />
         <SkeletonBlock width="60%" height="1.25rem" />
       </div>
-      <div class="mt-8 space-y-6 px-5">
+      <div class="mt-8 space-y-6" :style="{ paddingInline: 'var(--form-gutter)' }">
         <SkeletonBlock height="3.5rem" />
         <SkeletonBlock height="10rem" />
       </div>
@@ -294,5 +296,6 @@ function formatDate(iso: string) {
 /* 和 BrewHero 同一個高度 */
 .summary-hero-placeholder {
   min-height: min(470px, 58svh);
+  padding-inline: calc(var(--form-gutter) + var(--card-pad));
 }
 </style>

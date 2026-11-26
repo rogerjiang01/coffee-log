@@ -320,14 +320,17 @@ export default function run() {
   r.check(/<BrewHeroFallback v-else/.test(hero) && !/BeanArt|roast-art/.test(stripComments(templateOf(hero))),
     '主圖：沒有照片時交給 BrewHeroFallback，BrewHero 不碰那張圖的內容')
   r.check(/signedUrl\(path\)/.test(summary) && !/thumbnailUrl/.test(summary), '主圖用原圖，不用縮圖')
-  r.check(/min-height: min\(470px, 58svh\)/.test(hero), '主圖高度：min(470px, 58svh)')
+  r.check(/--hero-h: min\(470px, 58svh\);/.test(hero) && /min-height: var\(--hero-h\);/.test(hero), '主圖高度：min(470px, 58svh)')
+  r.check(/padding-top: max\(96px, calc\(var\(--hero-h\) \* 0\.55\)\);/.test(hero), '標題的頂端不高於主圖的 55%：豆名很長時主圖往下長')
+  r.check(/padding-inline: calc\(var\(--form-gutter\) \+ var\(--card-pad\)\);/.test(hero) && /paddingLeft: 'var\(--card-pad\)'/.test(summary),
+    '主圖的標題區與小數據列：和段落標題同一條線（頁面內距＋--card-pad，用 token 算）')
   r.check(/<BeanArt background="transparent" whole \/>/.test(read('components/BrewHeroFallback.vue')), '沒有照片：BeanArt 的三顆豆子完整畫出來（whole），沿用同一組圖檔')
   r.check(/<p v-if="roaster"[^>]*>\{\{ roaster \}\}<\/p>/.test(summaryTemplate) && /<h1 class="text-display-l font-medium break-words">\{\{ beanName \}\}<\/h1>/.test(summaryTemplate)
     && /\?\? '沒有指定豆子'/.test(summary), '標題區：咖啡店名（沒有就不顯示）、豆名（Display L，換行不截斷；沒有豆子寫「沒有指定豆子」）')
   r.check(/<p v-if="ring"[\s\S]*?<GoalRing[\s\S]*?:size="26"[\s\S]*?:celebrate="ring\.crossed"/.test(summaryTemplate)
-    && /`本週 \$\{shown\} \/ \$\{r\.goal\} 杯，達成目標`/.test(summary) && /`本週 \$\{shown\} \/ \$\{r\.goal\} 杯`/.test(summary)
+    && /`本週 \$\{shown\}／\$\{r\.goal\} 杯，達成目標`/.test(summary) && /`本週 \$\{shown\}／\$\{r\.goal\} 杯`/.test(summary)
     && /summaryRing\(stats\.value, goals\.value, id, now\)/.test(summary),
-    '本週目標：小環＋一行字；達到或超過寫「達成目標」；這一筆不在本週時整行不出現')
+    '本週目標：小環＋一行字，斜線是全形（和總覽一致）；達到或超過寫「達成目標」；這一筆不在本週時整行不出現')
   r.check(!/GoalWeekCard|BeanThumb/.test(summaryTemplate) && !/這一杯<\/h2>|筆紀錄/.test(summaryTemplate),
     '拿掉：本週目標卡片、縮圖加豆名的摘要列、「第 N 筆紀錄」、「這一杯」')
   r.check(/label: '評分'/.test(summary) && /restDayValue\(beanInfo\.value\?\.restDay\)/.test(summary)
