@@ -325,28 +325,41 @@ export default function run() {
   // 2026-11-26 第三版（iPhone 驗收）：主圖是固定的背景層，內容從上面滑過去；捲動時兩層（清楚＋預先模糊）只改透明度
   const heroTemplate = templateOf(hero)
   r.check(/<div class="brew-hero__bg" aria-hidden="true">\s*(?:<!--[\s\S]*?-->\s*)?<div class="brew-hero__layer brew-hero__layer--blurred"[\s\S]*?<div class="brew-hero__layer brew-hero__layer--clear">[\s\S]*?<div class="brew-hero__fade" \/>\s*<\/div>/.test(heroTemplate)
-    && /\.brew-hero__bg \{[^}]*position: fixed;[^}]*z-index: 0;[^}]*height: var\(--hero-h\);/.test(hero)
+    && /\.brew-hero__bg \{[^}]*position: fixed;[^}]*z-index: 0;[^}]*height: max\(var\(--hero-h\), var\(--hero-solid\)\);/.test(hero)
     && /\.brew-hero__title \{\s*position: relative;\s*z-index: 1;/.test(hero) && /class="relative z-1 pt-5"/.test(summaryTemplate),
-    '主圖：背景層（模糊、清楚兩層與底部漸層）固定在畫面頂端；標題區與結算頁下面的內容是上層（z-index 1），從背景上滑過去')
+    '主圖：背景層（模糊、清楚兩層與漸層）固定在畫面頂端、高度蓋到漸層的實底；標題區與結算頁下面的內容是上層（z-index 1），從背景上滑過去')
   r.check(/\.brew-hero__blur \{\s*filter: blur\(var\(--hero-blur-end\)\);/.test(hero) && /--hero-blur-end: 20px;/.test(hero) && /--hero-opacity-end: 0\.3;/.test(hero)
     && !(hero.match(/@keyframes[^{]*\{(?:\s*[^{}]*\{[^}]*\})*\s*\}/g) ?? []).some(k => /filter/.test(k)) && !/setProperty\('filter'|style\.filter/.test(hero),
     '模糊是下層預先套好的靜態 filter；捲動時不改 filter。終點的模糊與透明度是變數')
-  r.check(/@supports \(animation-timeline: scroll\(\)\) \{[\s\S]*?animation: brew-hero-clear linear both;\s*animation-timeline: scroll\(root block\);\s*animation-range: 0 min\(var\(--hero-fade-end\), 100%\);[\s\S]*?animation: brew-hero-blurred linear both;\s*animation-timeline: scroll\(root block\);\s*animation-range: 0 min\(var\(--hero-fade-end\), 100%\);/.test(hero)
+  // 2026-11-26 第五版：終點之後維持終點的樣子，不只靠 fill——第二段「hold」從終點一路到 10000px，捲到底也還在進行中
+  const range = 'animation-range: 0 min\\(var\\(--hero-fade-end\\), 100%\\), min\\(var\\(--hero-fade-end\\), 100%\\) var\\(--hero-follow\\);'
+  r.check(new RegExp(`@supports \\(animation-timeline: scroll\\(\\)\\) \\{\\s*\\.brew-hero__layer--clear \\{\\s*animation: brew-hero-clear linear both, brew-hero-clear-hold linear forwards;\\s*animation-timeline: scroll\\(root block\\), scroll\\(root block\\);\\s*${range}\\s*\\}\\s*\\.brew-hero__layer--blurred \\{\\s*animation: brew-hero-blurred linear both, brew-hero-blurred-hold linear forwards;\\s*animation-timeline: scroll\\(root block\\), scroll\\(root block\\);\\s*${range}`).test(hero)
     && /--hero-fade-end: calc\(var\(--hero-h\) \* 0\.6\);/.test(hero) && /const FADE_RATIO = 0\.6/.test(hero)
     && /@keyframes brew-hero-clear \{\s*0% \{ opacity: 1; \}\s*25% \{[^}]*\}\s*50% \{[^}]*\}\s*75% \{[^}]*\}\s*100% \{ opacity: 0; \}/.test(hero)
-    && /@keyframes brew-hero-blurred \{\s*0% \{ opacity: 1; \}[\s\S]*?100% \{ opacity: var\(--hero-opacity-end\); \}/.test(hero),
-    '捲動連動動畫：兩層各一組只動 opacity 的關鍵影格（0／25／50／75／100%，和 HERO_FADE_STOPS 一致）；終點是 60% 與能捲到的最大距離取小')
+    && /@keyframes brew-hero-blurred \{\s*0% \{ opacity: 1; \}[\s\S]*?100% \{ opacity: var\(--hero-opacity-end\); \}/.test(hero)
+    && /@keyframes brew-hero-clear-hold \{\s*from, to \{ opacity: 0; \}\s*\}/.test(hero)
+    && /@keyframes brew-hero-blurred-hold \{\s*from, to \{ opacity: var\(--hero-opacity-end\); \}\s*\}/.test(hero),
+    '捲動連動動畫：兩層各一組只動 opacity 的關鍵影格（0／25／50／75／100%，和 HERO_FADE_STOPS 一致）；終點是 60% 與能捲到的最大距離取小；終點之後由 hold（forwards、範圍到 10000px）維持終點的值')
   r.check(/CSS\.supports\('animation-timeline', 'scroll\(\)'\)/.test(hero) && /addEventListener\('scroll', onScroll, \{ passive: true \}\)/.test(hero)
-    && /requestAnimationFrame\(apply\)/.test(hero) && /heroLayers\(window\.scrollY \/ fadeEnd, opacityEnd\)/.test(hero)
+    && /requestAnimationFrame\(apply\)/.test(hero) && /const t = Math\.min\(1, Math\.max\(0, window\.scrollY \/ fadeEnd\)\)/.test(hero) && /heroLayers\(t, opacityEnd\)/.test(hero)
     && !/getBoundingClientRect|offsetTop|offsetHeight|getComputedStyle/.test(hero.match(/function apply\(\) \{[\s\S]*?\n\}/)?.[0] ?? 'x'),
-    '不支援時：passive 的 scroll 事件＋requestAnimationFrame，用 heroLayers 寫入兩層的透明度，捲動時不讀版面')
+    '不支援時：passive 的 scroll 事件＋requestAnimationFrame，進度限制在 0 到 1，用 heroLayers 寫入兩層的透明度，捲動時不讀版面')
   // 2026-11-26 第四版：iOS 26 的 Safari 拿貼頂的 fixed 元素的底色填狀態列。支援捲動連動動畫時不用 fixed，改成 absolute＋抵銷捲動的平移
   r.check(/@supports \(animation-timeline: scroll\(\)\) \{\s*\.brew-hero__bg \{[^}]*position: absolute;[^}]*animation: brew-hero-follow linear both;\s*animation-timeline: scroll\(root block\);\s*animation-range: 0 var\(--hero-follow\);/.test(hero)
     && /@keyframes brew-hero-follow \{\s*from \{ transform: translateY\(0\); \}\s*to \{ transform: translateY\(var\(--hero-follow\)\); \}/.test(hero)
     && /<main class="mx-auto overflow-clip pb-16"/.test(summaryTemplate),
     '背景層：支援捲動連動動畫時是 absolute＋一比一抵銷捲動的平移（不是 fixed，Safari 不會拿它的底色填狀態列）；main 是 overflow: clip，平移不撐大捲動範圍')
-  r.check(/color-mix\(in srgb, var\(--bg\) 0%, transparent\) 50%,\s*color-mix\(in srgb, var\(--bg\) 90%, transparent\) 75%,\s*var\(--bg\) 88%/.test(hero),
-    '主圖底部的漸層：0–50% 透明、75% 到 90%、88% 實底（整組往下移，一開始露出更多照片）')
+  // 2026-11-26 第五版：漸層只有一條，標題區背後跟著捲動的那層拿掉；位置照實際版面量（標題頂端、第一個段落的頂端）
+  const fade = hero.match(/\.brew-hero__fade \{[\s\S]*?\n\}/)?.[0] ?? ''
+  const alphas = [...fade.matchAll(/var\(--bg\) ([\d.]+)%, transparent\)/g)].map(m => Number(m[1]))
+  r.check(/--g0: calc\(var\(--hero-title-top\) - var\(--hero-fade-len\)\);\s*--g1: var\(--hero-title-top\);\s*--g2: var\(--hero-solid\);/.test(fade)
+    && /var\(--bg\) var\(--g2\)\s*\);/.test(fade) && alphas.length === 8 && alphas[0] === 0 && alphas.every((a, i) => i === 0 || a > alphas[i - 1]) && alphas.at(-1) < 100
+    && !/::before/.test(hero) && !/hero-title-fade/.test(hero) && !/animation/.test(fade),
+    '主圖的漸層：一條、由上往下只會越來越不透明，到第一個段落的頂端剛好 100%；標題區背後沒有另一層；漸層不淡出')
+  r.check(/el\.style\.setProperty\('--hero-title-top'/.test(hero) && /el\.style\.setProperty\('--hero-solid'/.test(hero)
+    && /new ResizeObserver\(\(\) => measure\(\)\)/.test(hero) && /function measure\(\) \{\s*measureLayout\(\)/.test(hero)
+    && /:solid-at="sections"/.test(summaryTemplate) && /<div ref="sections" class="mt-8 flex flex-col"/.test(summaryTemplate),
+    '漸層的兩個位置在掛載與版面改變時量（ResizeObserver，兩條路都量）；實底的位置是結算頁的第一個段落')
   const tokensCss = read('assets/css/tokens.css')
   r.check(/--float-shadow: 0 0 \d+px rgb\([^)]*\);/.test(tokensCss)
     && /box-shadow: var\(--float-shadow\);/.test(read('components/BrewShare.vue'))

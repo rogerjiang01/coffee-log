@@ -61,6 +61,8 @@ const goals = ref<GoalRow[]>([])
 const ready = ref(false)
 const ownSteps = ref<StepRow[]>([])
 const feedback = ref<string | null>(null)
+// 第一個段落（比較區或沖煮參數）：主圖的漸層在它的頂端剛好到實底（BrewHero 的 solidAt）
+const sections = ref<HTMLElement | null>(null)
 
 // 打開這一頁的當下：「本週」以它為準
 const now = new Date()
@@ -162,6 +164,7 @@ async function openDetail() {
         :has-photo="!!brew.beans?.photo_path"
         :photo-url="photo"
         :roast-level="brew.beans?.roast_level ?? null"
+        :solid-at="sections"
       >
         <!-- 右上角：分享（和紀錄詳情同一套流程）＋完成。鍵盤順序：分享 → 完成 → 參數卡片 -->
         <template #actions>
@@ -231,7 +234,7 @@ async function openDetail() {
           </div>
         </dl>
 
-        <div class="mt-8 flex flex-col" :style="{ gap: 'var(--gap-section)' }">
+        <div ref="sections" class="mt-8 flex flex-col" :style="{ gap: 'var(--gap-section)' }">
           <!-- 有比較對象：和 M/D 那一杯相比。參數相同時是一句話（評分不同才接評分那一列），回饋句在標題下 -->
           <BrewCompareSection v-if="comparison?.target" :comparison="comparison" summary :feedback="feedback" />
 
