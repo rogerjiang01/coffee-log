@@ -240,6 +240,15 @@
     -webkit-line-clamp: 2;
     overflow-wrap: anywhere;
   }
+  /* 日期與時刻的膠囊（2026-11-26）：膠囊裡不斷行——320px 時原本在數字中間斷開（「2026/1」「1/21」）。
+     放不下時換行的是兩顆膠囊之間（外層 flex-wrap），所以膠囊本身也不縮（shrink-0） */
+  .select-field--nowrap {
+    flex-shrink: 0;
+  }
+  .select-field--nowrap .sheet-clamp {
+    white-space: nowrap;
+    overflow-wrap: normal;
+  }
 
   /* 卡片下方的小字（footer，《03》§4.1）：說明、提示、錯誤、衍生值一律放在卡片外面的下方，
      緊貼卡片、左側和卡片內的列文字對齊（iOS inset grouped 列表的 footer）。

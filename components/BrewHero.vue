@@ -21,11 +21,12 @@
 // - 沒有照片：BrewHeroFallback
 //
 // **隨捲動淡出**（2026-11-26）：往上捲時，影像層（照片或 BrewHeroFallback，加上頂端給按鈕用的 --hero-scrim）
-// 的透明度跟著捲動距離從 1 降到 0，捲過主圖基準高度的 60%（--hero-fade-end）時完全透明。
+// 的透明度跟著捲動距離從 1 降到 0。**終點是「主圖基準高度的 60%」與「頁面能捲到的最大距離」取較小的那個**
+// （2026-11-26）：內容短、捲不到 60% 的頁面（390×844 的結算頁只能捲 122–196px），捲到底時影像也一定完全淡掉。
 // 底部融進 --bg 的漸層、標題區背後那一層、標題區本身與下面的內容都不淡出。兩條路：
 //   - 支援捲動連動動畫的瀏覽器（animation-timeline: scroll()；Chromium 115+、Safari 26+）：只用 CSS，捲動時不跑任何程式
 //   - 不支援的：passive 的 scroll 事件，每一格畫面最多一次（requestAnimationFrame）把透明度寫進 --hero-fade。
-//     捲動時只讀 scrollY，不讀版面；60% 的距離在掛載與視窗大小改變時量一次
+//     捲動時只讀 scrollY，不讀版面；終點在掛載、視窗大小改變與頁面高度改變（ResizeObserver）時量一次
 // 減少動態時照樣淡出：只動透明度、沒有位移，而且是跟著手指走的，不是自己播放的動畫（《03》§6、§4.17）
 //
 // 漸層（顏色都取自 token）：
@@ -64,8 +65,10 @@ let cleanup: (() => void) | null = null
 function measure() {
   const el = root.value
   if (!el) return
-  // 主圖的 min-height 就是 --hero-h（基準高度，不含豆名很長時撐高的部分），乘上同一個比例
-  fadeEnd = Math.max(1, Number.parseFloat(getComputedStyle(el).minHeight) * FADE_RATIO)
+  // 主圖的 min-height 就是 --hero-h（基準高度，不含豆名很長時撐高的部分），乘上同一個比例；
+  // 頁面能捲的距離比它短時，以捲到底為終點
+  const maxScroll = document.documentElement.scrollHeight - window.innerHeight
+  fadeEnd = Math.max(1, Math.min(Number.parseFloat(getComputedStyle(el).minHeight) * FADE_RATIO, maxScroll))
   apply()
 }
 function apply() {
@@ -82,9 +85,13 @@ onMounted(() => {
   measure()
   window.addEventListener('scroll', onScroll, { passive: true })
   window.addEventListener('resize', measure, { passive: true })
+  // 下面的內容（比較區、照片）晚到時頁面變高，能捲的距離跟著變
+  const observer = new ResizeObserver(() => measure())
+  observer.observe(document.body)
   cleanup = () => {
     window.removeEventListener('scroll', onScroll)
     window.removeEventListener('resize', measure)
+    observer.disconnect()
     cancelAnimationFrame(frame)
   }
 })
@@ -145,12 +152,13 @@ onBeforeUnmount(() => cleanup?.())
   opacity: var(--hero-fade, 1);
 }
 /* 只用 CSS：捲動連動動畫。animation 的簡寫會把 animation-timeline 重設回 auto，所以 timeline 寫在後面。
+   終點的 100% 是這條時間軸的全長，也就是頁面能捲到的最大距離：取較小的那個，捲到底一定完全淡掉。
    全站減少動態的規則會把 animation-duration 改成 0.01ms：捲動連動的動畫不看時間長度（整段對應捲動的範圍），不受影響 */
 @supports (animation-timeline: scroll()) {
   .brew-hero__image {
     animation: brew-hero-fade linear both;
     animation-timeline: scroll(root block);
-    animation-range: 0 var(--hero-fade-end);
+    animation-range: 0 min(var(--hero-fade-end), 100%);
   }
 }
 @keyframes brew-hero-fade {

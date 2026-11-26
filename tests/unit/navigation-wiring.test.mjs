@@ -166,11 +166,11 @@ export default function run() {
     '每一天都有全高的底軌（--accent-wash），杯數的長條疊在上面；0 杯的那一天只有底軌')
   const goalCardFile = read('components/GoalWeekCard.vue')
   r.check(!/over-?[tT]ext/.test(homeTemplate + goalCard) && !/props\.overText/.test(goalCardFile)
-    && /if \(props\.count > props\.goal\) return '達成目標'/.test(goalCardFile) && !/超過 \$\{/.test(goalCardFile)
+    && /if \(props\.count >= props\.goal\) return '達成目標'/.test(goalCardFile) && !/超過 \$\{/.test(goalCardFile)
     && /const ringCount = computed\(\(\) => Math\.min\(props\.count, props\.goal\)\)/.test(goalCardFile)
     && /<GoalRing :count="ringCount" :from="ringFrom"/.test(goalCard)
     && !/accent-active|laps\.second/.test(read('components/GoalRing.vue')),
-    '超過目標：環停在一圈，寫「達成目標」（2026-11-26，不再寫「超過 N 杯」），不畫第二圈')
+    '達到或超過目標（N ≥ M）：環停在一圈，寫「達成目標」（2026-11-26，不再寫「超過 N 杯」），不畫第二圈')
   r.check(/const filled = ref\(ringFrom\.value === null \|\| ringFrom\.value === ringCount\.value\)/.test(goalCardFile),
     '結算頁上已經超過目標之後的紀錄：環沒有動畫，數字直接是存檔後的杯數')
 
@@ -327,9 +327,9 @@ export default function run() {
   r.check(/<div class="brew-hero__image"[^>]*>[\s\S]*?<BrewHeroFallback v-else[\s\S]*?<div class="brew-hero__scrim" \/>\s*<\/div>\s*(?:<!--[\s\S]*?-->\s*)?<div class="brew-hero__fade"/.test(heroTemplate)
     && !/--hero-scrim/.test(hero.match(/\.brew-hero__fade \{[^}]*\}/)?.[0] ?? ''),
     '主圖：淡出的只有影像層（圖＋頂端的暗色漸層）；底部融進 --bg 的漸層在影像層外面')
-  r.check(/@supports \(animation-timeline: scroll\(\)\) \{[\s\S]*?animation: brew-hero-fade linear both;\s*animation-timeline: scroll\(root block\);\s*animation-range: 0 var\(--hero-fade-end\);/.test(hero)
+  r.check(/@supports \(animation-timeline: scroll\(\)\) \{[\s\S]*?animation: brew-hero-fade linear both;\s*animation-timeline: scroll\(root block\);\s*animation-range: 0 min\(var\(--hero-fade-end\), 100%\);/.test(hero)
     && /--hero-fade-end: calc\(var\(--hero-h\) \* 0\.6\);/.test(hero) && /const FADE_RATIO = 0\.6/.test(hero),
-    '捲動連動動畫：支援的瀏覽器只用 CSS（timeline 寫在簡寫後面），捲過主圖基準高度的 60% 完全透明')
+    '捲動連動動畫：支援的瀏覽器只用 CSS（timeline 寫在簡寫後面），終點是主圖基準高度的 60% 與能捲到的最大距離（100%）取小')
   r.check(/CSS\.supports\('animation-timeline', 'scroll\(\)'\)/.test(hero) && /addEventListener\('scroll', onScroll, \{ passive: true \}\)/.test(hero)
     && /requestAnimationFrame\(apply\)/.test(hero) && !/getBoundingClientRect|offsetTop|offsetHeight/.test(hero.match(/function apply\(\) \{[\s\S]*?\n\}/)?.[0] ?? 'x'),
     '不支援時：passive 的 scroll 事件＋requestAnimationFrame 寫入 --hero-fade，捲動時不讀版面')

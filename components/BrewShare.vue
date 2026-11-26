@@ -390,6 +390,9 @@ async function retry() {
 
 <style scoped>
 .brew-share-floating {
+  /* 邊界用陰影，不加邊框（《03》§2.3「邊界」，2026-11-26）：影像淡掉之後按鈕直接浮在 --bg 上，
+     --surface 的 78% 和頁面底色幾乎一樣，沒有陰影就看不出圓的範圍。浮在內容上的按鈕用浮出層的陰影 */
+  box-shadow: var(--overlay-shadow);
   background: color-mix(in srgb, var(--surface) 78%, transparent);
   -webkit-backdrop-filter: blur(6px);
   backdrop-filter: blur(6px);

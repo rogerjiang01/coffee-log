@@ -11,7 +11,8 @@
 //   celebrate   這一筆剛好跨過目標：環補滿時的強調，「N／M 杯」下方顯示「已達成」
 // 總覽的卡片可以點（修改目標，標題列右端有 ›），結算頁的不行。
 //
-// 超過目標時（《02》§4.1）：環停在一圈、不畫第二圈，數字下方寫「達成目標」（2026-11-26；原本是「超過 N 杯」）。
+// 達到或超過目標時（N ≥ M，剛好達成也算；《02》§4.1）：環停在一圈、不畫第二圈，數字下方寫「達成目標」
+// （2026-11-26；原本只有超過時寫「超過 N 杯」，剛好達成什麼都不寫）。
 // 和結算頁那一行的「本週 N／M 杯，達成目標」同一種說法。起點與終點都是滿的一圈時沒有動畫，數字直接是存檔後的杯數。
 
 const props = withDefaults(defineProps<{
@@ -53,7 +54,7 @@ const numberFontSize = computed(() => {
 
 const status = computed(() => {
   if (props.celebrate) return filled.value ? '已達成' : ''
-  if (props.count > props.goal) return '達成目標'
+  if (props.count >= props.goal) return '達成目標'
   return ''
 })
 </script>

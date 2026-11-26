@@ -151,11 +151,6 @@ async function openDetail() {
   await navigateTo(`/brews/${id}`, { replace: true })
 }
 
-function formatDate(iso: string) {
-  const d = new Date(iso)
-  const pad = (n: number) => String(n).padStart(2, '0')
-  return `${d.getFullYear()}/${pad(d.getMonth() + 1)}/${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`
-}
 </script>
 
 <template>
@@ -197,7 +192,8 @@ function formatDate(iso: string) {
         </p>
         <!-- 日期與收藏是兩個獨立元素，用間距分開（不是 §1 禁止的中間點串接） -->
         <div class="flex flex-wrap items-center gap-x-3">
-          <p class="text-body-l tabular-nums text-muted">{{ formatDate(brew.brewed_at) }}</p>
+          <!-- 日期與時刻各自不斷行，兩者之間可以換行（320px） -->
+          <p class="text-body-l tabular-nums text-muted"><span class="whitespace-nowrap">{{ brewedDate(brew.brewed_at) }}</span> <span class="whitespace-nowrap">{{ brewedTime(brew.brewed_at) }}</span></p>
           <!-- 和紀錄詳情頁一樣的「♥ 收藏」 -->
           <span v-if="brew.is_favorite" class="flex items-center gap-1 text-sm" :style="{ color: 'var(--favorite)' }">
             <svg

@@ -180,11 +180,6 @@ const restLabel = computed(() => restDayLabel(
 // 器材的顯示名稱：型錄是「品牌 · 型號 版本」，自建是自建名稱
 const equipmentName = (row: EquipmentNameRow | null) => row ? equipmentOptionName(row) : null
 
-function formatDate(iso: string) {
-  const d = new Date(iso)
-  const pad = (n: number) => String(n).padStart(2, '0')
-  return `${d.getFullYear()}/${pad(d.getMonth() + 1)}/${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`
-}
 
 async function destroy() {
   deleting.value = true
@@ -262,7 +257,8 @@ async function destroy() {
         <div class="min-w-0 flex-1">
           <!-- 日期時間一行、養豆天數一行（2026-11-25，《03》§4.22）：不擠成一行中間點分隔（§1）。
                算不出養豆天數時只有日期。參數裡不再另列養豆天數 -->
-          <p class="text-sm tabular-nums text-muted">{{ formatDate(brew.brewed_at) }}</p>
+          <!-- 日期與時刻各自不斷行，兩者之間可以換行（320px） -->
+          <p class="text-sm tabular-nums text-muted"><span class="whitespace-nowrap">{{ brewedDate(brew.brewed_at) }}</span> <span class="whitespace-nowrap">{{ brewedTime(brew.brewed_at) }}</span></p>
           <p v-if="restLabel" class="text-sm tabular-nums text-muted">{{ restLabel }}</p>
           <!-- 評分與收藏是兩個獨立欄位，分開顯示 -->
           <div v-if="brew.rating !== null || brew.is_favorite" class="mt-3 flex items-center gap-3">

@@ -44,11 +44,6 @@ const beanRows = computed(() => {
   ].filter((row): row is { label: string, value: string } => !!row.value)
 })
 
-function formatDate(iso: string) {
-  const d = new Date(iso)
-  const pad = (n: number) => String(n).padStart(2, '0')
-  return `${d.getFullYear()}/${pad(d.getMonth() + 1)}/${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`
-}
 </script>
 
 <template>
@@ -77,7 +72,8 @@ function formatDate(iso: string) {
     <div class="mt-1 flex items-center gap-4">
       <div class="min-w-0 flex-1">
         <!-- 日期時間一行、養豆天數一行，和紀錄詳情頁一樣；算不出養豆天數時只有日期 -->
-        <p class="text-sm tabular-nums text-muted">{{ formatDate(brew.brewed_at) }}</p>
+        <!-- 日期與時刻各自不斷行，兩者之間可以換行（320px） -->
+        <p class="text-sm tabular-nums text-muted"><span class="whitespace-nowrap">{{ brewedDate(brew.brewed_at) }}</span> <span class="whitespace-nowrap">{{ brewedTime(brew.brewed_at) }}</span></p>
         <p v-if="restLabel" class="text-sm tabular-nums text-muted">{{ restLabel }}</p>
         <div v-if="brew.rating !== null || brew.is_favorite" class="mt-3 flex items-center gap-3">
           <StarDisplay v-if="brew.rating !== null" :rating="brew.rating" />
