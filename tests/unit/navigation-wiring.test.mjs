@@ -328,8 +328,8 @@ export default function run() {
     && /\.brew-hero__bg \{[^}]*position: fixed;[^}]*z-index: 0;[^}]*height: var\(--hero-h\);/.test(hero)
     && /\.brew-hero__title \{\s*position: relative;\s*z-index: 1;/.test(hero) && /class="relative z-1 pt-5"/.test(summaryTemplate),
     '主圖：背景層（模糊、清楚兩層與底部漸層）固定在畫面頂端；標題區與結算頁下面的內容是上層（z-index 1），從背景上滑過去')
-  r.check(/\.brew-hero__blur \{\s*filter: blur\(var\(--hero-blur-end\)\);/.test(hero) && /--hero-blur-end: 20px;/.test(hero) && /--hero-opacity-end: 0;/.test(hero)
-    && !/@keyframes[^{]*\{[^@]*filter/.test(hero) && !/setProperty\('filter'|style\.filter/.test(hero),
+  r.check(/\.brew-hero__blur \{\s*filter: blur\(var\(--hero-blur-end\)\);/.test(hero) && /--hero-blur-end: 20px;/.test(hero) && /--hero-opacity-end: 0\.3;/.test(hero)
+    && !(hero.match(/@keyframes[^{]*\{(?:\s*[^{}]*\{[^}]*\})*\s*\}/g) ?? []).some(k => /filter/.test(k)) && !/setProperty\('filter'|style\.filter/.test(hero),
     '模糊是下層預先套好的靜態 filter；捲動時不改 filter。終點的模糊與透明度是變數')
   r.check(/@supports \(animation-timeline: scroll\(\)\) \{[\s\S]*?animation: brew-hero-clear linear both;\s*animation-timeline: scroll\(root block\);\s*animation-range: 0 min\(var\(--hero-fade-end\), 100%\);[\s\S]*?animation: brew-hero-blurred linear both;\s*animation-timeline: scroll\(root block\);\s*animation-range: 0 min\(var\(--hero-fade-end\), 100%\);/.test(hero)
     && /--hero-fade-end: calc\(var\(--hero-h\) \* 0\.6\);/.test(hero) && /const FADE_RATIO = 0\.6/.test(hero)
@@ -340,6 +340,13 @@ export default function run() {
     && /requestAnimationFrame\(apply\)/.test(hero) && /heroLayers\(window\.scrollY \/ fadeEnd, opacityEnd\)/.test(hero)
     && !/getBoundingClientRect|offsetTop|offsetHeight|getComputedStyle/.test(hero.match(/function apply\(\) \{[\s\S]*?\n\}/)?.[0] ?? 'x'),
     '不支援時：passive 的 scroll 事件＋requestAnimationFrame，用 heroLayers 寫入兩層的透明度，捲動時不讀版面')
+  // 2026-11-26 第四版：iOS 26 的 Safari 拿貼頂的 fixed 元素的底色填狀態列。支援捲動連動動畫時不用 fixed，改成 absolute＋抵銷捲動的平移
+  r.check(/@supports \(animation-timeline: scroll\(\)\) \{\s*\.brew-hero__bg \{[^}]*position: absolute;[^}]*animation: brew-hero-follow linear both;\s*animation-timeline: scroll\(root block\);\s*animation-range: 0 var\(--hero-follow\);/.test(hero)
+    && /@keyframes brew-hero-follow \{\s*from \{ transform: translateY\(0\); \}\s*to \{ transform: translateY\(var\(--hero-follow\)\); \}/.test(hero)
+    && /<main class="mx-auto overflow-clip pb-16"/.test(summaryTemplate),
+    '背景層：支援捲動連動動畫時是 absolute＋一比一抵銷捲動的平移（不是 fixed，Safari 不會拿它的底色填狀態列）；main 是 overflow: clip，平移不撐大捲動範圍')
+  r.check(/color-mix\(in srgb, var\(--bg\) 0%, transparent\) 50%,\s*color-mix\(in srgb, var\(--bg\) 90%, transparent\) 75%,\s*var\(--bg\) 88%/.test(hero),
+    '主圖底部的漸層：0–50% 透明、75% 到 90%、88% 實底（整組往下移，一開始露出更多照片）')
   const tokensCss = read('assets/css/tokens.css')
   r.check(/--float-shadow: 0 0 \d+px rgb\([^)]*\);/.test(tokensCss)
     && /box-shadow: var\(--float-shadow\);/.test(read('components/BrewShare.vue'))

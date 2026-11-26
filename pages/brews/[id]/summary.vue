@@ -155,7 +155,8 @@ async function openDetail() {
 
 <template>
   <!-- 沒有左右內距：主圖要滿版（手機上貼齊螢幕，寬螢幕時就是這一欄的寬度）。下面的內容自己留 px-5 -->
-  <main class="mx-auto pb-16" :style="{ maxWidth: 'var(--content-max)' }">
+  <!-- overflow: clip：主圖的背景層用平移抵銷捲動（BrewHero），平移出去的部分不能撐大頁面的捲動範圍，否則越捲越長 -->
+  <main class="mx-auto overflow-clip pb-16" :style="{ maxWidth: 'var(--content-max)' }">
     <template v-if="ready && brew">
       <BrewHero
         :has-photo="!!brew.beans?.photo_path"

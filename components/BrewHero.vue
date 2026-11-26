@@ -21,10 +21,11 @@
 // - 沒有照片：BrewHeroFallback
 //
 // **固定背景＋捲動時模糊淡出**（2026-11-26 第三版，參考 iOS 健身 App 的體能訓練摘要頁）：
-// - 背景層（照片或 BrewHeroFallback、頂端給按鈕用的 --hero-scrim、底部融進 --bg 的漸層）**固定在畫面頂端**，不跟著捲動。
+// - 背景層（照片或 BrewHeroFallback、頂端給按鈕用的 --hero-scrim、底部融進 --bg 的漸層）**看起來固定在畫面頂端**，不跟著捲動。
+//   支援捲動連動動畫時是 absolute 加上抵銷捲動的平移，不是 position: fixed——iOS 26 的 Safari 會拿貼頂的 fixed 元素的底色填狀態列（見樣式）
 //   這個元件本身留在版面裡當佔位（高度照舊），標題區、小數據列與下面的內容是上層，捲動時從背景上滑過去。
 //   上層不鋪底色（卡片照舊有自己的底）；只有標題區背後那層漸層跟著標題走
-// - 捲動時背景同時模糊和淡出：模糊從 0 到 --hero-blur-end（20px），透明度從 1 到 --hero-opacity-end（0）。兩個都可以調
+// - 捲動時背景同時模糊和淡出：模糊從 0 到 --hero-blur-end（20px），透明度從 1 到 --hero-opacity-end（0.3：捲到底時模糊的底圖留 30%）。兩個都可以調
 // - **不每一幀改 filter**：兩層疊起來——上層是清楚的圖，下層是預先套好靜態模糊的同一張圖，捲動時只改兩層的透明度
 //   （清楚的那層淡掉、模糊的那層接手，再一起淡出；比例怎麼算見 utils/heroFade.ts）。只動 opacity，交給合成器
 // - 終點是「主圖基準高度的 60%」與「頁面能捲到的最大距離」取較小的那個：捲到底一定到終點
@@ -35,7 +36,8 @@
 // 減少動態時照樣模糊淡出：只有透明度與靜態的模糊、沒有位移，而且跟著手指走（《03》§6、§4.17）
 //
 // 漸層（顏色都取自 token）：
-// - 由上往下 0–34% 透明，60% 是 --bg 的 90%，72% 以下是 --bg：照片融進頁面，標題區讀得到
+// - 由上往下 0–50% 透明，75% 是 --bg 的 90%，88% 以下是 --bg：照片融進頁面（2026-11-26 第四版整組往下移約 15%，
+//   一開始露出更多照片；原本 34%／60%／72%）。標題的可讀性靠下面那層跟著標題走的漸層，不靠這一層
 // - 頂端另一層 --hero-scrim（30% 的黑）到透明（上方 22%）：按鈕在照片上看得清楚。清楚與模糊的兩層各有一份，交叉淡化時深淺不變
 // - **標題區背後再一層，跟著標題區走**（2026-11-26）：從標題頂端往上 --hero-title-fade（88px）由透明漸變到 --bg 的 92%，
 //   再 16px 到實底。不論豆名幾行，標題都落在接近實底的位置——上面兩層是照主圖的高度算百分比，
@@ -167,7 +169,7 @@ onBeforeUnmount(() => cleanup?.())
   /* **終點的模糊與透明度：在手機上看過再調**（2026-11-26）。模糊是下層預先套好的靜態模糊；
      --hero-blur-scale 把模糊的那張圖放大一點，模糊後變透明的邊緣落在框外（模糊加大時這個也要跟著加） */
   --hero-blur-end: 20px;
-  --hero-opacity-end: 0;
+  --hero-opacity-end: 0.3;
   --hero-blur-scale: 1.2;
   position: relative;
   display: flex;
@@ -175,9 +177,13 @@ onBeforeUnmount(() => cleanup?.())
   justify-content: flex-end;
   min-height: var(--hero-h);
 }
-/* 背景層：固定在畫面頂端，高度是主圖的基準高度。左右和主圖原本的位置一樣：
-   手機上貼齊螢幕，寬螢幕時是內容欄（--fixed-left／right 是內容欄的文字線，減掉頁面內距就是欄的邊緣）。
-   z-index 0：上層（標題區、結算頁下面的內容）是 z-index 1，從它上面滑過去 */
+/* 背景層：看起來固定在畫面頂端，高度是主圖的基準高度。z-index 0：上層（標題區、結算頁下面的內容）是 z-index 1，從它上面滑過去。
+   **不用 position: fixed 的寫法**（2026-11-26 第四版）：iOS 26 的 Safari 不再看 theme-color，改成拿貼著畫面頂端的
+   fixed／sticky 元素的底色填狀態列——這一層（裡面鋪著烘焙度底色）會讓狀態列變成一塊深咖啡色。所以支援捲動連動動畫的瀏覽器
+   （Safari 26 正是從這一版開始兩者都有）改成 absolute，跟著頁面捲走，再用捲動連動動畫往下平移同樣的距離抵銷：
+   看起來不動，Safari 也不會把它當成固定在頂端的元素。只有 transform 跟著捲動，和兩層的 opacity 一樣交給合成器。
+   不支援的瀏覽器（iOS 18 以前，還在用 theme-color、沒有這條取色規則）維持 fixed：用程式逐格平移一定會抖，不這樣做。
+   fixed 時左右和主圖原本的位置一樣：手機上貼齊螢幕，寬螢幕時是內容欄（--fixed-left／right 是內容欄的文字線，減掉頁面內距就是欄的邊緣） */
 .brew-hero__bg {
   /* 捲動連動動畫在 25%、50%、75% 的整體透明度 o ＝ 1 − t(1 − 終點)（utils/heroFade.ts） */
   --hero-o25: calc(1 - 0.25 * (1 - var(--hero-opacity-end)));
@@ -191,6 +197,26 @@ onBeforeUnmount(() => cleanup?.())
   height: var(--hero-h);
   overflow: hidden;
   pointer-events: none;
+}
+/* 抵銷捲動：從頂端起算的平移量 ＝ 捲動距離。範圍 0 到 --hero-follow（10000px），平移也是 0 到 10000px，所以兩者一比一；
+   比這個長的頁面才會跟不上（結算頁捲不到 400px）。平移出去的部分會撐大頁面的捲動範圍、越捲越長，
+   所以結算頁的 main 是 overflow: clip（summary.vue），這一層不會撐到 main 外面 */
+@supports (animation-timeline: scroll()) {
+  .brew-hero__bg {
+    --hero-follow: 10000px;
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    will-change: transform;
+    animation: brew-hero-follow linear both;
+    animation-timeline: scroll(root block);
+    animation-range: 0 var(--hero-follow);
+  }
+}
+@keyframes brew-hero-follow {
+  from { transform: translateY(0); }
+  to { transform: translateY(var(--hero-follow)); }
 }
 .brew-hero__layer {
   position: absolute;
@@ -254,9 +280,9 @@ onBeforeUnmount(() => cleanup?.())
     linear-gradient(
       to bottom,
       color-mix(in srgb, var(--bg) 0%, transparent) 0%,
-      color-mix(in srgb, var(--bg) 0%, transparent) 34%,
-      color-mix(in srgb, var(--bg) 90%, transparent) 60%,
-      var(--bg) 72%
+      color-mix(in srgb, var(--bg) 0%, transparent) 50%,
+      color-mix(in srgb, var(--bg) 90%, transparent) 75%,
+      var(--bg) 88%
     );
 }
 /* 固定在畫面頂端：距頂 40（主圖的頂端就是畫面頂端之下的安全區）、右緣和分頁列同一條線。疊在所有內容上面 */
