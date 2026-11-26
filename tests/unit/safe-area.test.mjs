@@ -26,7 +26,7 @@ export default function run() {
   r.check(/body \{[^}]*padding: env\(safe-area-inset-top\) env\(safe-area-inset-right\) 0 env\(safe-area-inset-left\);/.test(css),
     'body 讓出狀態列與橫向的左右兩側')
   const auth = read('components/AuthShell.vue')
-  r.check(/\.auth \{\s*margin: calc\(-1 \* env\(safe-area-inset-top\)\) calc\(-1 \* env\(safe-area-inset-right\)\) 0 calc\(-1 \* env\(safe-area-inset-left\)\);/.test(auth)
+  r.check(/\.auth \{\s*(?:\/\*[\s\S]*?\*\/\s*)?(?:--intro-move: [^;]+;\s*)?margin: calc\(-1 \* env\(safe-area-inset-top\)\) calc\(-1 \* env\(safe-area-inset-right\)\) 0 calc\(-1 \* env\(safe-area-inset-left\)\);/.test(auth)
     && /padding:\s*calc\(18dvh \+ env\(safe-area-inset-top\)\)\s*calc\(var\(--form-gutter\) \+ env\(safe-area-inset-right\)\)\s*calc\(2rem \+ env\(safe-area-inset-bottom\)\)\s*calc\(var\(--form-gutter\) \+ env\(safe-area-inset-left\)\);/.test(auth),
     '登入、註冊：首圖鋪滿安全區，logo 與表單往內縮')
   r.check(/paddingBottom: 'max\(2\.5rem, calc\(env\(safe-area-inset-bottom\) \+ 0\.75rem\)\)'/.test(read('pages/goal.vue')),

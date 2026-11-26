@@ -9,6 +9,8 @@
 //
 // tall：裡面有膠囊的列（風味的唯讀標籤），65px（--sheet-row-h-tall），和表單的規則相同。
 // start：值靠左排、標籤對齊第一行（心得：一段文字，不是一個值）。
+// **上下內距固定**（2026-11-26，main.css 的 .sheet-row--text／--chips）：文字 15px、風味標籤 14.5px，等於單行時的留白。
+// 值換行（長產區、兩排以上的風味、多行的心得）時列跟著長高，不會貼到分隔線或卡片的邊緣。
 // labelHidden：標籤只給眼睛看，值自己帶了完整的無障礙名稱（強度：「酸質 3 / 5」），不重複唸一次標籤。
 
 defineProps<{
@@ -21,7 +23,7 @@ defineProps<{
 
 <template>
   <!-- dt／dd 要是 <dl> 裡那個 div 的直接子項（HTML 的內容模型），所以列本身就是 .sheet-row，不再多包一層 -->
-  <div class="readonly-row sheet-row card-pad-x" :class="{ 'sheet-row--tall': tall, 'readonly-row--start': start }">
+  <div class="readonly-row sheet-row card-pad-x" :class="[tall ? 'sheet-row--chips' : 'sheet-row--text', { 'readonly-row--start': start }]">
     <dt class="sheet-label" :aria-hidden="labelHidden ? 'true' : undefined">{{ label }}</dt>
     <dd class="sheet-value tabular-nums"><slot /></dd>
   </div>
@@ -36,10 +38,9 @@ defineProps<{
 .readonly-row .sheet-value {
   text-align: right;
 }
-/* 心得：值靠左、保留換行；標籤對齊第一行。上下內距讓單行時和一般列一樣置中在 56px 裡 */
+/* 心得：值靠左、保留換行；標籤對齊第一行。上下內距是文字的 --sheet-pad-text，單行時和一般列一樣置中在 56px 裡 */
 .readonly-row--start {
   align-items: flex-start;
-  padding-block: calc((var(--sheet-row-h) - var(--text-heading-m) * var(--text-heading-m--line-height)) / 2);
 }
 .readonly-row--start .sheet-value {
   justify-content: flex-start;

@@ -357,6 +357,23 @@
        多行的（風味標籤換成好幾排、心得筆記打成好幾行、長豆名換成兩行）照內容長高。對照表在《03》§4.1 */
     --sheet-row-h: 56px;
     --sheet-row-h-tall: 65px;
+    /* **內容變多時，列跟著長高、上下留白不變**（2026-11-26）。每種內容的上下內距固定，等於它單行時的留白；
+       內容多一行，高度就多一行。min-height 只保證單行時剛好 56／65（單列卡片的膠囊圓角靠這個）。
+         --sheet-pad-text          文字（Heading M，一行 26px）                 (56 − 26) / 2 ＝ 15
+         --sheet-pad-chip          風味標籤（ChoiceChip，36px）                (65 − 36) / 2 ＝ 14.5
+         --sheet-pad-control       44px 的控制項（輸入框、開關、星等）          (56 − 44) / 2 ＝ 6
+         --sheet-pad-control-tall  有膠囊的列裡 44px 的觸發鈕                  (65 − 44) / 2 ＝ 10.5
+         --sheet-trigger-pad       觸發鈕裡、膠囊（.sheet-pill，34px）的上下    (44 − 34) / 2 ＝ 5
+       膠囊換成兩行時，觸發鈕跟著長高，膠囊離分隔線是 10.5 ＋ 5 ＝ 15.5，和單行時一樣。
+       --sheet-line、--sheet-pill-h、--chip-h 是從字級與元件的內距推出來的，改那邊時這裡一起看 */
+    --sheet-line: calc(var(--text-heading-m) * var(--text-heading-m--line-height));
+    --sheet-pill-h: calc(var(--sheet-line) + 0.5rem);           /* .sheet-pill：上下 0.25rem */
+    --chip-h: calc(var(--sheet-line) + 0.5rem + 2px);           /* ChoiceChip：上下 0.25rem、外框 1px */
+    --sheet-pad-text: calc((var(--sheet-row-h) - var(--sheet-line)) / 2);
+    --sheet-pad-chip: calc((var(--sheet-row-h-tall) - var(--chip-h)) / 2);
+    --sheet-pad-control: calc((var(--sheet-row-h) - var(--touch-min)) / 2);
+    --sheet-pad-control-tall: calc((var(--sheet-row-h-tall) - var(--touch-min)) / 2);
+    --sheet-trigger-pad: calc((var(--touch-min) - var(--sheet-pill-h)) / 2);
     /* 卡片的左右內距：表單的列、卡片下方的小字、區塊標題都對齊這條線。
        **維持 16px**（2026-11-16 使用者看過 16px 與 Figma 的 24px 兩種截圖之後選的），不照 Figma。 */
     --card-pad: 16px;
@@ -398,6 +415,9 @@
 
     --motion-duration: 175ms;
     --motion-ease: cubic-bezier(0.2, 0, 0, 1);
+    /* 有起點也有終點的位移（登入頁的開場：漸層升上來、logo 移到上方，《03》§6.1）。
+       --motion-ease 是回應操作用的：一開始就很快、尾巴拖長；整段位移要慢慢起步、慢慢停穩，用這一條（2026-11-26） */
+    --motion-ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
 }
 
 /* ══ Tailwind 內建主題沒有的名字 ═══════════════════════════

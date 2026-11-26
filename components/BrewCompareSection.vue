@@ -46,10 +46,19 @@ const note = computed(() => {
           <span>
             <span :style="{ color: 'var(--text-muted)' }">{{ diff.before }}</span>
             <span class="mx-2" :style="{ color: 'var(--text-muted)' }">→</span>
-            <span class="font-medium" :style="{ color: 'var(--diff)' }">{{ diff.after }}</span>
+            <span class="compare-after font-medium" :style="{ color: 'var(--diff)' }">{{ diff.after }}</span>
           </span>
         </ReadonlyRow>
       </dl>
     </FormCard>
   </FormSection>
 </template>
+
+<style scoped>
+/* 新值是 Noto Sans TC Medium，前面的舊值與箭頭是台北黑體：兩種字型的上下緣不同，混在同一行時行高會從 26 撐成 27，
+   單行的列就變成 57px（2026-11-26，列的上下內距改成固定的 15px 之後才看得出來）。
+   行高設成 1 只縮小這一段在行裡佔的高度，字的基線不動；這一行的高度回到台北黑體的 26 */
+.compare-after {
+  line-height: 1;
+}
+</style>

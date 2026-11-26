@@ -166,11 +166,11 @@ export default function run() {
     '每一天都有全高的底軌（--accent-wash），杯數的長條疊在上面；0 杯的那一天只有底軌')
   const goalCardFile = read('components/GoalWeekCard.vue')
   r.check(!/over-?[tT]ext/.test(homeTemplate + goalCard) && !/props\.overText/.test(goalCardFile)
-    && /if \(props\.count > props\.goal\) return `超過 \$\{props\.count - props\.goal\} 杯`/.test(goalCardFile)
+    && /if \(props\.count > props\.goal\) return '達成目標'/.test(goalCardFile) && !/超過 \$\{/.test(goalCardFile)
     && /const ringCount = computed\(\(\) => Math\.min\(props\.count, props\.goal\)\)/.test(goalCardFile)
     && /<GoalRing :count="ringCount" :from="ringFrom"/.test(goalCard)
     && !/accent-active|laps\.second/.test(read('components/GoalRing.vue')),
-    '超過目標：環停在一圈，寫「超過 N 杯」，不畫第二圈——總覽與結算頁共用同一張卡片，沒有開關')
+    '超過目標：環停在一圈，寫「達成目標」（2026-11-26，不再寫「超過 N 杯」），不畫第二圈')
   r.check(/const filled = ref\(ringFrom\.value === null \|\| ringFrom\.value === ringCount\.value\)/.test(goalCardFile),
     '結算頁上已經超過目標之後的紀錄：環沒有動畫，數字直接是存檔後的杯數')
 
@@ -322,6 +322,19 @@ export default function run() {
   r.check(/signedUrl\(path\)/.test(summary) && !/thumbnailUrl/.test(summary), '主圖用原圖，不用縮圖')
   r.check(/--hero-h: min\(470px, 58svh\);/.test(hero) && /min-height: var\(--hero-h\);/.test(hero), '主圖高度：min(470px, 58svh)')
   r.check(/padding-top: max\(96px, calc\(var\(--hero-h\) \* 0\.55\)\);/.test(hero), '標題的頂端不高於主圖的 55%：豆名很長時主圖往下長')
+  // 2026-11-26（iPhone 驗收）：影像層隨捲動淡出，按鈕固定在畫面頂端
+  const heroTemplate = templateOf(hero)
+  r.check(/<div class="brew-hero__image"[^>]*>[\s\S]*?<BrewHeroFallback v-else[\s\S]*?<div class="brew-hero__scrim" \/>\s*<\/div>\s*(?:<!--[\s\S]*?-->\s*)?<div class="brew-hero__fade"/.test(heroTemplate)
+    && !/--hero-scrim/.test(hero.match(/\.brew-hero__fade \{[^}]*\}/)?.[0] ?? ''),
+    '主圖：淡出的只有影像層（圖＋頂端的暗色漸層）；底部融進 --bg 的漸層在影像層外面')
+  r.check(/@supports \(animation-timeline: scroll\(\)\) \{[\s\S]*?animation: brew-hero-fade linear both;\s*animation-timeline: scroll\(root block\);\s*animation-range: 0 var\(--hero-fade-end\);/.test(hero)
+    && /--hero-fade-end: calc\(var\(--hero-h\) \* 0\.6\);/.test(hero) && /const FADE_RATIO = 0\.6/.test(hero),
+    '捲動連動動畫：支援的瀏覽器只用 CSS（timeline 寫在簡寫後面），捲過主圖基準高度的 60% 完全透明')
+  r.check(/CSS\.supports\('animation-timeline', 'scroll\(\)'\)/.test(hero) && /addEventListener\('scroll', onScroll, \{ passive: true \}\)/.test(hero)
+    && /requestAnimationFrame\(apply\)/.test(hero) && !/getBoundingClientRect|offsetTop|offsetHeight/.test(hero.match(/function apply\(\) \{[\s\S]*?\n\}/)?.[0] ?? 'x'),
+    '不支援時：passive 的 scroll 事件＋requestAnimationFrame 寫入 --hero-fade，捲動時不讀版面')
+  r.check(/\.brew-hero__actions \{[^}]*position: fixed;[^}]*top: calc\(env\(safe-area-inset-top\) \+ 40px\);[^}]*right: var\(--fixed-right\);/.test(hero),
+    '分享與完成固定在畫面頂端，右緣和分頁列同一條線')
   r.check(/padding-inline: calc\(var\(--form-gutter\) \+ var\(--card-pad\)\);/.test(hero) && /paddingLeft: 'var\(--card-pad\)'/.test(summary),
     '主圖的標題區與小數據列：和段落標題同一條線（頁面內距＋--card-pad，用 token 算）')
   r.check(/<BeanArt background="transparent" whole \/>/.test(read('components/BrewHeroFallback.vue')), '沒有照片：BeanArt 的三顆豆子完整畫出來（whole），沿用同一組圖檔')

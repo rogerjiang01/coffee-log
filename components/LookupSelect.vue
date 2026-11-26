@@ -188,7 +188,7 @@ const optionStyle = { minHeight: 'var(--touch-min)' }
           <li v-if="modelValue">
             <button
               type="button"
-              class="block w-full px-3 py-2 text-left text-sm"
+              class="block w-full px-3 sheet-option text-left text-sm"
               :style="{ ...optionStyle, color: 'var(--text-muted)' }"
               @click="pick(null)"
             >
@@ -201,7 +201,7 @@ const optionStyle = { minHeight: 'var(--touch-min)' }
             <li v-for="item in grouped.system" :key="item.id">
               <button
                 type="button"
-                class="block w-full px-3 py-2 text-left"
+                class="block w-full px-3 sheet-option text-left"
                 :style="{ ...optionStyle, background: item.id === modelValue ? 'var(--accent-wash)' : undefined }"
                 @click="pick(item.id)"
               >
@@ -215,7 +215,7 @@ const optionStyle = { minHeight: 'var(--touch-min)' }
             <li v-for="item in grouped.mine" :key="item.id">
               <button
                 type="button"
-                class="block w-full px-3 py-2 text-left"
+                class="block w-full px-3 sheet-option text-left"
                 :style="{ ...optionStyle, background: item.id === modelValue ? 'var(--accent-wash)' : undefined }"
                 @click="pick(item.id)"
               >
@@ -233,7 +233,7 @@ const optionStyle = { minHeight: 'var(--touch-min)' }
           <button
             type="button"
             :disabled="saving"
-            class="block w-full rounded-sm px-3 py-2 text-left disabled:opacity-60"
+            class="block w-full rounded-sm px-3 sheet-option text-left disabled:opacity-60"
             :style="{ ...optionStyle, color: 'var(--accent)' }"
             @click="create"
           >

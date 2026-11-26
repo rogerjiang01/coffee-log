@@ -296,7 +296,7 @@ async function create() {
             <li v-for="bean in active" :key="bean.id">
               <button
                 type="button"
-                class="block w-full truncate px-3 py-2 text-left"
+                class="block w-full truncate px-3 sheet-option text-left"
                 :style="{ minHeight: 'var(--touch-min)', background: bean.id === modelValue ? 'var(--accent-wash)' : undefined }"
                 @click="pick(bean.id)"
               >
@@ -308,7 +308,7 @@ async function create() {
               <li v-for="bean in finished" :key="bean.id">
                 <button
                   type="button"
-                  class="block w-full truncate px-3 py-2 text-left"
+                  class="block w-full truncate px-3 sheet-option text-left"
                   :style="{ minHeight: 'var(--touch-min)', background: bean.id === modelValue ? 'var(--accent-wash)' : undefined }"
                   @click="pick(bean.id)"
                 >
@@ -321,7 +321,7 @@ async function create() {
           <div class="shrink-0 border-t p-2" :style="{ borderColor: 'var(--border)' }">
             <button
               type="button"
-              class="block w-full rounded-sm px-3 py-2 text-left"
+              class="block w-full rounded-sm px-3 sheet-option text-left"
               :style="{ minHeight: 'var(--touch-min)', color: 'var(--accent)' }"
               @click="startCreate"
             >

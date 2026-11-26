@@ -6,11 +6,12 @@
 // 寬螢幕最多 --content-max-narrow（2026-11-23；原本固定 300px，手機上長的電子郵件看不完）。
 //
 // **未登入時的開場**（《03》§6.1 的開場動畫，useSplash 的 'login'）：
-// 先只看到首圖與置中的 logo，接著漸層升上來、logo 移到上方，最後表單淡入。兩個時機會演：
+// 先只看到首圖與置中的 logo，接著漸層升上來、logo 移到上方（700ms、--motion-ease-in-out），
+// logo 停穩之後表單才淡入（300ms）。兩個時機會演：
 //   - 打開 App 落在登入頁：伺服器就把 mode 設好了
 //   - 在設定頁按「登出」之後（2026-11-25）：設定頁導向前呼叫 prepareLoginIntro()，這裡掛上時接手
 // 其他站內導覽過來的（從註冊頁回來、登入過期被導回來）不演，直接是完成的樣子。
-// 「減少動態」時不做位移，只淡入淡出（main.css）。
+// 「減少動態」時不做位移，只淡入淡出（main.css）：漸層淡入 200ms，表單接在它後面。
 
 const { mode, cover, loginIntroPending } = useSplash()
 
@@ -61,6 +62,8 @@ onBeforeUnmount(() => {
 /* 首圖鋪滿整個畫面，連安全區（狀態列、橫向的瀏海）底下也是：抵銷 body 為安全區留的 padding（main.css），
    logo 與表單再自己往內縮（.auth__body） */
 .auth {
+  /* 開場的位移時長（2026-11-26：500 → 700ms）。表單的延遲就是這個值：logo 停穩之後才出現 */
+  --intro-move: 700ms;
   margin: calc(-1 * env(safe-area-inset-top)) calc(-1 * env(safe-area-inset-right)) 0 calc(-1 * env(safe-area-inset-left));
   position: relative;
   min-height: 100dvh;
@@ -85,7 +88,7 @@ onBeforeUnmount(() => {
   position: absolute;
   inset: 0;
   background: linear-gradient(to bottom, color-mix(in srgb, var(--bg) 0%, transparent), var(--bg) 53%);
-  transition: opacity 500ms var(--motion-ease), translate 500ms var(--motion-ease);
+  transition: opacity var(--intro-move) var(--motion-ease-in-out), translate var(--intro-move) var(--motion-ease-in-out);
 }
 .auth__body {
   position: relative;
@@ -101,13 +104,13 @@ onBeforeUnmount(() => {
     calc(var(--form-gutter) + env(safe-area-inset-left));
 }
 .auth__logo {
-  transition: translate 500ms var(--motion-ease);
+  transition: translate var(--intro-move) var(--motion-ease-in-out);
 }
 .auth__form {
   width: 100%;
   max-width: var(--content-max-narrow);
   margin-top: clamp(3rem, 21dvh, 11.25rem);
-  transition: opacity 300ms var(--motion-ease) 300ms;
+  transition: opacity 300ms var(--motion-ease) var(--intro-move);
 }
 
 /* 開場：只有首圖與置中的 logo（Cover 的 logo 在 40% 的位置） */
@@ -124,8 +127,12 @@ onBeforeUnmount(() => {
   transition: none;
 }
 
-/* 減少動態：不做位移，只淡入淡出 */
+/* 減少動態：不做位移，只淡入淡出。漸層的淡入是 200ms（main.css 的 .splash-fade），表單接在它後面，
+   不等那段已經沒有的位移 */
 @media (prefers-reduced-motion: reduce) {
+  .auth {
+    --intro-move: 200ms;
+  }
   .auth__gradient,
   .auth--intro .auth__gradient,
   .auth--intro .auth__logo {
