@@ -172,7 +172,7 @@ async function openDetail() {
             :has-notes="!!brew.tasting_notes?.trim()"
             :photo-path="brew.beans?.photo_path ?? null"
           />
-          <DoneButton @click="done" />
+          <DoneButton floating @click="done" />
         </template>
 
         <p v-if="roaster" class="text-heading-s font-medium">{{ roaster }}</p>
@@ -208,8 +208,9 @@ async function openDetail() {
         </div>
       </BrewHero>
 
-      <!-- 左右是頁面的內距（--form-gutter），和主圖的標題區、下面的段落用同一組 token -->
-      <div class="pt-5" :style="{ paddingInline: 'var(--form-gutter)' }">
+      <!-- 左右是頁面的內距（--form-gutter），和主圖的標題區、下面的段落用同一組 token。
+           上層（relative、z-index 1）：捲動時從固定的主圖背景上滑過去，本身不鋪底色（卡片有自己的底） -->
+      <div class="relative z-1 pt-5" :style="{ paddingInline: 'var(--form-gutter)' }">
         <!-- 小數據列：左邊和段落標題、主圖的標題區同一條線（--card-pad），項目間距 28，放不下就換行。
              值在上、標籤在下（dt 在 DOM 裡先，畫面上在下） -->
         <dl v-if="stat.length" class="flex flex-wrap gap-x-7 gap-y-3" :style="{ paddingLeft: 'var(--card-pad)' }">
@@ -274,7 +275,7 @@ async function openDetail() {
     <div v-else aria-busy="true" aria-label="讀取中">
       <div class="summary-hero-placeholder relative flex flex-col justify-end gap-2">
         <div class="absolute top-10 right-5">
-          <DoneButton @click="done" />
+          <DoneButton floating @click="done" />
         </div>
         <SkeletonBlock width="40%" height="1.25rem" />
         <SkeletonBlock width="80%" height="2.25rem" />

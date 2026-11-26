@@ -19,6 +19,7 @@ const suites = [
   ['unit/rest-day.test.ts', '養豆天數的寫法'],
   ['unit/brew-card.test.ts', '紀錄卡片'],
   ['unit/form-date.test.ts', '表單膠囊上的日期與時刻'],
+  ['unit/hero-fade.test.ts', '結算頁主圖的模糊淡出'],
   ['unit/form-date-wiring.test.mjs', '表單膠囊上的日期與時刻的接線'],
   ['unit/corner-shape.test.mjs', '轉角形狀'],
   ['unit/row-height.test.mjs', '列高兩級'],

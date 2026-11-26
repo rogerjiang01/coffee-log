@@ -314,7 +314,7 @@ export default function run() {
   r.check(/<DoneButton[^>]*@click="done"/.test(summaryTemplate)
     && /aria-label="完成"[\s\S]{0,600}<path d="M20 6 9 17l-5-5" \/>/.test(doneButton) && /rounded-full/.test(doneButton), '右上角是圓形按鈕，中間放勾勾（完成）')
   // 2026-11-26：結算頁改版（Figma 結算頁 v2）。主圖、小數據列、比較區、沖煮參數；第一杯是沖煮參數與這支豆子
-  r.check(/<template #actions>\s*<BrewShare\s+floating[\s\S]*?\/>\s*<DoneButton @click="done" \/>\s*<\/template>/.test(summaryTemplate),
+  r.check(/<template #actions>\s*<BrewShare\s+floating[\s\S]*?\/>\s*<DoneButton floating @click="done" \/>\s*<\/template>/.test(summaryTemplate),
     '右上角：分享（和紀錄詳情同一個元件）在左、完成在右；DOM 順序就是鍵盤順序')
   const hero = read('components/BrewHero.vue')
   r.check(/<BrewHeroFallback v-else/.test(hero) && !/BeanArt|roast-art/.test(stripComments(templateOf(hero))),
@@ -322,17 +322,30 @@ export default function run() {
   r.check(/signedUrl\(path\)/.test(summary) && !/thumbnailUrl/.test(summary), '主圖用原圖，不用縮圖')
   r.check(/--hero-h: min\(470px, 58svh\);/.test(hero) && /min-height: var\(--hero-h\);/.test(hero), '主圖高度：min(470px, 58svh)')
   r.check(/padding-top: max\(96px, calc\(var\(--hero-h\) \* 0\.55\)\);/.test(hero), '標題的頂端不高於主圖的 55%：豆名很長時主圖往下長')
-  // 2026-11-26（iPhone 驗收）：影像層隨捲動淡出，按鈕固定在畫面頂端
+  // 2026-11-26 第三版（iPhone 驗收）：主圖是固定的背景層，內容從上面滑過去；捲動時兩層（清楚＋預先模糊）只改透明度
   const heroTemplate = templateOf(hero)
-  r.check(/<div class="brew-hero__image"[^>]*>[\s\S]*?<BrewHeroFallback v-else[\s\S]*?<div class="brew-hero__scrim" \/>\s*<\/div>\s*(?:<!--[\s\S]*?-->\s*)?<div class="brew-hero__fade"/.test(heroTemplate)
-    && !/--hero-scrim/.test(hero.match(/\.brew-hero__fade \{[^}]*\}/)?.[0] ?? ''),
-    '主圖：淡出的只有影像層（圖＋頂端的暗色漸層）；底部融進 --bg 的漸層在影像層外面')
-  r.check(/@supports \(animation-timeline: scroll\(\)\) \{[\s\S]*?animation: brew-hero-fade linear both;\s*animation-timeline: scroll\(root block\);\s*animation-range: 0 min\(var\(--hero-fade-end\), 100%\);/.test(hero)
-    && /--hero-fade-end: calc\(var\(--hero-h\) \* 0\.6\);/.test(hero) && /const FADE_RATIO = 0\.6/.test(hero),
-    '捲動連動動畫：支援的瀏覽器只用 CSS（timeline 寫在簡寫後面），終點是主圖基準高度的 60% 與能捲到的最大距離（100%）取小')
+  r.check(/<div class="brew-hero__bg" aria-hidden="true">\s*(?:<!--[\s\S]*?-->\s*)?<div class="brew-hero__layer brew-hero__layer--blurred"[\s\S]*?<div class="brew-hero__layer brew-hero__layer--clear">[\s\S]*?<div class="brew-hero__fade" \/>\s*<\/div>/.test(heroTemplate)
+    && /\.brew-hero__bg \{[^}]*position: fixed;[^}]*z-index: 0;[^}]*height: var\(--hero-h\);/.test(hero)
+    && /\.brew-hero__title \{\s*position: relative;\s*z-index: 1;/.test(hero) && /class="relative z-1 pt-5"/.test(summaryTemplate),
+    '主圖：背景層（模糊、清楚兩層與底部漸層）固定在畫面頂端；標題區與結算頁下面的內容是上層（z-index 1），從背景上滑過去')
+  r.check(/\.brew-hero__blur \{\s*filter: blur\(var\(--hero-blur-end\)\);/.test(hero) && /--hero-blur-end: 20px;/.test(hero) && /--hero-opacity-end: 0;/.test(hero)
+    && !/@keyframes[^{]*\{[^@]*filter/.test(hero) && !/setProperty\('filter'|style\.filter/.test(hero),
+    '模糊是下層預先套好的靜態 filter；捲動時不改 filter。終點的模糊與透明度是變數')
+  r.check(/@supports \(animation-timeline: scroll\(\)\) \{[\s\S]*?animation: brew-hero-clear linear both;\s*animation-timeline: scroll\(root block\);\s*animation-range: 0 min\(var\(--hero-fade-end\), 100%\);[\s\S]*?animation: brew-hero-blurred linear both;\s*animation-timeline: scroll\(root block\);\s*animation-range: 0 min\(var\(--hero-fade-end\), 100%\);/.test(hero)
+    && /--hero-fade-end: calc\(var\(--hero-h\) \* 0\.6\);/.test(hero) && /const FADE_RATIO = 0\.6/.test(hero)
+    && /@keyframes brew-hero-clear \{\s*0% \{ opacity: 1; \}\s*25% \{[^}]*\}\s*50% \{[^}]*\}\s*75% \{[^}]*\}\s*100% \{ opacity: 0; \}/.test(hero)
+    && /@keyframes brew-hero-blurred \{\s*0% \{ opacity: 1; \}[\s\S]*?100% \{ opacity: var\(--hero-opacity-end\); \}/.test(hero),
+    '捲動連動動畫：兩層各一組只動 opacity 的關鍵影格（0／25／50／75／100%，和 HERO_FADE_STOPS 一致）；終點是 60% 與能捲到的最大距離取小')
   r.check(/CSS\.supports\('animation-timeline', 'scroll\(\)'\)/.test(hero) && /addEventListener\('scroll', onScroll, \{ passive: true \}\)/.test(hero)
-    && /requestAnimationFrame\(apply\)/.test(hero) && !/getBoundingClientRect|offsetTop|offsetHeight/.test(hero.match(/function apply\(\) \{[\s\S]*?\n\}/)?.[0] ?? 'x'),
-    '不支援時：passive 的 scroll 事件＋requestAnimationFrame 寫入 --hero-fade，捲動時不讀版面')
+    && /requestAnimationFrame\(apply\)/.test(hero) && /heroLayers\(window\.scrollY \/ fadeEnd, opacityEnd\)/.test(hero)
+    && !/getBoundingClientRect|offsetTop|offsetHeight|getComputedStyle/.test(hero.match(/function apply\(\) \{[\s\S]*?\n\}/)?.[0] ?? 'x'),
+    '不支援時：passive 的 scroll 事件＋requestAnimationFrame，用 heroLayers 寫入兩層的透明度，捲動時不讀版面')
+  const tokensCss = read('assets/css/tokens.css')
+  r.check(/--float-shadow: 0 0 \d+px rgb\([^)]*\);/.test(tokensCss)
+    && /box-shadow: var\(--float-shadow\);/.test(read('components/BrewShare.vue'))
+    && /boxShadow: floating \? 'var\(--float-shadow\)' : undefined/.test(read('components/DoneButton.vue'))
+    && (summaryTemplate.match(/<DoneButton floating @click="done" \/>/g) || []).length === 2,
+    '懸浮按鈕的陰影：--float-shadow（x、y 都是 0，只有模糊），分享與完成（含讀取中）同一個')
   r.check(/\.brew-hero__actions \{[^}]*position: fixed;[^}]*top: calc\(env\(safe-area-inset-top\) \+ 40px\);[^}]*right: var\(--fixed-right\);/.test(hero),
     '分享與完成固定在畫面頂端，右緣和分頁列同一條線')
   r.check(/padding-inline: calc\(var\(--form-gutter\) \+ var\(--card-pad\)\);/.test(hero) && /paddingLeft: 'var\(--card-pad\)'/.test(summary),
