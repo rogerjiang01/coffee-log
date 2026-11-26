@@ -70,11 +70,11 @@ export default function run() {
   const server = read('server/utils/sharedPhoto.ts')
   r.check(/variant === 'thumb' \? await store\.download\(beanThumbPath\(path\)\) : null\)\s*\?\? await store\.download\(path\)/.test(server),
     '分享頁（伺服器轉送）：v=thumb 先讀縮圖，沒有再讀原圖')
-  // 原圖只留給大圖：豆子詳情、表單預覽、放大檢視
+  // 原圖只留給大圖：豆子詳情、表單預覽、放大檢視，以及結算頁滿版的主圖（2026-11-26，BrewHero）
   const originals = sourceFiles('pages').concat(sourceFiles('components'))
     .filter(path => /\bsignedUrls?\(/.test(stripComments(read(path))))
-  r.check(JSON.stringify(originals.sort()) === JSON.stringify(['pages/beans/[id]/edit.vue', 'pages/beans/[id]/index.vue']),
-    `直接要原圖的只有豆子詳情與編輯頁（${originals.join('、')}）`)
+  r.check(JSON.stringify(originals.sort()) === JSON.stringify(['pages/beans/[id]/edit.vue', 'pages/beans/[id]/index.vue', 'pages/brews/[id]/summary.vue']),
+    `直接要原圖的只有豆子詳情、編輯頁與結算頁的主圖（${originals.join('、')}）`)
 
   r.section('補產生既有縮圖（scripts/backfill-bean-thumbnails.mjs）')
   const existing = new Set([`${U}/a.webp`, `${U}/a.thumb`, `${U}/b.jpg`])

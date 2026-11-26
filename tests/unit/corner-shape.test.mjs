@@ -77,8 +77,11 @@ export default function run() {
   r.check(/<FormCard pill class="mt-4">\s*<FormRow>\s*<ToggleSwitch[\s\S]*?label="已喝完"\s*row/.test(beanDetail), '豆子詳情的「已喝完」：FormCard pill、開關是一列')
   const appCardUsers = all.filter(f => f !== 'components/AppCard.vue' && /<AppCard\b/.test(read(f)))
   // 2026-11-23：紀錄分頁的紀錄卡片與它的骨架也用 AppCard（ml）
-  r.check(appCardUsers.sort().join(',') === ['components/BrewCard.vue', 'components/FormCard.vue', 'components/GoalWeekCard.vue', 'components/OverviewBeanCard.vue', 'dev/corners.vue', 'pages/brews/index.vue', 'pages/index.vue'].join(','),
-    `用 AppCard 的只有表單、總覽、結算頁的本週目標、紀錄卡片與調整頁（${appCardUsers.join('、')}）`)
+  // 2026-11-26：結算頁改版，本週目標卡片（GoalWeekCard）只剩總覽在用；結算頁的「沖煮參數」卡片用 AppCard（md）
+  r.check(appCardUsers.sort().join(',') === ['components/BrewCard.vue', 'components/FormCard.vue', 'components/GoalWeekCard.vue', 'components/OverviewBeanCard.vue', 'dev/corners.vue', 'pages/brews/[id]/summary.vue', 'pages/brews/index.vue', 'pages/index.vue'].join(','),
+    `用 AppCard 的只有表單、總覽、結算頁的沖煮參數、紀錄卡片與調整頁（${appCardUsers.join('、')}）`)
+  r.check(/<AppCard\s+as="a"/.test(read('pages/brews/[id]/summary.vue')) && !/<AppCard[^>]*radius=/.test(read('pages/brews/[id]/summary.vue')),
+    '結算頁的沖煮參數卡片：預設的 md（24px），不是分頁第一層的 ml')
 
   r.section('卡片的圓角：分頁第一層 18px（ml），其他 24px（2026-11-23）')
   r.check(/radius\?: 'ml' \| 'md' \| 'lg' \| 'pill' \| 'pill-tall'/.test(card) && /\{ radius: 'md',/.test(card), 'AppCard 的預設是 md：要 ml 就明確傳')

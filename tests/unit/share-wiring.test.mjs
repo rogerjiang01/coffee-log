@@ -124,8 +124,10 @@ export default function run() {
   r.check(/分享建立失敗，連結目前無法開啟/.test(notices) && /再試一次/.test(notices) && /關閉/.test(notices),
     '建立失敗的提示在頁面層級，附「再試一次」與「關閉」')
   r.check(!/setTimeout[^\n]*failedSend/.test(panel), '建立失敗的提示不自動消失')
-  r.check(/bottom: 'calc\(var\(--tab-bar-top\) \+ 12px\)'/.test(notices) && /left: 'var\(--fixed-left\)', right: 'var\(--fixed-right\)'/.test(notices),
-    '頁面層級的提示在分頁列之上 12px（已含底部安全區），左右和分頁列對齊')
+  r.check(/bottom: toastBottom/.test(notices) && /left: 'var\(--fixed-left\)', right: 'var\(--fixed-right\)'/.test(notices),
+    '頁面層級的提示：左右和分頁列對齊')
+  r.check(/showsTabBar\(route\.meta\.screen, userId\.value !== null\)\s*\? 'calc\(var\(--tab-bar-top\) \+ 12px\)'\s*: 'calc\(max\(12px, env\(safe-area-inset-bottom\)\) \+ 12px\)'/.test(panel),
+    '有分頁列時在分頁列之上 12px（已含底部安全區）；沒有分頁列（結算頁）時貼著螢幕底、避開底部的橫線')
   r.check(!/mismatch/.test(panel), '沒有「別的裝置先分享過」的處理（傳送模型不會發生）')
 
   r.section('開啟事件只由讀取函式記')

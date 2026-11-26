@@ -57,9 +57,23 @@ function sessionCookie() {
 
 const click = (p, sel) => p.locator(sel).first().click()
 const openShare = async (p) => { await click(p, 'button[aria-label="分享"]'); await p.waitForTimeout(400) }
+// 結算頁只在新增紀錄存好後出現一次（useSummaryTicket）：直接打開網址會導向紀錄詳情。
+// 先開總覽，在頁面裡記下 ticket，再用 router 進去——和新增頁存好時走的是同一條路
+const openSummary = id => async (p) => {
+  await p.evaluate(async (brewId) => {
+    const nuxt = document.querySelector('#__nuxt').__vue_app__.config.globalProperties.$nuxt
+    nuxt.payload.state['$ssummary-ticket'] = brewId
+    await nuxt.$router.push(`/brews/${brewId}/summary`)
+  }, id)
+  await p.waitForTimeout(1500)
+}
 const STATES = [
   // 頁面：四個分頁第一層、設定、紀錄詳情、豆子詳情、結算頁、分享頁、目標設定
   ...['/', '/brews', '/beans', '/equipment', '/settings', '/brews/r2', '/beans/b1', '/brews/r2/summary', '/s/abc123', '/goal'].map(url => ({ label: `頁面 ${url}`, url })),
+  // 結算頁（2026-11-26 改版）：r2 有照片、有比較對象；r5 沒有照片、沒填烘焙度、這支豆子的第一杯
+  { label: '結算頁 有照片', url: '/', act: openSummary('r2') },
+  { label: '結算頁 沒有照片 第一杯', url: '/', act: openSummary('r5') },
+  { label: '結算頁 分享對話框', url: '/', act: async (p) => { await openSummary('r2')(p); await openShare(p) } },
   // 六張表單與錯誤狀態
   ...['/beans/new', '/beans/b1/edit', '/brews/new', '/brews/r2/edit', '/equipment/new', '/equipment/e1/edit'].map(url => ({ label: `表單 ${url}`, url })),
   ...['/beans/new', '/brews/new', '/equipment/new'].map(url => ({ label: `表單 ${url} 錯誤`, url, act: p => click(p, 'button[type=submit]') })),

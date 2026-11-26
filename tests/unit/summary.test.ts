@@ -1,6 +1,6 @@
-// 結算頁的第一筆紀錄、第一杯的內容，以及縮圖佔位與範例標籤（utils/summary.ts、utils/roast.ts，《02》§5「結算頁」）。
+// 結算頁的第一筆紀錄、第一杯的內容、沖煮參數卡片，以及縮圖佔位與範例標籤（utils/summary.ts、utils/roast.ts，《02》§5「結算頁」）。
 
-import { firstCupBean, firstCupRows, isFirstRecord } from '../../utils/summary.ts'
+import { firstCupBean, isFirstRecord, summaryParams } from '../../utils/summary.ts'
 import { roastFill } from '../../utils/roast.ts'
 import type { StatBrew } from '../../utils/dashboard.ts'
 import { createReport } from '../helpers/report.mjs'
@@ -48,12 +48,15 @@ export default function run() {
   r.check(ordinal([first, brew({ bean_id: 'b2' }), brew({ bean_id: 'b2' }), brew({ bean_id: 'b3' })]) === 3, '三支有紀錄的豆子，同一支算一次')
   r.check(ordinal([first, brew({ bean_id: 'sample', is_sample: true })]) === 1, '只有範例紀錄的豆子不算')
 
-  r.section('「這一杯」：有值才列，格式與比較區相同')
-  const rows = firstCupRows({ dose: 15, water_temp: 92, grind_setting: 22.5, brew_methods: { name: '四六法' } }, [step(1, 50), step(2, 225)])
-  r.check(rows.map(row => `${row.label}:${row.value}`).join() === '粉重:15 g,粉水比:1:15.0,水溫:92 °C,研磨刻度:22.5,沖煮手法:四六法',
-    `粉重、粉水比、水溫、研磨刻度、沖煮手法：${rows.map(row => row.value).join('、')}`)
-  r.check(firstCupRows({ dose: 15, water_temp: null, grind_setting: null, brew_methods: null }, []).map(row => row.label).join() === '粉重',
-    '只填粉重、沒有分段：只列粉重（粉水比要有總水量）')
+  r.section('「沖煮參數」卡片：六格順序固定，沒填寫「—」')
+  const params = summaryParams({ dose: 15, water_temp: 92, grind_setting: 22.5, total_time: 150 }, [step(1, 50), step(2, 225)])
+  r.check(params.map(row => `${row.label}:${row.value}`).join() === '粉重:15 g,總水量:225 g,粉水比:1:15.0,水溫:92 °C,刻度:22.5,時間:2:30',
+    `粉重、總水量、粉水比、水溫、刻度、時間：${params.map(row => row.value).join('、')}`)
+  const sparse = summaryParams({ dose: 15, water_temp: null, grind_setting: null, total_time: null }, [])
+  r.check(sparse.length === 6 && sparse.map(row => row.value).join() === '15 g,—,—,—,—,—',
+    '只填粉重、沒有分段：六格都在，其他寫「—」（粉水比要有總水量）')
+  r.check(summaryParams({ dose: null, water_temp: null, grind_setting: 0, total_time: 0 }, []).map(row => row.value).join() === '—,—,—,—,0,0:00',
+    '刻度 0、時間 0 秒是有填的值，不當成沒填')
 
   r.section('縮圖的佔位（全站共用）')
   r.check(roastFill('light').background === 'var(--roast-light)', '沒有照片、有烘焙度：烘焙度色塊')

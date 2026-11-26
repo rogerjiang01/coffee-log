@@ -163,11 +163,6 @@ onMounted(load)
 // 即時計算，不存資料庫——存下來會在比較對象被編輯時失準。
 const compare = useBrewComparison()
 const comparison = ref<Comparison | null>(null)
-const compareRows = computed(() => {
-  const c = comparison.value
-  if (!c?.target) return []
-  return c.rating ? [...c.diffs, c.rating] : c.diffs
-})
 
 async function loadDiff() {
   const current = brew.value
@@ -311,22 +306,9 @@ async function destroy() {
           :notes="brew.tasting_notes"
         />
 
-        <!-- 和 M/D 那一杯相比。沒有比較對象、或沒有任何一列（參數相同、沒有兩邊的評分）時整個區塊不顯示 -->
-        <FormSection v-if="comparison?.target && compareRows.length" :title="`和 ${monthDay(comparison.target.brewed_at)} 那一杯相比`">
-          <FormCard>
-            <dl>
-              <ReadonlyRow v-for="diff in compareRows" :key="diff.field" :label="diff.label">
-                <!-- 舊值次要、新值主要。此處的箭頭是資料的一部分，不是裝飾。
-                     三者都是 .sheet-value 的字級；舊值與箭頭 --text-muted，新值 --diff 加粗 -->
-                <span>
-                  <span :style="{ color: 'var(--text-muted)' }">{{ diff.before }}</span>
-                  <span class="mx-2" :style="{ color: 'var(--text-muted)' }">→</span>
-                  <span class="font-medium" :style="{ color: 'var(--diff)' }">{{ diff.after }}</span>
-                </span>
-              </ReadonlyRow>
-            </dl>
-          </FormCard>
-        </FormSection>
+        <!-- 和 M/D 那一杯相比（BrewCompareSection，結算頁共用）。
+             沒有比較對象、或沒有任何一列（參數相同、沒有兩邊的評分）時整個區塊不顯示 -->
+        <BrewCompareSection v-if="comparison" :comparison="comparison" />
       </div>
 
       <p v-if="actionError" role="alert" class="mt-6 text-sm" :style="{ color: 'var(--danger)' }">

@@ -308,39 +308,49 @@ export default function run() {
   r.check(/onBeforeRouteLeave\(\(\) => \{\s*const result = summaryLeave\(leavingByPage\)/.test(summary), '返回鍵與返回手勢：效果和按勾勾一樣')
   r.check(/async function done\(\) \{\s*leavingByPage = true\s*await navigateTo\('\/', \{ replace: true \}\)/.test(summary), '勾勾：用取代的方式去總覽')
   r.check(/async function openDetail\(\) \{\s*leavingByPage = true\s*await navigateTo\(`\/brews\/\$\{id\}`, \{ replace: true \}\)/.test(summary),
-    '摘要：用取代的方式進紀錄詳情，返回時不會回到結算頁')
+    '沖煮參數卡片：用取代的方式進紀錄詳情，返回時不會回到結算頁')
   // 2026-11-17：按鈕抽成 DoneButton，分段子頁也用同一個
   const doneButton = read('components/DoneButton.vue')
   r.check(/<DoneButton[^>]*@click="done"/.test(summaryTemplate)
     && /aria-label="完成"[\s\S]{0,600}<path d="M20 6 9 17l-5-5" \/>/.test(doneButton) && /rounded-full/.test(doneButton), '右上角是圓形按鈕，中間放勾勾（完成）')
-  const summaryRow = summaryTemplate.match(/<a\s+:href="`\/brews\/\$\{id\}`"[\s\S]*?<\/a>/)?.[0] ?? ''
-  r.check(/<span class="block font-medium">\{\{ brew\.beans\?\.name \?\? '沒有指定豆子' \}\}<\/span>\s*<span class="block[^"]*">\{\{ monthDay\(brew\.brewed_at\) \}\}<\/span>/.test(summaryRow),
-    '摘要：縮圖右邊兩行，豆名與沖煮日期')
-  r.check(!/・|<svg|chevron|m9 18 6-6-6-6/.test(summaryRow) && /@click\.prevent="openDetail"/.test(summaryRow),
-    '摘要：不用中間點、不加 ›，整列可點（《03》§1）')
-  r.check(/<GoalWeekCard\s+v-if="ring && week"[\s\S]*?:count="ring\.after"\s+:from="ring\.before"\s+:goal="ring\.goal"\s+:days="week\.days"\s+:celebrate="ring\.crossed"/.test(summaryTemplate),
-    '本週目標：與總覽同一個卡片元件，環從存檔前的杯數前進到存檔後的杯數；不在本週時不顯示')
-  r.check(/if \(props\.celebrate\) return filled\.value \? '已達成' : ''/.test(read('components/GoalWeekCard.vue')) && !/本週目標達成/.test(summaryTemplate + goalCard),
-    '剛好跨過目標：「N／M 杯」下方顯示「已達成」（不再寫「本週目標達成」）')
-  r.check(/<p v-if="firstRecord" class="mt-4 text-heading-m font-medium">第一筆紀錄<\/p>\s*<p v-else[^>]*>第 \{\{ records \}\} 筆紀錄<\/p>/.test(summaryTemplate)
-    && /isFirstRecord\(stats\.value, id\)/.test(summary), '第一筆紀錄：換成「第一筆紀錄」，字級和比較區標題同一級')
-  r.check(/<section v-if="comparison\?\.target"/.test(summaryTemplate)
-    && /和 \{\{ monthDay\(comparison\.target\.brewed_at\) \}\} 那一杯相比/.test(summaryTemplate)
-    && /參數和 \{\{ monthDay\(comparison\.target\.brewed_at\) \}\} 那一杯相同/.test(summaryTemplate), '有比較對象：比較區')
-  r.check(/<template v-else-if="firstCup">[\s\S]*<h2 class="text-heading-m font-medium">這支豆子<\/h2>[\s\S]*<h2 class="text-heading-m font-medium">這一杯<\/h2>[\s\S]*下一杯會和這一杯比較。/.test(summaryTemplate),
-    '沒有比較對象：「這支豆子」與「這一杯」兩個區塊，標題樣式與比較區相同')
-  // 養豆天數的寫法和紀錄詳情、分享頁共用 restDayLabel（2026-11-25；烘焙當天／養豆第 N 天，規則在 rest-day.test.ts）
-  r.check(/<p v-if="restDayLabel\(firstCup\.bean\.restDay\)"[^>]*>\{\{ restDayLabel\(firstCup\.bean\.restDay\) \}\}<\/p>/.test(summaryTemplate)
-    && /第 \{\{ firstCup\.bean\.beanOrdinal \}\} 支豆子/.test(summaryTemplate), '「養豆第 N 天」（有烘焙日期才有，走 restDayLabel）、「第 N 支豆子」')
-  r.check(/feedbackLine\(compared\.diffs, compared\.target\.rating, row\.rating, true\)/.test(summary) && /: '恭喜開箱新豆子。'/.test(summary)
-    && !/<p v-else-if="comparison">恭喜開箱新豆子/.test(summaryTemplate), '回饋句的位置照舊；第一杯固定是「恭喜開箱新豆子。」，不再取代整個比較區')
-  const summaryText = summaryTemplate.replace(/\{\{[\s\S]*?\}\}/g, '').replace(/<(?:[^>"']|"[^"]*"|'[^']*')*>/g, ' ').split(/\s+/).filter(Boolean)
-  // → 是差異的資料，與紀錄詳情相同
-  const summaryAllowed = new Set(['→', '第一筆紀錄', '第', '筆紀錄', '和', '那一杯相比', '參數和', '那一杯相同',
-    '這支豆子', '養豆第', '天', '支豆子', '這一杯', '下一杯會和這一杯比較。'])
+  // 2026-11-26：結算頁改版（Figma 結算頁 v2）。主圖、小數據列、比較區、沖煮參數；第一杯是沖煮參數與這支豆子
+  r.check(/<template #actions>\s*<BrewShare\s+floating[\s\S]*?\/>\s*<DoneButton @click="done" \/>\s*<\/template>/.test(summaryTemplate),
+    '右上角：分享（和紀錄詳情同一個元件）在左、完成在右；DOM 順序就是鍵盤順序')
+  const hero = read('components/BrewHero.vue')
+  r.check(/<BrewHeroFallback v-else/.test(hero) && !/BeanArt|roast-art/.test(stripComments(templateOf(hero))),
+    '主圖：沒有照片時交給 BrewHeroFallback，BrewHero 不碰那張圖的內容')
+  r.check(/signedUrl\(path\)/.test(summary) && !/thumbnailUrl/.test(summary), '主圖用原圖，不用縮圖')
+  r.check(/min-height: min\(470px, 58svh\)/.test(hero), '主圖高度：min(470px, 58svh)')
+  r.check(/<BeanArt background="transparent" whole \/>/.test(read('components/BrewHeroFallback.vue')), '沒有照片：BeanArt 的三顆豆子完整畫出來（whole），沿用同一組圖檔')
+  r.check(/<p v-if="roaster"[^>]*>\{\{ roaster \}\}<\/p>/.test(summaryTemplate) && /<h1 class="text-display-l font-medium break-words">\{\{ beanName \}\}<\/h1>/.test(summaryTemplate)
+    && /\?\? '沒有指定豆子'/.test(summary), '標題區：咖啡店名（沒有就不顯示）、豆名（Display L，換行不截斷；沒有豆子寫「沒有指定豆子」）')
+  r.check(/<p v-if="ring"[\s\S]*?<GoalRing[\s\S]*?:size="26"[\s\S]*?:celebrate="ring\.crossed"/.test(summaryTemplate)
+    && /`本週 \$\{shown\} \/ \$\{r\.goal\} 杯，達成目標`/.test(summary) && /`本週 \$\{shown\} \/ \$\{r\.goal\} 杯`/.test(summary)
+    && /summaryRing\(stats\.value, goals\.value, id, now\)/.test(summary),
+    '本週目標：小環＋一行字；達到或超過寫「達成目標」；這一筆不在本週時整行不出現')
+  r.check(!/GoalWeekCard|BeanThumb/.test(summaryTemplate) && !/這一杯<\/h2>|筆紀錄/.test(summaryTemplate),
+    '拿掉：本週目標卡片、縮圖加豆名的摘要列、「第 N 筆紀錄」、「這一杯」')
+  r.check(/label: '評分'/.test(summary) && /restDayValue\(beanInfo\.value\?\.restDay\)/.test(summary)
+    && /isFirstRecord\(stats\.value, id\) \? '第一筆' : `第 \$\{records\} 筆`/.test(summary)
+    && /if \(firstCup\.value && ordinal > 0\) items\.push\(\{ label: '豆子', value: `第 \$\{ordinal\} 支` \}\)/.test(summary),
+    '小數據列：評分、養豆（restDayValue）、紀錄（第一筆／第 N 筆）、豆子（只在第一杯）')
+  r.check(/<BrewCompareSection v-if="comparison\?\.target" :comparison="comparison" summary :feedback="feedback" \/>/.test(summaryTemplate)
+    && /<BrewCompareSection v-if="comparison" :comparison="comparison" \/>/.test(read('pages/brews/[id]/index.vue')),
+    '比較區：詳情頁和結算頁共用 BrewCompareSection，差別只有 summary 這個 prop')
+  const compareSection = read('components/BrewCompareSection.vue')
+  r.check(/`參數和 \$\{date\.value\} 那一杯相同。`/.test(compareSection) && /rating && rating\.before !== rating\.after \? \[rating\] : \[\]/.test(compareSection)
+    && /\(props\.summary \|\| rows\.value\.length > 0\)/.test(compareSection),
+    '結算頁：參數相同時一句話，評分不同才接評分那一列；詳情頁沒有任何一列時整段不顯示')
+  r.check(/<FormSection title="沖煮參數">[\s\S]*?<AppCard\s+as="a"[\s\S]*?@click\.prevent="openDetail"[\s\S]*?<\/AppCard>[\s\S]*?<FormNote>下一杯會和這一杯比較。<\/FormNote>/.test(summaryTemplate)
+    && !/chevron|m9 18 6-6-6-6/.test(summaryTemplate), '沖煮參數：整張卡片可點、不加 ›；第一杯時卡片下方是「下一杯會和這一杯比較。」')
+  r.check(/<FormSection v-if="firstCup && beanInfo\?\.rows\.length" title="這支豆子">/.test(summaryTemplate), '這支豆子：只在第一杯，有填才出現')
+  r.check(/if \(compared\?\.target\) feedback\.value = feedbackLine\(compared\.diffs, compared\.target\.rating, row\.rating, true\)/.test(summary)
+    && !/恭喜開箱新豆子/.test(summary), '回饋句：只有有比較對象時；第一杯不再有「恭喜開箱新豆子。」')
+  const summaryText = summaryTemplate.replace(/<style[\s\S]*?<\/style>/g, '').replace(/\{\{[\s\S]*?\}\}/g, '').replace(/<(?:[^>"']|"[^"]*"|'[^']*')*>/g, ' ').split(/\s+/).filter(Boolean)
+  const summaryAllowed = new Set(['收藏', '前往紀錄：', '下一杯會和這一杯比較。'])
   const summaryExtra = summaryText.filter(word => !summaryAllowed.has(word))
   r.check(summaryExtra.length === 0, `結算頁沒有規定以外的文案${summaryExtra.length ? `：${summaryExtra.join('、')}` : ''}`)
-  r.check(!/#[0-9a-f]{3,6}\b/i.test(summaryTemplate) && !/from ['"](gsap|animejs|motion|framer|@vueuse\/motion)/.test(summary), '沒有寫死的色碼、沒有動畫函式庫')
+  r.check(!/#[0-9a-f]{3,6}\b/i.test(summaryTemplate + stripComments(hero)) && !/from ['"](gsap|animejs|motion|framer|@vueuse\/motion)/.test(summary), '沒有寫死的色碼、沒有動畫函式庫')
   r.check(/prefers-reduced-motion/.test(read('components/GoalRing.vue')), '減少動態效果時不播動畫')
 
   r.section('目標設定頁')

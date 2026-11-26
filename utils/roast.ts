@@ -44,12 +44,26 @@ export function restDays(roastDate: string | null | undefined, since: Date = new
   return days >= 0 ? days : null
 }
 
+/** 算得出來、可以顯示的養豆天數（不是 null、不是負數）。restDayLabel 與 restDayValue 共用這一個判斷 */
+function shownRestDays(days: number | null | undefined): days is number {
+  return days !== null && days !== undefined && Number.isFinite(days) && days >= 0
+}
+
 /**
- * 養豆天數的寫法（紀錄詳情、分享頁、結算頁共用；《04》「養豆天數」）。
+ * 養豆天數的寫法（紀錄詳情、分享頁共用；《04》「養豆天數」）。
  * 0 是「烘焙當天」（「養豆第 0 天」讀起來不像一個日子）；1 以上是「養豆第 N 天」。
  * 算不出來（沒有烘焙日期）或沖煮日期早於烘焙日期（負數）時回 null，介面不顯示。
  */
 export function restDayLabel(days: number | null | undefined): string | null {
-  if (days === null || days === undefined || !Number.isFinite(days) || days < 0) return null
+  if (!shownRestDays(days)) return null
   return days === 0 ? '烘焙當天' : `養豆第 ${days} 天`
+}
+
+/**
+ * 結算頁小數據列的「養豆」（2026-11-26）：標籤是「養豆」，值只寫「N 天」；0 一樣是「烘焙當天」。
+ * 顯示條件和 restDayLabel 同一個判斷（shownRestDays），只是值的寫法不同。
+ */
+export function restDayValue(days: number | null | undefined): string | null {
+  if (!shownRestDays(days)) return null
+  return days === 0 ? '烘焙當天' : `${days} 天`
 }

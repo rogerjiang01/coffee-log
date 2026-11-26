@@ -1,5 +1,5 @@
 <script setup lang="ts">
-// 每週記錄目標的環（《03》§4.15）。總覽的目標環卡片與結算頁共用。
+// 每週記錄目標的環（《03》§4.15）。總覽的目標環卡片（100px）與結算頁標題區的小環（26px）共用。
 //
 // 一圈是本週杯數占目標的比例；達到或超過目標時停在滿的一圈，**不畫第二圈**
 // （2026-11-16：總覽與結算頁一致，超出多少由卡片上的「超過 N 杯」說明）。
@@ -16,13 +16,14 @@ const props = withDefaults(defineProps<{
   size?: number
   /** 補滿的瞬間加上強調（結算頁，這一筆剛好跨過目標時） */
   celebrate?: boolean
-}>(), { from: null, size: 96, celebrate: false })
+  /** 線寬。預設 22（100px 的環）；結算頁標題區的小環（26px）傳 6，比例和大環相同（2026-11-26） */
+  stroke?: number
+}>(), { from: null, size: 96, celebrate: false, stroke: 22 })
 
 const emit = defineEmits<{ filled: [] }>()
 
-// 線寬 22px（2026-11-17 照 Figma 加粗：外徑 100、內徑 56）。只用在 100px 的環上
-const STROKE = 22
-const radius = computed(() => (props.size - STROKE) / 2)
+// 線寬預設 22px（2026-11-17 照 Figma 加粗：外徑 100、內徑 56），給 100px 的環用；其他尺寸由 stroke 傳
+const radius = computed(() => (props.size - props.stroke) / 2)
 const circumference = computed(() => 2 * Math.PI * radius.value)
 
 const shown = ref(props.from ?? props.count)
@@ -62,9 +63,9 @@ onMounted(() => {
     class="shrink-0 -rotate-90"
     :class="{ 'goal-ring-pulse': pulsing }"
   >
-    <circle :cx="size / 2" :cy="size / 2" :r="radius" fill="none" :stroke-width="STROKE" stroke="var(--accent-wash)" />
+    <circle :cx="size / 2" :cy="size / 2" :r="radius" fill="none" :stroke-width="stroke" stroke="var(--accent-wash)" />
     <circle
-      :cx="size / 2" :cy="size / 2" :r="radius" fill="none" :stroke-width="STROKE" stroke-linecap="round"
+      :cx="size / 2" :cy="size / 2" :r="radius" fill="none" :stroke-width="stroke" stroke-linecap="round"
       stroke="var(--accent)"
       :stroke-dasharray="circumference"
       :stroke-dashoffset="offset(fraction)"
