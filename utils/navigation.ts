@@ -135,8 +135,12 @@ export function summaryPath(brewId: string): string {
 /**
  * 結算頁只在剛建立時出現。新增頁存好之後把那一筆的 id 記成 ticket（只在記憶體裡），
  * 結算頁進來時用掉它。直接打開網址、重新整理、之後再進來都沒有 ticket：導向那筆紀錄的詳情。
+ *
+ * heroDebug：**診斷，上線前拿掉**（2026-11-27）。網址有 ?hero-debug=1 時不檢查 ticket，任何一筆都能直接開（含重新整理），
+ * 給 iPhone 實機看主圖的淡出（BrewHeroDebug）。沒有這個參數時行為不變
  */
-export function summaryAccess(ticket: string | null | undefined, brewId: string): 'show' | 'detail' {
+export function summaryAccess(ticket: string | null | undefined, brewId: string, heroDebug = false): 'show' | 'detail' {
+  if (heroDebug) return 'show' // 診斷，上線前拿掉
   return ticket === brewId ? 'show' : 'detail'
 }
 
