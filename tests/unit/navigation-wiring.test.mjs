@@ -332,17 +332,27 @@ export default function run() {
   r.check(/\.brew-hero__blur \{\s*filter: blur\(var\(--hero-blur-end\)\);/.test(hero) && /--hero-blur-end: 20px;/.test(hero) && /--hero-opacity-end: 0;/.test(hero)
     && !(hero.match(/@keyframes[^{]*\{(?:\s*[^{}]*\{[^}]*\})*\s*\}/g) ?? []).some(k => /filter/.test(k)) && !/setProperty\('filter'|style\.filter/.test(hero),
     '模糊是下層預先套好的靜態 filter；捲動時不改 filter。終點的模糊與透明度是變數（照片的終點透明度 0）')
-  // 2026-11-27：透明度一律由程式驅動（iPhone 實機上 CSS 的捲動連動動畫捲過終點才一次跳到結尾）。只有抵銷捲動的平移還用 CSS
+  // 2026-11-27 第二版：透明度搬回合成器，用和背景平移相同的 0–10000px 捲動時間軸；動畫由程式依量到的終點建（offset ＝ 終點 ÷ 10000）
   const animated = [...hero.matchAll(/animation(?:-name)?: ([\w-]+)/g)].map(m => m[1])
-  r.check(animated.length === 1 && animated[0] === 'brew-hero-follow' && (hero.match(/@keyframes/g) || []).length === 1
+  r.check(animated.length === 1 && animated[0] === 'brew-hero-follow' && ((hero.match(/<style scoped>[\s\S]*<\/style>/)?.[0] ?? '').match(/^@keyframes/gm) || []).length === 1
     && !/hold|HERO_FADE_STOPS|--hero-fade-end|min\(var/.test(stripComments(hero))
     && /\.brew-hero__layer--clear \{\s*opacity: var\(--hero-clear, 1\);/.test(hero) && /\.brew-hero__layer--blurred \{\s*opacity: var\(--hero-blurred, 1\);/.test(hero)
     && /const FADE_RATIO = 0\.6/.test(hero) && /fadeEnd = Math\.max\(1, Math\.min\(Number\.parseFloat\(style\.minHeight\) \* FADE_RATIO, maxScroll\)\)/.test(hero),
-    '透明度：不用 CSS 的捲動連動動畫（唯一的動畫是抵銷捲動的平移）；兩層的 opacity 由程式寫的變數決定；終點是 60% 與能捲到的最大距離取小')
-  r.check(!/if \(fallback\)|if \(CSS\.supports/.test(hero) && /window\.addEventListener\('scroll', onScroll, \{ passive: true \}\)/.test(hero) && /observer\.observe\(document\.body\)/.test(hero)
+    '樣式裡唯一的捲動連動動畫是抵銷平移；兩層的透明度沒有寫死的 @keyframes，終點是 60% 與能捲到的最大距離取小')
+  const heroFadeTs = read('utils/heroFade.ts')
+  r.check(/if \(typeof ctor === 'function' && 'rangeStart' in Animation\.prototype\) return 'WAAPI'\s*if \(CSS\.supports\('animation-timeline', 'scroll\(\)'\)\) return 'CSS 動態 keyframes'\s*return 'JS'/.test(hero)
+    && /rangeStart: '0px', rangeEnd: `\$\{HERO_TIMELINE_RANGE\}px`/.test(hero) && /setProperty\('animation-range', `0px \$\{HERO_TIMELINE_RANGE\}px`\)/.test(hero)
+    && /setProperty\('animation-timeline', 'scroll\(root block\)'\)/.test(hero)
+    && /export const HERO_TIMELINE_RANGE = 10000/.test(heroFadeTs) && /--hero-follow: 10000px;/.test(hero)
+    && /const frames = heroKeyframes\(fadeEnd, opacityEnd\)/.test(hero),
+    '透明度的三條路依序挑：WAAPI（ScrollTimeline）→ CSS 動態 keyframes → JS；範圍是寫死的 0px 到 10000px（和平移同一個長度），沒有 min() 或變數運算')
+  r.check(/if \(path === 'JS'\) window\.addEventListener\('scroll', onScroll, \{ passive: true \}\)/.test(hero)
+    && /if \(path === 'JS'\) apply\(\)\s*else build\(\)/.test(hero) && /if \(key === built\) return/.test(hero) && /teardown\(\)/.test(hero.match(/cleanup = \(\) => \{[\s\S]*?\n {2}\}/)?.[0] ?? ''),
+    '合成器的兩條路捲動時不跑程式（只有 JS 路徑聽 scroll）；終點只在量的時候重算，值沒變不重建；卸載時拿掉動畫')
+  r.check(!/if \(fallback\)/.test(hero) && /window\.addEventListener\('scroll', onScroll, \{ passive: true \}\)/.test(hero) && /observer\.observe\(document\.body\)/.test(hero)
     && /requestAnimationFrame\(apply\)/.test(hero) && /const t = Math\.min\(1, Math\.max\(0, window\.scrollY \/ fadeEnd\)\)/.test(hero) && /heroLayers\(t, opacityEnd\)/.test(hero)
     && !/getBoundingClientRect|offsetTop|offsetHeight|getComputedStyle/.test(hero.match(/function apply\(\) \{[\s\S]*?\n\}/)?.[0] ?? 'x'),
-    '透明度一律走程式（不分瀏覽器）：passive 的 scroll 事件＋requestAnimationFrame，進度限制在 0 到 1，用 heroLayers 寫入兩層的透明度，捲動時不讀版面；終點用 ResizeObserver 量')
+    'JS 路徑（不支援捲動時間軸時）：passive 的 scroll 事件＋requestAnimationFrame，進度限制在 0 到 1，用 heroLayers 寫入兩層的透明度，捲動時不讀版面；終點用 ResizeObserver 量')
   // 2026-11-26 第四版：iOS 26 的 Safari 拿貼頂的 fixed 元素的底色填狀態列。支援捲動連動動畫時不用 fixed，改成 absolute＋抵銷捲動的平移
   r.check(/@supports \(animation-timeline: scroll\(\)\) \{\s*\.brew-hero__bg \{[^}]*position: absolute;[^}]*animation: brew-hero-follow linear both;\s*animation-timeline: scroll\(root block\);\s*animation-range: 0 var\(--hero-follow\);/.test(hero)
     && /@keyframes brew-hero-follow \{\s*from \{ transform: translateY\(0\); \}\s*to \{ transform: translateY\(var\(--hero-follow\)\); \}/.test(hero)

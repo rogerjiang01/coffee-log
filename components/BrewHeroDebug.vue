@@ -2,7 +2,7 @@
 // **診斷用，上線前整段拿掉**（2026-11-27）：這個檔案，加上 BrewHero.vue 裡標「診斷」的幾行。
 // 結算頁網址加 ?hero-debug=1 時，在畫面左下角顯示主圖淡出的實際數值，給 iPhone 實機截圖用：
 //   scrollY、淡出終點（px）、進度（0–1）、清楚層與模糊層的 opacity（getComputedStyle 讀出來的實際值）、
-//   透明度與位移各走哪一條路。按鈕一次捲 50px，方便停在固定的位置截圖。
+//   透明度（WAAPI／CSS 動態 keyframes／JS）與位移各走哪一條路。按鈕一次捲 50px，方便停在固定的位置截圖。
 // 只給開發者看，不是介面文案，不受詞彙表管。
 
 const props = defineProps<{
@@ -10,6 +10,8 @@ const props = defineProps<{
   root: HTMLElement | null
   /** 淡出終點（px），BrewHero 量好的 */
   fadeEnd: number
+  /** 透明度實際走哪一條路：WAAPI／CSS 動態 keyframes／JS */
+  path: string
   /** 背景的位移走哪一條路 */
   follow: string
 }>()
@@ -56,7 +58,7 @@ onBeforeUnmount(() => {
     <div>進度 {{ values.progress.toFixed(3) }}</div>
     <div>清楚層 {{ values.clear }}</div>
     <div>模糊層 {{ values.blurred }}</div>
-    <div>透明度：JS</div>
+    <div>透明度：{{ path }}</div>
     <div>位移：{{ follow }}</div>
     <div class="hero-debug__buttons">
       <button type="button" tabindex="-1" @click="step(-50)">−50</button>

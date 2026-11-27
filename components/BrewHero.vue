@@ -29,10 +29,18 @@
 // - **不每一幀改 filter**：兩層疊起來——上層是清楚的圖，下層是預先套好靜態模糊的同一張圖，捲動時只改兩層的透明度
 //   （清楚的那層淡掉、模糊的那層接手，再一起淡出；比例怎麼算見 utils/heroFade.ts）。只動 opacity，交給合成器
 // - 終點是「主圖基準高度的 60%」與「頁面能捲到的最大距離」取較小的那個：捲到底一定到終點
-// - **透明度一律由程式驅動**（2026-11-27，iPhone 實機：CSS 的捲動連動動畫在 iOS Safari 上不是隨捲動漸進，而是捲過終點時一次跳到結尾；
-//   桌面的 Chromium、WebKit 重現不出來；為了它疊的 range、min()、fill、hold 都拿掉了）：passive 的 scroll 事件，每一格畫面最多一次
-//   （requestAnimationFrame）把兩層的透明度寫進 --hero-clear／--hero-blurred。捲動時只讀 scrollY，不讀版面；
-//   終點在掛載、視窗大小改變與頁面高度改變（ResizeObserver）時量一次。進度限制在 0 到 1。透明度晚一幀肉眼看不出來
+// - **透明度在合成器上跑**（2026-11-27 第二版）。iPhone 實機的經過：
+//   1. CSS 的捲動連動動畫（範圍用 min(終點, 100%)、fill、hold）：不是隨捲動漸進，捲過終點時一次跳到結尾
+//   2. 改成程式逐格寫透明度：數值正確，但 iOS 捲動期間主執行緒被節流（錄影逐格看：有時連續約 6 格、100ms 不更新再跳一大格），有段落感
+//   背景的抵銷平移（範圍 0–10000px 的捲動時間軸）在實機上完全平順，所以透明度改用同一個模式：
+//   時間軸一樣是 0 到 10000px（頁面捲不到，動畫永遠不會結束、不靠 fill），淡出終點依頁面不同，
+//   關鍵影格的 offset 由程式換算（終點 ÷ 10000，utils/heroFade.ts 的 heroKeyframes，照 heroLayers 的曲線取樣），終點之後到 1 都是終點的值。
+//   range 裡沒有 min() 也沒有 CSS 變數運算。三條路，依序挑第一條可用的（診斷面板會顯示走哪一條）：
+//     WAAPI              element.animate ＋ ScrollTimeline，rangeStart 0px、rangeEnd 10000px
+//     CSS 動態 keyframes  沒有 ScrollTimeline 的 JS 介面（或不支援 rangeStart）但支援 animation-timeline：程式產生 @keyframes 插進 <style>，
+//                        用和平移相同的 animation-timeline: scroll(root block)、animation-range: 0px 10000px 套上去
+//     JS                 都不支援：passive 的 scroll 事件，每一格畫面最多一次（requestAnimationFrame）把兩層的透明度寫進 --hero-clear／--hero-blurred，進度限制在 0 到 1
+//   終點只在掛載、視窗大小與頁面高度改變（ResizeObserver）時量，量到不同的值才重建動畫；前兩條路捲動期間不跑任何程式
 // - 背景的「固定」（抵銷捲動的平移）維持 CSS 的捲動連動動畫：實機上正常，而且位移晚一幀會抖（見樣式）
 // 減少動態時照樣模糊淡出：只有透明度與靜態的模糊、沒有位移，而且跟著手指走（《03》§6、§4.17）
 //
@@ -78,14 +86,83 @@ function measureLayout() {
   el.style.setProperty('--hero-solid', `${Math.round(Math.max(solid, titleTop))}px`)
 }
 
-// ── 捲動時模糊淡出：程式驅動（兩條路都是）─────────────────────────
+// ── 捲動時模糊淡出 ─────────────────────────────────────
 /** 捲過主圖基準高度的這個比例時到終點 */
 const FADE_RATIO = 0.6
+type FadePath = 'WAAPI' | 'CSS 動態 keyframes' | 'JS'
+type ScrollTimelineCtor = new (options: { source: Element, axis: 'block' }) => AnimationTimeline
+let path: FadePath = 'JS'
 let fadeEnd = 1
 let opacityEnd = 0
+let built = ''
+let animations: Animation[] = []
+let styleEl: HTMLStyleElement | null = null
+let keyframesId = 0
 let frame = 0
 let observer: ResizeObserver | null = null
 let cleanup: (() => void) | null = null
+
+function pickPath(): FadePath {
+  const ctor = (globalThis as { ScrollTimeline?: ScrollTimelineCtor }).ScrollTimeline
+  if (typeof ctor === 'function' && 'rangeStart' in Animation.prototype) return 'WAAPI'
+  if (CSS.supports('animation-timeline', 'scroll()')) return 'CSS 動態 keyframes'
+  return 'JS'
+}
+
+function layers() {
+  const el = root.value
+  return {
+    clear: el?.querySelector<HTMLElement>('.brew-hero__layer--clear') ?? null,
+    blurred: el?.querySelector<HTMLElement>('.brew-hero__layer--blurred') ?? null,
+  }
+}
+
+function teardown() {
+  for (const animation of animations) animation.cancel()
+  animations = []
+  styleEl?.remove()
+  styleEl = null
+  const { clear, blurred } = layers()
+  for (const el of [clear, blurred]) {
+    el?.style.removeProperty('animation')
+    el?.style.removeProperty('animation-timeline')
+    el?.style.removeProperty('animation-range')
+  }
+}
+
+/** 照量到的終點建兩層的動畫（合成器的兩條路）。終點沒變就不重建 */
+function build() {
+  const key = `${path}|${fadeEnd.toFixed(1)}|${opacityEnd}`
+  if (key === built) return
+  const { clear, blurred } = layers()
+  if (!clear || !blurred) return
+  teardown()
+  built = key
+  const frames = heroKeyframes(fadeEnd, opacityEnd)
+  if (path === 'WAAPI') {
+    const Timeline = (globalThis as { ScrollTimeline?: ScrollTimelineCtor }).ScrollTimeline!
+    const timeline = new Timeline({ source: document.documentElement, axis: 'block' })
+    const options = { timeline, rangeStart: '0px', rangeEnd: `${HERO_TIMELINE_RANGE}px`, fill: 'both', easing: 'linear' } as KeyframeAnimationOptions
+    animations = [
+      clear.animate(frames.map(f => ({ offset: f.offset, opacity: f.clear })), options),
+      blurred.animate(frames.map(f => ({ offset: f.offset, opacity: f.blurred })), options),
+    ]
+    return
+  }
+  // CSS 動態 keyframes：名稱每次換新，重建時從新的關鍵影格開始
+  const id = ++keyframesId
+  const css = (name: string, key: 'clear' | 'blurred') =>
+    `@keyframes ${name}{${frames.map(f => `${(f.offset * 100).toFixed(5)}%{opacity:${f[key].toFixed(4)}}`).join('')}}`
+  styleEl = document.createElement('style')
+  styleEl.textContent = css(`brew-hero-clear-${id}`, 'clear') + css(`brew-hero-blurred-${id}`, 'blurred')
+  document.head.append(styleEl)
+  for (const [el, name] of [[clear, `brew-hero-clear-${id}`], [blurred, `brew-hero-blurred-${id}`]] as const) {
+    // animation 的簡寫會把 timeline 重設回 auto：timeline 寫在後面
+    el.style.setProperty('animation', `${name} linear both`)
+    el.style.setProperty('animation-timeline', 'scroll(root block)')
+    el.style.setProperty('animation-range', `0px ${HERO_TIMELINE_RANGE}px`)
+  }
+}
 
 function measure() {
   measureLayout()
@@ -98,8 +175,10 @@ function measure() {
   fadeEnd = Math.max(1, Math.min(Number.parseFloat(style.minHeight) * FADE_RATIO, maxScroll))
   opacityEnd = Number.parseFloat(style.getPropertyValue('--hero-opacity-end')) || 0
   if (debug.value) debugFadeEnd.value = fadeEnd // 診斷（上線前拿掉）
-  apply()
+  if (path === 'JS') apply()
+  else build()
 }
+/** JS 路徑：每一格畫面最多一次 */
 function apply() {
   frame = 0
   // 進度限制在 0 到 1：過了終點維持終點的樣子（回彈時的負值也是起點）
@@ -125,20 +204,25 @@ function observe() {
 const debug = ref(false)
 const debugFadeEnd = ref(0)
 const debugFollow = ref('')
+const debugPath = ref('')
 
 onMounted(() => {
   debug.value = useRoute().query['hero-debug'] === '1'
   debugFollow.value = CSS.supports('animation-timeline', 'scroll()') ? 'CSS（absolute＋捲動連動平移）' : 'fixed'
+  path = pickPath()
+  debugPath.value = path
   observer = new ResizeObserver(() => measure())
   observe()
   measure()
   window.addEventListener('resize', measure, { passive: true })
-  window.addEventListener('scroll', onScroll, { passive: true })
+  // 只有 JS 路徑要聽捲動
+  if (path === 'JS') window.addEventListener('scroll', onScroll, { passive: true })
   cleanup = () => {
     window.removeEventListener('scroll', onScroll)
     window.removeEventListener('resize', measure)
     observer?.disconnect()
     cancelAnimationFrame(frame)
+    teardown()
   }
 })
 watch(() => props.solidAt, () => {
@@ -190,7 +274,7 @@ onBeforeUnmount(() => cleanup?.())
     </div>
 
     <!-- 診斷（?hero-debug=1）。上線前整段拿掉 -->
-    <BrewHeroDebug v-if="debug" :root="root" :fade-end="debugFadeEnd" :follow="debugFollow" />
+    <BrewHeroDebug v-if="debug" :root="root" :fade-end="debugFadeEnd" :path="debugPath" :follow="debugFollow" />
 
     <!-- 上層的第一段：標題區。跟著頁面捲動，從背景上滑過去 -->
     <div class="brew-hero__title">
@@ -240,7 +324,7 @@ onBeforeUnmount(() => cleanup?.())
   overflow: hidden;
   pointer-events: none;
 }
-/* 抵銷捲動（這是唯一還用 CSS 捲動連動動畫的地方；透明度改由程式驅動，見 script）：從頂端起算的平移量 ＝ 捲動距離。範圍 0 到 --hero-follow（10000px），平移也是 0 到 10000px，所以兩者一比一；
+/* 抵銷捲動（樣式裡唯一的捲動連動動畫；兩層的透明度用同一個 0–10000px 的時間軸，但動畫由程式建，見 script）：從頂端起算的平移量 ＝ 捲動距離。範圍 0 到 --hero-follow（10000px），平移也是 0 到 10000px，所以兩者一比一；
    這段範圍比頁面能捲的距離長得多，捲到底也不會走完（不會進入「結束之後」，不靠 fill 維持）。
    平移出去的部分會撐大頁面的捲動範圍、越捲越長，所以結算頁的 main 是 overflow: clip（summary.vue），這一層不會撐到 main 外面 */
 @supports (animation-timeline: scroll()) {
@@ -266,7 +350,8 @@ onBeforeUnmount(() => cleanup?.())
   overflow: hidden;
   will-change: opacity;
 }
-/* 兩層的透明度由程式寫進 --hero-clear／--hero-blurred（utils/heroFade.ts）；還沒寫之前是捲動 0 的樣子 */
+/* 兩層的透明度：合成器的兩條路由程式建的捲動動畫決定（WAAPI 或動態 @keyframes，見 script）；
+   JS 路徑由程式寫進 --hero-clear／--hero-blurred（utils/heroFade.ts）。動畫建好、變數寫進去之前是捲動 0 的樣子 */
 .brew-hero__layer--clear {
   opacity: var(--hero-clear, 1);
 }
