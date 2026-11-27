@@ -378,14 +378,36 @@ onBeforeUnmount(() => cleanup?.())
    背景層一路蓋到 --hero-solid（豆名、小數據越多越高），原本照片 cover 整個背景層：正方形照片被放大到背景層的高度、左右裁掉一大段，
    清楚看得到的只剩上方約三分之一。改成正方形的框（寬＝主圖寬、高＝寬，和上傳時的裁切比例一致），貼齊背景層頂端，
    cover、置中（舊的非正方形照片也這樣裁）；框以下是圖層自己的 --bg，漸層照舊蓋在上面，照片下緣落在漸層幾乎不透明的地方。
-   overflow: hidden：模糊那一份放大 --hero-blur-scale 倍，邊緣落在框外、被框裁掉 */
+   overflow: hidden：模糊那一份放大 --hero-blur-scale 倍，邊緣落在框外、被框裁掉。
+   **下緣淡出**（2026-11-27 第三版）：漸層在照片下緣只有 95.7–99.5% 不透明，照片與 --bg 的交界看得到一條線。
+   不改頁面的漸層，改成照片框自己的下緣淡出：遮罩上方完全不透明，最下面 --hero-photo-fade 的高度用 smoothstep 變成透明（交界看不出來）。
+   清楚與模糊兩份各在自己的圖層裡（兩層的透明度各自有動畫），兩個框是同一個 class，所以是同一個遮罩；模糊那份超出框的部分先被裁掉、再一起淡出。
+   遮罩是靜態的，不碰透明度的動畫。遮罩只看透明度，顏色寫 black／rgb(0 0 0 / a) 沒有意義上的差別 */
 .brew-hero__photo {
+  --hero-photo-fade: 20%;
+  --g: calc(100% - var(--hero-photo-fade));
   position: absolute;
   top: 0;
   left: 0;
   right: 0;
   aspect-ratio: 1;
   overflow: hidden;
+  -webkit-mask-image: linear-gradient(
+    to bottom,
+    black var(--g),
+    rgb(0 0 0 / 0.844) calc(var(--g) + var(--hero-photo-fade) * 0.25),
+    rgb(0 0 0 / 0.5) calc(var(--g) + var(--hero-photo-fade) * 0.5),
+    rgb(0 0 0 / 0.156) calc(var(--g) + var(--hero-photo-fade) * 0.75),
+    transparent 100%
+  );
+  mask-image: linear-gradient(
+    to bottom,
+    black var(--g),
+    rgb(0 0 0 / 0.844) calc(var(--g) + var(--hero-photo-fade) * 0.25),
+    rgb(0 0 0 / 0.5) calc(var(--g) + var(--hero-photo-fade) * 0.5),
+    rgb(0 0 0 / 0.156) calc(var(--g) + var(--hero-photo-fade) * 0.75),
+    transparent 100%
+  );
 }
 /* 靜態的模糊：只在這一層、只算一次，捲動時不改 */
 .brew-hero__blur {

@@ -28,11 +28,16 @@ export default function run() {
   r.check(!/BeanArt|aspect-square|roastFill/.test(template), '拿掉：正方形照片、烘焙度色塊與色塊裡的豆名')
 
   // 2026-11-27 第二版：照片不跟著背景層（到 --hero-solid）的高度放大
-  r.check(/\.brew-hero__photo \{\s*position: absolute;\s*top: 0;\s*left: 0;\s*right: 0;\s*aspect-ratio: 1;\s*overflow: hidden;\s*\}/.test(hero)
+  r.check(/\.brew-hero__photo \{[^}]*position: absolute;\s*top: 0;\s*left: 0;\s*right: 0;\s*aspect-ratio: 1;\s*overflow: hidden;/.test(hero)
     && (heroTemplate.match(/<div v-if="showPhoto" class="brew-hero__photo" :style="\{ background: fill\.background \}">/g) || []).length === 2
     && (heroTemplate.match(/:style="\{ background: showPhoto \? 'var\(--bg\)'/g) || []).length === 2
     && !/<div v-if="showPhoto" class="absolute inset-0"/.test(heroTemplate),
     '照片框：正方形、寬＝主圖寬、貼齊頂端（清楚與模糊兩份同一個框），框以下是 --bg')
+  const photoFrame = hero.match(/\.brew-hero__photo \{[\s\S]*?\n\}/)?.[0] ?? ''
+  r.check(/--hero-photo-fade: 20%;/.test(photoFrame) && /-webkit-mask-image: linear-gradient\(\s*to bottom,\s*black var\(--g\),[\s\S]*?transparent 100%\s*\);/.test(photoFrame)
+    && /\bmask-image: linear-gradient\(\s*to bottom,\s*black var\(--g\),[\s\S]*?transparent 100%\s*\);/.test(photoFrame.replace(/-webkit-mask-image[\s\S]*?\);/, ''))
+    && !/animation|transition/.test(photoFrame),
+    '照片框的下緣淡出：靜態遮罩（含 -webkit-），最下面 20% 變透明，不參與動畫')
 
   r.section('返回鈕：浮動、固定在頂端')
   r.check(/<BackButton floating :to="BEAN_BACK_FALLBACK" label="返回" \/>/.test(template), '歷史式（BEAN_BACK_FALLBACK）')
