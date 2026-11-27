@@ -11,7 +11,8 @@ export default function run() {
   r.section('縮圖：有照片用照片，沒有照片用 roastFill（烘焙度色塊或灰色）')
   const thumb = read('components/BeanThumb.vue')
   r.check(/<img v-if="photoUrl"/.test(thumb) && /roastFill\(props\.roastLevel\)/.test(thumb), 'BeanThumb：照片，否則 roastFill')
-  for (const path of ['components/BeanCard.vue', 'pages/beans/[id]/index.vue']) {
+  // 豆子詳情（2026-11-27 改版）的顏色在主圖（BrewHero、BrewHeroFallback）裡，和結算頁同一個
+  for (const path of ['components/BeanCard.vue', 'components/BrewHero.vue', 'components/BrewHeroFallback.vue']) {
     r.check(/roastFill\(/.test(read(path)), `${path}：用同一個 roastFill（全站同一條規則）`)
   }
 

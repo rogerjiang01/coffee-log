@@ -238,7 +238,9 @@ export default function run() {
   r.section('檢視型：左上 ‹，右側空著，編輯與刪除在內容區')
   for (const path of ['pages/beans/[id]/index.vue', 'pages/brews/[id]/index.vue', 'pages/settings.vue']) {
     const template = stripComments(templateOf(read(path)))
-    r.check(/<PageHeader[^>]*back/.test(template) && !/<template #end>/.test(template), `${path}：左上 ‹，右側空著`)
+    // 豆子詳情（2026-11-27）：‹ 是浮在主圖上的圓鈕（BackButton 的 floating），右上角不放按鈕
+    const back = /<PageHeader[^>]*back/.test(template) || /<BackButton floating /.test(template)
+    r.check(back && !/<template #end>/.test(template) && !/<template #actions>/.test(template), `${path}：左上 ‹，右側空著`)
     r.check(!/回首頁|回豆子列表/.test(template), `${path}：找不到的狀態也只用 ‹，不另放文字連結`)
   }
   for (const path of ['pages/beans/[id]/index.vue', 'pages/brews/[id]/index.vue']) {
@@ -250,7 +252,10 @@ export default function run() {
   const brewDetail = read('pages/brews/[id]/index.vue')
   const beanDetail = read('pages/beans/[id]/index.vue')
   r.check(/<PageHeader :back="BREW_BACK_FALLBACK" \/>/.test(brewDetail), '紀錄詳情：沒有上一頁時回紀錄分頁')
-  r.check(/<PageHeader :back="BEAN_BACK_FALLBACK" \/>/.test(beanDetail), '豆子詳情：沒有上一頁時回豆子列表')
+  r.check(/<BackButton floating :to="BEAN_BACK_FALLBACK" label="返回" \/>/.test(beanDetail), '豆子詳情：沒有上一頁時回豆子列表')
+  r.check(/\.bean-back \{[^}]*position: fixed;[^}]*top: calc\(env\(safe-area-inset-top\) \+ 40px\);[^}]*left: var\(--fixed-left\);/.test(beanDetail)
+    && /\.back-floating \{[^}]*box-shadow: var\(--float-shadow\);[^}]*color-mix\(in srgb, var\(--surface\) 78%, transparent\)/.test(read('components/BackButton.vue')),
+    '豆子詳情的 ‹：固定在畫面頂端（距頂 40，和結算頁右上角的按鈕同高），外觀和結算頁的分享鈕相同')
   r.check(/<PageHeader title="設定" :back="SETTINGS_BACK_FALLBACK" \/>/.test(read('pages/settings.vue')), '設定：沒有上一頁時回總覽')
   const backButton = read('components/BackButton.vue')
   r.check(/historyBack\(window\.history\.state\?\.back\) === 'back'\) void goBack\(\)\s*else void navigateTo\(props\.to\)/.test(backButton),

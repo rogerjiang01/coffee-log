@@ -26,8 +26,10 @@ const STAR = 'M11.525 2.295a.53.53 0 0 1 .95 0'
 
 const ICONS = [
   // 頂部導覽與主要動作：2px
-  ['‹ 返回／離開', 'components/BackButton.vue', 'm15 18-6-6 6-6', 2, 1],
-  ['器材選擇器的 ‹', 'components/EquipmentPicker.vue', 'm15 18-6-6 6-6', 2, 1],
+  // 2026-11-27：‹ 加大（線條拉長），三處同一個圖示
+  ['‹ 返回／離開', 'components/BackButton.vue', 'M15.5 4 7.5 12l8 8', 2, 1],
+  ['器材選擇器的 ‹', 'components/EquipmentPicker.vue', 'M15.5 4 7.5 12l8 8', 2, 1],
+  ['分段子頁的 ‹', 'components/PourStepsSheet.vue', 'M15.5 4 7.5 12l8 8', 2, 1],
   ['設定齒輪', 'pages/index.vue', 'r="3"', 2, 1],
   ['器材選擇器的 ＋', 'components/EquipmentPicker.vue', 'M5 12h14', 2, 1],
   ['浮動按鈕的 ＋（總覽）', 'pages/index.vue', 'M5 12h14', 2, 1],
@@ -92,7 +94,8 @@ export default function run() {
 
   r.section('尺寸')
   const size = svg => Number(svg.match(/\swidth="([\d.]+)"/)[1])
-  r.check(svgsWith(read('components/BackButton.vue'), 'm15 18-6-6 6-6').every(s => size(s) === 22), '‹ 22×22')
+  r.check(['components/BackButton.vue', 'components/EquipmentPicker.vue', 'components/PourStepsSheet.vue'].every(f => svgsWith(read(f), 'M15.5 4 7.5 12l8 8').every(s => size(s) === 22)), '‹ 22×22（三處）')
+  r.check(['components/BackButton.vue', 'components/EquipmentPicker.vue', 'components/PourStepsSheet.vue'].every(f => !read(f).includes('m15 18-6-6 6-6')), '舊的 ‹（m15 18-6-6 6-6）全部換掉了')
   r.check(svgsWith(read('pages/index.vue'), 'r="3"').every(s => size(s) === 22), '齒輪 22×22')
   r.check(svgsWith(read('components/DraftStatus.vue'), 'viewBox').every(s => size(s) === 16),
     '暫存狀態的圖示 16px（原本 14px，比旁邊文字的筆畫還細）')
@@ -100,8 +103,9 @@ export default function run() {
   r.section('Lucide 圖示一律是 24 格線')
   // viewBox 與 stroke-width 要一起改。只改其中一個，線寬會默默差 1.5 倍而且畫面上看不出來
   const LUCIDE = [
-    ['components/BackButton.vue', 'm15 18-6-6 6-6'],
-    ['components/EquipmentPicker.vue', 'm15 18-6-6 6-6'],
+    ['components/BackButton.vue', 'M15.5 4 7.5 12l8 8'],
+    ['components/EquipmentPicker.vue', 'M15.5 4 7.5 12l8 8'],
+    ['components/PourStepsSheet.vue', 'M15.5 4 7.5 12l8 8'],
     ['components/EquipmentPicker.vue', 'M5 12h14'],
     ['pages/index.vue', 'M5 12h14'],
     ['pages/brews/index.vue', 'M5 12h14'],

@@ -42,7 +42,7 @@ export default function run() {
     '置中的對話框：離螢幕邊緣 20px，安全區比較大時取安全區')
   r.check(/dialog:modal\.sheet > \* \{[^}]*padding: env\(safe-area-inset-top\) env\(safe-area-inset-right\) env\(safe-area-inset-bottom\) env\(safe-area-inset-left\);/.test(css),
     '全螢幕面板（器材選擇器、分段子頁、裁切）：底色鋪滿，標題列與底部的按鈕往內縮')
-  const zoom = read('components/PhotoZoom.vue')
+  const zoom = read('components/PhotoViewer.vue')
   r.check(['top', 'right', 'bottom', 'left'].every(side => zoom.includes(`max(1.25rem, env(safe-area-inset-${side}))`)), '照片放大：四邊（原本就有）')
   const panel = read('composables/useAnchoredPanel.ts')
   r.check(/window\.innerHeight,\s*safeAreaBottom\(\),/.test(panel) && /height:env\(safe-area-inset-bottom\)/.test(panel),

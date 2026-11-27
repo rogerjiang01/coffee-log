@@ -39,13 +39,14 @@ export default function run() {
       `${path}：離開的入口（‹）在讀取中、錯誤、找不到都看得到`)
   }
 
+  // 豆子詳情的 ‹ 是浮在主圖上的圓鈕（2026-11-27）
   const detailPages = [
-    ['pages/brews/[id]/index.vue', 'v-else-if="brew"'],
-    ['pages/beans/[id]/index.vue', 'v-else-if="bean"'],
+    ['pages/brews/[id]/index.vue', 'v-else-if="brew"', '<PageHeader'],
+    ['pages/beans/[id]/index.vue', 'v-else-if="bean"', '<BackButton floating'],
   ]
-  for (const [path, loaded] of detailPages) {
+  for (const [path, loaded, marker] of detailPages) {
     const template = templateOf(read(path))
-    const back = template.indexOf('<PageHeader')
+    const back = template.indexOf(marker)
     r.check(back > 0 && back < template.indexOf('v-if="loading"') && back < template.indexOf(loaded),
       `${path}：返回入口在所有狀態判斷之外`)
     r.check(/@click="load"[\s\S]*?重試/.test(template), `${path}：讀取失敗有重試`)

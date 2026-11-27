@@ -2,7 +2,7 @@
 // 結算頁（《02》§5「結算頁」、《03》§4.17；2026-11-26 照 Figma 結算頁 v2 改版）。新增紀錄儲存成功後出現，只出現這一次。
 //
 // 由上到下：
-//   主圖（BrewHero）  豆袋照片滿版，沒有照片時交給 BrewHeroFallback。右上角是分享＋完成。
+//   主圖（BrewHero）  豆袋照片滿版（點照片放大），沒有照片時交給 BrewHeroFallback。右上角是分享＋完成。豆子詳情也用這個主圖
 //                     標題區壓在主圖底部：咖啡店名、豆名、本週目標（小環＋一行字）、日期與收藏
 //   小數據列           評分、養豆、紀錄（第 N 筆）、豆子（第 N 支，只在這支豆子的第一杯）
 //   有比較對象         和 M/D 那一杯相比（BrewCompareSection 的 summary）→ 沖煮參數
@@ -165,6 +165,7 @@ async function openDetail() {
         :photo-url="photo"
         :roast-level="brew.beans?.roast_level ?? null"
         :solid-at="sections"
+        :alt="beanName"
       >
         <!-- 右上角：分享（和紀錄詳情同一套流程）＋完成。鍵盤順序：分享 → 完成 → 參數卡片 -->
         <template #actions>

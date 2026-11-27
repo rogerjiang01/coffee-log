@@ -1,9 +1,8 @@
 <script setup lang="ts">
 // 可以點開放大的豆袋照片縮圖（分享頁與紀錄詳情頁，《03》§4.13.4、§4.14）。
 //
-// 縮圖是按鈕，點下去全螢幕顯示照片：完整顯示、不裁切，背後是 --media-scrim。
-// 點任何地方、Esc、返回鍵都能關閉。沿用原生 <dialog> 的 showModal()（焦點鎖定、
-// 背景 inert、Esc）與 useOverlayHistory（佔一筆 history，返回鍵只關浮層）。
+// 縮圖是按鈕，點下去全螢幕顯示照片。放大檢視本身是 PhotoViewer（主圖 BrewHero 也用它，2026-11-27）：
+// 完整顯示、不裁切，背後是 --media-scrim；點任何地方、Esc、返回鍵都能關閉。
 //
 // **縮圖與原圖分開**（utils/beanPhoto.ts）：
 //   thumb 還是 null   位置先留好（64×64 的淡色塊），版面不跳動；按鈕還不能按
@@ -24,8 +23,6 @@ const open = ref(false)
 const failed = ref(false)
 const thumbReady = ref(false)
 const fullReady = ref(false)
-const dialog = ref<HTMLDialogElement | null>(null)
-const image = ref<HTMLImageElement | null>(null)
 
 watch(() => props.thumb, () => {
   failed.value = false
@@ -51,23 +48,6 @@ onBeforeUnmount(() => {
 })
 
 const zoomed = computed(() => (fullReady.value && props.full ? props.full : props.thumb))
-
-function close() {
-  open.value = false
-}
-
-useOverlayHistory(() => open.value, close)
-
-watch(open, (value) => {
-  if (!dialog.value) return
-  if (value && !dialog.value.open) {
-    dialog.value.showModal()
-    // 裡面沒有可以聚焦的東西，showModal() 會把焦點放在 dialog 本身。
-    // 改放在照片上：螢幕閱讀器直接讀到豆名，不畫焦點框（它不是互動元素）
-    image.value?.focus()
-  }
-  if (!value && dialog.value.open) dialog.value.close()
-})
 </script>
 
 <template>
@@ -93,34 +73,6 @@ watch(open, (value) => {
       >
     </button>
 
-    <!-- 全螢幕：四周留白與頁面邊距相同（20px），並避開 iPhone 的安全區域。
-         照片以 object-contain 完整顯示。點到哪裡都關（包括照片本身）：這裡沒有別的動作 -->
-    <dialog
-      ref="dialog"
-      class="photo-zoom backdrop:bg-[var(--media-scrim)]"
-      aria-label="豆袋照片"
-      @cancel.prevent="close"
-      @click="close"
-    >
-      <img
-        v-if="zoomed"
-        ref="image"
-        :src="zoomed"
-        :alt="alt"
-        tabindex="-1"
-        class="size-full object-contain outline-none"
-      >
-    </dialog>
+    <PhotoViewer v-model:open="open" :src="zoomed" :alt="alt" />
   </template>
 </template>
-
-<style scoped>
-/* 全站 dialog 的留白是 1.25rem（main.css）；這裡另外疊上安全區域，取兩者較大的一邊 */
-.photo-zoom:modal {
-  padding:
-    max(1.25rem, env(safe-area-inset-top))
-    max(1.25rem, env(safe-area-inset-right))
-    max(1.25rem, env(safe-area-inset-bottom))
-    max(1.25rem, env(safe-area-inset-left));
-}
-</style>

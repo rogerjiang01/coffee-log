@@ -40,7 +40,8 @@ const beanRows = computed(() => {
   return [
     { label: '咖啡店名', value: bean.roaster },
     { label: '烘焙度', value: bean.roast_level ? roastLabels[bean.roast_level] : null },
-    { label: '烘焙日期', value: bean.roast_date },
+    // 和豆子詳情同一個寫法：YYYY/MM/DD（utils/formDate.ts，2026-11-27；原本是資料庫的 YYYY-MM-DD）
+    { label: '烘焙日期', value: pillDate(bean.roast_date) },
   ].filter((row): row is { label: string, value: string } => !!row.value)
 })
 

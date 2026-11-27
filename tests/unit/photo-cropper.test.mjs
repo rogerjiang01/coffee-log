@@ -108,7 +108,6 @@ export default function run() {
     ['components/PhotoField.vue', '豆子表單與就地新增的預覽'],
     ['components/BeanCard.vue', '豆子列表縮圖'],
     ['components/BeanThumb.vue', '總覽的「上一杯」與結算頁的摘要'],
-    ['pages/beans/[id]/index.vue', '豆子詳情'],
   ]
   for (const [path, label] of photoSites) {
     const imgs = read(path).match(/<img[\s\S]*?>/g) || []

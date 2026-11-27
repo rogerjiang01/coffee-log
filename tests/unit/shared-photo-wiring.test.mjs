@@ -83,18 +83,22 @@ export default function run() {
   r.check(/<button[^>]*aria-label="放大豆袋照片"/.test(zoomTemplate), '縮圖是按鈕，名稱「放大豆袋照片」')
   r.check(/<button[\s\S]*?size-16[\s\S]*?rounded-md[\s\S]*?<\/button>/.test(zoomTemplate), '縮圖 64×64、--radius-md')
   r.check(/<button[\s\S]*?<img[^>]*alt=""[\s\S]*?<\/button>/.test(zoomTemplate), '縮圖本身替代文字留空，不重複唸')
-  r.check(/<dialog[^>]*aria-label="豆袋照片"/.test(zoomTemplate), '全螢幕檢視的名稱「豆袋照片」')
-  r.check(/<dialog[\s\S]*?<img[^>]*:alt="alt"[^>]*object-contain[\s\S]*?<\/dialog>/.test(zoomTemplate), '完整顯示、不裁切（object-contain）')
-  r.check(/<dialog[^>]*@cancel\.prevent="close"/.test(zoomTemplate), 'Esc 關閉')
-  r.check(/<dialog[^>]*@click="close"/.test(zoomTemplate), '點任何地方關閉')
-  r.check(/useOverlayHistory\(\(\) => open\.value, close\)/.test(zoom), '佔一筆 history，返回鍵關閉')
-  r.check(/backdrop:bg-\[var\(--media-scrim\)\]/.test(zoomTemplate) && !/overlay-scrim/.test(zoomTemplate),
+  // 2026-11-27：放大檢視抽成 PhotoViewer，縮圖（PhotoZoom）與主圖（BrewHero）共用
+  r.check(/<PhotoViewer v-model:open="open" :src="zoomed" :alt="alt" \/>/.test(zoomTemplate), '縮圖開的是共用的 PhotoViewer')
+  const viewer = read('components/PhotoViewer.vue')
+  const viewerTemplate = stripComments(viewer.slice(viewer.indexOf('<template>')))
+  r.check(/<dialog[^>]*aria-label="豆袋照片"/.test(viewerTemplate), '全螢幕檢視的名稱「豆袋照片」')
+  r.check(/<dialog[\s\S]*?<img[^>]*:alt="alt"[^>]*object-contain[\s\S]*?<\/dialog>/.test(viewerTemplate), '完整顯示、不裁切（object-contain）')
+  r.check(/<dialog[^>]*@cancel\.prevent="close"/.test(viewerTemplate), 'Esc 關閉')
+  r.check(/<dialog[^>]*@click="close"/.test(viewerTemplate), '點任何地方關閉')
+  r.check(/useOverlayHistory\(\(\) => open\.value, close\)/.test(viewer), '佔一筆 history，返回鍵關閉')
+  r.check(/backdrop:bg-\[var\(--media-scrim\)\]/.test(viewerTemplate) && !/overlay-scrim/.test(viewerTemplate),
     '背景是看照片專用的 --media-scrim，不是對話框共用的 --overlay-scrim')
   const tokens = read('assets/css/tokens.css')
   r.check(/--media-scrim:\s*rgb\(0 0 0 \/ 0\.8\)/.test(tokens), '--media-scrim 是黑色 80%')
   r.check(/--overlay-scrim:\s*rgb\(0 0 0 \/ 0\.4\)/.test(tokens), '--overlay-scrim 沒有被改動（40%）')
-  r.check(!/\bp-0\b/.test(zoomTemplate) && /max\(1\.25rem, env\(safe-area-inset-top\)\)/.test(zoom)
-    && /max\(1\.25rem, env\(safe-area-inset-bottom\)\)/.test(zoom),
+  r.check(!/\bp-0\b/.test(viewerTemplate) && /max\(1\.25rem, env\(safe-area-inset-top\)\)/.test(viewer)
+    && /max\(1\.25rem, env\(safe-area-inset-bottom\)\)/.test(viewer),
   '照片不貼邊：四周 20px（與頁面邊距相同），並避開安全區域')
 
   r.section('縮圖與原圖分開')

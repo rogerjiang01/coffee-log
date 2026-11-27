@@ -111,9 +111,9 @@ function removeStep(index: number) {
         >
           <svg
             width="22" height="22" viewBox="0 0 24 24" aria-hidden="true" class="mx-auto"
-            fill="none" stroke="currentColor" stroke-width="2.18" stroke-linecap="round" stroke-linejoin="round"
+            fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"
           >
-            <path d="m15 18-6-6 6-6" />
+            <path d="M15.5 4 7.5 12l8 8" />
           </svg>
         </button>
 

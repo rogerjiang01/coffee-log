@@ -1,19 +1,25 @@
 <script setup lang="ts">
-// 結算頁的主圖（《03》§4.17，Figma 結算頁 v2：3626:1493、3628:1544）。
+// 主圖（《03》§4.17、§4.17.1，Figma 結算頁 v2：3626:1493、3628:1544；豆子詳情 3649:1552）。
+// **結算頁與豆子詳情共用這一份**（2026-11-27）：兩頁的行為、數值完全相同，差別只在 slot 裡放什麼。
 //
-// **只負責版面、漸層與按鈕，不碰「沒有照片時」那張圖的內容**——那是 BrewHeroFallback 的事，之後換圖只改它。
+// **只負責版面、漸層、按鈕的位置與照片放大，不碰「沒有照片時」那張圖的內容**——那是 BrewHeroFallback 的事，之後換圖只改它。
 //
 // 版面：
-// - 滿版：放在沒有左右內距的容器裡（結算頁的 main），手機上左右貼齊螢幕；寬螢幕時跟著容器，最多 --content-max
+// - 滿版：放在沒有左右內距的容器裡（結算頁、豆子詳情的 main），手機上左右貼齊螢幕；寬螢幕時跟著容器，最多 --content-max
 // - 高度以 390 寬時 470 為準，矮螢幕用 svh 限高：min(470px, 58svh)（--hero-h），iPhone 第一屏看得到比較區的標題。
 //   這是最小高度：豆名很長時標題區把主圖撐高
 // - 標題區（預設 slot）壓在主圖底部，左右內距 ＝ 頁面的左右內距（--form-gutter）＋ --card-pad，
 //   和下面的段落標題、卡片裡的列文字同一條線（2026-11-26）
 // - **標題的頂端不高於主圖的 55%**（--hero-h × 0.55）：圖的重點內容在上方 55%（《03》§4.17.1），
 //   沒照片時三顆豆子都在那裡面。豆名很長時主圖往下長，不往上蓋（2026-11-26）
-// - 右上角的按鈕（actions slot）：間距 12，距頂 40（和改版前的完成鈕同一個位置）、距右 20。
+// - 右上角的按鈕（actions slot，結算頁的分享＋完成；豆子詳情沒有）：間距 12，距頂 40（和改版前的完成鈕同一個位置）、距右 20。
 //   **固定在畫面上**（position: fixed，2026-11-26）：不跟著捲走，背景淡掉之後直接浮在內容上。陰影是 --float-shadow（按鈕自己的 floating）
 //   右緣用 --fixed-right（和分頁列、浮動按鈕同一條線：寬螢幕時跟著內容欄，橫向時避開安全區）
+//   豆子詳情左上角的返回鈕不在這裡：讀取中、找不到時也要有，由頁面自己放在同一個高度（距頂 40）
+//
+// 照片放大（2026-11-27）：有照片、而且照片已經載入時，影像區（標題區上方、不含右上角與頁面放的返回鈕）是一顆按鈕，
+// 名稱「放大豆袋照片」，點下去開 PhotoViewer（和紀錄詳情的縮圖同一個檢視器），看的是原圖。
+// 沒有照片（BrewHeroFallback）、網址還沒拿到、圖還沒載完、載入失敗時沒有這顆按鈕：不能點、也不能聚焦
 //
 // 圖：
 // - 有豆袋照片（hasPhoto）：用原圖（photoUrl，不用 384 的縮圖），object-fit: cover、置中。
@@ -46,7 +52,8 @@
 //
 // 漸層（2026-11-26 第五版：只有一條，拿掉標題區背後跟著捲動的那一層）：
 // - 由上往下只會越來越不透明：照片區透明 → 標題頂端之上 --hero-fade-len（88px）開始緩和地變成 --bg →
-//   標題頂端是 --bg 的 90% → 在 solidAt（結算頁傳進來的第一個段落：「和 M/D 那一杯相比」或第一杯的「沖煮參數」）的頂端剛好 100%，以下都是 100%
+//   標題頂端是 --bg 的 90% → 在 solidAt（頁面傳進來的第一個段落）的頂端剛好 100%，以下都是 100%。
+//   結算頁是「和 M/D 那一杯相比」或第一杯的「沖煮參數」；豆子詳情是「豆子資訊」（沒有的話是下一段）
 // - 兩個位置隨豆名長度改變，**掛載時與版面改變時量**（ResizeObserver），寫進 --hero-title-top、--hero-solid（從主圖頂端起算）
 // - 背景層（兩份照片與漸層）的高度一路蓋到 --hero-solid：照片在中間不會有硬邊
 // - 頂端另一層 --hero-scrim（30% 的黑）到透明（上方 22%）：按鈕在照片上看得清楚。清楚與模糊的兩層各有一份，交叉淡化時深淺不變
@@ -57,12 +64,15 @@ const props = defineProps<{
   /** 原圖的簽名網址 */
   photoUrl: string | null
   roastLevel: RoastLevel | null
-  /** 漸層剛好到實底的位置：這個元素的頂端（結算頁的第一個段落）。沒有時是主圖的底 */
+  /** 漸層剛好到實底的位置：這個元素的頂端（頁面的第一個段落）。沒有時是主圖的底 */
   solidAt?: HTMLElement | null
+  /** 放大檢視時照片的替代文字：豆名 */
+  alt: string
 }>()
 
 const loaded = ref(false)
 const failed = ref(false)
+const zoomOpen = ref(false)
 watch(() => props.photoUrl, () => {
   loaded.value = false
   failed.value = false
@@ -70,6 +80,8 @@ watch(() => props.photoUrl, () => {
 
 const fill = computed(() => roastFill(props.roastLevel))
 const showPhoto = computed(() => props.hasPhoto && !failed.value)
+/** 照片放大：有照片、而且原圖已經載入（佔位圖、還沒載完、載入失敗時沒有按鈕） */
+const zoomable = computed(() => showPhoto.value && !!props.photoUrl && loaded.value)
 
 // ── 漸層的兩個位置：標題頂端與實底的位置（兩條路都要）───────────────
 const root = ref<HTMLElement | null>(null)
@@ -258,10 +270,21 @@ onBeforeUnmount(() => cleanup?.())
       <div class="brew-hero__fade" />
     </div>
 
-    <!-- DOM 順序就是鍵盤順序：actions 在標題區之前（分享 → 完成 → 頁面內容） -->
-    <div class="brew-hero__actions">
+    <!-- DOM 順序就是鍵盤順序：actions、放大照片在標題區之前
+         （結算頁：分享 → 完成 → 放大照片 → 頁面內容；豆子詳情：頁面的返回鈕 → 放大照片 → 頁面內容） -->
+    <div v-if="$slots.actions" class="brew-hero__actions">
       <slot name="actions" />
     </div>
+
+    <!-- 照片放大：影像區（標題區上方）整塊是一顆按鈕。看不到的按鈕：照片就是它的外觀，名稱只給螢幕閱讀器 -->
+    <button
+      v-if="zoomable"
+      type="button"
+      class="brew-hero__zoom"
+      aria-label="放大豆袋照片"
+      @click="zoomOpen = true"
+    />
+    <PhotoViewer v-if="showPhoto && photoUrl" v-model:open="zoomOpen" :src="photoUrl" :alt="alt" />
 
     <!-- 上層的第一段：標題區。跟著頁面捲動，從背景上滑過去 -->
     <div class="brew-hero__title">
@@ -393,6 +416,23 @@ onBeforeUnmount(() => cleanup?.())
   right: var(--fixed-right);
   display: flex;
   gap: 12px;
+}
+/* 照片放大的按鈕：主圖頂端到標題區頂端（和 .brew-hero__title 的 padding-top 同一個值），左右滿版。
+   z-index 2：標題區（z-index 1）的上內距和它重疊，要在它上面才點得到；右上角的按鈕與頁面的返回鈕是 20，在它上面。
+   跟著頁面捲動（背景不動）：捲動之後可以點的範圍是標題區上方還留在畫面上的那一段。
+   焦點框畫在內側：外側是螢幕邊緣，看不到 */
+.brew-hero__zoom {
+  position: absolute;
+  z-index: 2;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: max(96px, calc(var(--hero-h) * 0.55));
+  cursor: zoom-in;
+  -webkit-tap-highlight-color: transparent;
+}
+.brew-hero__zoom:focus-visible {
+  outline-offset: -4px;
 }
 /* 標題的頂端不高於主圖的 55%（也一定在按鈕 40 ＋ 44 ＋ 12 之下）。
    z-index 1：上層，捲動時從固定的背景上滑過去。背後沒有自己的墊底（2026-11-26 第五版拿掉）：可讀性靠背景層的漸層 */
