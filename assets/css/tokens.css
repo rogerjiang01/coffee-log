@@ -136,10 +136,13 @@
     --border: var(--stone-100); /* 分隔線、一般邊界。--surface 上 1.16:1 */
     --border-strong: var(--stone-400); /* 需要更明顯的次要按鈕 */
     --text-faint: var(--stone-400); /* 比 --text-muted 再淡一階的附屬文字（停用欄位的標籤與單位） */
-    /* 首頁右上角的設定齒輪。它在標題旁邊，用 --text 會跟標題搶；
-       用 --text-muted 又與內文的參考資訊同一個顏色，看不出是可以按的東西。
-       對比：--bg 上 4.97:1、--surface 上 5.05:1（非文字，門檻 3:1） */
-    --settings-icon: var(--stone-600);
+    /* 總覽右上角的人頭佔位（2026-11-27，取代設定齒輪；頭像上傳之後才做）。
+       Figma 3320:2675 的填色沒有綁變數：圓是 #AFA48C → #94886C 的直向漸層、人形白色，
+       三個值剛好是既有的 stone-400、stone-500、white，這裡只是給它們一個語意名稱，沒有新增顏色。
+       對比（非文字，門檻 3:1）：白色人形在圓上 2.47:1（頂）～3.50:1（底）；圓在 --bg 上 2.41:1，靠 --float-shadow 看出範圍 */
+    --avatar-placeholder-from: var(--stone-400);
+    --avatar-placeholder-to: var(--stone-500);
+    --on-avatar-placeholder: var(--white);
     /* 未選取的輸入元件**輪廓**：收藏的空心愛心、勾選框未勾的方框。
        不能用 --border：那是分隔線的顏色（stone-100，--surface 上 1.16:1），
        淡到使用者看不出那裡有可以點的目標。
@@ -511,7 +514,6 @@
     --border-strong: var(--stone-200);
     --field-border: var(--green-100);
     --control-empty: var(--stone-300);
-    --settings-icon: var(--sand-100);
 
     --accent: var(--sand-50);
     --accent-hover: var(--stone-100);

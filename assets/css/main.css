@@ -328,6 +328,30 @@
     bottom: var(--fab-bottom);
   }
 
+  /* 頁首的圖示按鈕一律圓形（2026-11-27，《03》§2.3「邊界」、§3）：44px 的正圓、--surface 底、懸浮按鈕的陰影。
+     ‹（所有頁面，含器材選擇器、分段子頁）、紀錄詳情標題旁的分享、結算頁主圖上的分享共用。
+     圓的外緣對齊頁面內距，不用負邊距。正圓不套 corner-shape（§2.3）。
+     不在這一套裡的：結算頁與分段子頁的「完成」（--accent 實心，DoneButton）、總覽的人頭佔位（自己就是那個圓）、
+     分頁列、浮動新增按鈕、列裡的小圖示 */
+  .header-icon-button {
+    display: flex;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
+    width: var(--touch-min);
+    height: var(--touch-min);
+    border-radius: 9999px;
+    background: var(--surface);
+    box-shadow: var(--float-shadow);
+    color: var(--text);
+  }
+  /* 浮在主圖上（豆子詳情的 ‹、結算頁的分享）：照片上要看得清楚，--surface 的 78% 加 6px 背景模糊 */
+  .header-icon-button--on-media {
+    background: color-mix(in srgb, var(--surface) 78%, transparent);
+    -webkit-backdrop-filter: blur(6px);
+    backdrop-filter: blur(6px);
+  }
+
   /* 卡片的左右內距：列、收合區的標題列、強度的每一列共用 */
   .card-pad-x {
     padding-inline: var(--card-pad);

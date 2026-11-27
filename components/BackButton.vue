@@ -10,9 +10,10 @@
 // 圖示（2026-11-27 加大）：形狀維持 ‹，線條拉長——M15.5 4 7.5 12l8 8（原本是 Lucide 的 chevron-left），
 // 22px 顯示、24 格線、stroke-width 2.2（實際約 2px）。觸控範圍維持 44px。器材選擇器與分段子頁的 ‹ 同一個圖示。
 //
-// floating：豆子詳情左上角、浮在主圖上的那一顆（2026-11-27）。44px 圓形，外觀和結算頁的分享鈕相同：
-// --surface 的 78% 加 6px 背景模糊、懸浮按鈕的陰影 --float-shadow（BrewShare 的 .brew-share-floating）。
-// 固定在畫面上的位置由頁面決定（豆子詳情的 .bean-back）。
+// 外觀（2026-11-27）：頁首的圖示按鈕一律圓形——44px 的正圓、--surface 底、--float-shadow（main.css 的 .header-icon-button）。
+// 圓的外緣對齊頁面內距，不用負邊距；跟頁面一起捲，不固定。
+// floating：豆子詳情左上角、浮在主圖上的那一顆。同一個圓，加 --surface 的 78% 與 6px 背景模糊（.header-icon-button--on-media），
+// 和結算頁主圖上的分享鈕相同。固定在畫面上的位置由頁面決定（豆子詳情的 .bean-back）。
 
 const props = defineProps<{
   /** 沒有上一頁時的目的地：返回是父層，離開是依網址決定的目的地 */
@@ -43,16 +44,12 @@ function onClick(event: MouseEvent) {
 </script>
 
 <template>
-  <!-- 44px 觸控目標；一般的 ‹ 用負邊距讓圖示本身對齊頁面內距，而不是整個觸控區。
-       浮動的是 44px 的圓，不用負邊距（位置由頁面決定） -->
+  <!-- 44px 的圓就是觸控目標；圓的外緣對齊頁面內距 -->
   <a
     :href="href"
     :aria-label="label"
-    class="flex shrink-0 items-center justify-center"
-    :class="floating ? 'back-floating rounded-full' : '-ml-3'"
-    :style="floating
-      ? { width: 'var(--touch-min)', height: 'var(--touch-min)', color: 'var(--text)' }
-      : { minWidth: 'var(--touch-min)', minHeight: 'var(--touch-min)' }"
+    class="header-icon-button"
+    :class="{ 'header-icon-button--on-media': floating }"
     @click="onClick"
   >
     <svg
@@ -63,13 +60,3 @@ function onClick(event: MouseEvent) {
     </svg>
   </a>
 </template>
-
-<style scoped>
-/* 和結算頁的分享鈕（BrewShare 的 .brew-share-floating）同一個外觀：邊界用陰影、不加邊框（《03》§2.3「邊界」） */
-.back-floating {
-  box-shadow: var(--float-shadow);
-  background: color-mix(in srgb, var(--surface) 78%, transparent);
-  -webkit-backdrop-filter: blur(6px);
-  backdrop-filter: blur(6px);
-}
-</style>

@@ -236,17 +236,18 @@ async function create() {
     <div class="flex flex-col" :style="{ background: 'var(--bg)' }">
       <!-- 標題列 -->
       <header
-        class="flex shrink-0 items-center gap-2 border-b px-3 py-2"
+        class="flex shrink-0 items-center gap-3 border-b px-5 py-2"
         :style="{ borderColor: 'var(--border)' }"
       >
+        <!-- ‹ 是頁首的圓形圖示按鈕（2026-11-27，main.css 的 .header-icon-button），外緣對齊左右 20 的內距 -->
         <button
           type="button"
-          :style="{ minHeight: 'var(--touch-min)', minWidth: 'var(--touch-min)' }"
+          class="header-icon-button"
           :aria-label="mode === 'create' ? '回到清單' : '返回'"
           @click="mode === 'create' ? (mode = 'list') : emit('close')"
         >
           <svg
-            width="22" height="22" viewBox="0 0 24 24" aria-hidden="true" class="mx-auto"
+            width="22" height="22" viewBox="0 0 24 24" aria-hidden="true"
             fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"
           >
             <path d="M15.5 4 7.5 12l8 8" />
@@ -257,9 +258,11 @@ async function create() {
           {{ mode === 'create' ? `新增${equipmentLabels[type]}` : title }}
         </h2>
 
+        <!-- ＋ 不在圓形的範圍裡（2026-11-27 只改 ‹ 與分享）：維持只有圖示，負邊距讓圖示本身對齊 20 的內距 -->
         <button
           v-if="mode === 'list'"
           type="button"
+          class="-mr-3"
           :style="{ minHeight: 'var(--touch-min)', minWidth: 'var(--touch-min)', color: 'var(--accent)' }"
           :aria-label="`新增${equipmentLabels[type]}`"
           @click="startCreate"

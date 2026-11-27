@@ -162,7 +162,7 @@ export default function run() {
   r.check(titleRow.indexOf('<BrewShare') > titleRow.indexOf('</h1>'), '在最右端（豆名之後）')
   r.check(/aria-label="分享"[\s\S]*?self-center|self-center[\s\S]*?aria-label="分享"/.test(panel.split('<dialog')[0]),
     '圖示自己垂直置中，不跟著標題對齊基線')
-  r.check(/ml-auto/.test(panel.split('<dialog')[0]) && /shrink-0/.test(panel.split('<dialog')[0]), '靠右、不讓位給長豆名')
+  r.check(/ml-auto/.test(panel.split('<dialog')[0]) && /class="header-icon-button"/.test(panel.split('<dialog')[0]) && /\.header-icon-button \{[^}]*flex-shrink: 0;/.test(read('assets/css/main.css')), '靠右、不讓位給長豆名')
 
   return r.finish()
 }

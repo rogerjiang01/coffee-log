@@ -30,7 +30,6 @@ const ICONS = [
   ['‹ 返回／離開', 'components/BackButton.vue', 'M15.5 4 7.5 12l8 8', 2, 1],
   ['器材選擇器的 ‹', 'components/EquipmentPicker.vue', 'M15.5 4 7.5 12l8 8', 2, 1],
   ['分段子頁的 ‹', 'components/PourStepsSheet.vue', 'M15.5 4 7.5 12l8 8', 2, 1],
-  ['設定齒輪', 'pages/index.vue', 'r="3"', 2, 1],
   ['器材選擇器的 ＋', 'components/EquipmentPicker.vue', 'M5 12h14', 2, 1],
   ['浮動按鈕的 ＋（總覽）', 'pages/index.vue', 'M5 12h14', 2, 1],
   ['浮動按鈕的 ＋（紀錄）', 'pages/brews/index.vue', 'M5 12h14', 2, 1],
@@ -96,7 +95,8 @@ export default function run() {
   const size = svg => Number(svg.match(/\swidth="([\d.]+)"/)[1])
   r.check(['components/BackButton.vue', 'components/EquipmentPicker.vue', 'components/PourStepsSheet.vue'].every(f => svgsWith(read(f), 'M15.5 4 7.5 12l8 8').every(s => size(s) === 22)), '‹ 22×22（三處）')
   r.check(['components/BackButton.vue', 'components/EquipmentPicker.vue', 'components/PourStepsSheet.vue'].every(f => !read(f).includes('m15 18-6-6 6-6')), '舊的 ‹（m15 18-6-6 6-6）全部換掉了')
-  r.check(svgsWith(read('pages/index.vue'), 'r="3"').every(s => size(s) === 22), '齒輪 22×22')
+  // 齒輪在 2026-11-27 換成人頭佔位（填色，不是線條；檢查在 navigation-wiring）
+  r.check(!svgsWith(read('pages/index.vue'), 'r="3"').length, '總覽沒有齒輪了')
   r.check(svgsWith(read('components/DraftStatus.vue'), 'viewBox').every(s => size(s) === 16),
     '暫存狀態的圖示 16px（原本 14px，比旁邊文字的筆畫還細）')
 
@@ -111,7 +111,6 @@ export default function run() {
     ['pages/brews/index.vue', 'M5 12h14'],
     ['pages/beans/index.vue', 'M5 12h14'],
     ['pages/equipment/index.vue', 'M5 12h14'],
-    ['pages/index.vue', 'r="3"'],
     ['components/PourStepsSheet.vue', 'M3 6h18'],
     ['components/AppCard.vue', 'm9 18 6-6-6-6'],
     ['components/ShareIcon.vue', 'm16 6-4-4-4 4'],

@@ -101,20 +101,20 @@ const newBrewLink = computed(() => newBrewEntry(activeBeans.value))
   <main class="mx-auto px-5 pt-10" :style="{ maxWidth: 'var(--content-max)' }">
     <PageHeader title="總覽">
       <template #end>
-        <!-- 設定只從這裡進（《03》§3）。icon 封閉清單的三個之一 -->
+        <!-- 設定只從這裡進（《03》§3）。人頭佔位（2026-11-27，取代齒輪；Figma 3320:2675）：
+             實心圓底加白色人形，44px，圓本身就是按鈕，不再外包 --surface 的圓；陰影和其他頁首圓鈕一樣是 --float-shadow。
+             圓的外緣對齊右側 20 的內距。頭像上傳是之後的工作，這輪只有佔位 -->
         <NuxtLink
           to="/settings"
-          aria-label="設定"
-          class="-mr-3 flex shrink-0 items-center justify-center"
-          :style="{ minWidth: 'var(--touch-min)', minHeight: 'var(--touch-min)', color: 'var(--settings-icon)' }"
+          aria-label="帳號與設定"
+          class="account-avatar flex shrink-0 items-center justify-center rounded-full"
         >
-          <svg
-            width="22" height="22" viewBox="0 0 24 24" fill="none"
-            stroke="currentColor" stroke-width="2.18" stroke-linecap="round" stroke-linejoin="round"
-            aria-hidden="true"
-          >
-            <path d="M9.671 4.136a2.34 2.34 0 0 1 4.659 0 2.34 2.34 0 0 0 3.319 1.915 2.34 2.34 0 0 1 2.33 4.033 2.34 2.34 0 0 0 0 3.831 2.34 2.34 0 0 1-2.33 4.033 2.34 2.34 0 0 0-3.319 1.915 2.34 2.34 0 0 1-4.659 0 2.34 2.34 0 0 0-3.32-1.915 2.34 2.34 0 0 1-2.33-4.033 2.34 2.34 0 0 0 0-3.831A2.34 2.34 0 0 1 6.35 6.051a2.34 2.34 0 0 0 3.319-1.915" />
-            <circle cx="12" cy="12" r="3" />
+          <!-- Figma 的人形向量（24 格線，圓佔滿整格），放大到 44px；圓由連結的底色畫 -->
+          <svg width="44" height="44" viewBox="0 0 24 24" aria-hidden="true">
+            <path
+              fill-rule="evenodd" clip-rule="evenodd" fill="currentColor"
+              d="M4.86791 19.4486C6.48542 17.2081 9.11931 15.75 12.0938 15.75C15.0209 15.75 17.6181 17.1621 19.2416 19.3421C17.3795 21.1789 14.8222 22.3125 12 22.3125C9.23278 22.3125 6.72011 21.2226 4.86791 19.4486ZM16.125 9.65625C16.125 11.9862 14.3202 13.875 12.0938 13.875C9.86736 13.875 8.0625 11.9862 8.0625 9.65625C8.0625 7.3263 9.86736 5.4375 12.0938 5.4375C14.3202 5.4375 16.125 7.3263 16.125 9.65625Z"
+            />
           </svg>
         </NuxtLink>
       </template>
@@ -247,3 +247,14 @@ const newBrewLink = computed(() => newBrewEntry(activeBeans.value))
     </NuxtLink>
   </main>
 </template>
+
+<style scoped>
+/* 人頭佔位：Figma 是由上而下的漸層（沒有綁變數，兩端的值剛好是 stone-400 → stone-500，tokens.css 的 --avatar-placeholder-*） */
+.account-avatar {
+  width: var(--touch-min);
+  height: var(--touch-min);
+  background: linear-gradient(to bottom, var(--avatar-placeholder-from), var(--avatar-placeholder-to));
+  box-shadow: var(--float-shadow);
+  color: var(--on-avatar-placeholder);
+}
+</style>

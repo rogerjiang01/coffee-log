@@ -100,17 +100,18 @@ function removeStep(index: number) {
   >
     <div class="flex flex-col" :style="{ background: 'var(--bg)' }">
       <header
-        class="flex shrink-0 items-center gap-2 border-b px-3 py-2"
+        class="flex shrink-0 items-center gap-3 border-b px-5 py-2"
         :style="{ borderColor: 'var(--border)' }"
       >
+        <!-- ‹ 是頁首的圓形圖示按鈕（2026-11-27，main.css 的 .header-icon-button），外緣對齊左右 20 的內距 -->
         <button
           type="button"
-          :style="{ minHeight: 'var(--touch-min)', minWidth: 'var(--touch-min)' }"
+          class="header-icon-button"
           aria-label="返回"
           @click="emit('close')"
         >
           <svg
-            width="22" height="22" viewBox="0 0 24 24" aria-hidden="true" class="mx-auto"
+            width="22" height="22" viewBox="0 0 24 24" aria-hidden="true"
             fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"
           >
             <path d="M15.5 4 7.5 12l8 8" />

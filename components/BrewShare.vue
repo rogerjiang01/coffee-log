@@ -17,7 +17,7 @@ const props = defineProps<{
   hasNotes: boolean
   /** 豆袋照片的 Storage 路徑。沒有照片時對話框不放縮圖、不留空框 */
   photoPath: string | null
-  /** 結算頁主圖上的外觀：44px 圓鈕，--surface 的 78% 加背景模糊（照片上看得清楚） */
+  /** 結算頁主圖上：同一個圓，加 --surface 的 78% 與背景模糊（照片上看得清楚） */
   floating?: boolean
 }>()
 
@@ -204,28 +204,16 @@ async function retry() {
 </script>
 
 <template>
-  <!-- 44px 觸控目標；負邊距讓圖示本身對齊頁面內距，與 ‹ 同一套做法。
-       標題列對齊基線，這個按鈕自己垂直置中（《03》§4.13.1）：
-       上下各 -2px 讓它的外框等於豆名一行的行高（2rem × 1.3），置中才對得準 -->
+  <!-- 頁首的圖示按鈕一律圓形（2026-11-27，main.css 的 .header-icon-button）：44px 的圓，外緣對齊頁面內距。
+       紀錄詳情：標題列最右端。標題列對齊基線，這個按鈕自己垂直置中（《03》§4.13.1）：
+       上下各 -2px 讓它的外框等於豆名一行的行高（2rem × 1.3），置中才對得準。
+       結算頁：主圖右上角、完成鈕的左邊，加背景模糊 -->
   <button
-    v-if="!floating"
     ref="trigger"
     type="button"
     aria-label="分享"
-    class="-mr-3 -my-0.5 ml-auto flex shrink-0 items-center justify-center self-center"
-    :style="{ minWidth: 'var(--touch-min)', minHeight: 'var(--touch-min)', color: 'var(--text)' }"
-    @click="openDialog"
-  >
-    <ShareIcon />
-  </button>
-  <!-- 結算頁：主圖右上角、完成鈕的左邊。圓鈕，正圓不套 corner-shape（《03》§2.3） -->
-  <button
-    v-else
-    ref="trigger"
-    type="button"
-    aria-label="分享"
-    class="brew-share-floating flex shrink-0 items-center justify-center rounded-full"
-    :style="{ width: 'var(--touch-min)', height: 'var(--touch-min)', color: 'var(--text)' }"
+    class="header-icon-button"
+    :class="floating ? 'header-icon-button--on-media' : '-my-0.5 ml-auto self-center'"
     @click="openDialog"
   >
     <ShareIcon />
@@ -388,13 +376,3 @@ async function retry() {
   </Teleport>
 </template>
 
-<style scoped>
-.brew-share-floating {
-  /* 邊界用陰影，不加邊框（《03》§2.3「邊界」，2026-11-26）：背景淡掉之後按鈕直接浮在 --bg 上，
-     --surface 的 78% 和頁面底色幾乎一樣，沒有陰影就看不出圓的範圍。懸浮按鈕的陰影，和旁邊的完成鈕同一個 */
-  box-shadow: var(--float-shadow);
-  background: color-mix(in srgb, var(--surface) 78%, transparent);
-  -webkit-backdrop-filter: blur(6px);
-  backdrop-filter: blur(6px);
-}
-</style>

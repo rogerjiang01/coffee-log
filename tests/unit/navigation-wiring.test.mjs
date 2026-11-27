@@ -3,7 +3,7 @@
 // 三種畫面各有自己的導覽規則。這些規則原本散在各頁，也沒有寫進規格——
 // 分頁列出現在哪裡只存在於元件註解，頂部角落放了四種性質不同的東西。
 // 這裡守住：每一頁宣告自己是哪一種、分頁列只由 app.vue 決定、
-// 頂部角落只放 ‹（總覽多一個齒輪）、會丟東西的才叫「取消」、浮層佔 history。
+// 頂部角落只放 ‹（總覽多一個人頭佔位）、會丟東西的才叫「取消」、浮層佔 history。
 
 import { readFileSync, readdirSync, statSync, existsSync } from 'node:fs'
 import { createReport } from '../helpers/report.mjs'
@@ -80,7 +80,41 @@ export default function run() {
     r.check(!/to="#"/.test(template), `${path}：新增按鈕不是 href="#" 加頁內動作`)
   }
   const home = templateOf(read('pages/index.vue'))
-  r.check(/<template #end>[\s\S]*to="\/settings"[\s\S]*aria-label="設定"/.test(home), '總覽右上角是設定的齒輪')
+  // 2026-11-27：齒輪換成人頭佔位（Figma 3320:2675），無障礙名稱「帳號與設定」
+  r.check(/<template #end>[\s\S]*to="\/settings"[\s\S]*aria-label="帳號與設定"/.test(home) && !/r="3"/.test(home), '總覽右上角是人頭佔位，點了進設定（沒有齒輪了）')
+  const homeFile = read('pages/index.vue')
+  r.check(/class="account-avatar[^"]*rounded-full"/.test(home) && /<svg width="44" height="44" viewBox="0 0 24 24" aria-hidden="true">/.test(home)
+    && /\.account-avatar \{[^}]*width: var\(--touch-min\);[^}]*height: var\(--touch-min\);[^}]*linear-gradient\(to bottom, var\(--avatar-placeholder-from\), var\(--avatar-placeholder-to\)\);[^}]*box-shadow: var\(--float-shadow\);[^}]*color: var\(--on-avatar-placeholder\);/.test(homeFile)
+    && !/header-icon-button/.test(home),
+    '人頭佔位：44px 的圓本身就是按鈕（不外包 --surface 的圓），漸層與白色人形用 token，陰影 --float-shadow')
+  const tokensFile = read('assets/css/tokens.css')
+  r.check(/--avatar-placeholder-from: var\(--stone-400\);/.test(tokensFile) && /--avatar-placeholder-to: var\(--stone-500\);/.test(tokensFile)
+    && /--on-avatar-placeholder: var\(--white\);/.test(tokensFile) && !/--settings-icon/.test(tokensFile),
+    '人頭佔位的顏色是既有的 stone-400、stone-500、white；--settings-icon 拿掉了')
+
+  r.section('頁首的圖示按鈕一律圓形（2026-11-27）')
+  const mainCss = read('assets/css/main.css')
+  r.check(/\.header-icon-button \{[^}]*width: var\(--touch-min\);[^}]*height: var\(--touch-min\);[^}]*border-radius: 9999px;[^}]*background: var\(--surface\);[^}]*box-shadow: var\(--float-shadow\);/.test(mainCss)
+    && !/\.header-icon-button \{[^}]*corner-shape/.test(mainCss),
+    '.header-icon-button：44px 的正圓、--surface 底、--float-shadow，不套 corner-shape')
+  r.check(/\.header-icon-button--on-media \{[^}]*color-mix\(in srgb, var\(--surface\) 78%, transparent\);[^}]*backdrop-filter: blur\(6px\);/.test(mainCss),
+    '主圖上：--surface 的 78% 加 6px 背景模糊')
+  const backTemplate = stripComments(templateOf(read('components/BackButton.vue')))
+  r.check(/class="header-icon-button"/.test(backTemplate) && /:class="\{ 'header-icon-button--on-media': floating \}"/.test(backTemplate) && !/-ml-3/.test(backTemplate),
+    'BackButton：所有頁面的 ‹ 都是圓，外緣對齊頁面內距（沒有負邊距）；浮在主圖上才加模糊')
+  for (const path of ['components/EquipmentPicker.vue', 'components/PourStepsSheet.vue']) {
+    const t = stripComments(templateOf(read(path)))
+    r.check(/<header\s+class="flex shrink-0 items-center gap-3 border-b px-5 py-2"/.test(t)
+      && /<button\s+type="button"\s+class="header-icon-button"\s+:?aria-label="[^"]*返回/.test(t),
+      `${path}：‹ 是同一個圓，標題列左右 20 的內距`)
+  }
+  const shareTemplate = stripComments(templateOf(read('components/BrewShare.vue'))).split('<dialog')[0]
+  r.check((shareTemplate.match(/<button/g) || []).length === 1 && /class="header-icon-button"/.test(shareTemplate)
+    && /:class="floating \? 'header-icon-button--on-media' : '-my-0\.5 ml-auto self-center'"/.test(shareTemplate) && !/-mr-3/.test(shareTemplate),
+    '分享：紀錄詳情與結算頁同一個圓，結算頁加模糊；外緣對齊頁面內距')
+  r.check(/<header class="flex items-center gap-3"/.test(read('components/PageHeader.vue')), 'PageHeader：‹ 和標題之間 12px')
+  r.check(/boxShadow: floating \? 'var\(--float-shadow\)' : undefined/.test(read('components/DoneButton.vue')) && /background: 'var\(--accent\)'/.test(read('components/DoneButton.vue')),
+    '完成鈕不在這一套裡：維持 --accent 實心')
 
   r.section('分頁列：四格，亮哪一格由 utils/navigation.ts 決定')
   const nav = read('components/BottomNav.vue')
@@ -143,7 +177,7 @@ export default function run() {
   r.section('總覽：卡片')
   const homeScript = read('pages/index.vue')
   const homeTemplate = stripComments(home)
-  r.check(/<PageHeader title="總覽">/.test(homeTemplate), '標題是「總覽」，保留齒輪')
+  r.check(/<PageHeader title="總覽">/.test(homeTemplate), '標題是「總覽」，右側是人頭佔位')
   r.check(!/沖煮中的豆子|HomeBeanCard/.test(homeTemplate), '「沖煮中的豆子」拿掉了，由「最近沖煮」取代')
   r.check(!/BrewTimelineItem|載入更多|brewPage/.test(homeScript), '時間軸不在這裡（紀錄分頁）')
   const cardOrder = ['v-if="week"', 'v-if="last"', 'v-if="top"', 'v-if="totals"', 'v-if="month"'].map(marker => homeTemplate.indexOf(marker))
@@ -254,7 +288,7 @@ export default function run() {
   r.check(/<PageHeader :back="BREW_BACK_FALLBACK" \/>/.test(brewDetail), '紀錄詳情：沒有上一頁時回紀錄分頁')
   r.check(/<BackButton floating :to="BEAN_BACK_FALLBACK" label="返回" \/>/.test(beanDetail), '豆子詳情：沒有上一頁時回豆子列表')
   r.check(/\.bean-back \{[^}]*position: fixed;[^}]*top: calc\(env\(safe-area-inset-top\) \+ 40px\);[^}]*left: var\(--fixed-left\);/.test(beanDetail)
-    && /\.back-floating \{[^}]*box-shadow: var\(--float-shadow\);[^}]*color-mix\(in srgb, var\(--surface\) 78%, transparent\)/.test(read('components/BackButton.vue')),
+    && /'header-icon-button--on-media': floating/.test(read('components/BackButton.vue')),
     '豆子詳情的 ‹：固定在畫面頂端（距頂 40，和結算頁右上角的按鈕同高），外觀和結算頁的分享鈕相同')
   r.check(/<PageHeader title="設定" :back="SETTINGS_BACK_FALLBACK" \/>/.test(read('pages/settings.vue')), '設定：沒有上一頁時回總覽')
   const backButton = read('components/BackButton.vue')
@@ -376,7 +410,7 @@ export default function run() {
     '漸層的兩個位置在掛載與版面改變時量（ResizeObserver，兩條路都量）；實底的位置是結算頁的第一個段落')
   const tokensCss = read('assets/css/tokens.css')
   r.check(/--float-shadow: 0 0 \d+px rgb\([^)]*\);/.test(tokensCss)
-    && /box-shadow: var\(--float-shadow\);/.test(read('components/BrewShare.vue'))
+    && /\.header-icon-button \{[^}]*box-shadow: var\(--float-shadow\);/.test(read('assets/css/main.css')) && /class="header-icon-button"/.test(read('components/BrewShare.vue'))
     && /boxShadow: floating \? 'var\(--float-shadow\)' : undefined/.test(read('components/DoneButton.vue'))
     && (summaryTemplate.match(/<DoneButton floating @click="done" \/>/g) || []).length === 2,
     '懸浮按鈕的陰影：--float-shadow（x、y 都是 0，只有模糊），分享與完成（含讀取中）同一個')
@@ -436,7 +470,7 @@ export default function run() {
   r.check(/from\('weekly_goals'\)\s*\.insert\(/.test(goalDialog) && !/\.update\(|\.delete\(/.test(goalDialog) && /invalidateAfter\(\{ kind: 'goal' \}\)/.test(goalDialog),
     '儲存是新增一列（不改舊的），清掉目標的快取')
 
-  r.section('頂部角落只放 ‹ 與總覽的齒輪')
+  r.section('頂部角落只放 ‹ 與總覽的人頭佔位')
   const header = read('components/PageHeader.vue')
   r.check(/<BackButton/.test(header) && /<slot name="end"/.test(header), 'PageHeader：左 ‹、右側只有一個 slot')
   const endSlots = pages.filter(path => /<template #end>/.test(read(path)))
