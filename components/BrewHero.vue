@@ -52,6 +52,7 @@
 // 減少動態時照樣模糊淡出：只有透明度與靜態的模糊、沒有位移，而且跟著手指走（《03》§6、§4.17）
 //
 // 漸層（2026-11-26 第五版：只有一條，拿掉標題區背後跟著捲動的那一層）：
+// - **試看版，2026-11-27，待 iPhone 確認**：整條往下平移 --hero-fade-shift（50px），下面三個位置都再加 50px（見樣式的 .brew-hero__fade）
 // - 由上往下只會越來越不透明：照片區透明 → 標題頂端之上 --hero-fade-len（88px）開始緩和地變成 --bg →
 //   標題頂端是 --bg 的 90% → 在 solidAt（頁面傳進來的第一個段落）的頂端剛好 100%，以下都是 100%。
 //   結算頁是「和 M/D 那一杯相比」或第一杯的「沖煮參數」；豆子詳情是「豆子資訊」（沒有的話是下一段）
@@ -306,6 +307,11 @@ onBeforeUnmount(() => cleanup?.())
   --hero-h: min(470px, 58svh);
   /* 漸層：標題頂端之上這段距離開始變成 --bg（2026-11-26 第五版；和拿掉的那層墊底同一個距離） */
   --hero-fade-len: 88px;
+  /* 漸層整條往下平移的距離（**試看版，2026-11-27，待 iPhone 確認**）。
+     透明的起點、標題頂端的 90%、--hero-solid 的 100% 三個位置都加上這個值，中間各點照比例跟著移；曲線、長度、各點的不透明度不變。
+     背景層的高度也多這麼多，漸層不會在背景層底部被切掉。照片框、照片下緣的遮罩、頂端的 scrim、按鈕、標題區的位置都不動。
+     這一版不以對比為條件：標題區每一行背後的不透明度比原本低（原本標題頂端是 90%） */
+  --hero-fade-shift: 50px;
   /* 量到之前的預設（掛載時就會量，通常看不到）：標題頂端在 55%，實底在主圖底下 120px */
   --hero-title-top: max(96px, calc(var(--hero-h) * 0.55));
   --hero-solid: calc(var(--hero-h) + 120px);
@@ -336,7 +342,8 @@ onBeforeUnmount(() => cleanup?.())
   top: env(safe-area-inset-top);
   left: calc(var(--fixed-left) - var(--form-gutter));
   right: calc(var(--fixed-right) - var(--form-gutter));
-  height: max(var(--hero-h), var(--hero-solid));
+  /* + --hero-fade-shift：漸層往下平移之後，100% 的點在 --hero-solid 之下這麼遠（試看版，2026-11-27，待 iPhone 確認） */
+  height: calc(max(var(--hero-h), var(--hero-solid)) + var(--hero-fade-shift));
   overflow: hidden;
   pointer-events: none;
 }
@@ -418,7 +425,8 @@ onBeforeUnmount(() => cleanup?.())
 }
 .brew-hero__scrim {
   position: absolute;
-  inset: 0;
+  /* 底部讓出 --hero-fade-shift：scrim 的漸層是框高的 22%，背景層多出來的那一段不能把它拉長（試看版，2026-11-27，待 iPhone 確認） */
+  inset: 0 0 var(--hero-fade-shift);
   background: linear-gradient(to bottom, var(--hero-scrim), color-mix(in srgb, var(--hero-scrim) 0%, transparent) 22%);
 }
 /* 漸層（2026-11-26 第五版）：一條，由上往下只會越來越不透明。位置都從背景層頂端（＝主圖頂端）起算：
@@ -429,9 +437,10 @@ onBeforeUnmount(() => cleanup?.())
    捲動前的文字對比量過（《03》§4.17）。不淡出：已經是實底的地方捲到哪裡都是實底。
    will-change：和兩份照片一樣自成一層（長頁面捲到底時，背景層本身的位置早就在畫面外） */
 .brew-hero__fade {
-  --g0: calc(var(--hero-title-top) - var(--hero-fade-len));
-  --g1: var(--hero-title-top);
-  --g2: var(--hero-solid);
+  /* 三個位置都加上 --hero-fade-shift：整條往下平移（**試看版，2026-11-27，待 iPhone 確認**） */
+  --g0: calc(var(--hero-title-top) - var(--hero-fade-len) + var(--hero-fade-shift));
+  --g1: calc(var(--hero-title-top) + var(--hero-fade-shift));
+  --g2: calc(var(--hero-solid) + var(--hero-fade-shift));
   position: absolute;
   inset: 0;
   will-change: opacity;

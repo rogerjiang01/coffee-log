@@ -330,7 +330,7 @@ export default function run() {
   // 2026-11-26 第三版（iPhone 驗收）：主圖是固定的背景層，內容從上面滑過去；捲動時兩層（清楚＋預先模糊）只改透明度
   const heroTemplate = templateOf(hero)
   r.check(/<div class="brew-hero__bg" aria-hidden="true">\s*(?:<!--[\s\S]*?-->\s*)?<div class="brew-hero__layer brew-hero__layer--blurred"[\s\S]*?<div class="brew-hero__layer brew-hero__layer--clear"[^>]*>[\s\S]*?<div class="brew-hero__fade" \/>\s*<\/div>/.test(heroTemplate)
-    && /\.brew-hero__bg \{[^}]*position: fixed;[^}]*z-index: 0;[^}]*height: max\(var\(--hero-h\), var\(--hero-solid\)\);/.test(hero)
+    && /\.brew-hero__bg \{[^}]*position: fixed;[^}]*z-index: 0;[^}]*height: calc\(max\(var\(--hero-h\), var\(--hero-solid\)\) \+ var\(--hero-fade-shift\)\);/.test(hero)
     && /\.brew-hero__title \{\s*position: relative;\s*z-index: 1;/.test(hero) && /class="relative z-1 pt-5"/.test(summaryTemplate),
     '主圖：背景層（模糊、清楚兩層與漸層）固定在畫面頂端、高度蓋到漸層的實底；標題區與結算頁下面的內容是上層（z-index 1），從背景上滑過去')
   r.check(/\.brew-hero__blur \{\s*filter: blur\(var\(--hero-blur-end\)\);/.test(hero) && /--hero-blur-end: 20px;/.test(hero) && /--hero-opacity-end: 0;/.test(hero)
@@ -365,7 +365,8 @@ export default function run() {
   // 2026-11-26 第五版：漸層只有一條，標題區背後跟著捲動的那層拿掉；位置照實際版面量（標題頂端、第一個段落的頂端）
   const fade = hero.match(/\.brew-hero__fade \{[\s\S]*?\n\}/)?.[0] ?? ''
   const alphas = [...fade.matchAll(/var\(--bg\) ([\d.]+)%, transparent\)/g)].map(m => Number(m[1]))
-  r.check(/--g0: calc\(var\(--hero-title-top\) - var\(--hero-fade-len\)\);\s*--g1: var\(--hero-title-top\);\s*--g2: var\(--hero-solid\);/.test(fade)
+  r.check(/--g0: calc\(var\(--hero-title-top\) - var\(--hero-fade-len\) \+ var\(--hero-fade-shift\)\);\s*--g1: calc\(var\(--hero-title-top\) \+ var\(--hero-fade-shift\)\);\s*--g2: calc\(var\(--hero-solid\) \+ var\(--hero-fade-shift\)\);/.test(fade)
+    && /--hero-fade-shift: 50px;/.test(hero) && /\.brew-hero__scrim \{[^}]*inset: 0 0 var\(--hero-fade-shift\);/.test(hero)
     && /var\(--bg\) var\(--g2\)\s*\);/.test(fade) && alphas.length === 8 && alphas[0] === 0 && alphas.every((a, i) => i === 0 || a > alphas[i - 1]) && alphas.at(-1) < 100
     && !/::before/.test(hero) && !/hero-title-fade/.test(hero) && !/animation/.test(fade),
     '主圖的漸層：一條、由上往下只會越來越不透明，到第一個段落的頂端剛好 100%；標題區背後沒有另一層；漸層不淡出')
