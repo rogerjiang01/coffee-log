@@ -1,7 +1,7 @@
 // 結算頁主圖捲動時的模糊淡出（utils/heroFade.ts，《03》§4.17）。
 // 兩層（上層清楚、下層預先模糊）只改透明度，要做到：看起來的模糊程度 ＝ t、整體透明度 ＝ 1 − t(1 − 終點)，兩個都線性。
 
-import { HERO_FADE_STOPS, heroLayers } from '../../utils/heroFade.ts'
+import { heroLayers } from '../../utils/heroFade.ts'
 import { createReport } from '../helpers/report.mjs'
 
 export default function run() {
@@ -23,7 +23,6 @@ export default function run() {
         `終點 ${end}、進度 ${t}：整體 ${total.toFixed(3)}，模糊佔 ${((blurred * (1 - clear)) / total).toFixed(2)}`)
     }
   }
-  r.check(HERO_FADE_STOPS.join() === '0,0.25,0.5,0.75,1', 'CSS 的關鍵影格在 0、25、50、75、100%（BrewHero.vue 照這五個點寫）')
 
   return r.finish()
 }

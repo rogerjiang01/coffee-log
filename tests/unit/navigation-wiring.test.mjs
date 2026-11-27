@@ -328,22 +328,20 @@ export default function run() {
     && /\.brew-hero__bg \{[^}]*position: fixed;[^}]*z-index: 0;[^}]*height: max\(var\(--hero-h\), var\(--hero-solid\)\);/.test(hero)
     && /\.brew-hero__title \{\s*position: relative;\s*z-index: 1;/.test(hero) && /class="relative z-1 pt-5"/.test(summaryTemplate),
     '主圖：背景層（模糊、清楚兩層與漸層）固定在畫面頂端、高度蓋到漸層的實底；標題區與結算頁下面的內容是上層（z-index 1），從背景上滑過去')
-  r.check(/\.brew-hero__blur \{\s*filter: blur\(var\(--hero-blur-end\)\);/.test(hero) && /--hero-blur-end: 20px;/.test(hero) && /--hero-opacity-end: 0\.3;/.test(hero)
+  r.check(/\.brew-hero__blur \{\s*filter: blur\(var\(--hero-blur-end\)\);/.test(hero) && /--hero-blur-end: 20px;/.test(hero) && /--hero-opacity-end: 0;/.test(hero)
     && !(hero.match(/@keyframes[^{]*\{(?:\s*[^{}]*\{[^}]*\})*\s*\}/g) ?? []).some(k => /filter/.test(k)) && !/setProperty\('filter'|style\.filter/.test(hero),
-    '模糊是下層預先套好的靜態 filter；捲動時不改 filter。終點的模糊與透明度是變數')
-  // 2026-11-26 第五版：終點之後維持終點的樣子，不只靠 fill——第二段「hold」從終點一路到 10000px，捲到底也還在進行中
-  const range = 'animation-range: 0 min\\(var\\(--hero-fade-end\\), 100%\\), min\\(var\\(--hero-fade-end\\), 100%\\) var\\(--hero-follow\\);'
-  r.check(new RegExp(`@supports \\(animation-timeline: scroll\\(\\)\\) \\{\\s*\\.brew-hero__layer--clear \\{\\s*animation: brew-hero-clear linear both, brew-hero-clear-hold linear forwards;\\s*animation-timeline: scroll\\(root block\\), scroll\\(root block\\);\\s*${range}\\s*\\}\\s*\\.brew-hero__layer--blurred \\{\\s*animation: brew-hero-blurred linear both, brew-hero-blurred-hold linear forwards;\\s*animation-timeline: scroll\\(root block\\), scroll\\(root block\\);\\s*${range}`).test(hero)
-    && /--hero-fade-end: calc\(var\(--hero-h\) \* 0\.6\);/.test(hero) && /const FADE_RATIO = 0\.6/.test(hero)
-    && /@keyframes brew-hero-clear \{\s*0% \{ opacity: 1; \}\s*25% \{[^}]*\}\s*50% \{[^}]*\}\s*75% \{[^}]*\}\s*100% \{ opacity: 0; \}/.test(hero)
-    && /@keyframes brew-hero-blurred \{\s*0% \{ opacity: 1; \}[\s\S]*?100% \{ opacity: var\(--hero-opacity-end\); \}/.test(hero)
-    && /@keyframes brew-hero-clear-hold \{\s*from, to \{ opacity: 0; \}\s*\}/.test(hero)
-    && /@keyframes brew-hero-blurred-hold \{\s*from, to \{ opacity: var\(--hero-opacity-end\); \}\s*\}/.test(hero),
-    '捲動連動動畫：兩層各一組只動 opacity 的關鍵影格（0／25／50／75／100%，和 HERO_FADE_STOPS 一致）；終點是 60% 與能捲到的最大距離取小；終點之後由 hold（forwards、範圍到 10000px）維持終點的值')
-  r.check(/CSS\.supports\('animation-timeline', 'scroll\(\)'\)/.test(hero) && /addEventListener\('scroll', onScroll, \{ passive: true \}\)/.test(hero)
+    '模糊是下層預先套好的靜態 filter；捲動時不改 filter。終點的模糊與透明度是變數（照片的終點透明度 0）')
+  // 2026-11-27：透明度一律由程式驅動（iPhone 實機上 CSS 的捲動連動動畫捲過終點才一次跳到結尾）。只有抵銷捲動的平移還用 CSS
+  const animated = [...hero.matchAll(/animation(?:-name)?: ([\w-]+)/g)].map(m => m[1])
+  r.check(animated.length === 1 && animated[0] === 'brew-hero-follow' && (hero.match(/@keyframes/g) || []).length === 1
+    && !/hold|HERO_FADE_STOPS|--hero-fade-end|min\(var/.test(stripComments(hero))
+    && /\.brew-hero__layer--clear \{\s*opacity: var\(--hero-clear, 1\);/.test(hero) && /\.brew-hero__layer--blurred \{\s*opacity: var\(--hero-blurred, 1\);/.test(hero)
+    && /const FADE_RATIO = 0\.6/.test(hero) && /fadeEnd = Math\.max\(1, Math\.min\(Number\.parseFloat\(style\.minHeight\) \* FADE_RATIO, maxScroll\)\)/.test(hero),
+    '透明度：不用 CSS 的捲動連動動畫（唯一的動畫是抵銷捲動的平移）；兩層的 opacity 由程式寫的變數決定；終點是 60% 與能捲到的最大距離取小')
+  r.check(!/if \(fallback\)|if \(CSS\.supports/.test(hero) && /window\.addEventListener\('scroll', onScroll, \{ passive: true \}\)/.test(hero) && /observer\.observe\(document\.body\)/.test(hero)
     && /requestAnimationFrame\(apply\)/.test(hero) && /const t = Math\.min\(1, Math\.max\(0, window\.scrollY \/ fadeEnd\)\)/.test(hero) && /heroLayers\(t, opacityEnd\)/.test(hero)
     && !/getBoundingClientRect|offsetTop|offsetHeight|getComputedStyle/.test(hero.match(/function apply\(\) \{[\s\S]*?\n\}/)?.[0] ?? 'x'),
-    '不支援時：passive 的 scroll 事件＋requestAnimationFrame，進度限制在 0 到 1，用 heroLayers 寫入兩層的透明度，捲動時不讀版面')
+    '透明度一律走程式（不分瀏覽器）：passive 的 scroll 事件＋requestAnimationFrame，進度限制在 0 到 1，用 heroLayers 寫入兩層的透明度，捲動時不讀版面；終點用 ResizeObserver 量')
   // 2026-11-26 第四版：iOS 26 的 Safari 拿貼頂的 fixed 元素的底色填狀態列。支援捲動連動動畫時不用 fixed，改成 absolute＋抵銷捲動的平移
   r.check(/@supports \(animation-timeline: scroll\(\)\) \{\s*\.brew-hero__bg \{[^}]*position: absolute;[^}]*animation: brew-hero-follow linear both;\s*animation-timeline: scroll\(root block\);\s*animation-range: 0 var\(--hero-follow\);/.test(hero)
     && /@keyframes brew-hero-follow \{\s*from \{ transform: translateY\(0\); \}\s*to \{ transform: translateY\(var\(--hero-follow\)\); \}/.test(hero)

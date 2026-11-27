@@ -24,16 +24,16 @@
 // - 背景層（照片或 BrewHeroFallback、頂端給按鈕用的 --hero-scrim、融進 --bg 的漸層）**看起來固定在畫面頂端**，不跟著捲動。
 //   支援捲動連動動畫時是 absolute 加上抵銷捲動的平移，不是 position: fixed——iOS 26 的 Safari 會拿貼頂的 fixed 元素的底色填狀態列（見樣式）
 //   這個元件本身留在版面裡當佔位（高度照舊），標題區、小數據列與下面的內容是上層，捲動時從背景上滑過去。上層不鋪底色（卡片照舊有自己的底）
-// - 捲動時照片同時模糊和淡出：模糊從 0 到 --hero-blur-end（20px），**照片**的透明度從 1 到 --hero-opacity-end（0.3）。兩個都可以調。
+// - 捲動時照片同時模糊和淡出：模糊從 0 到 --hero-blur-end（20px），**照片**的透明度從 1 到 --hero-opacity-end（0：捲到終點時照片完全淡掉，2026-11-27）。兩個都可以調。
 //   **漸層的 --bg 不跟著淡出**（2026-11-26 第五版）：漸層疊在兩份照片上面、本身不動，已經是實底的地方捲到哪裡都是實底
 // - **不每一幀改 filter**：兩層疊起來——上層是清楚的圖，下層是預先套好靜態模糊的同一張圖，捲動時只改兩層的透明度
 //   （清楚的那層淡掉、模糊的那層接手，再一起淡出；比例怎麼算見 utils/heroFade.ts）。只動 opacity，交給合成器
-// - 終點是「主圖基準高度的 60%」與「頁面能捲到的最大距離」取較小的那個：捲到底一定到終點。
-//   **終點之後維持終點的樣子**（2026-11-26 第五版）：見樣式裡的 brew-hero-*-hold
-// 兩條路：
-//   - 支援捲動連動動畫的瀏覽器（animation-timeline: scroll()；Chromium 115+、Safari 26+）：只用 CSS，捲動時不跑任何程式
-//   - 不支援的：passive 的 scroll 事件，每一格畫面最多一次（requestAnimationFrame）把兩層的透明度寫進 --hero-clear／--hero-blurred。
-//     捲動時只讀 scrollY，不讀版面；終點在掛載、視窗大小改變與頁面高度改變（ResizeObserver）時量一次。進度限制在 0 到 1
+// - 終點是「主圖基準高度的 60%」與「頁面能捲到的最大距離」取較小的那個：捲到底一定到終點
+// - **透明度一律由程式驅動**（2026-11-27，iPhone 實機：CSS 的捲動連動動畫在 iOS Safari 上不是隨捲動漸進，而是捲過終點時一次跳到結尾；
+//   桌面的 Chromium、WebKit 重現不出來；為了它疊的 range、min()、fill、hold 都拿掉了）：passive 的 scroll 事件，每一格畫面最多一次
+//   （requestAnimationFrame）把兩層的透明度寫進 --hero-clear／--hero-blurred。捲動時只讀 scrollY，不讀版面；
+//   終點在掛載、視窗大小改變與頁面高度改變（ResizeObserver）時量一次。進度限制在 0 到 1。透明度晚一幀肉眼看不出來
+// - 背景的「固定」（抵銷捲動的平移）維持 CSS 的捲動連動動畫：實機上正常，而且位移晚一幀會抖（見樣式）
 // 減少動態時照樣模糊淡出：只有透明度與靜態的模糊、沒有位移，而且跟著手指走（《03》§6、§4.17）
 //
 // 漸層（2026-11-26 第五版：只有一條，拿掉標題區背後跟著捲動的那一層）：
@@ -78,10 +78,9 @@ function measureLayout() {
   el.style.setProperty('--hero-solid', `${Math.round(Math.max(solid, titleTop))}px`)
 }
 
-// ── 捲動時模糊淡出：不支援 animation-timeline 時的備援 ───────────────
-/** 捲過主圖基準高度的這個比例時到終點（和 CSS 的 --hero-fade-end 同一個數） */
+// ── 捲動時模糊淡出：程式驅動（兩條路都是）─────────────────────────
+/** 捲過主圖基準高度的這個比例時到終點 */
 const FADE_RATIO = 0.6
-let fallback = false
 let fadeEnd = 1
 let opacityEnd = 0
 let frame = 0
@@ -91,13 +90,14 @@ let cleanup: (() => void) | null = null
 function measure() {
   measureLayout()
   const el = root.value
-  if (!el || !fallback) return
+  if (!el) return
   const style = getComputedStyle(el)
   // 主圖的 min-height 就是 --hero-h（基準高度，不含豆名很長時撐高的部分），乘上同一個比例；
   // 頁面能捲的距離比它短時，以捲到底為終點
   const maxScroll = document.documentElement.scrollHeight - window.innerHeight
   fadeEnd = Math.max(1, Math.min(Number.parseFloat(style.minHeight) * FADE_RATIO, maxScroll))
   opacityEnd = Number.parseFloat(style.getPropertyValue('--hero-opacity-end')) || 0
+  if (debug.value) debugFadeEnd.value = fadeEnd // 診斷（上線前拿掉）
   apply()
 }
 function apply() {
@@ -115,19 +115,25 @@ function onScroll() {
 function observe() {
   if (!observer) return
   observer.disconnect()
-  // 主圖（豆名換行）、第一個段落所在的內容區（小數據列換行）、整頁（不支援時：能捲的距離）
+  // 主圖（豆名換行）、第一個段落所在的內容區（小數據列換行）、整頁（能捲的距離）
   if (root.value) observer.observe(root.value)
   if (props.solidAt?.parentElement) observer.observe(props.solidAt.parentElement)
-  if (fallback) observer.observe(document.body)
+  observer.observe(document.body)
 }
 
+// ── 診斷：網址加 ?hero-debug=1 時在畫面角落顯示捲動與透明度（BrewHeroDebug）。**上線前整段拿掉** ──
+const debug = ref(false)
+const debugFadeEnd = ref(0)
+const debugFollow = ref('')
+
 onMounted(() => {
-  fallback = !CSS.supports('animation-timeline', 'scroll()')
+  debug.value = useRoute().query['hero-debug'] === '1'
+  debugFollow.value = CSS.supports('animation-timeline', 'scroll()') ? 'CSS（absolute＋捲動連動平移）' : 'fixed'
   observer = new ResizeObserver(() => measure())
   observe()
   measure()
   window.addEventListener('resize', measure, { passive: true })
-  if (fallback) window.addEventListener('scroll', onScroll, { passive: true })
+  window.addEventListener('scroll', onScroll, { passive: true })
   cleanup = () => {
     window.removeEventListener('scroll', onScroll)
     window.removeEventListener('resize', measure)
@@ -183,6 +189,9 @@ onBeforeUnmount(() => cleanup?.())
       <slot name="actions" />
     </div>
 
+    <!-- 診斷（?hero-debug=1）。上線前整段拿掉 -->
+    <BrewHeroDebug v-if="debug" :root="root" :fade-end="debugFadeEnd" :follow="debugFollow" />
+
     <!-- 上層的第一段：標題區。跟著頁面捲動，從背景上滑過去 -->
     <div class="brew-hero__title">
       <div ref="text" class="brew-hero__text">
@@ -200,13 +209,11 @@ onBeforeUnmount(() => cleanup?.())
   /* 量到之前的預設（掛載時就會量，通常看不到）：標題頂端在 55%，實底在主圖底下 120px */
   --hero-title-top: max(96px, calc(var(--hero-h) * 0.55));
   --hero-solid: calc(var(--hero-h) + 120px);
-  /* 捲過這個距離時到終點（主圖基準高度的 60%；程式裡的 FADE_RATIO 是同一個數）。頁面捲不到這麼遠時以捲到底為終點 */
-  --hero-fade-end: calc(var(--hero-h) * 0.6);
   /* **終點的模糊與照片的透明度：在手機上看過再調**（2026-11-26）。模糊是下層預先套好的靜態模糊；
      --hero-blur-scale 把模糊的那張圖放大一點，模糊後變透明的邊緣落在框外（模糊加大時這個也要跟著加）。
-     --hero-opacity-end 只管兩份照片，不管漸層的 --bg */
+     --hero-opacity-end 只管兩份照片，不管漸層的 --bg。0（2026-11-27）：0.3 不符合文字對比，0.04 已經看不出來 */
   --hero-blur-end: 20px;
-  --hero-opacity-end: 0.3;
+  --hero-opacity-end: 0;
   --hero-blur-scale: 1.2;
   position: relative;
   display: flex;
@@ -224,10 +231,6 @@ onBeforeUnmount(() => cleanup?.())
    不支援的瀏覽器（iOS 18 以前，還在用 theme-color、沒有這條取色規則）維持 fixed：用程式逐格平移一定會抖，不這樣做。
    fixed 時左右和主圖原本的位置一樣：手機上貼齊螢幕，寬螢幕時是內容欄（--fixed-left／right 是內容欄的文字線，減掉頁面內距就是欄的邊緣） */
 .brew-hero__bg {
-  /* 捲動連動動畫在 25%、50%、75% 的整體透明度 o ＝ 1 − t(1 − 終點)（utils/heroFade.ts） */
-  --hero-o25: calc(1 - 0.25 * (1 - var(--hero-opacity-end)));
-  --hero-o50: calc(1 - 0.5 * (1 - var(--hero-opacity-end)));
-  --hero-o75: calc(1 - 0.75 * (1 - var(--hero-opacity-end)));
   position: fixed;
   z-index: 0;
   top: env(safe-area-inset-top);
@@ -237,7 +240,7 @@ onBeforeUnmount(() => cleanup?.())
   overflow: hidden;
   pointer-events: none;
 }
-/* 抵銷捲動：從頂端起算的平移量 ＝ 捲動距離。範圍 0 到 --hero-follow（10000px），平移也是 0 到 10000px，所以兩者一比一；
+/* 抵銷捲動（這是唯一還用 CSS 捲動連動動畫的地方；透明度改由程式驅動，見 script）：從頂端起算的平移量 ＝ 捲動距離。範圍 0 到 --hero-follow（10000px），平移也是 0 到 10000px，所以兩者一比一；
    這段範圍比頁面能捲的距離長得多，捲到底也不會走完（不會進入「結束之後」，不靠 fill 維持）。
    平移出去的部分會撐大頁面的捲動範圍、越捲越長，所以結算頁的 main 是 overflow: clip（summary.vue），這一層不會撐到 main 外面 */
 @supports (animation-timeline: scroll()) {
@@ -263,6 +266,7 @@ onBeforeUnmount(() => cleanup?.())
   overflow: hidden;
   will-change: opacity;
 }
+/* 兩層的透明度由程式寫進 --hero-clear／--hero-blurred（utils/heroFade.ts）；還沒寫之前是捲動 0 的樣子 */
 .brew-hero__layer--clear {
   opacity: var(--hero-clear, 1);
 }
@@ -275,52 +279,6 @@ onBeforeUnmount(() => cleanup?.())
 }
 .brew-hero__blur--photo {
   scale: var(--hero-blur-scale);
-}
-/* 只用 CSS：捲動連動動畫。animation 的簡寫會把 animation-timeline 重設回 auto，所以 timeline 寫在後面。
-   終點的 100% 是這條時間軸的全長，也就是頁面能捲到的最大距離：取較小的那個，捲到底一定到終點。
-   **終點之後維持終點的樣子：不只靠 fill**（2026-11-26 第五版，iPhone 實機：比較列很多的長頁面捲過終點後，照片突然變回不模糊）。
-   每一層各兩段動畫：
-     1. brew-hero-clear／-blurred：0 到終點，透明度照式子變
-     2. brew-hero-*-hold：終點到 --hero-follow（10000px），透明度固定是終點的值。排在後面，動畫進行中時蓋過第 1 段
-   第 2 段的範圍比頁面長，從終點到捲到底一直在「進行中」，不會進入「結束之後」——
-   Safari 交給合成器跑的捲動連動動畫，結束之後會從合成器上拿掉（WebKit bug 302157、310806），fill 的值不一定留得住，
-   第 1 段只靠 fill: both 的話，長頁面捲過終點就變回原本的透明度（清楚的那層 1：不模糊）。
-   第 2 段只有 forwards、沒有 backwards：終點之前不套用，不會蓋掉第 1 段。短頁面終點就是捲到底（100%），第 2 段的範圍從 100% 開始，捲到底時接手。
-   全站減少動態的規則會把 animation-duration 改成 0.01ms：捲動連動的動畫不看時間長度（整段對應捲動的範圍），不受影響 */
-@supports (animation-timeline: scroll()) {
-  .brew-hero__layer--clear {
-    animation: brew-hero-clear linear both, brew-hero-clear-hold linear forwards;
-    animation-timeline: scroll(root block), scroll(root block);
-    animation-range: 0 min(var(--hero-fade-end), 100%), min(var(--hero-fade-end), 100%) var(--hero-follow);
-  }
-  .brew-hero__layer--blurred {
-    animation: brew-hero-blurred linear both, brew-hero-blurred-hold linear forwards;
-    animation-timeline: scroll(root block), scroll(root block);
-    animation-range: 0 min(var(--hero-fade-end), 100%), min(var(--hero-fade-end), 100%) var(--hero-follow);
-  }
-}
-/* 兩層的透明度（utils/heroFade.ts 的 heroLayers，關鍵影格和 HERO_FADE_STOPS 一致）：
-   清楚 c ＝ o(1 − t)；模糊 b ＝ o·t / (1 − c)。看起來的模糊程度是 t、整體透明度是 o，兩個都線性 */
-@keyframes brew-hero-clear {
-  0% { opacity: 1; }
-  25% { opacity: calc(var(--hero-o25) * 0.75); }
-  50% { opacity: calc(var(--hero-o50) * 0.5); }
-  75% { opacity: calc(var(--hero-o75) * 0.25); }
-  100% { opacity: 0; }
-}
-@keyframes brew-hero-blurred {
-  0% { opacity: 1; }
-  25% { opacity: calc(var(--hero-o25) * 0.25 / (1 - var(--hero-o25) * 0.75)); }
-  50% { opacity: calc(var(--hero-o50) * 0.5 / (1 - var(--hero-o50) * 0.5)); }
-  75% { opacity: calc(var(--hero-o75) * 0.75 / (1 - var(--hero-o75) * 0.25)); }
-  100% { opacity: var(--hero-opacity-end); }
-}
-/* 終點之後：固定是終點的值（和上面兩組的 100% 相同） */
-@keyframes brew-hero-clear-hold {
-  from, to { opacity: 0; }
-}
-@keyframes brew-hero-blurred-hold {
-  from, to { opacity: var(--hero-opacity-end); }
 }
 .brew-hero__scrim {
   position: absolute;
