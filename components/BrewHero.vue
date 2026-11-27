@@ -22,7 +22,8 @@
 // 沒有照片（BrewHeroFallback）、網址還沒拿到、圖還沒載完、載入失敗時沒有這顆按鈕：不能點、也不能聚焦
 //
 // 圖：
-// - 有豆袋照片（hasPhoto）：用原圖（photoUrl，不用 384 的縮圖），object-fit: cover、置中。
+// - 有豆袋照片（hasPhoto）：用原圖（photoUrl，不用 384 的縮圖），放在正方形的照片框裡（寬＝主圖寬，貼齊頂端，2026-11-27 第二版），
+//   object-fit: cover、置中。框以下到漸層的實底是 --bg：照片的大小不跟著背景層的高度變（見樣式的 .brew-hero__photo）。
 //   網址還沒拿到、圖還沒載完時，底下先是烘焙度底色，版面不跳動。載入失敗時換成 BrewHeroFallback
 // - 沒有照片：BrewHeroFallback
 //
@@ -55,7 +56,7 @@
 //   標題頂端是 --bg 的 90% → 在 solidAt（頁面傳進來的第一個段落）的頂端剛好 100%，以下都是 100%。
 //   結算頁是「和 M/D 那一杯相比」或第一杯的「沖煮參數」；豆子詳情是「豆子資訊」（沒有的話是下一段）
 // - 兩個位置隨豆名長度改變，**掛載時與版面改變時量**（ResizeObserver），寫進 --hero-title-top、--hero-solid（從主圖頂端起算）
-// - 背景層（兩份照片與漸層）的高度一路蓋到 --hero-solid：照片在中間不會有硬邊
+// - 背景層（兩份照片與漸層）的高度一路蓋到 --hero-solid。照片本身是正方形的框（寬＝主圖寬），框的下緣落在漸層幾乎不透明的地方，看不到硬邊
 // - 頂端另一層 --hero-scrim（30% 的黑）到透明（上方 22%）：按鈕在照片上看得清楚。清楚與模糊的兩層各有一份，交叉淡化時深淺不變
 
 const props = defineProps<{
@@ -238,21 +239,26 @@ onBeforeUnmount(() => cleanup?.())
   <div ref="root" class="brew-hero">
     <!-- 背景層：固定在畫面頂端，不跟著捲動。圖是裝飾：豆名就在下面，不重複唸 -->
     <div class="brew-hero__bg" aria-hidden="true">
-      <!-- 下層：預先套好靜態模糊的同一張圖。底下鋪烘焙度底色：模糊的邊緣會變透明，透出來的是同一個顏色 -->
-      <div class="brew-hero__layer brew-hero__layer--blurred" :style="{ background: fill.background }">
-        <img
-          v-if="showPhoto && photoUrl"
-          :src="photoUrl"
-          alt=""
-          class="brew-hero__blur brew-hero__blur--photo size-full object-cover"
-          :style="{ opacity: loaded ? 1 : 0 }"
-        >
-        <BrewHeroFallback v-else-if="!showPhoto" class="brew-hero__blur" :roast-level="roastLevel" />
+      <!-- 下層：預先套好靜態模糊的同一張圖。
+           有照片：照片框（正方形、寬度＝主圖寬）底下鋪烘焙度底色，框以下是 --bg；模糊的邊緣因為放大落在框外、被框裁掉。
+           沒有照片：整層鋪烘焙度底色，模糊後變透明的邊緣透出來的是同一個顏色 -->
+      <div class="brew-hero__layer brew-hero__layer--blurred" :style="{ background: showPhoto ? 'var(--bg)' : fill.background }">
+        <div v-if="showPhoto" class="brew-hero__photo" :style="{ background: fill.background }">
+          <img
+            v-if="photoUrl"
+            :src="photoUrl"
+            alt=""
+            class="brew-hero__blur brew-hero__blur--photo size-full object-cover"
+            :style="{ opacity: loaded ? 1 : 0 }"
+          >
+        </div>
+        <BrewHeroFallback v-else class="brew-hero__blur" :roast-level="roastLevel" />
         <div class="brew-hero__scrim" />
       </div>
       <!-- 上層：清楚的圖。捲動時先淡掉，模糊的那層接手 -->
-      <div class="brew-hero__layer brew-hero__layer--clear">
-        <div v-if="showPhoto" class="absolute inset-0" :style="{ background: fill.background }">
+      <div class="brew-hero__layer brew-hero__layer--clear" :style="{ background: showPhoto ? 'var(--bg)' : undefined }">
+        <!-- 照片框：正方形、寬度＝主圖寬，貼齊背景層頂端（和上傳時的裁切比例一致）。框以下到 --hero-solid 是 --bg，漸層蓋在上面 -->
+        <div v-if="showPhoto" class="brew-hero__photo" :style="{ background: fill.background }">
           <img
             v-if="photoUrl"
             :src="photoUrl"
@@ -316,8 +322,8 @@ onBeforeUnmount(() => cleanup?.())
   min-height: var(--hero-h);
 }
 /* 背景層：看起來固定在畫面頂端。z-index 0：上層（標題區、結算頁下面的內容）是 z-index 1，從它上面滑過去。
-   **高度一路蓋到漸層的實底**（--hero-solid，2026-11-26 第五版）：照片、模糊那一份、漸層都在這個高度裡，中間不會出現圖片的硬邊。
-   照片照樣 object-fit: cover、置中，框比主圖高時裁切跟著框走；沒有照片時三顆豆子仍以主圖的基準高度定位（BrewHeroFallback）
+   **高度一路蓋到漸層的實底**（--hero-solid，2026-11-26 第五版）。照片不跟著這個高度放大：正方形的照片框（.brew-hero__photo，寬＝主圖寬）貼齊頂端，
+   框以下是 --bg（2026-11-27 第二版）。沒有照片時三顆豆子仍以主圖的基準高度定位（BrewHeroFallback）
    **不用 position: fixed 的寫法**（2026-11-26 第四版）：iOS 26 的 Safari 不再看 theme-color，改成拿貼著畫面頂端的
    fixed／sticky 元素的底色填狀態列——這一層（裡面鋪著烘焙度底色）會讓狀態列變成一塊深咖啡色。所以支援捲動連動動畫的瀏覽器
    （Safari 26 正是從這一版開始兩者都有）改成 absolute，跟著頁面捲走，再用捲動連動動畫往下平移同樣的距離抵銷：
@@ -367,6 +373,19 @@ onBeforeUnmount(() => cleanup?.())
 }
 .brew-hero__layer--blurred {
   opacity: var(--hero-blurred, 1);
+}
+/* 照片框（2026-11-27 第二版）：**大小以主圖的寬度為準，不跟著背景層的高度放大**。
+   背景層一路蓋到 --hero-solid（豆名、小數據越多越高），原本照片 cover 整個背景層：正方形照片被放大到背景層的高度、左右裁掉一大段，
+   清楚看得到的只剩上方約三分之一。改成正方形的框（寬＝主圖寬、高＝寬，和上傳時的裁切比例一致），貼齊背景層頂端，
+   cover、置中（舊的非正方形照片也這樣裁）；框以下是圖層自己的 --bg，漸層照舊蓋在上面，照片下緣落在漸層幾乎不透明的地方。
+   overflow: hidden：模糊那一份放大 --hero-blur-scale 倍，邊緣落在框外、被框裁掉 */
+.brew-hero__photo {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  aspect-ratio: 1;
+  overflow: hidden;
 }
 /* 靜態的模糊：只在這一層、只算一次，捲動時不改 */
 .brew-hero__blur {

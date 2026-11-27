@@ -27,6 +27,13 @@ export default function run() {
   r.check(!/<template #actions>/.test(template) && !/<PageHeader/.test(template), '右上角不放按鈕；沒有一般的頁首')
   r.check(!/BeanArt|aspect-square|roastFill/.test(template), '拿掉：正方形照片、烘焙度色塊與色塊裡的豆名')
 
+  // 2026-11-27 第二版：照片不跟著背景層（到 --hero-solid）的高度放大
+  r.check(/\.brew-hero__photo \{\s*position: absolute;\s*top: 0;\s*left: 0;\s*right: 0;\s*aspect-ratio: 1;\s*overflow: hidden;\s*\}/.test(hero)
+    && (heroTemplate.match(/<div v-if="showPhoto" class="brew-hero__photo" :style="\{ background: fill\.background \}">/g) || []).length === 2
+    && (heroTemplate.match(/:style="\{ background: showPhoto \? 'var\(--bg\)'/g) || []).length === 2
+    && !/<div v-if="showPhoto" class="absolute inset-0"/.test(heroTemplate),
+    '照片框：正方形、寬＝主圖寬、貼齊頂端（清楚與模糊兩份同一個框），框以下是 --bg')
+
   r.section('返回鈕：浮動、固定在頂端')
   r.check(/<BackButton floating :to="BEAN_BACK_FALLBACK" label="返回" \/>/.test(template), '歷史式（BEAN_BACK_FALLBACK）')
   const back = template.indexOf('<BackButton floating')
