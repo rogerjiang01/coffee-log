@@ -44,19 +44,32 @@ async function signOut() {
 
 <template>
   <main class="mx-auto px-5 pt-10" :style="{ maxWidth: 'var(--content-max)' }">
+    <!-- 返回是頁首的圓鈕（PageHeader → BackButton，2026-11-27） -->
     <PageHeader title="設定" :back="SETTINGS_BACK_FALLBACK" />
 
-    <section class="mt-8">
-      <h2 class="text-sm text-muted">帳號</h2>
-      <p class="mt-1">{{ email }}</p>
-    </section>
+    <!-- 2026-11-27（Figma「設定（草稿）」3670:1787）：段落標題「帳號」＋一張只有一列的唯讀卡片，下面是登出。
+         頁首、段落、按鈕之間都是 --gap-section，和詳情頁相同 -->
+    <div class="flex flex-col" :style="{ marginTop: 'var(--gap-section)', gap: 'var(--gap-section)' }">
+      <FormSection title="帳號">
+        <!-- 只有一列、獨立成一張卡片：膠囊形（FormCard pill，28px），和豆子詳情的「已喝完」同一種。
+             唯讀列（ReadonlyRow）：上下內距固定，信箱換行時列跟著長高、圓角不變 -->
+        <FormCard pill>
+          <dl>
+            <ReadonlyRow label="電子郵件">
+              <!-- 信箱沒有空格：任意字元都可以斷行（wrap-anywhere），不截斷；值靠右（ReadonlyRow） -->
+              <span class="min-w-0 wrap-anywhere">{{ email }}</span>
+            </ReadonlyRow>
+          </dl>
+        </FormCard>
+      </FormSection>
 
-    <AppButton variant="outline"
-      :busy="signingOut"
-      class="mt-8"
-      @click="signOut"
-    >
-      {{ signingOut ? '登出中' : '登出' }}
-    </AppButton>
+      <!-- 滿寬的外框按鈕：56px、膠囊形（AppButton 的 block，《03》§4.18） -->
+      <AppButton variant="outline" block
+        :busy="signingOut"
+        @click="signOut"
+      >
+        {{ signingOut ? '登出中' : '登出' }}
+      </AppButton>
+    </div>
   </main>
 </template>

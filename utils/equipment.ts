@@ -288,6 +288,32 @@ export function relativeUsed(iso: string | null | undefined, now: Date = new Dat
 }
 
 /**
+ * 器材列表第二行的「上次使用」（2026-11-27）。
+ *
+ * - 還不知道（查詢還沒回來、或查詢失敗）：null，什麼都不寫——不能因為還沒查到就說「還沒用過」
+ * - 沒有任何紀錄用過它：「還沒用過」
+ * - 有紀錄：relativeUsed。日期無效或在未來時它刻意回 null，這裡照舊不顯示，不改寫成「還沒用過」
+ *
+ * known 是「上次使用」這一份資料到了沒有；lastUsed 是 lastUsedFromBrews 配對出來的時間（沒用過就沒有這一台）。
+ */
+export function equipmentUsage(lastUsed: string | undefined, known: boolean, now: Date = new Date()): string | null {
+  if (!known) return null
+  if (lastUsed === undefined) return '還沒用過'
+  return relativeUsed(lastUsed, now)
+}
+
+/**
+ * 器材列表每一列的無障礙名稱（2026-11-27）。整列是通往編輯頁的連結，畫面上沒有「編輯」兩個字，
+ * 所以名稱開頭是「編輯」，後面依畫面上的順序接名稱、常用、範例、備註、上次使用，用逗號隔開（螢幕閱讀器會停頓）。
+ * 畫面上看得到的字都在名稱裡（WCAG 2.5.3），沒有的項目不寫。
+ */
+export function equipmentRowLabel(parts: { name: string, isDefault: boolean, isSample: boolean, note: string | null, usage: string | null }): string {
+  return [`編輯 ${parts.name}`, parts.isDefault ? '常用' : null, parts.isSample ? '範例' : null, parts.note?.trim() || null, parts.usage]
+    .filter(Boolean)
+    .join('，')
+}
+
+/**
  * 從沖煮紀錄反查每一台器材最後出現的時間。
  *
  * user_equipment 沒有這個欄位，也不該有——它是衍生值（《01》§8）。

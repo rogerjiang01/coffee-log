@@ -137,7 +137,7 @@ onMounted(load)
       to="/beans/new"
       aria-label="新增豆子"
       class="fab-position flex size-14 items-center justify-center rounded-full"
-      :style="{ background: 'var(--accent)', color: 'var(--on-accent)', boxShadow: 'var(--overlay-shadow)' }"
+      :style="{ background: 'var(--accent)', color: 'var(--on-accent)', boxShadow: 'var(--float-shadow)' }"
     >
       <svg
         width="24" height="24" viewBox="0 0 24 24" aria-hidden="true"

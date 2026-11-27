@@ -26,6 +26,7 @@ const suites = [
   ['unit/dev-corners.test.mjs', '開發用的調整頁'],
   ['unit/summary-wiring.test.mjs', '縮圖佔位與範例標籤的接線'],
   ['unit/bean-detail-wiring.test.mjs', '豆子詳情的接線'],
+  ['unit/equipment-list-wiring.test.mjs', '器材列表與設定頁的接線'],
   ['unit/bean-compare.test.ts', '豆子比較表'],
   ['unit/lookup.test.ts', '查表欄位的比對'],
   ['unit/countries.test.ts', '產國的洲別分組'],

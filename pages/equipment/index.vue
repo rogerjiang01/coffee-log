@@ -41,6 +41,13 @@
     }
 
     const lastUsed = ref<Map<string, string>>(new Map());
+    // 「上次使用」這一份資料到了沒有。還沒到（或查詢失敗）時第二行不寫「還沒用過」：那是不知道，不是沒用過
+    const usageKnown = ref(false);
+
+    // 第二行的「上次使用」與整列的無障礙名稱（utils/equipment.ts）
+    const usage = (row: UserEquipmentRow) => equipmentUsage(lastUsed.value.get(row.id), usageKnown.value);
+    const rowLabel = (row: UserEquipmentRow) =>
+        equipmentRowLabel({ name: equipmentOptionName(row), isDefault: row.is_default, isSample: row.is_sample, note: row.note, usage: usage(row) });
 
     async function load() {
         loadError.value = "";
@@ -57,6 +64,7 @@
         const usedQuery = cache.swr(cacheKeys.equipmentLastUsed(), fetchLastUsed, {
             apply: (pairs) => {
                 lastUsed.value = new Map(pairs);
+                usageKnown.value = true;
             },
         });
 
@@ -79,55 +87,55 @@
             {{ loadError }}
         </p>
 
-        <div v-if="loading" aria-busy="true" aria-label="讀取中" class="mt-6 space-y-6">
-            <section v-for="n in 2" :key="n">
-                <SkeletonBlock width="4rem" height="0.875rem" />
-                <div class="mt-3 space-y-3">
-                    <SkeletonBlock v-for="row in 2" :key="row" height="3.5rem" radius="var(--radius-card-ml)" class="card-ml-corners" />
-                </div>
+        <!-- 骨架：和內容同一個版面——段落標題加一張卡片、卡片裡兩行的列（2026-11-27）。
+             卡片角落的色塊圓角 8px（卡片 24 − 內距 16，《03》§2.3.1）；段落標題不在卡片裡，用預設圓角 -->
+        <div v-if="loading" aria-busy="true" aria-label="讀取中" class="flex flex-col" :style="{ marginTop: 'var(--gap-section)', gap: 'var(--gap-section)' }">
+            <section v-for="n in 2" :key="n" class="flex flex-col" :style="{ gap: 'var(--gap-group)' }">
+                <SkeletonBlock width="4rem" height="1.25rem" class="card-pad-x-margin" />
+                <FormCard>
+                    <ul>
+                        <li v-for="row in 2" :key="row" class="equipment-skeleton-row card-pad-x flex flex-col" :style="{ paddingBlock: 'var(--sheet-pad-two-line)', gap: '2px' }">
+                            <span class="flex items-center" :style="{ height: 'var(--sheet-line)' }"><SkeletonBlock width="55%" height="1.125rem" radius="8px" /></span>
+                            <span class="flex items-center" :style="{ height: 'calc(var(--text-body-m) * var(--text-body-m--line-height))' }"><SkeletonBlock width="35%" height="0.875rem" radius="8px" /></span>
+                        </li>
+                    </ul>
+                </FormCard>
             </section>
         </div>
 
-        <p v-else-if="!items.length && !loadError" class="mt-6 text-muted">設為常用的器材，新增紀錄時會自動帶入。</p>
+        <p v-else-if="!items.length && !loadError" class="text-muted" :style="{ marginTop: 'var(--gap-section)' }">設為常用的器材，新增紀錄時會自動帶入。</p>
 
-        <div v-else class="mt-6 space-y-6">
-            <section v-for="group in grouped" :key="group.type">
-                <h2 class="text-sm text-muted">{{ equipmentLabels[group.type] }}</h2>
-                <ul class="mt-2 space-y-3">
-                    <li v-for="row in group.rows" :key="row.id" class="card-ml-corners border p-4 shadow-light" :style="{ borderColor: 'var(--border)', background: 'var(--surface)' }">
-                        <!-- 固定兩行，高度由結構決定不由內容決定。
-                 左邊回答「這是什麼」（名稱 ＋ 常用標籤），右邊回答「能做什麼」（編輯）。
-                 標籤緊跟名稱是因為它是名稱的修飾語，屬於身分而非動作；
-                 與「編輯」並列會讓人以為標籤可以點。 -->
-                        <div class="flex items-center justify-between gap-2" :style="{ minHeight: 'var(--touch-min)' }">
-                            <div class="flex min-w-0 flex-1 items-center gap-2">
-                                <h3 class="min-w-0 truncate font-medium">{{ equipmentOptionName(row) }}</h3>
+        <!-- 分組（2026-11-27，Figma 3670:1760）：每個類型是一個段落（FormSection：標題 Heading L、和卡片裡的列文字對齊），
+             底下一張表單卡片（FormCard，一般圓角——只有一台時也不是膠囊形：兩行的列不是 56／65），每台器材一列。
+             段落之間 --gap-section、標題到卡片 --gap-group，和紀錄詳情、豆子詳情相同 -->
+        <div v-else class="flex flex-col" :style="{ marginTop: 'var(--gap-section)', gap: 'var(--gap-section)' }">
+            <FormSection v-for="group in grouped" :key="group.type" :title="equipmentLabels[group.type]">
+                <FormCard>
+                    <ul>
+                        <!-- 整列是通往編輯頁的連結，畫面上沒有「編輯」兩個字：無障礙名稱開頭是「編輯」，
+                             名稱、常用、範例、備註、上次使用都在裡面（equipmentRowLabel） -->
+                        <TwoLineRow v-for="row in group.rows" :key="row.id" :to="`/equipment/${row.id}/edit`" :aria-label="rowLabel(row)">
+                            <!-- 標籤緊跟名稱：它是名稱的修飾語，屬於身分而非動作 -->
+                            <template #title>
+                                <span class="min-w-0 truncate">{{ equipmentOptionName(row) }}</span>
                                 <span v-if="row.is_default" class="shrink-0 rounded-sm px-2 py-0.5 text-sm" :style="{ background: 'var(--accent-wash)', color: 'var(--on-accent-wash)' }">常用</span>
                                 <SampleBadge v-if="row.is_sample" />
-                            </div>
-
-                            <!-- 撐滿整列高度，觸控目標才滿足《03》§7 的 44px。
-                   卡片本來就固定高度，所以這不會造成額外的視覺變化。 -->
-                            <NuxtLink :to="`/equipment/${row.id}/edit`" class="flex shrink-0 items-center px-2 text-sm underline" :style="{ color: 'var(--accent)', alignSelf: 'stretch', minWidth: 'var(--touch-min)' }">編輯</NuxtLink>
-                        </div>
-
-                        <!-- 第二行：兩項都可能為空，空的時候不顯示文字但保留行高，
-                 卡片高度才不會隨內容跳動。
-                 備註不是次要資訊——兩台同型號的器材（例如兩台 C40）
-                 名稱完全相同時，備註是唯一的辨識依據。
-                 兩項之間用間距分隔，不用中間點（《03》§1 禁止 meta 串接）。 -->
-                        <p class="flex items-baseline gap-4 text-sm text-muted" :style="{ minHeight: 'calc(var(--text-sm) * var(--text-sm--line-height))' }">
-                            <span class="min-w-0 flex-1 truncate">{{ row.note }}</span>
-                            <span class="shrink-0 tabular-nums">{{ relativeUsed(lastUsed.get(row.id)) }}</span>
-                        </p>
-                    </li>
-                </ul>
-            </section>
+                            </template>
+                            <!-- 第二行：備註、上次使用。備註不是次要資訊——兩台同型號的器材（例如兩台 C40）
+                                 名稱完全相同時，備註是唯一的辨識依據。兩項都沒有時整行不出現 -->
+                            <template v-if="row.note?.trim() || usage(row)" #meta>
+                                <span v-if="row.note?.trim()" class="min-w-0 truncate">{{ row.note }}</span>
+                                <span v-if="usage(row)" class="shrink-0 tabular-nums">{{ usage(row) }}</span>
+                            </template>
+                        </TwoLineRow>
+                    </ul>
+                </FormCard>
+            </FormSection>
         </div>
 
         <!-- 列表頁的新增入口一律是右下角浮動按鈕（§3 導覽），而且都導向新增頁——
-             這裡原本是 href="#" 加頁內表單，外觀相同、行為不同 -->
-        <NuxtLink to="/equipment/new" aria-label="新增器材" class="fab-position flex size-14 items-center justify-center rounded-full" :style="{ background: 'var(--accent)', color: 'var(--on-accent)', boxShadow: 'var(--overlay-shadow)' }">
+             這裡原本是 href="#" 加頁內表單，外觀相同、行為不同。陰影是懸浮按鈕的 --float-shadow（2026-11-27） -->
+        <NuxtLink to="/equipment/new" aria-label="新增器材" class="fab-position flex size-14 items-center justify-center rounded-full" :style="{ background: 'var(--accent)', color: 'var(--on-accent)', boxShadow: 'var(--float-shadow)' }">
             <svg
                 width="24" height="24" viewBox="0 0 24 24" aria-hidden="true"
                 fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
@@ -138,3 +146,14 @@
         </NuxtLink>
     </main>
 </template>
+
+<style scoped>
+/* 骨架的段落標題：和 FormSection 的標題同一條線（--card-pad） */
+.card-pad-x-margin {
+    margin-inline: var(--card-pad);
+}
+/* 骨架的列之間一條分隔線，和 TwoLineRow 相同 */
+.equipment-skeleton-row:not(:last-child) {
+    box-shadow: inset 0 -1px 0 var(--border);
+}
+</style>

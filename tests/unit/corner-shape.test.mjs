@@ -101,9 +101,10 @@ export default function run() {
   r.check(/\.form-card-corners \{\s*border-radius: var\(--radius-card-lg\);\s*corner-shape: var\(--corner-card-lg\);/.test(css), '.form-card-corners')
   for (const [path, re, label] of [
     ['components/BeanCard.vue', /class="card-ml-corners flex overflow-hidden border"/, '豆子列表的卡片：ml'],
-    ['pages/equipment/index.vue', /class="card-ml-corners border p-4 shadow-light"/, '器材列表的每一台：ml'],
+    // 2026-11-27：器材列表改成每個類型一張表單卡片（FormCard，lg 24px），不再一台一張 ml 卡片
+    ['pages/equipment/index.vue', /<FormCard>\s*<ul>\s*<!--[\s\S]*?-->\s*<TwoLineRow/, '器材列表：每個類型一張表單卡片（lg），不是膠囊形'],
     ['pages/beans/index.vue', /<SkeletonBlock height="5\.5rem" radius="var\(--radius-card-ml\)" class="card-ml-corners" \/>/, '豆子列表的骨架：ml'],
-    ['pages/equipment/index.vue', /height="3\.5rem" radius="var\(--radius-card-ml\)" class="card-ml-corners"/, '器材列表的骨架：ml'],
+    ['pages/equipment/index.vue', /<FormCard>\s*<ul>\s*<li v-for="row in 2"/, '器材列表的骨架：同一種表單卡片'],
     ['components/BeanCompareTable.vue', /class="card-corners overflow-hidden border shadow-light"/, '比較表維持 md（24px）'],
   ]) r.check(re.test(read(path)), label)
   const mdUsers = all.filter(f => f !== 'components/AppCard.vue' && /\bcard-corners\b|--radius-card-md/.test(read(f).replace(/card-ml-corners|form-card-corners/g, '')))
