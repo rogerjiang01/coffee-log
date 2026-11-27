@@ -77,16 +77,19 @@ export default function run() {
   r.check(/<FormCard pill class="mt-4">\s*<FormRow>\s*<ToggleSwitch[\s\S]*?label="已喝完"\s*row/.test(beanDetail), '豆子詳情的「已喝完」：FormCard pill、開關是一列')
   const appCardUsers = all.filter(f => f !== 'components/AppCard.vue' && /<AppCard\b/.test(read(f)))
   // 2026-11-23：紀錄分頁的紀錄卡片與它的骨架也用 AppCard（ml）
-  r.check(appCardUsers.sort().join(',') === ['components/BrewCard.vue', 'components/FormCard.vue', 'components/GoalWeekCard.vue', 'components/OverviewBeanCard.vue', 'dev/corners.vue', 'pages/brews/index.vue', 'pages/index.vue'].join(','),
-    `用 AppCard 的只有表單、總覽、結算頁的本週目標、紀錄卡片與調整頁（${appCardUsers.join('、')}）`)
+  // 2026-11-26：結算頁改版，本週目標卡片（GoalWeekCard）只剩總覽在用；結算頁的「沖煮參數」卡片用 AppCard（md）
+  r.check(appCardUsers.sort().join(',') === ['components/BrewCard.vue', 'components/FormCard.vue', 'components/GoalWeekCard.vue', 'components/OverviewBeanCard.vue', 'dev/corners.vue', 'pages/brews/[id]/summary.vue', 'pages/brews/index.vue', 'pages/index.vue'].join(','),
+    `用 AppCard 的只有表單、總覽、結算頁的沖煮參數、紀錄卡片與調整頁（${appCardUsers.join('、')}）`)
+  r.check(/<AppCard\s+as="a"/.test(read('pages/brews/[id]/summary.vue')) && !/<AppCard[^>]*radius=/.test(read('pages/brews/[id]/summary.vue')),
+    '結算頁的沖煮參數卡片：預設的 md（24px），不是分頁第一層的 ml')
 
   r.section('卡片的圓角：分頁第一層 18px（ml），其他 24px（2026-11-23）')
   r.check(/radius\?: 'ml' \| 'md' \| 'lg' \| 'pill' \| 'pill-tall'/.test(card) && /\{ radius: 'md',/.test(card), 'AppCard 的預設是 md：要 ml 就明確傳')
   const goal = read('components/GoalWeekCard.vue')
-  r.check(/radius\?: 'ml' \| 'md'/.test(goal) && /radius: 'md' \}\)/.test(goal) && /:radius="radius"/.test(goal), 'GoalWeekCard 的預設是 md（結算頁）')
+  // 2026-11-26：結算頁不再用這張卡片，只剩總覽（分頁第一層），radius 這個 prop 刪掉、固定 ml
+  r.check(!/radius\?:/.test(goal) && /<AppCard[\s\S]*?radius="ml"/.test(goal), 'GoalWeekCard 固定是 ml（18px），沒有 radius 這個 prop')
   const overview = read('pages/index.vue')
-  r.check(/<GoalWeekCard[^>]*\bradius="ml"/.test(overview), '總覽的本週目標明確傳 ml')
-  r.check(!/radius=/.test((read('pages/brews/[id]/summary.vue').match(/<GoalWeekCard[^>]*>/) || [''])[0]), '結算頁的本週目標不傳 radius（md）')
+  r.check(!/<GoalWeekCard[^>]*\bradius=/.test(overview), '總覽的本週目標不傳 radius')
   const overviewCards = overview.match(/<AppCard\b[^>]*>/g) || []
   r.check(overviewCards.length === 3 && overviewCards.every(c => /\bradius="ml"/.test(c)), '總覽的說明卡片、累計、本月是 ml')
   r.check(/<AppCard\b[^>]*\bradius="ml"/.test(read('components/OverviewBeanCard.vue')), '最近沖煮、最高分是 ml')

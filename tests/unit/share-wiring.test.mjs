@@ -53,11 +53,18 @@ export default function run() {
   // 而它讀了每一個 key
   r.check(/toStepInputs\(brew\.value\.steps\)/.test(view), '分段交給 toStepInputs（與紀錄詳情頁同一個轉換）')
   const toStepInputs = functionBody(steps, 'toStepInputs')
+  // 強度的四個 key：分享頁把整個 intensity 交給共用的唯讀段落（2026-11-25），由 IntensityDisplay 依 INTENSITY_DIMENSIONS 逐一顯示
+  const passesIntensity = /:intensity="brew\.intensity"/.test(view)
+    && /<IntensityDisplay\b[^>]*:intensity="intensity"/.test(read('components/BrewReadonlySections.vue'))
+    && /INTENSITY_DIMENSIONS\.map/.test(read('components/IntensityDisplay.vue'))
+  const dimensions = read('utils/brew.ts').match(/INTENSITY_DIMENSIONS[\s\S]*?\n\]/)?.[0] ?? ''
   for (const key of SHARED_BREW_KEYS) {
     const leaf = key.replace(/\[\]$/, '').split(/\.|\[\]\./).pop()
     const used = key.startsWith('steps[].')
       ? new RegExp(`row\\.${leaf}|a\\.${leaf}`).test(toStepInputs)
-      : new RegExp(`\\.${leaf}\\b|\\['${leaf}'`).test(view)
+      : key.startsWith('intensity.')
+        ? passesIntensity && new RegExp(`key: '${leaf}'`).test(dimensions)
+        : new RegExp(`\\.${leaf}\\b|\\['${leaf}'`).test(view)
     r.check(used, `${key}`)
   }
 
@@ -117,8 +124,10 @@ export default function run() {
   r.check(/分享建立失敗，連結目前無法開啟/.test(notices) && /再試一次/.test(notices) && /關閉/.test(notices),
     '建立失敗的提示在頁面層級，附「再試一次」與「關閉」')
   r.check(!/setTimeout[^\n]*failedSend/.test(panel), '建立失敗的提示不自動消失')
-  r.check(/bottom: 'calc\(var\(--tab-bar-top\) \+ 12px\)'/.test(notices) && /left: 'var\(--fixed-left\)', right: 'var\(--fixed-right\)'/.test(notices),
-    '頁面層級的提示在分頁列之上 12px（已含底部安全區），左右和分頁列對齊')
+  r.check(/bottom: toastBottom/.test(notices) && /left: 'var\(--fixed-left\)', right: 'var\(--fixed-right\)'/.test(notices),
+    '頁面層級的提示：左右和分頁列對齊')
+  r.check(/showsTabBar\(route\.meta\.screen, userId\.value !== null\)\s*\? 'calc\(var\(--tab-bar-top\) \+ 12px\)'\s*: 'calc\(max\(12px, env\(safe-area-inset-bottom\)\) \+ 12px\)'/.test(panel),
+    '有分頁列時在分頁列之上 12px（已含底部安全區）；沒有分頁列（結算頁）時貼著螢幕底、避開底部的橫線')
   r.check(!/mismatch/.test(panel), '沒有「別的裝置先分享過」的處理（傳送模型不會發生）')
 
   r.section('開啟事件只由讀取函式記')

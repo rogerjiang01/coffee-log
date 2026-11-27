@@ -8,6 +8,14 @@ export interface Intensity {
   bitterness?: number
 }
 
+/** 強度的四個維度：名稱與順序。表單（IntensityPicker）與唯讀的顯示（IntensityDisplay）共用 */
+export const INTENSITY_DIMENSIONS: { key: keyof Intensity, label: string }[] = [
+  { key: 'acidity', label: '酸質' },
+  { key: 'sweetness', label: '甜感' },
+  { key: 'body', label: '醇厚' },
+  { key: 'bitterness', label: '苦味' },
+]
+
 export interface BrewFormValues {
   bean_id: string | null
   brew_method_id: string | null

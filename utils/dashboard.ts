@@ -127,8 +127,8 @@ export function recordCount(brews: readonly StatBrew[]): number {
 /**
  * 結算頁的目標環：從存檔前的杯數前進到存檔後的杯數。
  *   這一筆不在本週        不顯示環與「本週」的文字（null）
- *   存檔前未達標、存檔後達標  crossed：補滿的瞬間強調，「N／M 杯」下方顯示「已達成」
- *   已經超過目標之後        環停在一圈（不畫第二圈），不出現「已達成」；卡片寫「超過 N 杯」
+ *   存檔前未達標、存檔後達標  crossed：補滿的瞬間強調，環畫完之後那一行接上「，達成目標」
+ *   已經超過目標之後        環停在一圈（不畫第二圈），沒有前進的動畫；字直接寫「達成目標」
  */
 export function summaryRing(
   brews: readonly StatBrew[], goals: readonly GoalRow[], brewId: string, now: Date,

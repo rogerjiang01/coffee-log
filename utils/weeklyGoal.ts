@@ -77,7 +77,7 @@ export function clampGoal(value: number): number {
 
 /**
  * 目標環畫多少（《03》§4.15）：達成的比例，0 到 1。超過目標時停在一圈，不畫第二圈
- * （2026-11-16，總覽與結算頁一致；超出多少由「超過 N 杯」說明）。
+ * （2026-11-16，總覽與結算頁一致；超過時總覽的卡片寫「達成目標」，2026-11-26）。
  */
 export function ringFraction(count: number, goal: number): number {
   if (goal <= 0) return 0

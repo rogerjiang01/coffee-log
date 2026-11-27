@@ -13,7 +13,7 @@ const props = withDefaults(defineProps<{
   /** 顯示停水時長。關閉時不顯示，資料照樣留著 */
   showTimes?: boolean
   increments?: boolean
-  /** 在卡片裡：每一列自己帶卡片的左右內距，分隔線畫在列的下面（下面還有別的列）。不在卡片裡時線在上面 */
+  /** 在卡片裡：每一列自己帶卡片的左右內距，分隔線畫在段與段之間（最後一段底下不畫）。不在卡片裡時線在上面 */
   inCard?: boolean
 }>(), { showTimes: true, increments: false, inCard: false })
 
@@ -61,7 +61,9 @@ const rows = computed(() => props.steps
 </template>
 
 <style scoped>
-.step-row--below {
+/* 段與段之間一條線，最後一段底下不畫（唯讀卡片裡它是卡片的最後一列）。
+   表單的摘要下面還有「編輯分段」那一列，那條線由 PourStepsSummary 畫在那一列的上面 */
+.step-row--below:not(:last-child) {
   border-bottom: 1px solid var(--border);
 }
 .step-row--above {

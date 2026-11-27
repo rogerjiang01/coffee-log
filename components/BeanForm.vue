@@ -290,7 +290,7 @@ defineExpose({ clearDraft: () => draft?.clear() })
       <FormRow label="烘焙日期" for="bean-roast-date" tall>
         <!-- 膠囊上的字自己寫（utils/formDate.ts）：沒填是「選填」（iOS 的空日期什麼都不畫），
              填了是 YYYY/MM/DD，寬度貼合文字。原生的日期透明蓋在上面，點了照樣開系統的選擇器 -->
-        <SelectField :text="pillDate(values.roast_date) ?? '選填'" :empty="!pillDate(values.roast_date)">
+        <SelectField class="select-field--nowrap" :text="pillDate(values.roast_date) ?? '選填'" :empty="!pillDate(values.roast_date)">
           <input
             id="bean-roast-date"
             v-model="values.roast_date"

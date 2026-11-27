@@ -7,12 +7,16 @@
 //
 // 三顆豆子在 Figma 都是 40×40（縮圖 64×64 的 62.5%），位置與角度照 Figma 換算成百分比，
 // 任何尺寸的正方形都是同一個構圖。超出縮圖的部分由外層裁掉。
+//
+// whole：不裁切，三顆豆子完整畫出來（結算頁沒有照片時的主圖，BrewHeroFallback；2026-11-26）。
+// 構圖本身會超出這個正方形：以邊長 1 計，左右約 −0.05〜1.21、上下約 −0.06〜1.26（三顆豆子旋轉後的外框，
+// 由 SVG 路徑的點算的，含控制點、略大一點）。呼叫端要自己留出這些空間。
 
-defineProps<{ background: string }>()
+defineProps<{ background: string, whole?: boolean }>()
 </script>
 
 <template>
-  <div class="bean-art" :style="{ background }" aria-hidden="true">
+  <div class="bean-art" :class="{ 'bean-art--whole': whole }" :style="{ background }" aria-hidden="true">
     <span class="bean-art__bean bean-art__bean--a" />
     <span class="bean-art__bean bean-art__bean--b" />
     <span class="bean-art__bean bean-art__bean--c" />
@@ -25,6 +29,9 @@ defineProps<{ background: string }>()
   overflow: hidden;
   width: 100%;
   aspect-ratio: 1;
+}
+.bean-art--whole {
+  overflow: visible;
 }
 .bean-art__bean {
   position: absolute;

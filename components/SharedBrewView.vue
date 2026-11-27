@@ -5,6 +5,10 @@
 // 回傳了卻沒顯示的，開發者工具裡看得到，等於不知不覺多公開了資料。
 // tests/unit/share-wiring.test.mjs 逐一確認 SHARED_BREW_KEYS 的每一個 key 在這裡都有用到。
 //
+// 器材、沖煮、品飲三段和紀錄詳情頁是同一個元件（BrewReadonlySections，《03》§4.22），順序與樣式只有一份。
+// 和詳情頁的差別：最上面多一個「豆子」段；沒有比較區、沒有動作按鈕；豆名不是連結。
+// 讀取函式沒有回傳濾紙與分享壺（要改函式，2026-11-25 這一輪沒做），所以器材段沒有這兩列。
+//
 // 抽成元件，是為了讓頁面本身只管讀取與失效——
 // 也讓這一塊能不經過資料庫就算繪出來檢查。
 //
@@ -23,56 +27,23 @@ const props = defineProps<{
 const brew = computed(() => props.brew)
 
 const steps = computed(() => toStepInputs(brew.value.steps))
-const water = computed(() => totalWater(steps.value))
-const ratio = computed(() => brewRatioLabel(water.value, brew.value.dose))
 // 顯示用：舊紀錄的攪拌段併進相鄰的段（utils/brewSteps.ts）
 const displaySteps = computed(() => withoutStir(steps.value))
-const restedDays = computed(() =>
+// 養豆天數的寫法（烘焙當天／養豆第 N 天，算不出來是 null）
+const restLabel = computed(() => restDayLabel(
   restDays(brew.value.bean.roast_date, new Date(brew.value.brewed_at)),
-)
+))
 
-// 詳情頁沒有、朋友需要的那一塊。排在參數列表最上面，同一種 dl 列（《03》§4.13.4）
+// 詳情頁沒有、朋友需要的那一段：「豆子」，排在器材之前（《03》§4.13.4）
 const beanRows = computed(() => {
   const bean = brew.value.bean
   return [
     { label: '咖啡店名', value: bean.roaster },
     { label: '烘焙度', value: bean.roast_level ? roastLabels[bean.roast_level] : null },
     { label: '烘焙日期', value: bean.roast_date },
-  ].filter(row => row.value)
+  ].filter((row): row is { label: string, value: string } => !!row.value)
 })
 
-// 與紀錄詳情頁同一組、同一個順序。刻度只在有磨豆機時才會回傳（函式裡就決定了）
-const params = computed(() => {
-  const b = brew.value
-  return [
-    { label: '粉重', value: b.dose === null ? null : `${b.dose} g` },
-    { label: '總水量', value: water.value === null ? null : `${water.value} g` },
-    { label: '粉水比', value: ratio.value },
-    { label: '水溫', value: b.water_temp === null ? null : `${b.water_temp} °C` },
-    { label: '研磨刻度', value: b.grind_setting === null ? null : String(b.grind_setting) },
-    { label: '沖煮時間', value: b.total_time === null ? null : secondsToClock(b.total_time) },
-    { label: '養豆天數', value: restedDays.value === null ? null : `${restedDays.value} 天` },
-    { label: '磨豆機', value: b.grinder },
-    { label: '濾杯', value: b.dripper },
-    { label: '手沖壺', value: b.kettle },
-    { label: '沖煮手法', value: b.method },
-  ].filter(row => row.value)
-})
-
-const intensityRows = computed(() => {
-  const source = brew.value.intensity ?? {}
-  return ([
-    ['acidity', '酸質'], ['sweetness', '甜感'], ['body', '醇厚'], ['bitterness', '苦味'],
-  ] as const)
-    .map(([key, label]) => ({ label, value: source[key] }))
-    .filter(row => row.value !== undefined)
-})
-
-function formatDate(iso: string) {
-  const d = new Date(iso)
-  const pad = (n: number) => String(n).padStart(2, '0')
-  return `${d.getFullYear()}/${pad(d.getMonth() + 1)}/${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`
-}
 </script>
 
 <template>
@@ -100,7 +71,10 @@ function formatDate(iso: string) {
          沒有照片時只剩左邊一欄，與加入照片之前的版面相同 -->
     <div class="mt-1 flex items-center gap-4">
       <div class="min-w-0 flex-1">
-        <p class="text-sm tabular-nums text-muted">{{ formatDate(brew.brewed_at) }}</p>
+        <!-- 日期時間一行、養豆天數一行，和紀錄詳情頁一樣；算不出養豆天數時只有日期 -->
+        <!-- 日期與時刻各自不斷行，兩者之間可以換行（320px） -->
+        <p class="text-sm tabular-nums text-muted"><span class="whitespace-nowrap">{{ brewedDate(brew.brewed_at) }}</span> <span class="whitespace-nowrap">{{ brewedTime(brew.brewed_at) }}</span></p>
+        <p v-if="restLabel" class="text-sm tabular-nums text-muted">{{ restLabel }}</p>
         <div v-if="brew.rating !== null || brew.is_favorite" class="mt-3 flex items-center gap-3">
           <StarDisplay v-if="brew.rating !== null" :rating="brew.rating" />
           <span v-if="brew.is_favorite" class="flex items-center gap-1 text-sm" :style="{ color: 'var(--favorite)' }">
@@ -123,59 +97,32 @@ function formatDate(iso: string) {
       />
     </div>
 
-    <dl class="mt-6">
-      <div
-        v-for="row in [...beanRows, ...params]"
-        :key="row.label"
-        class="flex justify-between gap-3 border-t py-3"
-        :style="{ borderColor: 'var(--border)' }"
-      >
-        <dt class="shrink-0 text-sm text-muted">{{ row.label }}</dt>
-        <dd class="min-w-0 text-right tabular-nums">{{ row.value }}</dd>
-      </div>
-    </dl>
+    <!-- 豆子、器材、沖煮、品飲：每一段是 FormSection ＋ 一張卡片，段落之間是 --gap-section -->
+    <div class="mt-8 flex flex-col" :style="{ gap: 'var(--gap-section)' }">
+      <FormSection v-if="beanRows.length" title="豆子">
+        <FormCard>
+          <dl>
+            <ReadonlyRow v-for="row in beanRows" :key="row.label" :label="row.label">{{ row.value }}</ReadonlyRow>
+          </dl>
+        </FormCard>
+      </FormSection>
 
-    <section v-if="steps.length" class="mt-8">
-      <h2 class="text-heading-m font-medium">分段</h2>
-      <!-- 和記錄表單的分段摘要同一種寫法（PourStepList）。舊紀錄的攪拌段已經併進相鄰的段（withoutStir） -->
-      <div class="mt-3">
-        <PourStepList :steps="displaySteps" increments />
-      </div>
-    </section>
-
-    <section v-if="intensityRows.length" class="mt-8">
-      <h2 class="text-heading-m font-medium">強度</h2>
-      <dl class="mt-3">
-        <div
-          v-for="row in intensityRows"
-          :key="row.label"
-          class="flex justify-between border-t py-3"
-          :style="{ borderColor: 'var(--border)' }"
-        >
-          <dt class="text-sm text-muted">{{ row.label }}</dt>
-          <dd class="tabular-nums">{{ row.value }} / 5</dd>
-        </div>
-      </dl>
-    </section>
-
-    <section v-if="brew.flavor_tags.length" class="mt-8">
-      <h2 class="text-heading-m font-medium">風味</h2>
-      <div class="mt-3 flex flex-wrap gap-2">
-        <span
-          v-for="tag in brew.flavor_tags"
-          :key="tag"
-          class="rounded-sm border px-3 py-1 text-sm"
-          :style="{ borderColor: 'var(--border)' }"
-        >
-          {{ tag }}
-        </span>
-      </div>
-    </section>
-
-    <!-- 沒勾「包含心得筆記」時，函式根本不回傳這個 key：整段不出現，不留佔位 -->
-    <section v-if="brew.tasting_notes" class="mt-8">
-      <h2 class="text-heading-m font-medium">心得</h2>
-      <p class="mt-2 whitespace-pre-line">{{ brew.tasting_notes }}</p>
-    </section>
+      <!-- 刻度只在有磨豆機時才會回傳（函式裡就決定了）。
+           心得筆記沒勾「包含心得筆記」時，函式根本不回傳這個 key：那一列不出現，不留佔位 -->
+      <BrewReadonlySections
+        :grinder="brew.grinder"
+        :grind-setting="brew.grind_setting"
+        :dripper="brew.dripper"
+        :kettle="brew.kettle"
+        :dose="brew.dose"
+        :water-temp="brew.water_temp"
+        :total-time="brew.total_time"
+        :method-name="brew.method"
+        :steps="displaySteps"
+        :intensity="brew.intensity"
+        :flavor-tags="brew.flavor_tags"
+        :notes="brew.tasting_notes ?? null"
+      />
+    </div>
   </div>
 </template>

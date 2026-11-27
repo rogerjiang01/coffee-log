@@ -162,6 +162,13 @@ export default function run() {
   r.check(/const intro = ref\(mode\.value === 'login'\)/.test(shell) && /@media \(prefers-reduced-motion: reduce\)[\s\S]*translate: none/.test(shell),
     '未登入：登入頁自己演；減少動態時不做位移')
   r.check(/\.splash-fade \{\s*transition-duration: 200ms !important;/.test(css), '減少動態時保留淡入淡出')
+  // 2026-11-26（iPhone 驗收）：漸層與 logo 的位移是 ease-in-out、700ms，表單等 logo 停穩才淡入；曲線是 token，不寫死在元件裡
+  r.check(/--motion-ease-in-out: cubic-bezier\(/.test(tokens) && /--intro-move: 700ms;/.test(shell)
+    && /\.auth__logo \{\s*transition: translate var\(--intro-move\) var\(--motion-ease-in-out\);/.test(shell)
+    && /transition: opacity var\(--intro-move\) var\(--motion-ease-in-out\), translate var\(--intro-move\) var\(--motion-ease-in-out\);/.test(shell)
+    && /\.auth__form \{[^}]*transition: opacity 300ms var\(--motion-ease\) var\(--intro-move\);/.test(shell)
+    && !/cubic-bezier/.test(shell),
+    '未登入的開場：位移 700ms、--motion-ease-in-out，表單的延遲等於位移的時長')
   r.check(/--splash-bg:\s*var\(--green-800\)/.test(tokens) && /html\.splash-on \{\s*background-color: var\(--splash-bg\)/.test(css), '開場期間頁面底色是深綠，避免白閃')
   r.check(!/#[0-9a-f]{3,6}\b/i.test(overlay + shell + readFileSync(new URL('../../components/BrandLogo.vue', import.meta.url), 'utf8')), '沒有寫死的色碼')
   r.check(vercel.headers.some(h => h.source === '/(splash|brand)/(.*)' && h.headers.some(x => /immutable/.test(x.value))), '首圖與 logo 設了不可變快取')

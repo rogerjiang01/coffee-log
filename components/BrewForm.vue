@@ -466,11 +466,12 @@ defineExpose({ clearDraft: () => draft?.clear() })
         <FormRow data-section="other" label="沖煮日期" for="brew-at" tall>
           <!-- 日期與時刻各一個膠囊，寫入的是同一個 brewed_at。膠囊上的字自己寫（YYYY/MM/DD、24 小時制 HH:mm，
                utils/formDate.ts），原生的日期與時刻透明蓋在上面，點了照樣開系統的選擇器 -->
-          <div class="flex min-w-0 items-center justify-end gap-2">
-            <SelectField :text="pillDate(brewDate) ?? '選填'" :empty="!pillDate(brewDate)">
+          <!-- 日期、時刻各自不斷行；320px 放不下時時刻換到下一行（flex-wrap），不在數字中間斷開（2026-11-26） -->
+          <div class="flex min-w-0 flex-wrap items-center justify-end gap-x-2">
+            <SelectField class="select-field--nowrap" :text="pillDate(brewDate) ?? '選填'" :empty="!pillDate(brewDate)">
               <input id="brew-at" v-model="brewDate" type="date" @blur="restoreIfCleared($event, brewDate)">
             </SelectField>
-            <SelectField class="shrink-0" :text="pillTime(brewTime) ?? '選填'" :empty="!pillTime(brewTime)">
+            <SelectField class="select-field--nowrap" :text="pillTime(brewTime) ?? '選填'" :empty="!pillTime(brewTime)">
               <input v-model="brewTime" type="time" aria-label="時刻" @blur="restoreIfCleared($event, brewTime)">
             </SelectField>
           </div>

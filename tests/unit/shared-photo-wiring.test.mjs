@@ -73,7 +73,7 @@ export default function run() {
     '標題不在任何與照片並排的容器裡')
   r.check(/<PhotoZoom\s+v-if="brew\.bean\.has_photo && !photoFailed"[\s\S]*?:alt="brew\.bean\.name"/.test(template),
     '依 has_photo 先留好縮圖的位置；沒有照片時整個不放；放大後的替代文字是豆名')
-  r.check(template.indexOf('formatDate(brew.brewed_at)') > row && template.indexOf('formatDate(brew.brewed_at)') < photo
+  r.check(template.indexOf('brewedDate(brew.brewed_at)') > row && template.indexOf('brewedDate(brew.brewed_at)') < photo
     && template.indexOf('brew.rating !== null') > row && template.indexOf('brew.rating !== null') < photo,
   '日期與星等在左欄')
 
@@ -110,7 +110,7 @@ export default function run() {
   r.check(/photoUrls\(path\)/.test(detail) && !/shared-photo|sharedPhotoEndpoint/.test(detail), '用 useBeanPhotos 的 photoUrls，不經過分享的轉送')
   const dRow = detailTemplate.indexOf('<div class="mt-1 flex items-center gap-4">')
   r.check(detailTemplate.indexOf('<h1') < dRow && dRow < detailTemplate.indexOf('<PhotoZoom')
-    && detailTemplate.indexOf('formatDate(brew.brewed_at)') > dRow, '版面同分享頁：標題列在上，日期與星等在左、照片在右')
+    && detailTemplate.indexOf('brewedDate(brew.brewed_at)') > dRow, '版面同分享頁：標題列在上，日期與星等在左、照片在右')
 
   return r.finish()
 }

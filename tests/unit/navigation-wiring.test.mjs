@@ -166,11 +166,11 @@ export default function run() {
     '每一天都有全高的底軌（--accent-wash），杯數的長條疊在上面；0 杯的那一天只有底軌')
   const goalCardFile = read('components/GoalWeekCard.vue')
   r.check(!/over-?[tT]ext/.test(homeTemplate + goalCard) && !/props\.overText/.test(goalCardFile)
-    && /if \(props\.count > props\.goal\) return `超過 \$\{props\.count - props\.goal\} 杯`/.test(goalCardFile)
+    && /if \(props\.count >= props\.goal\) return '達成目標'/.test(goalCardFile) && !/超過 \$\{/.test(goalCardFile)
     && /const ringCount = computed\(\(\) => Math\.min\(props\.count, props\.goal\)\)/.test(goalCardFile)
     && /<GoalRing :count="ringCount" :from="ringFrom"/.test(goalCard)
     && !/accent-active|laps\.second/.test(read('components/GoalRing.vue')),
-    '超過目標：環停在一圈，寫「超過 N 杯」，不畫第二圈——總覽與結算頁共用同一張卡片，沒有開關')
+    '達到或超過目標（N ≥ M）：環停在一圈，寫「達成目標」（2026-11-26，不再寫「超過 N 杯」），不畫第二圈')
   r.check(/const filled = ref\(ringFrom\.value === null \|\| ringFrom\.value === ringCount\.value\)/.test(goalCardFile),
     '結算頁上已經超過目標之後的紀錄：環沒有動畫，數字直接是存檔後的杯數')
 
@@ -308,38 +308,106 @@ export default function run() {
   r.check(/onBeforeRouteLeave\(\(\) => \{\s*const result = summaryLeave\(leavingByPage\)/.test(summary), '返回鍵與返回手勢：效果和按勾勾一樣')
   r.check(/async function done\(\) \{\s*leavingByPage = true\s*await navigateTo\('\/', \{ replace: true \}\)/.test(summary), '勾勾：用取代的方式去總覽')
   r.check(/async function openDetail\(\) \{\s*leavingByPage = true\s*await navigateTo\(`\/brews\/\$\{id\}`, \{ replace: true \}\)/.test(summary),
-    '摘要：用取代的方式進紀錄詳情，返回時不會回到結算頁')
+    '沖煮參數卡片：用取代的方式進紀錄詳情，返回時不會回到結算頁')
   // 2026-11-17：按鈕抽成 DoneButton，分段子頁也用同一個
   const doneButton = read('components/DoneButton.vue')
   r.check(/<DoneButton[^>]*@click="done"/.test(summaryTemplate)
     && /aria-label="完成"[\s\S]{0,600}<path d="M20 6 9 17l-5-5" \/>/.test(doneButton) && /rounded-full/.test(doneButton), '右上角是圓形按鈕，中間放勾勾（完成）')
-  const summaryRow = summaryTemplate.match(/<a\s+:href="`\/brews\/\$\{id\}`"[\s\S]*?<\/a>/)?.[0] ?? ''
-  r.check(/<span class="block font-medium">\{\{ brew\.beans\?\.name \?\? '沒有指定豆子' \}\}<\/span>\s*<span class="block[^"]*">\{\{ monthDay\(brew\.brewed_at\) \}\}<\/span>/.test(summaryRow),
-    '摘要：縮圖右邊兩行，豆名與沖煮日期')
-  r.check(!/・|<svg|chevron|m9 18 6-6-6-6/.test(summaryRow) && /@click\.prevent="openDetail"/.test(summaryRow),
-    '摘要：不用中間點、不加 ›，整列可點（《03》§1）')
-  r.check(/<GoalWeekCard\s+v-if="ring && week"[\s\S]*?:count="ring\.after"\s+:from="ring\.before"\s+:goal="ring\.goal"\s+:days="week\.days"\s+:celebrate="ring\.crossed"/.test(summaryTemplate),
-    '本週目標：與總覽同一個卡片元件，環從存檔前的杯數前進到存檔後的杯數；不在本週時不顯示')
-  r.check(/if \(props\.celebrate\) return filled\.value \? '已達成' : ''/.test(read('components/GoalWeekCard.vue')) && !/本週目標達成/.test(summaryTemplate + goalCard),
-    '剛好跨過目標：「N／M 杯」下方顯示「已達成」（不再寫「本週目標達成」）')
-  r.check(/<p v-if="firstRecord" class="mt-4 text-heading-m font-medium">第一筆紀錄<\/p>\s*<p v-else[^>]*>第 \{\{ records \}\} 筆紀錄<\/p>/.test(summaryTemplate)
-    && /isFirstRecord\(stats\.value, id\)/.test(summary), '第一筆紀錄：換成「第一筆紀錄」，字級和比較區標題同一級')
-  r.check(/<section v-if="comparison\?\.target"/.test(summaryTemplate)
-    && /和 \{\{ monthDay\(comparison\.target\.brewed_at\) \}\} 那一杯相比/.test(summaryTemplate)
-    && /參數和 \{\{ monthDay\(comparison\.target\.brewed_at\) \}\} 那一杯相同/.test(summaryTemplate), '有比較對象：比較區')
-  r.check(/<template v-else-if="firstCup">[\s\S]*<h2 class="text-heading-m font-medium">這支豆子<\/h2>[\s\S]*<h2 class="text-heading-m font-medium">這一杯<\/h2>[\s\S]*下一杯會和這一杯比較。/.test(summaryTemplate),
-    '沒有比較對象：「這支豆子」與「這一杯」兩個區塊，標題樣式與比較區相同')
-  r.check(/養豆第 \{\{ firstCup\.bean\.restDay \}\} 天/.test(summaryTemplate) && /v-if="firstCup\.bean\.restDay !== null"/.test(summaryTemplate)
-    && /第 \{\{ firstCup\.bean\.beanOrdinal \}\} 支豆子/.test(summaryTemplate), '「養豆第 N 天」（有烘焙日期才有）、「第 N 支豆子」')
-  r.check(/feedbackLine\(compared\.diffs, compared\.target\.rating, row\.rating, true\)/.test(summary) && /: '恭喜開箱新豆子。'/.test(summary)
-    && !/<p v-else-if="comparison">恭喜開箱新豆子/.test(summaryTemplate), '回饋句的位置照舊；第一杯固定是「恭喜開箱新豆子。」，不再取代整個比較區')
-  const summaryText = summaryTemplate.replace(/\{\{[\s\S]*?\}\}/g, '').replace(/<(?:[^>"']|"[^"]*"|'[^']*')*>/g, ' ').split(/\s+/).filter(Boolean)
-  // → 是差異的資料，與紀錄詳情相同
-  const summaryAllowed = new Set(['→', '第一筆紀錄', '第', '筆紀錄', '和', '那一杯相比', '參數和', '那一杯相同',
-    '這支豆子', '養豆第', '天', '支豆子', '這一杯', '下一杯會和這一杯比較。'])
+  // 2026-11-26：結算頁改版（Figma 結算頁 v2）。主圖、小數據列、比較區、沖煮參數；第一杯是沖煮參數與這支豆子
+  r.check(/<template #actions>\s*<BrewShare\s+floating[\s\S]*?\/>\s*<DoneButton floating @click="done" \/>\s*<\/template>/.test(summaryTemplate),
+    '右上角：分享（和紀錄詳情同一個元件）在左、完成在右；DOM 順序就是鍵盤順序')
+  const hero = read('components/BrewHero.vue')
+  r.check(/<BrewHeroFallback v-else/.test(hero) && !/BeanArt|roast-art/.test(stripComments(templateOf(hero))),
+    '主圖：沒有照片時交給 BrewHeroFallback，BrewHero 不碰那張圖的內容')
+  r.check(/signedUrl\(path\)/.test(summary) && !/thumbnailUrl/.test(summary), '主圖用原圖，不用縮圖')
+  r.check(/--hero-h: min\(470px, 58svh\);/.test(hero) && /min-height: var\(--hero-h\);/.test(hero), '主圖高度：min(470px, 58svh)')
+  r.check(/padding-top: max\(96px, calc\(var\(--hero-h\) \* 0\.55\)\);/.test(hero), '標題的頂端不高於主圖的 55%：豆名很長時主圖往下長')
+  // 2026-11-26 第三版（iPhone 驗收）：主圖是固定的背景層，內容從上面滑過去；捲動時兩層（清楚＋預先模糊）只改透明度
+  const heroTemplate = templateOf(hero)
+  r.check(/<div class="brew-hero__bg" aria-hidden="true">\s*(?:<!--[\s\S]*?-->\s*)?<div class="brew-hero__layer brew-hero__layer--blurred"[\s\S]*?<div class="brew-hero__layer brew-hero__layer--clear">[\s\S]*?<div class="brew-hero__fade" \/>\s*<\/div>/.test(heroTemplate)
+    && /\.brew-hero__bg \{[^}]*position: fixed;[^}]*z-index: 0;[^}]*height: max\(var\(--hero-h\), var\(--hero-solid\)\);/.test(hero)
+    && /\.brew-hero__title \{\s*position: relative;\s*z-index: 1;/.test(hero) && /class="relative z-1 pt-5"/.test(summaryTemplate),
+    '主圖：背景層（模糊、清楚兩層與漸層）固定在畫面頂端、高度蓋到漸層的實底；標題區與結算頁下面的內容是上層（z-index 1），從背景上滑過去')
+  r.check(/\.brew-hero__blur \{\s*filter: blur\(var\(--hero-blur-end\)\);/.test(hero) && /--hero-blur-end: 20px;/.test(hero) && /--hero-opacity-end: 0;/.test(hero)
+    && !(hero.match(/@keyframes[^{]*\{(?:\s*[^{}]*\{[^}]*\})*\s*\}/g) ?? []).some(k => /filter/.test(k)) && !/setProperty\('filter'|style\.filter/.test(hero),
+    '模糊是下層預先套好的靜態 filter；捲動時不改 filter。終點的模糊與透明度是變數（照片的終點透明度 0）')
+  // 2026-11-27 第二版：透明度搬回合成器，用和背景平移相同的 0–10000px 捲動時間軸；動畫由程式依量到的終點建（offset ＝ 終點 ÷ 10000）
+  const animated = [...hero.matchAll(/animation(?:-name)?: ([\w-]+)/g)].map(m => m[1])
+  r.check(animated.length === 1 && animated[0] === 'brew-hero-follow' && ((hero.match(/<style scoped>[\s\S]*<\/style>/)?.[0] ?? '').match(/^@keyframes/gm) || []).length === 1
+    && !/hold|HERO_FADE_STOPS|--hero-fade-end|min\(var/.test(stripComments(hero))
+    && /\.brew-hero__layer--clear \{\s*opacity: var\(--hero-clear, 1\);/.test(hero) && /\.brew-hero__layer--blurred \{\s*opacity: var\(--hero-blurred, 1\);/.test(hero)
+    && /const FADE_RATIO = 0\.6/.test(hero) && /fadeEnd = Math\.max\(1, Math\.min\(Number\.parseFloat\(style\.minHeight\) \* FADE_RATIO, maxScroll\)\)/.test(hero),
+    '樣式裡唯一的捲動連動動畫是抵銷平移；兩層的透明度沒有寫死的 @keyframes，終點是 60% 與能捲到的最大距離取小')
+  const heroFadeTs = read('utils/heroFade.ts')
+  r.check(/if \(typeof ctor === 'function' && 'rangeStart' in Animation\.prototype\) return 'WAAPI'\s*if \(CSS\.supports\('animation-timeline', 'scroll\(\)'\)\) return 'CSS 動態 keyframes'\s*return 'JS'/.test(hero)
+    && /rangeStart: '0px', rangeEnd: `\$\{HERO_TIMELINE_RANGE\}px`/.test(hero) && /setProperty\('animation-range', `0px \$\{HERO_TIMELINE_RANGE\}px`\)/.test(hero)
+    && /setProperty\('animation-timeline', 'scroll\(root block\)'\)/.test(hero)
+    && /export const HERO_TIMELINE_RANGE = 10000/.test(heroFadeTs) && /--hero-follow: 10000px;/.test(hero)
+    && /const frames = heroKeyframes\(fadeEnd, opacityEnd\)/.test(hero),
+    '透明度的三條路依序挑：WAAPI（ScrollTimeline）→ CSS 動態 keyframes → JS；範圍是寫死的 0px 到 10000px（和平移同一個長度），沒有 min() 或變數運算')
+  r.check(/if \(path === 'JS'\) window\.addEventListener\('scroll', onScroll, \{ passive: true \}\)/.test(hero)
+    && /if \(path === 'JS'\) apply\(\)\s*else build\(\)/.test(hero) && /if \(key === built\) return/.test(hero) && /teardown\(\)/.test(hero.match(/cleanup = \(\) => \{[\s\S]*?\n {2}\}/)?.[0] ?? ''),
+    '合成器的兩條路捲動時不跑程式（只有 JS 路徑聽 scroll）；終點只在量的時候重算，值沒變不重建；卸載時拿掉動畫')
+  r.check(!/if \(fallback\)/.test(hero) && /window\.addEventListener\('scroll', onScroll, \{ passive: true \}\)/.test(hero) && /observer\.observe\(document\.body\)/.test(hero)
+    && /requestAnimationFrame\(apply\)/.test(hero) && /const t = Math\.min\(1, Math\.max\(0, window\.scrollY \/ fadeEnd\)\)/.test(hero) && /heroLayers\(t, opacityEnd\)/.test(hero)
+    && !/getBoundingClientRect|offsetTop|offsetHeight|getComputedStyle/.test(hero.match(/function apply\(\) \{[\s\S]*?\n\}/)?.[0] ?? 'x'),
+    'JS 路徑（不支援捲動時間軸時）：passive 的 scroll 事件＋requestAnimationFrame，進度限制在 0 到 1，用 heroLayers 寫入兩層的透明度，捲動時不讀版面；終點用 ResizeObserver 量')
+  // 2026-11-26 第四版：iOS 26 的 Safari 拿貼頂的 fixed 元素的底色填狀態列。支援捲動連動動畫時不用 fixed，改成 absolute＋抵銷捲動的平移
+  r.check(/@supports \(animation-timeline: scroll\(\)\) \{\s*\.brew-hero__bg \{[^}]*position: absolute;[^}]*animation: brew-hero-follow linear both;\s*animation-timeline: scroll\(root block\);\s*animation-range: 0 var\(--hero-follow\);/.test(hero)
+    && /@keyframes brew-hero-follow \{\s*from \{ transform: translateY\(0\); \}\s*to \{ transform: translateY\(var\(--hero-follow\)\); \}/.test(hero)
+    && /<main class="mx-auto overflow-clip pb-16"/.test(summaryTemplate),
+    '背景層：支援捲動連動動畫時是 absolute＋一比一抵銷捲動的平移（不是 fixed，Safari 不會拿它的底色填狀態列）；main 是 overflow: clip，平移不撐大捲動範圍')
+  // 2026-11-26 第五版：漸層只有一條，標題區背後跟著捲動的那層拿掉；位置照實際版面量（標題頂端、第一個段落的頂端）
+  const fade = hero.match(/\.brew-hero__fade \{[\s\S]*?\n\}/)?.[0] ?? ''
+  const alphas = [...fade.matchAll(/var\(--bg\) ([\d.]+)%, transparent\)/g)].map(m => Number(m[1]))
+  r.check(/--g0: calc\(var\(--hero-title-top\) - var\(--hero-fade-len\)\);\s*--g1: var\(--hero-title-top\);\s*--g2: var\(--hero-solid\);/.test(fade)
+    && /var\(--bg\) var\(--g2\)\s*\);/.test(fade) && alphas.length === 8 && alphas[0] === 0 && alphas.every((a, i) => i === 0 || a > alphas[i - 1]) && alphas.at(-1) < 100
+    && !/::before/.test(hero) && !/hero-title-fade/.test(hero) && !/animation/.test(fade),
+    '主圖的漸層：一條、由上往下只會越來越不透明，到第一個段落的頂端剛好 100%；標題區背後沒有另一層；漸層不淡出')
+  r.check(/el\.style\.setProperty\('--hero-title-top'/.test(hero) && /el\.style\.setProperty\('--hero-solid'/.test(hero)
+    && /new ResizeObserver\(\(\) => measure\(\)\)/.test(hero) && /function measure\(\) \{\s*measureLayout\(\)/.test(hero)
+    && /:solid-at="sections"/.test(summaryTemplate) && /<div ref="sections" class="mt-8 flex flex-col"/.test(summaryTemplate),
+    '漸層的兩個位置在掛載與版面改變時量（ResizeObserver，兩條路都量）；實底的位置是結算頁的第一個段落')
+  const tokensCss = read('assets/css/tokens.css')
+  r.check(/--float-shadow: 0 0 \d+px rgb\([^)]*\);/.test(tokensCss)
+    && /box-shadow: var\(--float-shadow\);/.test(read('components/BrewShare.vue'))
+    && /boxShadow: floating \? 'var\(--float-shadow\)' : undefined/.test(read('components/DoneButton.vue'))
+    && (summaryTemplate.match(/<DoneButton floating @click="done" \/>/g) || []).length === 2,
+    '懸浮按鈕的陰影：--float-shadow（x、y 都是 0，只有模糊），分享與完成（含讀取中）同一個')
+  r.check(/\.brew-hero__actions \{[^}]*position: fixed;[^}]*top: calc\(env\(safe-area-inset-top\) \+ 40px\);[^}]*right: var\(--fixed-right\);/.test(hero),
+    '分享與完成固定在畫面頂端，右緣和分頁列同一條線')
+  r.check(/padding-inline: calc\(var\(--form-gutter\) \+ var\(--card-pad\)\);/.test(hero) && /paddingLeft: 'var\(--card-pad\)'/.test(summary),
+    '主圖的標題區與小數據列：和段落標題同一條線（頁面內距＋--card-pad，用 token 算）')
+  r.check(/<BeanArt background="transparent" whole \/>/.test(read('components/BrewHeroFallback.vue')), '沒有照片：BeanArt 的三顆豆子完整畫出來（whole），沿用同一組圖檔')
+  r.check(/<p v-if="roaster"[^>]*>\{\{ roaster \}\}<\/p>/.test(summaryTemplate) && /<h1 class="text-display-l font-medium break-words">\{\{ beanName \}\}<\/h1>/.test(summaryTemplate)
+    && /\?\? '沒有指定豆子'/.test(summary), '標題區：咖啡店名（沒有就不顯示）、豆名（Display L，換行不截斷；沒有豆子寫「沒有指定豆子」）')
+  r.check(/<p v-if="ring"[\s\S]*?<GoalRing[\s\S]*?:size="26"[\s\S]*?:celebrate="ring\.crossed"/.test(summaryTemplate)
+    && /`本週 \$\{shown\}／\$\{r\.goal\} 杯，達成目標`/.test(summary) && /`本週 \$\{shown\}／\$\{r\.goal\} 杯`/.test(summary)
+    && /summaryRing\(stats\.value, goals\.value, id, now\)/.test(summary),
+    '本週目標：小環＋一行字，斜線是全形（和總覽一致）；達到或超過寫「達成目標」；這一筆不在本週時整行不出現')
+  r.check(!/GoalWeekCard|BeanThumb/.test(summaryTemplate) && !/這一杯<\/h2>|筆紀錄/.test(summaryTemplate),
+    '拿掉：本週目標卡片、縮圖加豆名的摘要列、「第 N 筆紀錄」、「這一杯」')
+  r.check(/label: '評分'/.test(summary) && /restDayValue\(beanInfo\.value\?\.restDay\)/.test(summary)
+    && /isFirstRecord\(stats\.value, id\) \? '第一筆' : `第 \$\{records\} 筆`/.test(summary)
+    && /if \(firstCup\.value && ordinal > 0\) items\.push\(\{ label: '豆子', value: `第 \$\{ordinal\} 支` \}\)/.test(summary),
+    '小數據列：評分、養豆（restDayValue）、紀錄（第一筆／第 N 筆）、豆子（只在第一杯）')
+  r.check(/<BrewCompareSection v-if="comparison\?\.target" :comparison="comparison" summary :feedback="feedback" \/>/.test(summaryTemplate)
+    && /<BrewCompareSection v-if="comparison" :comparison="comparison" \/>/.test(read('pages/brews/[id]/index.vue')),
+    '比較區：詳情頁和結算頁共用 BrewCompareSection，差別只有 summary 這個 prop')
+  const compareSection = read('components/BrewCompareSection.vue')
+  r.check(/`參數和 \$\{date\.value\} 那一杯相同。`/.test(compareSection) && /rating && rating\.before !== rating\.after \? \[rating\] : \[\]/.test(compareSection)
+    && /\(props\.summary \|\| rows\.value\.length > 0\)/.test(compareSection),
+    '結算頁：參數相同時一句話，評分不同才接評分那一列；詳情頁沒有任何一列時整段不顯示')
+  r.check(/<FormSection title="沖煮參數">[\s\S]*?<AppCard\s+as="a"[\s\S]*?@click\.prevent="openDetail"[\s\S]*?<\/AppCard>[\s\S]*?<FormNote>下一杯會和這一杯比較。<\/FormNote>/.test(summaryTemplate)
+    && !/chevron|m9 18 6-6-6-6/.test(summaryTemplate), '沖煮參數：整張卡片可點、不加 ›；第一杯時卡片下方是「下一杯會和這一杯比較。」')
+  r.check(/<FormSection v-if="firstCup && beanInfo\?\.rows\.length" title="這支豆子">/.test(summaryTemplate), '這支豆子：只在第一杯，有填才出現')
+  r.check(/if \(compared\?\.target\) feedback\.value = feedbackLine\(compared\.diffs, compared\.target\.rating, row\.rating, true\)/.test(summary)
+    && !/恭喜開箱新豆子/.test(summary), '回饋句：只有有比較對象時；第一杯不再有「恭喜開箱新豆子。」')
+  const summaryText = summaryTemplate.replace(/<style[\s\S]*?<\/style>/g, '').replace(/\{\{[\s\S]*?\}\}/g, '').replace(/<(?:[^>"']|"[^"]*"|'[^']*')*>/g, ' ').split(/\s+/).filter(Boolean)
+  const summaryAllowed = new Set(['收藏', '前往紀錄：', '下一杯會和這一杯比較。'])
   const summaryExtra = summaryText.filter(word => !summaryAllowed.has(word))
   r.check(summaryExtra.length === 0, `結算頁沒有規定以外的文案${summaryExtra.length ? `：${summaryExtra.join('、')}` : ''}`)
-  r.check(!/#[0-9a-f]{3,6}\b/i.test(summaryTemplate) && !/from ['"](gsap|animejs|motion|framer|@vueuse\/motion)/.test(summary), '沒有寫死的色碼、沒有動畫函式庫')
+  r.check(!/#[0-9a-f]{3,6}\b/i.test(summaryTemplate + stripComments(hero)) && !/from ['"](gsap|animejs|motion|framer|@vueuse\/motion)/.test(summary), '沒有寫死的色碼、沒有動畫函式庫')
   r.check(/prefers-reduced-motion/.test(read('components/GoalRing.vue')), '減少動態效果時不播動畫')
 
   r.section('目標設定頁')

@@ -54,12 +54,14 @@ const classes = computed(() => [
 
 <style scoped>
 .app-button {
+  --button-line: calc(var(--text-heading-s) * var(--text-heading-s--line-height));
   display: inline-flex;
   flex-shrink: 0;
   align-items: center;
   justify-content: center;
   min-height: var(--touch-min);
-  padding: 0 1.25rem;
+  /* 上下內距固定（2026-11-26）：單行時剛好 44px（外框 1px 算在裡面），字換成兩行時上下照樣留這一段，不貼邊 */
+  padding: calc((var(--touch-min) - var(--button-line) - 2px) / 2) 1.25rem;
   border: 1px solid transparent;
   border-radius: var(--radius-sm);
   font-size: var(--text-heading-s);
@@ -100,6 +102,7 @@ const classes = computed(() => [
    轉角 superellipse（tokens.css 的 --corner-block-button，漸進增強）。2026-11-19 從「只有儲存按鈕」改成通則 */
 .app-button--block {
   min-height: var(--sheet-row-h);
+  padding-block: calc((var(--sheet-row-h) - var(--button-line) - 2px) / 2);
   border-radius: var(--radius-block-button);
   corner-shape: var(--corner-block-button);
 }

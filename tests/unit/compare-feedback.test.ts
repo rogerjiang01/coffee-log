@@ -43,7 +43,7 @@ export default function run() {
   const three = [diff('dose'), diff('water_temp'), diff('grind_setting')]
   r.check(feedbackCase(three, 4, 3, true) === 'too-many' && feedbackCase(three, 4, 4, true) === 'too-many',
     '三項以上、沒換器材與手法、評分變低或不變：一次改一個參數')
-  r.check(feedbackCase(three, 3, 4, true) === 'changed-up', '三項以上但評分變高：一般的「改得好」')
+  r.check(feedbackCase(three, 3, 4, true) === 'changed-up', '三項以上但評分變高：一般的「有改參數、評分變高」')
   r.check(feedbackCase([...three, diff('grinder_id')], 4, 3, true) === 'changed-down', '換了磨豆機：不算「一次改太多」')
   r.check(feedbackCase([diff('dose'), diff('water_temp'), diff('brew_method_id')], 4, 4, true) === 'changed-same', '換了手法：不算')
   r.check(feedbackCase([diff('dose'), diff('water_temp')], 4, 3, true) === 'changed-down', '兩項：不算')
@@ -58,14 +58,16 @@ export default function run() {
   r.check(paramsPhrase([diff('dose', '粉重'), diff('water_temp', '水溫')]) === '粉重和水溫', '兩項：A和B')
   r.check(paramsPhrase([diff('dose', '粉重'), diff('water_temp', '水溫'), diff('total_time', '沖煮時間')]) === '這幾個參數', '三項以上：這幾個參數')
   r.check(paramsPhrase([diff('dose', '粉重'), diff('rating', '評分')]) === '粉重', '評分那一列不算')
-  r.check(feedbackLine([diff('grind_setting', '研磨刻度')], 3, 4, true, () => 0) === '研磨刻度這一步改得好。', '代進第一句')
+  r.check(feedbackLine([diff('grind_setting', '研磨刻度')], 3, 4, true, () => 0) === '研磨刻度可能是關鍵，下一杯照這組再沖一次確認。', '代進第一句')
+  r.check(feedbackLine([diff('dose', '粉重'), diff('water_temp', '水溫')], 3, 4, true, () => 0) === '粉重和水溫可能是關鍵，下一杯照這組再沖一次確認。', '兩項：A和B 代進第一句')
 
   r.section('回饋句：隨機選一句，文案照規格')
   const picks = new Set([0, 0.4, 0.99].map(x => feedbackLine([diff('dose', '粉重')], 3, 4, true, () => x)))
   r.check(picks.size === 3, `同一種情況有多句時隨機選：${[...picks].join('／')}`)
   r.check(feedbackLine([], 4, 4, true, () => 0.999) === '很好，手法很穩定。', '只有一句的情況永遠是那一句')
   const expected = {
-    'changed-up': ['{參數}這一步改得好。', '漂亮，方向對了。', '調整有效，下次從這杯出發。'],
+    // 2026-11-26：只比兩杯時，評分變高不足以證明是哪個參數造成的——兩句改成「可能」並引導再沖一次確認
+    'changed-up': ['{參數}可能是關鍵，下一杯照這組再沖一次確認。', '漂亮，方向對了。', '評分變高了，下次從這杯出發。'],
     'changed-down': ['勇於嘗試，繼續試試看。', '好心情也是一種沖煮參數。', '每次調整都在縮小範圍。'],
     'changed-same': ['沒關係，下次換個參數試試。'],
     'too-many': ['一次改一個參數，方便找出變因。'],

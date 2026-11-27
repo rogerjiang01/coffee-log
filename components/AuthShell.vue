@@ -5,24 +5,41 @@
 // 表單撐滿內容寬度，左右是表單頁的 --form-gutter（20px，Figma 的 login 新版：390 寬的畫面裡卡片 350）；
 // 寬螢幕最多 --content-max-narrow（2026-11-23；原本固定 300px，手機上長的電子郵件看不完）。
 //
-// **未登入時的開場**（《03》§6 的開場動畫）：打開 App 落在登入頁時（useSplash 的 'login'），
-// 先只看到首圖與置中的 logo，接著漸層升上來、logo 移到上方，最後表單淡入。
-// 站內導覽過來的（登出、從註冊頁回來）不演，直接是完成的樣子。
-// 「減少動態」時不做位移，只淡入淡出（main.css）。
+// **未登入時的開場**（《03》§6.1 的開場動畫，useSplash 的 'login'）：
+// 先只看到首圖與置中的 logo，接著漸層升上來、logo 移到上方（700ms、--motion-ease-in-out），
+// logo 停穩之後表單才淡入（300ms）。兩個時機會演：
+//   - 打開 App 落在登入頁：伺服器就把 mode 設好了
+//   - 在設定頁按「登出」之後（2026-11-25）：設定頁導向前呼叫 prepareLoginIntro()，這裡掛上時接手
+// 其他站內導覽過來的（從註冊頁回來、登入過期被導回來）不演，直接是完成的樣子。
+// 「減少動態」時不做位移，只淡入淡出（main.css）：漸層淡入 200ms，表單接在它後面。
 
-const { mode, cover } = useSplash()
+const { mode, cover, loginIntroPending } = useSplash()
 
-// intro：開場還沒演完。伺服器送來的 HTML 就是這個狀態，瀏覽器接手之後才開始演
+// 登出後的開場：只在登入頁接手（註冊頁也用這個版面）
+if (loginIntroPending.value && useRoute().path === '/login') {
+  loginIntroPending.value = false
+  mode.value = 'login'
+}
+
+// intro：開場還沒演完。打開 App 時伺服器送來的 HTML 就是這個狀態，瀏覽器接手之後才開始演
 const intro = ref(mode.value === 'login')
 
 const HOLD_MS = 600
 
+let timer: number | undefined
+
 onMounted(() => {
   if (!intro.value) return
-  window.setTimeout(() => {
+  timer = window.setTimeout(() => {
     intro.value = false
     mode.value = null
   }, HOLD_MS)
+})
+
+// 開場還沒演完就離開（例如按了返回）：mode 要收回來，不然 <html> 留著 splash-on
+onBeforeUnmount(() => {
+  window.clearTimeout(timer)
+  if (intro.value) mode.value = null
 })
 </script>
 
@@ -45,6 +62,8 @@ onMounted(() => {
 /* 首圖鋪滿整個畫面，連安全區（狀態列、橫向的瀏海）底下也是：抵銷 body 為安全區留的 padding（main.css），
    logo 與表單再自己往內縮（.auth__body） */
 .auth {
+  /* 開場的位移時長（2026-11-26：500 → 700ms）。表單的延遲就是這個值：logo 停穩之後才出現 */
+  --intro-move: 700ms;
   margin: calc(-1 * env(safe-area-inset-top)) calc(-1 * env(safe-area-inset-right)) 0 calc(-1 * env(safe-area-inset-left));
   position: relative;
   min-height: 100dvh;
@@ -69,7 +88,7 @@ onMounted(() => {
   position: absolute;
   inset: 0;
   background: linear-gradient(to bottom, color-mix(in srgb, var(--bg) 0%, transparent), var(--bg) 53%);
-  transition: opacity 500ms var(--motion-ease), translate 500ms var(--motion-ease);
+  transition: opacity var(--intro-move) var(--motion-ease-in-out), translate var(--intro-move) var(--motion-ease-in-out);
 }
 .auth__body {
   position: relative;
@@ -85,13 +104,13 @@ onMounted(() => {
     calc(var(--form-gutter) + env(safe-area-inset-left));
 }
 .auth__logo {
-  transition: translate 500ms var(--motion-ease);
+  transition: translate var(--intro-move) var(--motion-ease-in-out);
 }
 .auth__form {
   width: 100%;
   max-width: var(--content-max-narrow);
   margin-top: clamp(3rem, 21dvh, 11.25rem);
-  transition: opacity 300ms var(--motion-ease) 300ms;
+  transition: opacity 300ms var(--motion-ease) var(--intro-move);
 }
 
 /* 開場：只有首圖與置中的 logo（Cover 的 logo 在 40% 的位置） */
@@ -108,8 +127,12 @@ onMounted(() => {
   transition: none;
 }
 
-/* 減少動態：不做位移，只淡入淡出 */
+/* 減少動態：不做位移，只淡入淡出。漸層的淡入是 200ms（main.css 的 .splash-fade），表單接在它後面，
+   不等那段已經沒有的位移 */
 @media (prefers-reduced-motion: reduce) {
+  .auth {
+    --intro-move: 200ms;
+  }
   .auth__gradient,
   .auth--intro .auth__gradient,
   .auth--intro .auth__logo {

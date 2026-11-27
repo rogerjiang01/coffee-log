@@ -33,13 +33,40 @@ export default function run() {
 
   r.section('列的樣式')
   const css = read('assets/css/main.css')
-  r.check(/\.sheet-row \{[^}]*min-height: var\(--sheet-row-h\);[^}]*padding: calc\(\(var\(--sheet-row-h\) - var\(--touch-min\)\) \/ 2\) 0;/.test(css),
-    '.sheet-row：56px，上下內距 (56 − 44) / 2，44px 的控制項放進來剛好 56')
-  r.check(/\.sheet-row--tall \{\s*min-height: var\(--sheet-row-h-tall\);/.test(css), '.sheet-row--tall：65px')
+  r.check(/\.sheet-row \{[^}]*min-height: var\(--sheet-row-h\);[^}]*padding: var\(--sheet-pad-control\) 0;/.test(css),
+    '.sheet-row：56px，上下內距 --sheet-pad-control（44px 的控制項放進來剛好 56）')
+  r.check(/\.sheet-row--tall \{\s*min-height: var\(--sheet-row-h-tall\);\s*padding-block: var\(--sheet-pad-control-tall\);/.test(css), '.sheet-row--tall：65px，上下內距 --sheet-pad-control-tall')
+
+  r.section('內容變多時，上下留白不變（2026-11-26）')
+  // 每種內容的上下內距固定，等於單行時的留白。用 token 從列高與內容的高度推出來，不寫死數字
+  for (const [name, expr] of [
+    ['--sheet-line', 'calc(var(--text-heading-m) * var(--text-heading-m--line-height))'],
+    ['--sheet-pill-h', 'calc(var(--sheet-line) + 0.5rem)'],
+    ['--chip-h', 'calc(var(--sheet-line) + 0.5rem + 2px)'],
+    ['--sheet-pad-text', 'calc((var(--sheet-row-h) - var(--sheet-line)) / 2)'],
+    ['--sheet-pad-chip', 'calc((var(--sheet-row-h-tall) - var(--chip-h)) / 2)'],
+    ['--sheet-pad-control', 'calc((var(--sheet-row-h) - var(--touch-min)) / 2)'],
+    ['--sheet-pad-control-tall', 'calc((var(--sheet-row-h-tall) - var(--touch-min)) / 2)'],
+    ['--sheet-trigger-pad', 'calc((var(--touch-min) - var(--sheet-pill-h)) / 2)'],
+  ]) r.check(tokens.includes(`${name}: ${expr};`), `${name}: ${expr}`)
+  r.check(/\.sheet-row--text \{\s*padding-block: var\(--sheet-pad-text\);/.test(css), '.sheet-row--text：文字的列上下 15px')
+  r.check(/\.sheet-row--chips \{\s*min-height: var\(--sheet-row-h-tall\);\s*padding-block: var\(--sheet-pad-chip\);/.test(css), '.sheet-row--chips：風味標籤的列一排 65px、上下 14.5px')
+  r.check(/\.sheet-trigger \{[^}]*min-height: var\(--touch-min\);\s*padding-block: var\(--sheet-trigger-pad\);/.test(css)
+    && /\.select-field\[data-overlay="true"\] \{\s*padding-block: var\(--sheet-trigger-pad\);/.test(css),
+    '下拉的觸發鈕與 SelectField 的膠囊：上下 5px，膠囊換行時離分隔線照樣是 15.5px')
+  const readonlyRow = read('components/ReadonlyRow.vue')
+  r.check(/:class="\[tall \? 'sheet-row--chips' : 'sheet-row--text'/.test(readonlyRow) && !/padding-block: calc/.test(readonlyRow),
+    'ReadonlyRow：文字的列 --text、風味標籤 --chips（心得的 start 不另外算內距）')
+  const button = read('components/AppButton.vue')
+  r.check(/padding: calc\(\(var\(--touch-min\) - var\(--button-line\) - 2px\) \/ 2\) 1\.25rem;/.test(button)
+    && /\.app-button--block \{[^}]*padding-block: calc\(\(var\(--sheet-row-h\) - var\(--button-line\) - 2px\) \/ 2\);/.test(button),
+    'AppButton：上下內距讓單行剛好 44／56，字換行時不貼邊')
+  for (const f of ['BeanSelect', 'LookupSelect', 'CountrySelect', 'CatalogSelect'])
+    r.check(/sheet-option/.test(read(`components/${f}.vue`)) && !/class="block w-full[^"]*\bpy-2\b/.test(read(`components/${f}.vue`)), `${f} 的選項：.sheet-option（(44 − 行高) / 2）`)
   const formRow = read('components/FormRow.vue')
   r.check(/tall\?: boolean/.test(formRow) && /class="sheet-row" :class="tall \? 'sheet-row--tall' : ''"/.test(formRow), 'FormRow 的 tall 換成 65px 的列')
   const flavor = read('components/FlavorTagPicker.vue')
-  r.check(/\.tag-row \{[^}]*min-height: var\(--sheet-row-h-tall\);[^}]*padding-block: 14\.5px;/.test(flavor), '風味標籤的分類列：一排 65px（36px 的標籤上下各 14.5px）、多排長高')
+  r.check(/\.tag-row \{[^}]*min-height: var\(--sheet-row-h-tall\);[^}]*padding-block: var\(--sheet-pad-chip\);/.test(flavor), '風味標籤的分類列：一排 65px（36px 的標籤上下各 14.5px，--sheet-pad-chip）、多排長高')
   r.check(/\.add-row \{\s*height: var\(--sheet-row-h\);\s*min-height: var\(--sheet-row-h\);/.test(flavor), '新增風味詞（動作列、輸入列）：56px，min-height 也蓋掉 .tag-row 的 65')
 
   r.section('有膠囊的列是 65px')

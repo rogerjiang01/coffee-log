@@ -159,7 +159,7 @@ function pick(row: CatalogRow | null) {
           <li v-if="modelValue">
             <button
               type="button"
-              class="block w-full px-3 py-2 text-left text-sm"
+              class="block w-full px-3 sheet-option text-left text-sm"
               :style="{ minHeight: 'var(--touch-min)', color: 'var(--text-muted)' }"
               @click="pick(null)"
             >
@@ -169,7 +169,7 @@ function pick(row: CatalogRow | null) {
           <li v-for="row in matches" :key="row.id">
             <button
               type="button"
-              class="block w-full px-3 py-2 text-left"
+              class="block w-full px-3 sheet-option text-left"
               :style="{ minHeight: 'var(--touch-min)', background: row.id === modelValue ? 'var(--accent-wash)' : undefined }"
               @click="pick(row)"
             >

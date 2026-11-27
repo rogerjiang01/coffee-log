@@ -110,8 +110,10 @@ export default function run() {
   for (const [path, tag] of pageHeadings) {
     r.check(/\bfont-medium\b/.test(classOf(tag)) && !/\bfont-(serif|bold|normal)\b/.test(classOf(tag)), `${path} 的 h1 字重 500`)
   }
-  r.check(/<h2 class="text-heading-m font-medium">分段<\/h2>/.test(read('pages/brews/[id]/index.vue')),
-    '紀錄詳情的區塊標題（h2）字重 500')
+  // 2026-11-25：紀錄詳情與分享頁的段落改用表單的 FormSection（Heading L 的 Medium）
+  r.check(/<h2 v-if="title" class="card-pad-x text-heading-l font-medium">/.test(read('components/FormSection.vue'))
+    && /<FormSection\b/.test(read('components/BrewReadonlySections.vue')),
+    '紀錄詳情的區塊標題（h2，FormSection）字重 500')
   const everything = files.map(path => stripComments(read(path))).join('\n')
   r.check(!/\bfont-serif\b/.test(everything), 'font-serif 這個 class 已經沒有任何地方在用')
 

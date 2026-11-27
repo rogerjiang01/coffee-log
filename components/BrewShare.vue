@@ -1,5 +1,6 @@
 <script setup lang="ts">
-// 紀錄詳情頁的分享：標題列最右端的圖示，按下去一律出現對話框（《02》§7.1、《03》§4.13）。
+// 紀錄詳情頁與結算頁的分享：按下去一律出現對話框（《02》§7.1、《03》§4.13）。
+// 紀錄詳情是標題列最右端的圖示；結算頁是主圖右上角的圓鈕（floating，2026-11-26，《03》§4.17）。兩處流程完全相同。
 //
 // **傳送模型**：每次分享都產生一條新連結，「分享心得筆記」跟著那一次傳送固定，
 // 之後不能改。所以這裡不查、也不記任何既有的分享——對話框永遠只有一種樣子。
@@ -16,7 +17,16 @@ const props = defineProps<{
   hasNotes: boolean
   /** 豆袋照片的 Storage 路徑。沒有照片時對話框不放縮圖、不留空框 */
   photoPath: string | null
+  /** 結算頁主圖上的外觀：44px 圓鈕，--surface 的 78% 加背景模糊（照片上看得清楚） */
+  floating?: boolean
 }>()
+
+const route = useRoute()
+const userId = useCurrentUserId()
+// 頁面層級的提示貼著分頁列之上；沒有分頁列的頁面（結算頁是流程型）改成貼著螢幕底，避開 iPhone 底部的橫線
+const toastBottom = computed(() => (showsTabBar(route.meta.screen, userId.value !== null)
+  ? 'calc(var(--tab-bar-top) + 12px)'
+  : 'calc(max(12px, env(safe-area-inset-bottom)) + 12px)'))
 
 const supabase = useSupabaseClient()
 const { thumbnailUrl } = useBeanPhotos()
@@ -198,11 +208,24 @@ async function retry() {
        標題列對齊基線，這個按鈕自己垂直置中（《03》§4.13.1）：
        上下各 -2px 讓它的外框等於豆名一行的行高（2rem × 1.3），置中才對得準 -->
   <button
+    v-if="!floating"
     ref="trigger"
     type="button"
     aria-label="分享"
     class="-mr-3 -my-0.5 ml-auto flex shrink-0 items-center justify-center self-center"
     :style="{ minWidth: 'var(--touch-min)', minHeight: 'var(--touch-min)', color: 'var(--text)' }"
+    @click="openDialog"
+  >
+    <ShareIcon />
+  </button>
+  <!-- 結算頁：主圖右上角、完成鈕的左邊。圓鈕，正圓不套 corner-shape（《03》§2.3） -->
+  <button
+    v-else
+    ref="trigger"
+    type="button"
+    aria-label="分享"
+    class="brew-share-floating flex shrink-0 items-center justify-center rounded-full"
+    :style="{ width: 'var(--touch-min)', height: 'var(--touch-min)', color: 'var(--text)' }"
     @click="openDialog"
   >
     <ShareIcon />
@@ -299,11 +322,12 @@ async function retry() {
   </dialog>
 
   <!-- 頁面層級的回饋：對話框已經關了，這些要在頁面上看得到。
-       在分頁列之上 12px，左右和分頁列、內容欄對齊（《03》§4.13.3；tokens.css 的 --tab-bar-top、--fixed-*） -->
+       在分頁列之上 12px，左右和分頁列、內容欄對齊（《03》§4.13.3；tokens.css 的 --tab-bar-top、--fixed-*）。
+       沒有分頁列的頁面（結算頁）貼著螢幕底，見 toastBottom -->
   <Teleport :to="portalTarget">
     <div
       class="pointer-events-none fixed z-40 flex flex-col gap-2"
-      :style="{ bottom: 'calc(var(--tab-bar-top) + 12px)', left: 'var(--fixed-left)', right: 'var(--fixed-right)' }"
+      :style="{ bottom: toastBottom, left: 'var(--fixed-left)', right: 'var(--fixed-right)' }"
     >
       <!-- 不自動消失：連結已經傳出去了，失敗一定要被看到 -->
       <div
@@ -363,3 +387,14 @@ async function retry() {
     <p aria-live="polite" class="sr-only">{{ copied ? '已複製連結' : '' }}</p>
   </Teleport>
 </template>
+
+<style scoped>
+.brew-share-floating {
+  /* 邊界用陰影，不加邊框（《03》§2.3「邊界」，2026-11-26）：背景淡掉之後按鈕直接浮在 --bg 上，
+     --surface 的 78% 和頁面底色幾乎一樣，沒有陰影就看不出圓的範圍。懸浮按鈕的陰影，和旁邊的完成鈕同一個 */
+  box-shadow: var(--float-shadow);
+  background: color-mix(in srgb, var(--surface) 78%, transparent);
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
+}
+</style>

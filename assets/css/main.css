@@ -66,18 +66,29 @@
    （四個下拉、器材欄位、研磨刻度、星等、強度、開關）都要排成同一種列。 */
 @layer components {
   /* 列高兩級（2026-11-23，tokens.css 的 --sheet-row-h）：預設 56px，裡面有膠囊的列加 .sheet-row--tall（65px）。
-     上下內距是 (56 − 44) / 2：44px 的控制項（輸入框、下拉的觸發鈕）放進來剛好 56px。
-     值換成兩行時（長豆名）上下仍有這段留白，不會貼到分隔線或下方的提示 */
+     **上下內距看列裡放的是什麼，固定不變**（2026-11-26，tokens.css 的 --sheet-pad-*）：內容換行時列跟著長高，留白和單行時一樣。
+       .sheet-row          44px 的控制項（輸入框、開關、星等）：6px。值的兩行由控制項自己的內距撐開（SheetText、textarea）
+       .sheet-row--tall    有膠囊的列：10.5px，觸發鈕自己再留 5px 給膠囊（.sheet-trigger）
+       .sheet-row--text    只有文字（唯讀的列）：15px
+       .sheet-row--chips   風味標籤：14.5px，一排時剛好 65px */
   .sheet-row {
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: 0.75rem;
     min-height: var(--sheet-row-h);
-    padding: calc((var(--sheet-row-h) - var(--touch-min)) / 2) 0;
+    padding: var(--sheet-pad-control) 0;
   }
   .sheet-row--tall {
     min-height: var(--sheet-row-h-tall);
+    padding-block: var(--sheet-pad-control-tall);
+  }
+  .sheet-row--text {
+    padding-block: var(--sheet-pad-text);
+  }
+  .sheet-row--chips {
+    min-height: var(--sheet-row-h-tall);
+    padding-block: var(--sheet-pad-chip);
   }
 
   /* 列的右側。值太長時讓的是這一側：標籤不縮（.sheet-label）。 */
@@ -136,15 +147,27 @@
     color: var(--text-muted);
   }
 
-  /* 下拉的觸發鈕：佔滿列的右側，可點範圍至少 44px 高 */
+  /* 下拉的觸發鈕：佔滿列的右側，可點範圍至少 44px 高。
+     上下留 --sheet-trigger-pad（5px）：膠囊（34px）單行時剛好 44px；長豆名換成兩行時觸發鈕長高，膠囊照樣離分隔線 15.5px */
   .sheet-trigger {
     display: flex;
     flex: 1;
     min-width: 0;
     min-height: var(--touch-min);
+    padding-block: var(--sheet-trigger-pad);
     align-items: center;
     justify-content: flex-end;
     text-align: left;
+  }
+  /* 原生的 select、日期、時刻走膠囊時（SelectField 的 text）同一個規則：320px 的日期與時刻會換成兩行 */
+  .select-field[data-overlay="true"] {
+    padding-block: var(--sheet-trigger-pad);
+  }
+  /* 下拉面板裡的選項：44px 高，文字置中；換成兩行時上下照樣留一樣的空白。1lh 是選項自己的行高（字級不一） */
+  .sheet-option {
+    min-height: var(--touch-min);
+    padding-block: 0.5rem;
+    padding-block: calc((var(--touch-min) - 1lh) / 2);
   }
 
   /* 膠囊：已選的值。值最多兩行，超過省略（SheetPill.vue）。
@@ -216,6 +239,15 @@
     -webkit-box-orient: vertical;
     -webkit-line-clamp: 2;
     overflow-wrap: anywhere;
+  }
+  /* 日期與時刻的膠囊（2026-11-26）：膠囊裡不斷行——320px 時原本在數字中間斷開（「2026/1」「1/21」）。
+     放不下時換行的是兩顆膠囊之間（外層 flex-wrap），所以膠囊本身也不縮（shrink-0） */
+  .select-field--nowrap {
+    flex-shrink: 0;
+  }
+  .select-field--nowrap .sheet-clamp {
+    white-space: nowrap;
+    overflow-wrap: normal;
   }
 
   /* 卡片下方的小字（footer，《03》§4.1）：說明、提示、錯誤、衍生值一律放在卡片外面的下方，
