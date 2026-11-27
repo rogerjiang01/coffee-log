@@ -14,7 +14,7 @@ export default function run() {
 
   r.section('豆子與紀錄：標示在豆名裡，不放標籤')
   const places = [
-    ['components/BeanCard.vue', '豆子卡片（列表）'],
+    ['pages/beans/index.vue', '豆子列表'],
     ['components/BrewCard.vue', '紀錄卡片'],
     ['components/OverviewBeanCard.vue', '總覽的最近沖煮與最高分'],
     ['pages/beans/[id]/index.vue', '豆子詳情頁'],

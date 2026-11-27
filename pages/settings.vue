@@ -18,6 +18,12 @@ const user = useSupabaseUser()
 const email = computed(() =>
   (session.value as { user?: { email?: string } } | null)?.user?.email ?? user.value?.email ?? '')
 
+// 第一個 @ 前後兩段，畫面上在 @ 之後放斷行建議（沒有 @ 時只有一段）
+const emailParts = computed(() => {
+  const at = email.value.indexOf('@')
+  return at < 0 ? [email.value] : [email.value.slice(0, at), email.value.slice(at + 1)]
+})
+
 const cache = useQueryCache()
 const splash = useSplash()
 const signingOut = ref(false)
@@ -56,8 +62,10 @@ async function signOut() {
         <FormCard pill>
           <dl>
             <ReadonlyRow label="電子郵件">
-              <!-- 信箱沒有空格：任意字元都可以斷行（wrap-anywhere），不截斷；值靠右（ReadonlyRow） -->
-              <span class="min-w-0 wrap-anywhere">{{ email }}</span>
+              <!-- 信箱沒有空格：任意字元都可以斷行（wrap-anywhere），不截斷；值靠右（ReadonlyRow）。
+                   @ 之後放一個斷行建議（<wbr>，2026-11-27）：放不下時優先斷成「roger@」與「example.com」，
+                   後半段一行還是放不下才在任意字元斷 -->
+              <span class="min-w-0 wrap-anywhere">{{ emailParts[0] }}<template v-if="emailParts.length > 1">@<wbr>{{ emailParts[1] }}</template></span>
             </ReadonlyRow>
           </dl>
         </FormCard>

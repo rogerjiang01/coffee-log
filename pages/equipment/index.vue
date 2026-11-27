@@ -88,29 +88,31 @@
         </p>
 
         <!-- 骨架：和內容同一個版面——段落標題加一張卡片、卡片裡兩行的列（2026-11-27）。
-             卡片角落的色塊圓角 8px（卡片 24 − 內距 16，《03》§2.3.1）；段落標題不在卡片裡，用預設圓角 -->
+             卡片是 ml（18px）：色塊離卡片邊 16／18，照《03》§2.3.1 是 18 − 16 ＝ 2px，等於色塊的預設圓角，不另外傳 -->
         <div v-if="loading" aria-busy="true" aria-label="讀取中" class="flex flex-col" :style="{ marginTop: 'var(--gap-section)', gap: 'var(--gap-section)' }">
             <section v-for="n in 2" :key="n" class="flex flex-col" :style="{ gap: 'var(--gap-group)' }">
                 <SkeletonBlock width="4rem" height="1.25rem" class="card-pad-x-margin" />
-                <FormCard>
+                <AppCard radius="ml" border-inside class="overflow-hidden">
                     <ul>
                         <li v-for="row in 2" :key="row" class="equipment-skeleton-row card-pad-x flex flex-col" :style="{ paddingBlock: 'var(--sheet-pad-two-line)', gap: '2px' }">
-                            <span class="flex items-center" :style="{ height: 'var(--sheet-line)' }"><SkeletonBlock width="55%" height="1.125rem" radius="8px" /></span>
-                            <span class="flex items-center" :style="{ height: 'calc(var(--text-body-m) * var(--text-body-m--line-height))' }"><SkeletonBlock width="35%" height="0.875rem" radius="8px" /></span>
+                            <span class="flex items-center" :style="{ height: 'var(--sheet-line)' }"><SkeletonBlock width="55%" height="1.125rem" /></span>
+                            <span class="flex items-center" :style="{ height: 'calc(var(--text-body-m) * var(--text-body-m--line-height))' }"><SkeletonBlock width="35%" height="0.875rem" /></span>
                         </li>
                     </ul>
-                </FormCard>
+                </AppCard>
             </section>
         </div>
 
         <p v-else-if="!items.length && !loadError" class="text-muted" :style="{ marginTop: 'var(--gap-section)' }">設為常用的器材，新增紀錄時會自動帶入。</p>
 
         <!-- 分組（2026-11-27，Figma 3670:1760）：每個類型是一個段落（FormSection：標題 Heading L、和卡片裡的列文字對齊），
-             底下一張表單卡片（FormCard，一般圓角——只有一台時也不是膠囊形：兩行的列不是 56／65），每台器材一列。
+             底下一張卡片，每台器材一列。卡片是分頁第一層的 ml（18px，2026-11-27 第二版；第一版誤用表單卡片的 24px），
+             邊界與陰影和總覽、豆子列表、紀錄卡片相同；只有一台時也是 ml，不是膠囊形。
+             外框畫在內側（border-inside），列文字和段落標題對齊在同一條線。
              段落之間 --gap-section、標題到卡片 --gap-group，和紀錄詳情、豆子詳情相同 -->
         <div v-else class="flex flex-col" :style="{ marginTop: 'var(--gap-section)', gap: 'var(--gap-section)' }">
             <FormSection v-for="group in grouped" :key="group.type" :title="equipmentLabels[group.type]">
-                <FormCard>
+                <AppCard radius="ml" border-inside class="overflow-hidden">
                     <ul>
                         <!-- 整列是通往編輯頁的連結，畫面上沒有「編輯」兩個字：無障礙名稱開頭是「編輯」，
                              名稱、常用、範例、備註、上次使用都在裡面（equipmentRowLabel） -->
@@ -129,7 +131,7 @@
                             </template>
                         </TwoLineRow>
                     </ul>
-                </FormCard>
+                </AppCard>
             </FormSection>
         </div>
 

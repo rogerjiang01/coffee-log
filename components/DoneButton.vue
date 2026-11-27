@@ -1,7 +1,7 @@
 <script setup lang="ts">
 // 「完成」：右上角 44px 的 --accent 圓形按鈕，中間是 --on-accent 的勾勾（《03》§3 圖示表的「完成」）。
 // 結算頁與分段子頁共用。
-// floating：結算頁右上角、浮在主圖與內容上的那一顆，加懸浮按鈕的陰影 --float-shadow（2026-11-26，和分享鈕同一個）。
+// floating：結算頁右上角、浮在主圖與內容上的那一顆，加陰影 --shadow-light（和分享鈕、頁首的圓鈕同一個，也是卡片的那一個；2026-11-27 第二版，原本是 --float-shadow）。
 // 分段子頁的在標題列裡，不浮，不加。
 //
 // **名稱是「完成」，不是「儲存」**：它不寫資料庫。分段子頁上按它只是回到表單，改動要等表單的「儲存」才寫進去；
@@ -16,7 +16,7 @@ const emit = defineEmits<{ click: [] }>()
     type="button"
     aria-label="完成"
     class="flex shrink-0 items-center justify-center rounded-full"
-    :style="{ width: 'var(--touch-min)', height: 'var(--touch-min)', background: 'var(--accent)', color: 'var(--on-accent)', boxShadow: floating ? 'var(--float-shadow)' : undefined }"
+    :style="{ width: 'var(--touch-min)', height: 'var(--touch-min)', background: 'var(--accent)', color: 'var(--on-accent)', boxShadow: floating ? 'var(--shadow-light)' : undefined }"
     @click="emit('click')"
   >
     <svg

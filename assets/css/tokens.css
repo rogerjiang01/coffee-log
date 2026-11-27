@@ -332,11 +332,13 @@
        --shadow-light（本檔最後的 @theme static）  卡片與輸入框。卡片底色和頁面底色幾乎一樣，
                                                     靠這層很淡的陰影分層。
        --overlay-shadow                             浮出層：對話框、浮動按鈕、下拉面板。
-       --float-shadow                               懸浮按鈕：頁首的圓鈕、結算頁的完成（第三種，2026-11-26）、右下的新增鈕（2026-11-27）。
+       --float-shadow                               懸浮按鈕：右下的新增鈕（第三種，2026-11-26；新增鈕 2026-11-27）。
+                                                    頁首的圓鈕與結算頁的完成 2026-11-27 第二版改成 --shadow-light（和卡片同一個）。
      --overlay-shadow 的色相取自 --ink 而非中性灰，避免在暖底色上顯冷。 */
 
     --overlay-shadow: 0 8px 24px -4px rgb(42 46 38 / 0.18), 0 2px 6px -1px rgb(42 46 38 / 0.1);
-    /* 懸浮按鈕（2026-11-26）：結算頁右上角的分享與完成；頁首的圓鈕（2026-11-27）；右下的新增鈕（2026-11-27，原本是 --overlay-shadow）。比 --overlay-shadow 輕很多，**沒有位移**（x、y 都是 0），
+    /* 懸浮按鈕：右下的新增鈕（2026-11-27，原本是 --overlay-shadow）。頁首的圓鈕、結算頁的分享與完成用過這一個（2026-11-26／27），
+       2026-11-27 第二版改成 --shadow-light（和卡片同一個）。比 --overlay-shadow 輕很多，**沒有位移**（x、y 都是 0），
        只靠模糊半徑，像一圈均勻的淡影——按鈕浮在內容上，但沒有光源的方向。用來在淺色底上看出圓的範圍（《03》§2.3「邊界」） */
     --float-shadow: 0 0 12px rgb(42 46 38 / 0.14);
 
@@ -380,6 +382,9 @@
     /* 兩行的列（TwoLineRow，2026-11-27：器材列表；之後器材選擇器共用）。Figma 3670:1804 的 py-14，
        上面幾個是從列高推出來的，這個不是——兩行的列不套 56／65，高度由內容決定：14 ＋ 26 ＋ 2 ＋ 22 ＋ 14 ＝ 78 */
     --sheet-pad-two-line: 14px;
+    /* 左邊有縮圖的兩行列（TwoLineRow 的 start，2026-11-27：豆子列表；Figma 3675:2023 的 py-12）。
+       列高由 64 的縮圖決定：12 ＋ 64 ＋ 12 ＝ 88，文字只有一行時也一樣 */
+    --sheet-pad-thumb: 12px;
     --sheet-pad-chip: calc((var(--sheet-row-h-tall) - var(--chip-h)) / 2);
     --sheet-pad-control: calc((var(--sheet-row-h) - var(--touch-min)) / 2);
     --sheet-pad-control-tall: calc((var(--sheet-row-h-tall) - var(--touch-min)) / 2);

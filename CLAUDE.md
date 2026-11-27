@@ -255,6 +255,7 @@ Laeta 改版：把 Figma 的新設計導入程式，分三批——第一批 tok
   **頁面底部的空白只在 `app.vue` 留**（`--tab-bar-clearance`／瀏覽型 `--fab-clearance`），頁面的 `main` 不自己留；浮動新增按鈕在分頁列之上 12px（`.fab-position`）。
   分頁列與選中膠囊的轉角是 **`round`**（正半圓，和 iOS 原生的一致；不要改回 superellipse）。
   **只有這兩個用 round**（2026-11-25 決定）：其他膠囊（單列卡片、滿寬按鈕、下拉膠囊、風味標籤、開關、每日長條）**維持 superellipse，不再改**，也不要再問。分頁列的圖示照 Figma：器材是平頭直角，**不套 Lucide 的圓頭規則**；home、brew 是 Material Symbols（Apache 2.0），bean 是 Streamline Plump 的 coffee-bean（Iconify，CC BY 4.0，要標作者，`NOTICE.md`）
+- **頁首的圖示按鈕一律圓形**（`.header-icon-button`，2026-11-27）：範圍與例外見《03》§2.3
 - **顯示用星等**（`StarDisplay`，2026-11-23）：20px、間距 4px，總覽、紀錄詳情、分享頁一致，用的地方不傳 `size`、不加 gap；總覽半寬卡片放不下時（320px）只縮間距到最小 2px
 - **豆子詳情改版**（2026-11-27，Figma「豆子詳情（草稿）－A 主圖版」3649:1552，《03》§4.23、《02》§8）：
   **主圖和結算頁共用 `BrewHero`／`BrewHeroFallback`，只有一份實作**（名稱沿用 `Brew…`）；行為、數值、透明度的三條路與狀態列作法兩頁完全相同，改主圖時兩頁一起驗。

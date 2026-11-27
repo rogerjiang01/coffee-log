@@ -342,7 +342,8 @@
     height: var(--touch-min);
     border-radius: 9999px;
     background: var(--surface);
-    box-shadow: var(--float-shadow);
+    /* 陰影和卡片同一個（--shadow-light，2026-11-27 第二版；原本是 --float-shadow）。不加外框 */
+    box-shadow: var(--shadow-light);
     color: var(--text);
   }
   /* 浮在主圖上（豆子詳情的 ‹、結算頁的分享）：照片上要看得清楚，--surface 的 78% 加 6px 背景模糊 */

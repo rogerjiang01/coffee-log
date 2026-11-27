@@ -78,8 +78,9 @@ export default function run() {
   const appCardUsers = all.filter(f => f !== 'components/AppCard.vue' && /<AppCard\b/.test(read(f)))
   // 2026-11-23：紀錄分頁的紀錄卡片與它的骨架也用 AppCard（ml）
   // 2026-11-26：結算頁改版，本週目標卡片（GoalWeekCard）只剩總覽在用；結算頁的「沖煮參數」卡片用 AppCard（md）
-  r.check(appCardUsers.sort().join(',') === ['components/BrewCard.vue', 'components/FormCard.vue', 'components/GoalWeekCard.vue', 'components/OverviewBeanCard.vue', 'dev/corners.vue', 'pages/brews/[id]/summary.vue', 'pages/brews/index.vue', 'pages/index.vue'].join(','),
-    `用 AppCard 的只有表單、總覽、結算頁的沖煮參數、紀錄卡片與調整頁（${appCardUsers.join('、')}）`)
+  // 2026-11-27：豆子列表、器材列表的分組卡片用 AppCard（ml）
+  r.check(appCardUsers.sort().join(',') === ['components/BrewCard.vue', 'components/FormCard.vue', 'components/GoalWeekCard.vue', 'components/OverviewBeanCard.vue', 'dev/corners.vue', 'pages/beans/index.vue', 'pages/brews/[id]/summary.vue', 'pages/brews/index.vue', 'pages/equipment/index.vue', 'pages/index.vue'].join(','),
+    `用 AppCard 的只有表單、總覽、豆子與器材列表、結算頁的沖煮參數、紀錄卡片與調整頁（${appCardUsers.join('、')}）`)
   r.check(/<AppCard\s+as="a"/.test(read('pages/brews/[id]/summary.vue')) && !/<AppCard[^>]*radius=/.test(read('pages/brews/[id]/summary.vue')),
     '結算頁的沖煮參數卡片：預設的 md（24px），不是分頁第一層的 ml')
 
@@ -100,11 +101,12 @@ export default function run() {
   r.check(/\.card-corners \{\s*border-radius: var\(--radius-card-md\);\s*corner-shape: var\(--corner-card-md\);/.test(css), '.card-corners')
   r.check(/\.form-card-corners \{\s*border-radius: var\(--radius-card-lg\);\s*corner-shape: var\(--corner-card-lg\);/.test(css), '.form-card-corners')
   for (const [path, re, label] of [
-    ['components/BeanCard.vue', /class="card-ml-corners flex overflow-hidden border"/, '豆子列表的卡片：ml'],
-    // 2026-11-27：器材列表改成每個類型一張表單卡片（FormCard，lg 24px），不再一台一張 ml 卡片
-    ['pages/equipment/index.vue', /<FormCard>\s*<ul>\s*<!--[\s\S]*?-->\s*<TwoLineRow/, '器材列表：每個類型一張表單卡片（lg），不是膠囊形'],
-    ['pages/beans/index.vue', /<SkeletonBlock height="5\.5rem" radius="var\(--radius-card-ml\)" class="card-ml-corners" \/>/, '豆子列表的骨架：ml'],
-    ['pages/equipment/index.vue', /<FormCard>\s*<ul>\s*<li v-for="row in 2"/, '器材列表的骨架：同一種表單卡片'],
+    // 2026-11-27 第二版：豆子列表、器材列表都是分組卡片，分頁第一層的 ml（器材列表第一版誤用表單卡片的 lg）
+    ['pages/beans/index.vue', /<AppCard v-if="active\.length" radius="ml" border-inside class="overflow-hidden">/, '豆子列表：還在喝的一張 ml 卡片'],
+    ['pages/beans/index.vue', /<FormSection v-if="finished\.length" title="已喝完">\s*<AppCard radius="ml" border-inside class="overflow-hidden">/, '豆子列表：已喝完也是 ml'],
+    ['pages/beans/index.vue', /<AppCard\s+v-if="loading" radius="ml" border-inside/, '豆子列表的骨架：ml'],
+    ['pages/equipment/index.vue', /<AppCard radius="ml" border-inside class="overflow-hidden">\s*<ul>\s*<!--[\s\S]*?-->\s*<TwoLineRow/, '器材列表：每個類型一張 ml 卡片，不是膠囊形'],
+    ['pages/equipment/index.vue', /<AppCard radius="ml" border-inside class="overflow-hidden">\s*<ul>\s*<li v-for="row in 2"/, '器材列表的骨架：ml'],
     ['components/BeanCompareTable.vue', /class="card-corners overflow-hidden border shadow-light"/, '比較表維持 md（24px）'],
   ]) r.check(re.test(read(path)), label)
   const mdUsers = all.filter(f => f !== 'components/AppCard.vue' && /\bcard-corners\b|--radius-card-md/.test(read(f).replace(/card-ml-corners|form-card-corners/g, '')))

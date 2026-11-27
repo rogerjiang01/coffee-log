@@ -10,7 +10,7 @@
 // 圖示（2026-11-27 加大）：形狀維持 ‹，線條拉長——M15.5 4 7.5 12l8 8（原本是 Lucide 的 chevron-left），
 // 22px 顯示、24 格線、stroke-width 2.2（實際約 2px）。觸控範圍維持 44px。器材選擇器與分段子頁的 ‹ 同一個圖示。
 //
-// 外觀（2026-11-27）：頁首的圖示按鈕一律圓形——44px 的正圓、--surface 底、--float-shadow（main.css 的 .header-icon-button）。
+// 外觀（2026-11-27）：頁首的圖示按鈕一律圓形——44px 的正圓、--surface 底、--shadow-light（和卡片同一個；main.css 的 .header-icon-button）。
 // 圓的外緣對齊頁面內距，不用負邊距；跟頁面一起捲，不固定。
 // floating：豆子詳情左上角、浮在主圖上的那一顆。同一個圓，加 --surface 的 78% 與 6px 背景模糊（.header-icon-button--on-media），
 // 和結算頁主圖上的分享鈕相同。固定在畫面上的位置由頁面決定（豆子詳情的 .bean-back）。

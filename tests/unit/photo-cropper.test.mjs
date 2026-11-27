@@ -106,8 +106,7 @@ export default function run() {
   // 裁切輸出是正方形。容器不是正方形的話，使用者框的區域會被 object-fit 再裁一次
   const photoSites = [
     ['components/PhotoField.vue', '豆子表單與就地新增的預覽'],
-    ['components/BeanCard.vue', '豆子列表縮圖'],
-    ['components/BeanThumb.vue', '總覽的「上一杯」與結算頁的摘要'],
+    ['components/BeanThumb.vue', '豆子列表、總覽、紀錄卡片的縮圖'],
   ]
   for (const [path, label] of photoSites) {
     const imgs = read(path).match(/<img[\s\S]*?>/g) || []

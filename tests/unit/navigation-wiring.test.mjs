@@ -84,9 +84,9 @@ export default function run() {
   r.check(/<template #end>[\s\S]*to="\/settings"[\s\S]*aria-label="帳號與設定"/.test(home) && !/r="3"/.test(home), '總覽右上角是人頭佔位，點了進設定（沒有齒輪了）')
   const homeFile = read('pages/index.vue')
   r.check(/class="account-avatar[^"]*rounded-full"/.test(home) && /<svg width="44" height="44" viewBox="0 0 24 24" aria-hidden="true">/.test(home)
-    && /\.account-avatar \{[^}]*width: var\(--touch-min\);[^}]*height: var\(--touch-min\);[^}]*linear-gradient\(to bottom, var\(--avatar-placeholder-from\), var\(--avatar-placeholder-to\)\);[^}]*box-shadow: var\(--float-shadow\);[^}]*color: var\(--on-avatar-placeholder\);/.test(homeFile)
+    && /\.account-avatar \{[^}]*width: var\(--touch-min\);[^}]*height: var\(--touch-min\);[^}]*linear-gradient\(to bottom, var\(--avatar-placeholder-from\), var\(--avatar-placeholder-to\)\);[^}]*box-shadow: var\(--shadow-light\);[^}]*color: var\(--on-avatar-placeholder\);/.test(homeFile)
     && !/header-icon-button/.test(home),
-    '人頭佔位：44px 的圓本身就是按鈕（不外包 --surface 的圓），漸層與白色人形用 token，陰影 --float-shadow')
+    '人頭佔位：44px 的圓本身就是按鈕（不外包 --surface 的圓），漸層與白色人形用 token，陰影 --shadow-light（2026-11-27 第二版）')
   const tokensFile = read('assets/css/tokens.css')
   r.check(/--avatar-placeholder-from: var\(--stone-400\);/.test(tokensFile) && /--avatar-placeholder-to: var\(--stone-500\);/.test(tokensFile)
     && /--on-avatar-placeholder: var\(--white\);/.test(tokensFile) && !/--settings-icon/.test(tokensFile),
@@ -94,9 +94,9 @@ export default function run() {
 
   r.section('頁首的圖示按鈕一律圓形（2026-11-27）')
   const mainCss = read('assets/css/main.css')
-  r.check(/\.header-icon-button \{[^}]*width: var\(--touch-min\);[^}]*height: var\(--touch-min\);[^}]*border-radius: 9999px;[^}]*background: var\(--surface\);[^}]*box-shadow: var\(--float-shadow\);/.test(mainCss)
+  r.check(/\.header-icon-button \{[^}]*width: var\(--touch-min\);[^}]*height: var\(--touch-min\);[^}]*border-radius: 9999px;[^}]*background: var\(--surface\);[^}]*box-shadow: var\(--shadow-light\);/.test(mainCss)
     && !/\.header-icon-button \{[^}]*corner-shape/.test(mainCss),
-    '.header-icon-button：44px 的正圓、--surface 底、--float-shadow，不套 corner-shape')
+    '.header-icon-button：44px 的正圓、--surface 底、--shadow-light（和卡片同一個），不套 corner-shape')
   r.check(/\.header-icon-button--on-media \{[^}]*color-mix\(in srgb, var\(--surface\) 78%, transparent\);[^}]*backdrop-filter: blur\(6px\);/.test(mainCss),
     '主圖上：--surface 的 78% 加 6px 背景模糊')
   const backTemplate = stripComments(templateOf(read('components/BackButton.vue')))
@@ -113,8 +113,12 @@ export default function run() {
     && /:class="floating \? 'header-icon-button--on-media' : '-my-0\.5 ml-auto self-center'"/.test(shareTemplate) && !/-mr-3/.test(shareTemplate),
     '分享：紀錄詳情與結算頁同一個圓，結算頁加模糊；外緣對齊頁面內距')
   r.check(/<header class="flex items-center gap-3"/.test(read('components/PageHeader.vue')), 'PageHeader：‹ 和標題之間 12px')
-  r.check(/boxShadow: floating \? 'var\(--float-shadow\)' : undefined/.test(read('components/DoneButton.vue')) && /background: 'var\(--accent\)'/.test(read('components/DoneButton.vue')),
-    '完成鈕不在這一套裡：維持 --accent 實心')
+  r.check(/boxShadow: floating \? 'var\(--shadow-light\)' : undefined/.test(read('components/DoneButton.vue')) && /background: 'var\(--accent\)'/.test(read('components/DoneButton.vue')),
+    '完成鈕不在這一套裡：維持 --accent 實心（浮動時陰影和分享一樣是 --shadow-light）')
+  // 2026-11-27 第二版：器材選擇器標題列的 ＋ 也是圓鈕，不再用負邊距
+  const pickerTemplate = read('components/EquipmentPicker.vue')
+  r.check(/<button\s+v-if="mode === 'list'"\s+type="button"\s+class="header-icon-button"\s+:aria-label="`新增\$\{equipmentLabels\[type\]\}`"/.test(pickerTemplate) && !/-mr-3/.test(pickerTemplate),
+    '器材選擇器的 ＋：.header-icon-button，沒有負邊距')
 
   r.section('分頁列：四格，亮哪一格由 utils/navigation.ts 決定')
   const nav = read('components/BottomNav.vue')
@@ -410,10 +414,10 @@ export default function run() {
     '漸層的兩個位置在掛載與版面改變時量（ResizeObserver，兩條路都量）；實底的位置是結算頁的第一個段落')
   const tokensCss = read('assets/css/tokens.css')
   r.check(/--float-shadow: 0 0 \d+px rgb\([^)]*\);/.test(tokensCss)
-    && /\.header-icon-button \{[^}]*box-shadow: var\(--float-shadow\);/.test(read('assets/css/main.css')) && /class="header-icon-button"/.test(read('components/BrewShare.vue'))
-    && /boxShadow: floating \? 'var\(--float-shadow\)' : undefined/.test(read('components/DoneButton.vue'))
+    && /\.header-icon-button \{[^}]*box-shadow: var\(--shadow-light\);/.test(read('assets/css/main.css')) && /class="header-icon-button"/.test(read('components/BrewShare.vue'))
+    && /boxShadow: floating \? 'var\(--shadow-light\)' : undefined/.test(read('components/DoneButton.vue'))
     && (summaryTemplate.match(/<DoneButton floating @click="done" \/>/g) || []).length === 2,
-    '懸浮按鈕的陰影：--float-shadow（x、y 都是 0，只有模糊），分享與完成（含讀取中）同一個')
+    '右上兩顆的陰影：--shadow-light（和卡片同一個，2026-11-27 第二版），分享與完成（含讀取中）同一個')
   r.check(/\.brew-hero__actions \{[^}]*position: fixed;[^}]*top: calc\(env\(safe-area-inset-top\) \+ 40px\);[^}]*right: var\(--fixed-right\);/.test(hero),
     '分享與完成固定在畫面頂端，右緣和分頁列同一條線')
   r.check(/padding-inline: calc\(var\(--form-gutter\) \+ var\(--card-pad\)\);/.test(hero) && /paddingLeft: 'var\(--card-pad\)'/.test(summary),

@@ -258,17 +258,17 @@ async function create() {
           {{ mode === 'create' ? `新增${equipmentLabels[type]}` : title }}
         </h2>
 
-        <!-- ＋ 不在圓形的範圍裡（2026-11-27 只改 ‹ 與分享）：維持只有圖示，負邊距讓圖示本身對齊 20 的內距 -->
+        <!-- ＋ 也是頁首的圓形圖示按鈕（2026-11-27 第二版）：外緣對齊右側 20 的內距，不再用負邊距；
+             圖示顏色跟著 .header-icon-button 是 --text，和 ‹ 一致（原本是 --accent） -->
         <button
           v-if="mode === 'list'"
           type="button"
-          class="-mr-3"
-          :style="{ minHeight: 'var(--touch-min)', minWidth: 'var(--touch-min)', color: 'var(--accent)' }"
+          class="header-icon-button"
           :aria-label="`新增${equipmentLabels[type]}`"
           @click="startCreate"
         >
           <svg
-            width="22" height="22" viewBox="0 0 24 24" aria-hidden="true" class="mx-auto"
+            width="22" height="22" viewBox="0 0 24 24" aria-hidden="true"
             fill="none" stroke="currentColor" stroke-width="2.18" stroke-linecap="round" stroke-linejoin="round"
           >
             <path d="M5 12h14" />
