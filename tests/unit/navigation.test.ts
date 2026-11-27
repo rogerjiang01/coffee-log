@@ -164,10 +164,6 @@ export default function run() {
   r.check(summaryAccess('r9', 'r9') === 'show', '剛存好的那一筆：顯示')
   r.check(summaryAccess(null, 'r9') === 'detail', '直接打開網址、重新整理（記憶體裡沒有 ticket）：導向詳情')
   r.check(summaryAccess('r8', 'r9') === 'detail', '別筆的 ticket：導向詳情')
-  // 診斷入口（?hero-debug=1，上線前拿掉）：只有明確帶參數時才不檢查 ticket
-  r.check(summaryAccess(null, 'r9', false) === 'detail' && summaryAccess('r8', 'r9', false) === 'detail',
-    '沒有 ?hero-debug=1：沒有 ticket、別筆的 ticket 仍然導向詳情')
-  r.check(summaryAccess(null, 'r9', true) === 'show', '診斷入口 ?hero-debug=1：沒有 ticket 也顯示（上線前拿掉）')
   r.check(summaryLeave(true) === true && summaryLeave(false) === '/', '頁面自己發的導覽照常走；返回鍵與返回手勢去總覽')
 
   // 結算頁的 history：用取代的方式進入；勾勾取代成總覽；返回手勢退回上一頁後被導去總覽（push）

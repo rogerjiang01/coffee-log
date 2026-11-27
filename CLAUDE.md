@@ -193,8 +193,6 @@ Laeta 改版：把 Figma 的新設計導入程式，分三批——第一批 tok
 
 **還沒做的**（做法沒寫到的照常先問）：
 
-- **結算頁主圖的診斷模式上線前拿掉**（2026-11-27）：`?hero-debug=1`。要拿掉的有：`components/BrewHeroDebug.vue`、`BrewHero.vue` 裡標「診斷」的幾行、
-  結算頁不檢查 ticket 的診斷入口（`pages/brews/[id]/summary.vue` 的 `heroDebug`、`utils/navigation.ts` 的 `summaryAccess` 第三個參數，連同 `tests/unit/navigation.test.ts` 與 `navigation-wiring.test.mjs` 裡標診斷的檢查）（《03》§4.17）
 - **攪拌標記的清理**：穩定幾天後**先跑計數**，0 筆就整支省掉（細節見上面「待辦」的第一項）
 - **輸入當下換行**：做法已經同意，寫在 `第三批.md` 第十七節，照那份做
 - **粉重 10% 的比較對象規則**

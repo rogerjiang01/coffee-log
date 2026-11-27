@@ -301,9 +301,8 @@ export default function run() {
     '編輯儲存後照舊回紀錄詳情')
   const summary = read('pages/brews/[id]/summary.vue')
   const summaryTemplate = stripComments(templateOf(summary))
-  r.check(/const heroDebug = route\.query\['hero-debug'\] === '1'\s*const access = summaryAccess\(ticket\.value, id, heroDebug\)/.test(summary)
-    && (summary.match(/hero-debug/g) || []).length === 2 && /await navigateTo\(`\/brews\/\$\{id\}`, \{ replace: true \}\)/.test(summary),
-    '直接打開網址、重新整理、之後再進來：導向這筆紀錄的詳情（只有網址明確帶 ?hero-debug=1 的診斷入口例外，上線前拿掉）')
+  r.check(/const access = summaryAccess\(ticket\.value, id\)/.test(summary) && /await navigateTo\(`\/brews\/\$\{id\}`, \{ replace: true \}\)/.test(summary),
+    '直接打開網址、重新整理、之後再進來：導向這筆紀錄的詳情')
   r.check(/ticket\.value = null/.test(summary), '進來時用掉 ticket：只出現這一次')
   r.check(/let leavingByPage = access === 'detail'/.test(summary), '導向詳情是頁面自己發的，不會被攔成去總覽')
   r.check(/onBeforeRouteLeave\(\(\) => \{\s*const result = summaryLeave\(leavingByPage\)/.test(summary), '返回鍵與返回手勢：效果和按勾勾一樣')

@@ -35,7 +35,7 @@
 //   背景的抵銷平移（範圍 0–10000px 的捲動時間軸）在實機上完全平順，所以透明度改用同一個模式：
 //   時間軸一樣是 0 到 10000px（頁面捲不到，動畫永遠不會結束、不靠 fill），淡出終點依頁面不同，
 //   關鍵影格的 offset 由程式換算（終點 ÷ 10000，utils/heroFade.ts 的 heroKeyframes，照 heroLayers 的曲線取樣），終點之後到 1 都是終點的值。
-//   range 裡沒有 min() 也沒有 CSS 變數運算。三條路，依序挑第一條可用的（診斷面板會顯示走哪一條）：
+//   range 裡沒有 min() 也沒有 CSS 變數運算。三條路，依序挑第一條可用的：
 //     WAAPI              element.animate ＋ ScrollTimeline，rangeStart 0px、rangeEnd 10000px
 //     CSS 動態 keyframes  沒有 ScrollTimeline 的 JS 介面（或不支援 rangeStart）但支援 animation-timeline：程式產生 @keyframes 插進 <style>，
 //                        用和平移相同的 animation-timeline: scroll(root block)、animation-range: 0px 10000px 套上去
@@ -174,7 +174,6 @@ function measure() {
   const maxScroll = document.documentElement.scrollHeight - window.innerHeight
   fadeEnd = Math.max(1, Math.min(Number.parseFloat(style.minHeight) * FADE_RATIO, maxScroll))
   opacityEnd = Number.parseFloat(style.getPropertyValue('--hero-opacity-end')) || 0
-  if (debug.value) debugFadeEnd.value = fadeEnd // 診斷（上線前拿掉）
   if (path === 'JS') apply()
   else build()
 }
@@ -200,17 +199,8 @@ function observe() {
   observer.observe(document.body)
 }
 
-// ── 診斷：網址加 ?hero-debug=1 時在畫面角落顯示捲動與透明度（BrewHeroDebug）。**上線前整段拿掉** ──
-const debug = ref(false)
-const debugFadeEnd = ref(0)
-const debugFollow = ref('')
-const debugPath = ref('')
-
 onMounted(() => {
-  debug.value = useRoute().query['hero-debug'] === '1'
-  debugFollow.value = CSS.supports('animation-timeline', 'scroll()') ? 'CSS（absolute＋捲動連動平移）' : 'fixed'
   path = pickPath()
-  debugPath.value = path
   observer = new ResizeObserver(() => measure())
   observe()
   measure()
@@ -272,9 +262,6 @@ onBeforeUnmount(() => cleanup?.())
     <div class="brew-hero__actions">
       <slot name="actions" />
     </div>
-
-    <!-- 診斷（?hero-debug=1）。上線前整段拿掉 -->
-    <BrewHeroDebug v-if="debug" :root="root" :fade-end="debugFadeEnd" :path="debugPath" :follow="debugFollow" />
 
     <!-- 上層的第一段：標題區。跟著頁面捲動，從背景上滑過去 -->
     <div class="brew-hero__title">

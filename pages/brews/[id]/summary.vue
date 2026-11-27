@@ -20,9 +20,7 @@ const route = useRoute()
 const id = String(route.params.id)
 const ticket = useSummaryTicket()
 
-// 診斷，上線前拿掉（2026-11-27）：?hero-debug=1 時不檢查 ticket，任何一筆都能直接開（utils/navigation.ts 的 summaryAccess）
-const heroDebug = route.query['hero-debug'] === '1'
-const access = summaryAccess(ticket.value, id, heroDebug)
+const access = summaryAccess(ticket.value, id)
 // 勾勾與參數卡片是頁面自己發的導覽；其他的離開（返回鍵、返回手勢）效果和按勾勾一樣（onBeforeRouteLeave）。
 // 導向詳情也是頁面自己發的，不能被攔成去總覽
 let leavingByPage = access === 'detail'
