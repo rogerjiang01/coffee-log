@@ -342,8 +342,9 @@
     height: var(--touch-min);
     border-radius: 9999px;
     background: var(--surface);
-    /* 陰影和卡片同一個（--shadow-light，2026-11-27 第二版；原本是 --float-shadow）。不加外框 */
-    box-shadow: var(--shadow-light);
+    /* 陰影是頁首按鈕自己的 --header-button-shadow（2026-11-28，照 Figma「設定（草稿）」的返回鈕 3670:1789）。不加外框。
+       用過 --float-shadow（2026-11-27）與卡片的 --shadow-light（2026-11-27 第二版：一般頁面上圓幾乎看不見） */
+    box-shadow: var(--header-button-shadow);
     color: var(--text);
   }
   /* 浮在主圖上（豆子詳情的 ‹、結算頁的分享）：照片上要看得清楚，--surface 的 78% 加 6px 背景模糊 */

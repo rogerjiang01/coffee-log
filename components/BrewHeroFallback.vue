@@ -1,19 +1,20 @@
 <script setup lang="ts">
-// 結算頁主圖「沒有豆袋照片時」的樣子（《03》§4.17.1，Figma 結算頁 v2 的 3628:1544）。
+// 主圖「沒有豆袋照片時」的樣子：結算頁與豆子詳情共用（《03》§4.17.1）。
 //
 // **整個 App 只有這個元件知道沒有照片時主圖長什麼樣。** BrewHero 只負責版面、漸層與按鈕，
 // 沒有照片時把這一塊交給這裡；之後要換圖，只改這個檔案，BrewHero 與結算頁都不用動。
 //
-// 目前的內容：烘焙度底色鋪滿主圖（沒填烘焙度是 --roast-unknown，roastFill），
-// BeanArt 的三顆豆子以完整、不裁切的方式（whole）畫在上半部中間。沿用 BeanArt 的圖檔與 --roast-art，不另外複製 SVG。
+// 目前的內容（2026-11-28，Figma「coffee bean image / hero」3677:1996）：烘焙度底色（roastFill：沒填烘焙度是 --roast-unknown）
+// 上鋪滿 60×60 的豆子圖樣，取代原本置中的三顆大豆子。
 //
-// 尺寸（2026-11-26 第二版，符合下面的「上方 55%」）：**三顆豆子整組**在 390×470 時寬 220、高 228，
-// 水平置中、距頂 24，下緣 252（54%）。Figma 3628:1544 是基準正方形 260（整組約 328×340），下緣超過 55%，沒有照它。
-// 整組的外框是從 SVG 路徑取樣算的（以 BeanArt 的基準正方形為 1）：x −0.047〜1.213（寬 1.260）、y −0.061〜1.247（高 1.308）。
-// 所以外層 .hero-fallback__art 是整組的外框（寬高比 1.260：1.308），裡面的 BeanArt 基準正方形是外框寬的 1/1.260，
-// 往右下偏 (0.047, 0.061)。寬取 min(220/390 寬, 主圖高 × 0.55 能放下的寬)：320 寬與矮螢幕時跟著縮，整組一律在上方 55% 以內。
-// 「主圖高」是主圖的基準高度（BrewHero 的 --hero-h，min(470px, 58svh)），不是實際高度：豆名很長、主圖往下長時，
-// 豆子不跟著變大（變大的話下面那顆會掉進標題背後的漸層）。不在 BrewHero 裡時沒有 --hero-h，用整塊的高度
+// - 圖樣是一格 91×160 的 public/illustrations/bean-pattern.svg，當遮罩（mask-repeat: repeat），豆子的顏色是 --roast-art
+//   （和縮圖的豆子同一個 token；Figma 的豆子綁 neutral/bg，這裡統一）。
+// - 格子：橫向間距 91、列距 80（兩列一個週期 160）。正放的列中心 x 45、y 69；下一列是**左右鏡像**（Figma 是 scale-x −1，
+//   不是轉 180°），中心 x 88、y 149（＝ −11 ＋ 160：最上面那排被切掉一半）。Figma 是手排的，鏡像豆子的中心平均約 88、
+//   正放約 45，這裡取整數、不照抄每顆 2–4px 的誤差。
+// - **豆子大小固定**，不跟著主圖寬度縮放：主圖比 390 寬、或豆名很長往下長時，圖樣從左上角起一直鋪下去，不拉伸、沒有接縫。
+// - 圖樣往四邊多鋪 --pattern-bleed（40px，是模糊半徑 20 的兩倍）：模糊那一份（BrewHero 的 .brew-hero__blur）的邊緣
+//   落在圖層外、被圖層裁掉，不會在邊上淡成一圈只有底色的框。遮罩的起點跟著往回推同樣的距離，格子仍然對齊主圖左上角。
 //
 // ── 之後換圖 ─────────────────────────────────────────────
 // 圖片規格（以 390 寬為準）：
@@ -37,42 +38,28 @@ const fill = computed(() => roastFill(props.roastLevel))
 
 <template>
   <div class="hero-fallback" :style="{ background: fill.background }" aria-hidden="true">
-    <div class="hero-fallback__frame">
-      <div class="hero-fallback__art">
-        <div class="hero-fallback__base">
-          <BeanArt background="transparent" whole />
-        </div>
-      </div>
-    </div>
+    <div class="hero-fallback__pattern" />
   </div>
 </template>
 
 <style scoped>
 .hero-fallback {
+  --pattern-bleed: 40px;
   position: absolute;
   inset: 0;
 }
-/* 換算的基準：主圖的基準高度（不是撐高之後的實際高度），cqw、cqh 都以它為準 */
-.hero-fallback__frame {
+/* 豆子圖樣：一格 91×160，重複鋪滿（數值見開頭的註解與 SVG 檔裡的註解） */
+.hero-fallback__pattern {
   position: absolute;
-  inset: 0 0 auto;
-  height: var(--hero-h, 100%);
-  container-type: size;
-}
-.hero-fallback__art {
-  /* 距頂 24/470 ＝ 5.1cqh；高度上限 55% − 5.1% ＝ 49.9cqh，換成寬是 49.9 × 1.260 / 1.308 ＝ 48.07cqh */
-  position: absolute;
-  top: 5.1cqh;
-  left: 50%;
-  width: min(56.41cqw, 48.07cqh);
-  aspect-ratio: 1.26 / 1.308;
-  translate: -50% 0;
-}
-/* BeanArt 的基準正方形：外框寬的 1/1.260（79.37%），往右 0.047/1.260（3.73%）、往下 0.061/1.308（4.66%） */
-.hero-fallback__base {
-  position: absolute;
-  left: 3.73%;
-  top: 4.66%;
-  width: 79.37%;
+  inset: calc(var(--pattern-bleed) * -1);
+  background: var(--roast-art);
+  -webkit-mask-image: url("/illustrations/bean-pattern.svg");
+  mask-image: url("/illustrations/bean-pattern.svg");
+  -webkit-mask-size: 91px 160px;
+  mask-size: 91px 160px;
+  -webkit-mask-repeat: repeat;
+  mask-repeat: repeat;
+  -webkit-mask-position: var(--pattern-bleed) var(--pattern-bleed);
+  mask-position: var(--pattern-bleed) var(--pattern-bleed);
 }
 </style>

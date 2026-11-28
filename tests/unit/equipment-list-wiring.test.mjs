@@ -72,7 +72,8 @@ export default function run() {
   r.check((beansTpl.match(/<span class="bean-row-thumb block size-16 shrink-0 overflow-hidden">\s*<BeanThumb :photo-url="photoUrl\(bean\)" :roast-level="bean\.roast_level" alt="" \/>/g) || []).length === 2
     && /\.bean-row-thumb \{\s*border-radius: var\(--radius-md\);/.test(beans),
     '左側 64px 的縮圖（BeanThumb：照片，否則烘焙度底色加插畫），--radius-md，替代文字留空')
-  r.check((beansTpl.match(/<span class="min-w-0 truncate">\{\{ bean\.name \}\}<\/span>/g) || []).length === 2, '豆名截斷成一行')
+  r.check((beansTpl.match(/<span class="min-w-0 line-clamp-2 wrap-break-word">\{\{ bean\.name \}\}<\/span>/g) || []).length === 2, '豆名最多兩行，超過才加刪節號（2026-11-28）')
+  r.check(/<span class="min-w-0 truncate">\{\{ equipmentOptionName\(row\) \}\}<\/span>/.test(tpl), '器材列表的名稱維持一行')
   r.check((beansTpl.match(/<span v-if="bean\.roaster\?\.trim\(\)" class="min-w-0 truncate">\{\{ bean\.roaster \}\}<\/span>\s*<span v-if="rest\(bean\)" class="shrink-0 tabular-nums">/g) || []).length === 2,
     '第二行：咖啡店名（截斷）、養豆（不讓位）')
   r.check(/beanListRest\(bean\.roast_date, bean\.is_finished\)/.test(beans) && !/養豆 \{\{/.test(beansTpl), '養豆走 beanListRest，不再寫「養豆 N 天」')

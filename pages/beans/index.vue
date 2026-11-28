@@ -133,9 +133,11 @@ onMounted(load)
                 <BeanThumb :photo-url="photoUrl(bean)" :roast-level="bean.roast_level" alt="" />
               </span>
             </template>
-            <!-- 範例豆子的標示寫在豆名裡（「範例-…」，《01》§13.2），不另外放標籤 -->
+            <!-- 範例豆子的標示寫在豆名裡（「範例-…」，《01》§13.2），不另外放標籤。
+                 豆名最多兩行、超過才加刪節號（2026-11-28）：豆名是認出豆子的主要依據，320 寬時一行只剩約 144px。
+                 兩行時列跟著變高（12 ＋ 26 × 2 ＋ 2 ＋ 22 ＋ 12 ＝ 100），縮圖垂直置中；一行時列高由縮圖決定（88）。第二行維持一行 -->
             <template #title>
-              <span class="min-w-0 truncate">{{ bean.name }}</span>
+              <span class="min-w-0 line-clamp-2 wrap-break-word">{{ bean.name }}</span>
             </template>
             <!-- 第二行：咖啡店名、養豆，兩項之間是間距，不用中間點。沒填的那項不顯示，兩項都沒有時整行不出現 -->
             <template v-if="bean.roaster?.trim() || rest(bean)" #meta>
@@ -157,7 +159,7 @@ onMounted(load)
                 </span>
               </template>
               <template #title>
-                <span class="min-w-0 truncate">{{ bean.name }}</span>
+                <span class="min-w-0 line-clamp-2 wrap-break-word">{{ bean.name }}</span>
               </template>
               <template v-if="bean.roaster?.trim() || rest(bean)" #meta>
                 <span v-if="bean.roaster?.trim()" class="min-w-0 truncate">{{ bean.roaster }}</span>

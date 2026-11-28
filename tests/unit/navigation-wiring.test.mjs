@@ -84,9 +84,9 @@ export default function run() {
   r.check(/<template #end>[\s\S]*to="\/settings"[\s\S]*aria-label="帳號與設定"/.test(home) && !/r="3"/.test(home), '總覽右上角是人頭佔位，點了進設定（沒有齒輪了）')
   const homeFile = read('pages/index.vue')
   r.check(/class="account-avatar[^"]*rounded-full"/.test(home) && /<svg width="44" height="44" viewBox="0 0 24 24" aria-hidden="true">/.test(home)
-    && /\.account-avatar \{[^}]*width: var\(--touch-min\);[^}]*height: var\(--touch-min\);[^}]*linear-gradient\(to bottom, var\(--avatar-placeholder-from\), var\(--avatar-placeholder-to\)\);[^}]*box-shadow: var\(--shadow-light\);[^}]*color: var\(--on-avatar-placeholder\);/.test(homeFile)
+    && /\.account-avatar \{[^}]*width: var\(--touch-min\);[^}]*height: var\(--touch-min\);[^}]*linear-gradient\(to bottom, var\(--avatar-placeholder-from\), var\(--avatar-placeholder-to\)\);[^}]*box-shadow: var\(--header-button-shadow\);[^}]*color: var\(--on-avatar-placeholder\);/.test(homeFile)
     && !/header-icon-button/.test(home),
-    '人頭佔位：44px 的圓本身就是按鈕（不外包 --surface 的圓），漸層與白色人形用 token，陰影 --shadow-light（2026-11-27 第二版）')
+    '人頭佔位：44px 的圓本身就是按鈕（不外包 --surface 的圓），漸層與白色人形用 token，陰影 --header-button-shadow（2026-11-28）')
   const tokensFile = read('assets/css/tokens.css')
   r.check(/--avatar-placeholder-from: var\(--stone-400\);/.test(tokensFile) && /--avatar-placeholder-to: var\(--stone-500\);/.test(tokensFile)
     && /--on-avatar-placeholder: var\(--white\);/.test(tokensFile) && !/--settings-icon/.test(tokensFile),
@@ -94,9 +94,9 @@ export default function run() {
 
   r.section('頁首的圖示按鈕一律圓形（2026-11-27）')
   const mainCss = read('assets/css/main.css')
-  r.check(/\.header-icon-button \{[^}]*width: var\(--touch-min\);[^}]*height: var\(--touch-min\);[^}]*border-radius: 9999px;[^}]*background: var\(--surface\);[^}]*box-shadow: var\(--shadow-light\);/.test(mainCss)
+  r.check(/\.header-icon-button \{[^}]*width: var\(--touch-min\);[^}]*height: var\(--touch-min\);[^}]*border-radius: 9999px;[^}]*background: var\(--surface\);[^}]*box-shadow: var\(--header-button-shadow\);/.test(mainCss)
     && !/\.header-icon-button \{[^}]*corner-shape/.test(mainCss),
-    '.header-icon-button：44px 的正圓、--surface 底、--shadow-light（和卡片同一個），不套 corner-shape')
+    '.header-icon-button：44px 的正圓、--surface 底、--header-button-shadow，不套 corner-shape')
   r.check(/\.header-icon-button--on-media \{[^}]*color-mix\(in srgb, var\(--surface\) 78%, transparent\);[^}]*backdrop-filter: blur\(6px\);/.test(mainCss),
     '主圖上：--surface 的 78% 加 6px 背景模糊')
   const backTemplate = stripComments(templateOf(read('components/BackButton.vue')))
@@ -113,8 +113,8 @@ export default function run() {
     && /:class="floating \? 'header-icon-button--on-media' : '-my-0\.5 ml-auto self-center'"/.test(shareTemplate) && !/-mr-3/.test(shareTemplate),
     '分享：紀錄詳情與結算頁同一個圓，結算頁加模糊；外緣對齊頁面內距')
   r.check(/<header class="flex items-center gap-3"/.test(read('components/PageHeader.vue')), 'PageHeader：‹ 和標題之間 12px')
-  r.check(/boxShadow: floating \? 'var\(--shadow-light\)' : undefined/.test(read('components/DoneButton.vue')) && /background: 'var\(--accent\)'/.test(read('components/DoneButton.vue')),
-    '完成鈕不在這一套裡：維持 --accent 實心（浮動時陰影和分享一樣是 --shadow-light）')
+  r.check(/boxShadow: floating \? 'var\(--header-button-shadow\)' : undefined/.test(read('components/DoneButton.vue')) && /background: 'var\(--accent\)'/.test(read('components/DoneButton.vue')),
+    '完成鈕不在這一套裡：維持 --accent 實心（浮動時陰影和分享一樣是 --header-button-shadow）')
   // 2026-11-27 第二版：器材選擇器標題列的 ＋ 也是圓鈕，不再用負邊距
   const pickerTemplate = read('components/EquipmentPicker.vue')
   r.check(/<button\s+v-if="mode === 'list'"\s+type="button"\s+class="header-icon-button"\s+:aria-label="`新增\$\{equipmentLabels\[type\]\}`"/.test(pickerTemplate) && !/-mr-3/.test(pickerTemplate),
@@ -413,16 +413,32 @@ export default function run() {
     && /:solid-at="sections"/.test(summaryTemplate) && /<div ref="sections" class="mt-8 flex flex-col"/.test(summaryTemplate),
     '漸層的兩個位置在掛載與版面改變時量（ResizeObserver，兩條路都量）；實底的位置是結算頁的第一個段落')
   const tokensCss = read('assets/css/tokens.css')
-  r.check(/--float-shadow: 0 0 \d+px rgb\([^)]*\);/.test(tokensCss)
-    && /\.header-icon-button \{[^}]*box-shadow: var\(--shadow-light\);/.test(read('assets/css/main.css')) && /class="header-icon-button"/.test(read('components/BrewShare.vue'))
-    && /boxShadow: floating \? 'var\(--shadow-light\)' : undefined/.test(read('components/DoneButton.vue'))
+  r.check(/--float-shadow: 0 0 \d+px rgb\([^)]*\);/.test(tokensCss) && /--header-button-shadow: 0 0 10px rgb\(0 0 0 \/ 0\.08\);/.test(tokensCss)
+    && /\.header-icon-button \{[^}]*box-shadow: var\(--header-button-shadow\);/.test(read('assets/css/main.css')) && /class="header-icon-button"/.test(read('components/BrewShare.vue'))
+    && /boxShadow: floating \? 'var\(--header-button-shadow\)' : undefined/.test(read('components/DoneButton.vue'))
     && (summaryTemplate.match(/<DoneButton floating @click="done" \/>/g) || []).length === 2,
-    '右上兩顆的陰影：--shadow-light（和卡片同一個，2026-11-27 第二版），分享與完成（含讀取中）同一個')
+    '右上兩顆的陰影：--header-button-shadow（0 0 10px、8% 黑，照 Figma；2026-11-28），分享與完成（含讀取中）同一個')
   r.check(/\.brew-hero__actions \{[^}]*position: fixed;[^}]*top: calc\(env\(safe-area-inset-top\) \+ 40px\);[^}]*right: var\(--fixed-right\);/.test(hero),
     '分享與完成固定在畫面頂端，右緣和分頁列同一條線')
   r.check(/padding-inline: calc\(var\(--form-gutter\) \+ var\(--card-pad\)\);/.test(hero) && /paddingLeft: 'var\(--card-pad\)'/.test(summary),
     '主圖的標題區與小數據列：和段落標題同一條線（頁面內距＋--card-pad，用 token 算）')
-  r.check(/<BeanArt background="transparent" whole \/>/.test(read('components/BrewHeroFallback.vue')), '沒有照片：BeanArt 的三顆豆子完整畫出來（whole），沿用同一組圖檔')
+  // 2026-11-28：沒有照片時換成滿版的豆子圖樣（Figma 3677:1996），BeanArt 的 whole 拿掉
+  const fallback = read('components/BrewHeroFallback.vue')
+  r.check(/<div class="hero-fallback" :style="\{ background: fill\.background \}" aria-hidden="true">\s*<div class="hero-fallback__pattern" \/>/.test(fallback)
+    && /background: var\(--roast-art\);/.test(fallback) && /mask-image: url\("\/illustrations\/bean-pattern\.svg"\);/.test(fallback)
+    && /mask-size: 91px 160px;/.test(fallback) && /mask-repeat: repeat;/.test(fallback) && !/BeanArt/.test(stripComments(templateOf(fallback))),
+    '沒有照片：烘焙度底色上鋪滿豆子圖樣（一格 91×160 的遮罩，顏色 --roast-art），豆子大小固定')
+  r.check(/inset: calc\(var\(--pattern-bleed\) \* -1\);/.test(fallback) && /mask-position: var\(--pattern-bleed\) var\(--pattern-bleed\);/.test(fallback)
+    && /--pattern-bleed: 40px;/.test(fallback),
+    '圖樣往四邊多鋪 40px（模糊的邊緣落在圖層外），格子仍然對齊主圖左上角')
+  const beanArt = read('components/BeanArt.vue')
+  r.check(!/whole/.test(beanArt.replace(/\/\/.*$/gm, '')), 'BeanArt 的 whole 拿掉了（只有主圖用過）')
+  const tile = read('public/illustrations/bean-pattern.svg')
+  r.check(/width="91" height="160" viewBox="0 0 91 160"/.test(tile)
+    && ['translate(15 39)', 'translate(118 119) scale(-1 1)', 'translate(27 119) scale(-1 1)', 'translate(118 -41) scale(-1 1)', 'translate(27 -41) scale(-1 1)'].every(t => tile.includes(`transform="${t}"`)),
+    '圖樣：正放中心 (45, 69)、鏡像中心 (88, 149)，鏡像那顆跨邊的部分在左、上各補一份（重複時沒有接縫）')
+  // XML 的註解裡不能有「--」：寫了整個檔案就不是合法的 SVG，遮罩載入失敗、豆子全部不見（2026-11-28 實際發生過）
+  r.check((tile.match(/<!--([\s\S]*?)-->/g) || []).every(c => !c.slice(4, -3).includes('--')), '圖樣的 SVG 註解裡沒有「--」（否則不是合法的 XML，遮罩整個失效）')
   r.check(/<p v-if="roaster"[^>]*>\{\{ roaster \}\}<\/p>/.test(summaryTemplate) && /<h1 class="text-display-l font-medium break-words">\{\{ beanName \}\}<\/h1>/.test(summaryTemplate)
     && /\?\? '沒有指定豆子'/.test(summary), '標題區：咖啡店名（沒有就不顯示）、豆名（Display L，換行不截斷；沒有豆子寫「沒有指定豆子」）')
   r.check(/<p v-if="ring"[\s\S]*?<GoalRing[\s\S]*?:size="26"[\s\S]*?:celebrate="ring\.crossed"/.test(summaryTemplate)

@@ -102,7 +102,7 @@ const newBrewLink = computed(() => newBrewEntry(activeBeans.value))
     <PageHeader title="總覽">
       <template #end>
         <!-- 設定只從這裡進（《03》§3）。人頭佔位（2026-11-27，取代齒輪；Figma 3320:2675）：
-             實心圓底加白色人形，44px，圓本身就是按鈕，不再外包 --surface 的圓；陰影和其他頁首圓鈕一樣是 --shadow-light（和卡片同一個，2026-11-27 第二版）。
+             實心圓底加白色人形，44px，圓本身就是按鈕，不再外包 --surface 的圓；陰影和其他頁首圓鈕一樣是 --header-button-shadow（2026-11-28）。
              圓的外緣對齊右側 20 的內距。頭像上傳是之後的工作，這輪只有佔位 -->
         <NuxtLink
           to="/settings"
@@ -254,7 +254,7 @@ const newBrewLink = computed(() => newBrewEntry(activeBeans.value))
   width: var(--touch-min);
   height: var(--touch-min);
   background: linear-gradient(to bottom, var(--avatar-placeholder-from), var(--avatar-placeholder-to));
-  box-shadow: var(--shadow-light);
+  box-shadow: var(--header-button-shadow);
   color: var(--on-avatar-placeholder);
 }
 </style>
